@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import argparse
+import os
 
 import mlog
 
@@ -19,6 +20,67 @@ def construct_parser():
         help="Set the logging output verbosity.",
         choices=mlog.levels,
         default="info"
+    )
+
+    parser.add_argument(
+        "--no-local", help="Skip local registry.",
+        action="store_true"
+    )
+
+    parser.add_argument(
+        "--no-sandbox", help="Skip local registry.",
+        action="store_true"
+    )
+
+    subparsers = parser.add_subparsers(
+        title="Commands",
+        dest="commands"
+    )
+
+    registries_parser = subparsers.add_parser(
+        "registries", help="List all available registers.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    registries_parser.add_argument(
+        "--registries", nargs="+", metavar="PATH",
+        help=(
+            "Indicate registries containing all available "
+            "environment definitions."
+        ),
+        default=default_registries()
+    )
+
+    list_parser = subparsers.add_parser(
+        "list", help="List all available environment definitions.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    list_parser.add_argument(
+        "--registries", nargs="+", metavar="PATH",
+        help=(
+            "Indicate registries containing all available "
+            "environment definitions."
+        ),
+        default=default_registries()
+    )
+
+    fetch_subparsers = subparsers.add_parser(
+        "fetch", description="Fetch an environment.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    fetch_subparsers.add_argument(
+        "requirement", help="Requirement specifier"
+    )
+
+    fetch_subparsers = subparsers.add_parser(
+        "load", description="Load an environment.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    fetch_subparsers.add_argument(
+        "requirement", help="Requirement specifier"
     )
 
     return parser
@@ -40,4 +102,83 @@ def main(arguments=None):
         namespace.verbosity
     )
 
-    logger.info("Hello from Umwelt!")
+    # Fetch all registries
+    registries = fetch_registries(
+        namespace.registries, include_local=not namespace.no_local
+    )
+    logger.debug("Registries: " + ", ".join(registries))
+
+    # Process requested operation.
+    if namespace.commands == "registries":
+        print "\n".join(registries)
+
+
+def local_registry():
+    """Return the local registry if available."""
+    registry_path = os.path.join(
+        os.path.expanduser("~"), ".registry"
+    )
+
+    if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
+        return registry_path
+
+
+def default_registries():
+    """Return the default registries."""
+    return [
+        os.path.join(os.sep, "mill3d", "server", "REGISTRY"),
+        os.path.join(os.sep, "jobs", "ads", ".registry")
+    ]
+
+
+def fetch_registries(paths, include_local=True):
+    """Fetch all registries from *paths*.
+
+    *include_local* indicate whether the local registry should be included.
+
+    """
+    registries = []
+
+    for path in paths:
+        if not os.path.isdir(path):
+            raise IOError("The registry must be a directory: {}".format(path))
+        if not os.access(path, os.R_OK):
+            raise IOError("The registry must be readable: {}".format(path))
+
+        registries.append(path)
+
+    registry_path = discover_registry_from_path(os.getcwd())
+    if registry_path:
+        registries.append(registry_path)
+
+    registry_path = local_registry()
+    if registry_path and include_local:
+        registries.append(registry_path)
+
+    registries.reverse()
+    return registries
+
+
+def discover_registry_from_path(path):
+    """Return registry from *path* if available under the folder structure.
+
+    The registry path should be a ".registry" folder within *path*.
+
+    Return the registry path discovered, or None if the register is not found
+    or not accessible.
+
+    .. note::
+
+        No registry will be fetched if *path* is not under `/jobs/ads`.
+
+    """
+    path = os.path.abspath(path)
+
+    # Only discover the registry if the top level hierarchy is /jobs/ads.
+    prefix = os.path.join(os.sep, "jobs", "ads")
+    if not path.startswith(prefix):
+        return
+
+    registry_path = os.path.join(path, ".registry")
+    if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
+        return registry_path
