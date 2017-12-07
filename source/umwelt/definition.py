@@ -99,8 +99,6 @@ def get(definition_specifier, definition_mapping):
         )
 
 
-
-
 def discover(paths, max_depth=None):
     """Discover and yield environment definitions found under *paths*.
 
