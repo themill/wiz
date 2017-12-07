@@ -100,25 +100,16 @@ def construct_parser():
     )
 
     search_parser.add_argument(
-        "requirement", help="Requirement specifier"
+        "definition", help="Definition specifier"
     )
 
-    fetch_subparsers = subparsers.add_parser(
-        "fetch", description="Fetch an environment.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    fetch_subparsers.add_argument(
-        "requirement", help="Requirement specifier"
-    )
-
-    fetch_subparsers = subparsers.add_parser(
+    load_subparsers = subparsers.add_parser(
         "load", description="Load an environment.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    fetch_subparsers.add_argument(
-        "requirement", help="Requirement specifier"
+    load_subparsers.add_argument(
+        "definition", help="Definition specifier"
     )
 
     return parser
@@ -158,7 +149,7 @@ def main(arguments=None):
 
     elif namespace.commands == "search":
         mapping = search_definitions(
-            namespace.requirement,
+            namespace.definition,
             registries, max_depth=namespace.definition_search_depth
         )
         if not len(mapping):
@@ -254,10 +245,10 @@ def fetch_definition_mapping(paths, max_depth=None):
     return mapping
 
 
-def search_definitions(requirement, paths, max_depth=None):
+def search_definitions(definition, paths, max_depth=None):
     """Return mapping from environment definitions matching *requirement*.
 
-    *requirement* can indicate a requirement specifier which must adhere to
+    *definition* can indicate a definition specifier which must adhere to
     `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
 
     :exc:`packaging.requirements.InvalidRequirement` is raised if the
@@ -270,18 +261,18 @@ def search_definitions(requirement, paths, max_depth=None):
     logger = mlog.Logger(__name__ + ".search_definitions")
     logger.debug(
         "Search environment definition definitions matching {0!r}"
-        .format(requirement)
+        .format(definition)
     )
 
     mapping = dict()
 
     for definition in umwelt.definition.discover(paths, max_depth=max_depth):
-        requirement_ = Requirement(requirement)
+        requirement = Requirement(definition)
         if (
-            requirement_.name in definition.identifier or
-            requirement_.name in definition.description
+            requirement.name in definition.identifier or
+            requirement.name in definition.description
         ):
-            if Version(definition.version) in requirement_.specifier:
+            if Version(definition.version) in requirement.specifier:
                 mapping.setdefault(definition.identifier, [])
                 mapping[definition.identifier].append(definition)
 
