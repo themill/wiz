@@ -169,6 +169,9 @@ def main(arguments=None):
             registries, max_depth=namespace.definition_search_depth
         )
         definition = umwelt.definition.get(namespace.definition, mapping)
+        definition = umwelt.definition.resolve_dependencies(
+            definition, mapping
+        )
 
 
 def local_registry():

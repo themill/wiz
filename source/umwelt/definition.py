@@ -98,6 +98,34 @@ def get(definition_specifier, definition_mapping):
             .format(definition_specifier)
         )
 
+    return required_definition
+
+
+def resolve_dependencies(definition, definition_mapping):
+    """Return *definition* augmented with its dependency definitions.
+
+    Look for dependencies keyword in *definition* and replace all specifier by
+    the corresponding definition.
+
+    """
+    logger = mlog.Logger(__name__ + ".discover")
+    logger.debug(
+        "Resolve dependencies for {} [{}]."
+        .format(definition.identifier, definition.version)
+    )
+
+    dependencies = definition.get("dependency", [])
+    logger.debug("Dependencies: {!r}".format(dependencies))
+
+    # Reset the dependency array before filling it with definition instances
+    definition["dependency"] = []
+
+    for definition_specifier in dependencies:
+        dependent_definition = get(definition_specifier, definition_mapping)
+        definition["dependency"].append(dependent_definition)
+
+    return definition
+
 
 def discover(paths, max_depth=None):
     """Discover and yield environment definitions found under *paths*.
