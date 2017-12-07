@@ -259,7 +259,7 @@ def search_definitions(definition, paths, max_depth=None):
 
     """
     logger = mlog.Logger(__name__ + ".search_definitions")
-    logger.debug(
+    logger.info(
         "Search environment definition definitions matching {0!r}"
         .format(definition)
     )
