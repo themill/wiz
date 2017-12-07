@@ -23,7 +23,8 @@ with open(
 
 # Compute dependencies.
 INSTALL_REQUIRES = [
-    "mlog >= 0.0.6, < 1"
+    "mlog >= 0.0.6, < 1",
+    "packaging >= 16, < 17"
 ]
 
 DOC_REQUIRES = [
@@ -34,7 +35,7 @@ DOC_REQUIRES = [
     # Restricted as 0.1.3 causes failed builds.
     # https://bitbucket.org/birkenfeld/sphinx-contrib/issues/168
     "sphinxcontrib-autoprogram >= 0.1.2, !=0.1.3, < 1"
-    
+
 ]
 TEST_REQUIRES = [
     "pytest-runner >= 2.7, < 3",

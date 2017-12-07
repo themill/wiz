@@ -4,6 +4,10 @@ import argparse
 import os
 
 import mlog
+from packaging.requirements import Requirement
+from packaging.version import Version
+
+import umwelt.definition
 
 
 def construct_parser():
@@ -28,8 +32,14 @@ def construct_parser():
     )
 
     parser.add_argument(
-        "--no-sandbox", help="Skip local registry.",
+        "--no-pwd", help="Do not discover registry from current path.",
         action="store_true"
+    )
+
+    parser.add_argument(
+        "-dsd", "--definition-search-depth",
+        help="Maximum depth to recursively search for environment definitions.",
+        type=int
     )
 
     subparsers = parser.add_subparsers(
@@ -51,18 +61,46 @@ def construct_parser():
         default=default_registries()
     )
 
-    list_parser = subparsers.add_parser(
-        "list", help="List all available environment definitions.",
+    definitions_parser = subparsers.add_parser(
+        "definitions", help="List all available environment definitions.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    list_parser.add_argument(
+    definitions_parser.add_argument(
+        "--all", help="Return all versions of the available definitions.",
+        action="store_true"
+    )
+
+    definitions_parser.add_argument(
         "--registries", nargs="+", metavar="PATH",
         help=(
             "Indicate registries containing all available "
             "environment definitions."
         ),
         default=default_registries()
+    )
+
+    search_parser = subparsers.add_parser(
+        "search", help="Search an environment definition.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    search_parser.add_argument(
+        "--all", help="Return all versions of the available definitions.",
+        action="store_true"
+    )
+
+    search_parser.add_argument(
+        "--registries", nargs="+", metavar="PATH",
+        help=(
+            "Indicate registries containing all available "
+            "environment definitions."
+        ),
+        default=default_registries()
+    )
+
+    search_parser.add_argument(
+        "requirement", help="Requirement specifier"
     )
 
     fetch_subparsers = subparsers.add_parser(
@@ -111,6 +149,22 @@ def main(arguments=None):
     # Process requested operation.
     if namespace.commands == "registries":
         print "\n".join(registries)
+
+    elif namespace.commands == "definitions":
+        mapping = fetch_definition_mapping(
+            registries, max_depth=namespace.definition_search_depth
+        )
+        display_definitions(mapping, all_versions=namespace.all)
+
+    elif namespace.commands == "search":
+        mapping = search_definitions(
+            namespace.requirement,
+            registries, max_depth=namespace.definition_search_depth
+        )
+        if not len(mapping):
+            print "No results found."
+        else:
+            display_definitions(mapping, all_versions=namespace.all)
 
 
 def local_registry():
@@ -182,3 +236,80 @@ def discover_registry_from_path(path):
     registry_path = os.path.join(path, ".registry")
     if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
         return registry_path
+
+
+def fetch_definition_mapping(paths, max_depth=None):
+    """Return mapping from all environment definitions available under *paths*.
+
+    :func:`~umwelt.definition.discover` available environments under *paths*,
+    searching recursively up to *max_depth*.
+
+    """
+    mapping = dict()
+
+    for definition in umwelt.definition.discover(paths, max_depth=max_depth):
+        mapping.setdefault(definition.identifier, [])
+        mapping[definition.identifier].append(definition)
+
+    return mapping
+
+
+def search_definitions(requirement, paths, max_depth=None):
+    """Return mapping from environment definitions matching *requirement*.
+
+    *requirement* can indicate a requirement specifier which must adhere to
+    `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
+
+    :exc:`packaging.requirements.InvalidRequirement` is raised if the
+    requirement specifier is incorrect.
+
+    :func:`~umwelt.definition.discover` available environments under *paths*,
+    searching recursively up to *max_depth*.
+
+    """
+    logger = mlog.Logger(__name__ + ".search_definitions")
+    logger.debug(
+        "Search environment definition definitions matching {0!r}"
+        .format(requirement)
+    )
+
+    mapping = dict()
+
+    for definition in umwelt.definition.discover(paths, max_depth=max_depth):
+        requirement_ = Requirement(requirement)
+        if (
+            requirement_.name in definition.identifier or
+            requirement_.name in definition.description
+        ):
+            if Version(definition.version) in requirement_.specifier:
+                mapping.setdefault(definition.identifier, [])
+                mapping[definition.identifier].append(definition)
+
+    return mapping
+
+
+def display_definitions(definition_mapping, all_versions=False):
+    """Display the environment definitions stored in *definition_mapping*.
+
+    *all_versions* indicate whether all versions from the definitions must be
+    returned. If not, only the latest version of each definition identifier is
+    displayed.
+
+    """
+    for identifier, definitions in definition_mapping.items():
+        sorted_definitions = sorted(
+            definitions, key=lambda d: d.version, reverse=True
+        )
+
+        if all_versions:
+            for definition in sorted_definitions:
+                print (
+                    "{0[identifier]} [{0[version]}]\t\t\t{0[description]}"
+                    .format(definition)
+                )
+
+        else:
+            print (
+                "{0[identifier]} [{0[version]}]\t\t\t{0[description]}"
+                .format(sorted_definitions[0])
+            )
