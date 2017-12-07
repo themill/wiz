@@ -108,7 +108,7 @@ def resolve_dependencies(definition, definition_mapping):
     the corresponding definition.
 
     """
-    logger = mlog.Logger(__name__ + ".discover")
+    logger = mlog.Logger(__name__ + ".resolve_dependencies")
     logger.debug(
         "Resolve dependencies for {} [{}]."
         .format(definition.identifier, definition.version)
