@@ -107,6 +107,15 @@ def construct_parser():
     )
 
     load_subparsers.add_argument(
+        "--registries", nargs="+", metavar="PATH",
+        help=(
+            "Indicate registries containing all available "
+            "environment definitions."
+        ),
+        default=default_registries()
+    )
+
+    load_subparsers.add_argument(
         "definition", help="Definition specifier"
     )
 
@@ -154,6 +163,12 @@ def main(arguments=None):
             print "No results found."
         else:
             display_definitions(mapping, all_versions=namespace.all)
+
+    elif namespace.commands == "load":
+        mapping = umwelt.definition.fetch_definition_mapping(
+            registries, max_depth=namespace.definition_search_depth
+        )
+        definition = umwelt.definition.get(namespace.definition, mapping)
 
 
 def local_registry():
@@ -229,6 +244,9 @@ def discover_registry_from_path(path):
 
 def display_definitions(definition_mapping, all_versions=False):
     """Display the environment definitions stored in *definition_mapping*.
+
+    *definition_mapping* is a mapping regrouping all available environment
+    definition associated with their unique identifier.
 
     *all_versions* indicate whether all versions from the definitions must be
     returned. If not, only the latest version of each definition identifier is

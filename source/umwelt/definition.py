@@ -59,6 +59,48 @@ def search_definitions(definition_specifier, paths, max_depth=None):
     return mapping
 
 
+def get(definition_specifier, definition_mapping):
+    """Get fittest :class:`Definition` instance for *definition_specifier*.
+
+    *definition_specifier* can indicate a definition specifier which must
+    adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
+
+    *definition_mapping* is a mapping regrouping all available environment
+    definition associated with their unique identifier.
+
+    :exc:`packaging.requirements.InvalidRequirement` is raised if the
+    requirement specifier is incorrect.
+
+    """
+    requirement = Requirement(definition_specifier)
+    if requirement.name not in definition_mapping:
+        raise RuntimeError(
+            "No definition identified as {!r} has been found."
+            .format(requirement.name)
+        )
+
+    required_definition = None
+
+    # Sort the definition so that the fittest highest version is loaded first.
+    sorted_definitions = sorted(
+        definition_mapping[requirement.name],
+        key=lambda d: d.version, reverse=True
+    )
+
+    for definition in sorted_definitions:
+        if Version(definition.version) in requirement.specifier:
+            required_definition = definition
+            break
+
+    if required_definition is None:
+        raise RuntimeError(
+            "No definition has been found for this specifier: {!r}."
+            .format(definition_specifier)
+        )
+
+
+
+
 def discover(paths, max_depth=None):
     """Discover and yield environment definitions found under *paths*.
 
