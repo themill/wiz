@@ -104,8 +104,8 @@ def get(definition_specifier, definition_mapping):
 def update_dependencies(definition, definition_mapping):
     """Mutate *definition* with dependent definitions instead of specifiers.
 
-    Look for dependencies keyword in *definition* and replace all specifier by
-    the corresponding definition.
+    Recursively look for dependencies keyword in *definition* and replace all
+    specifier by the corresponding definition.
 
     """
     logger = mlog.Logger(__name__ + ".update_dependencies")
@@ -118,6 +118,7 @@ def update_dependencies(definition, definition_mapping):
 
     for definition_specifier in dependencies:
         dependent_definition = get(definition_specifier, definition_mapping)
+        update_dependencies(dependent_definition, definition_mapping)
         definition["dependency"].append(dependent_definition)
 
 
