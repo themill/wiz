@@ -101,8 +101,8 @@ def get(definition_specifier, definition_mapping):
     return required_definition
 
 
-def resolve_dependencies(definition, definition_mapping):
-    """Mutate *definition* instance to resolve dependency specifiers.
+def update_dependencies(definition, definition_mapping):
+    """Mutate *definition* with dependent definitions instead of specifiers.
 
     Look for dependencies keyword in *definition* and replace all specifier by
     the corresponding definition.
