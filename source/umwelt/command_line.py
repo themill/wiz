@@ -4,8 +4,6 @@ import argparse
 import os
 
 import mlog
-from packaging.requirements import Requirement
-from packaging.version import Version
 
 import umwelt.definition
 
@@ -142,13 +140,13 @@ def main(arguments=None):
         print "\n".join(registries)
 
     elif namespace.commands == "definitions":
-        mapping = fetch_definition_mapping(
+        mapping = umwelt.definition.fetch_definition_mapping(
             registries, max_depth=namespace.definition_search_depth
         )
         display_definitions(mapping, all_versions=namespace.all)
 
     elif namespace.commands == "search":
-        mapping = search_definitions(
+        mapping = umwelt.definition.search_definitions(
             namespace.definition,
             registries, max_depth=namespace.definition_search_depth
         )
@@ -227,56 +225,6 @@ def discover_registry_from_path(path):
     registry_path = os.path.join(path, ".registry")
     if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
         return registry_path
-
-
-def fetch_definition_mapping(paths, max_depth=None):
-    """Return mapping from all environment definitions available under *paths*.
-
-    :func:`~umwelt.definition.discover` available environments under *paths*,
-    searching recursively up to *max_depth*.
-
-    """
-    mapping = dict()
-
-    for definition in umwelt.definition.discover(paths, max_depth=max_depth):
-        mapping.setdefault(definition.identifier, [])
-        mapping[definition.identifier].append(definition)
-
-    return mapping
-
-
-def search_definitions(definition, paths, max_depth=None):
-    """Return mapping from environment definitions matching *requirement*.
-
-    *definition* can indicate a definition specifier which must adhere to
-    `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
-
-    :exc:`packaging.requirements.InvalidRequirement` is raised if the
-    requirement specifier is incorrect.
-
-    :func:`~umwelt.definition.discover` available environments under *paths*,
-    searching recursively up to *max_depth*.
-
-    """
-    logger = mlog.Logger(__name__ + ".search_definitions")
-    logger.info(
-        "Search environment definition definitions matching {0!r}"
-        .format(definition)
-    )
-
-    mapping = dict()
-
-    for definition in umwelt.definition.discover(paths, max_depth=max_depth):
-        requirement = Requirement(definition)
-        if (
-            requirement.name in definition.identifier or
-            requirement.name in definition.description
-        ):
-            if Version(definition.version) in requirement.specifier:
-                mapping.setdefault(definition.identifier, [])
-                mapping[definition.identifier].append(definition)
-
-    return mapping
 
 
 def display_definitions(definition_mapping, all_versions=False):

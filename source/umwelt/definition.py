@@ -4,7 +4,59 @@ import os
 import collections
 import json
 
+from packaging.requirements import Requirement
+from packaging.version import Version
 import mlog
+
+
+def fetch_definition_mapping(paths, max_depth=None):
+    """Return mapping from all environment definitions available under *paths*.
+
+    :func:`discover` available environments under *paths*,
+    searching recursively up to *max_depth*.
+
+    """
+    mapping = dict()
+
+    for definition in discover(paths, max_depth=max_depth):
+        mapping.setdefault(definition.identifier, [])
+        mapping[definition.identifier].append(definition)
+
+    return mapping
+
+
+def search_definitions(definition_specifier, paths, max_depth=None):
+    """Return mapping from environment definitions matching *requirement*.
+
+    *definition_specifier* can indicate a definition specifier which must
+    adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
+
+    :exc:`packaging.requirements.InvalidRequirement` is raised if the
+    requirement specifier is incorrect.
+
+    :func:`~umwelt.definition.discover` available environments under *paths*,
+    searching recursively up to *max_depth*.
+
+    """
+    logger = mlog.Logger(__name__ + ".search_definitions")
+    logger.info(
+        "Search environment definition definitions matching {0!r}"
+        .format(definition_specifier)
+    )
+
+    mapping = dict()
+
+    for definition in discover(paths, max_depth=max_depth):
+        requirement = Requirement(definition_specifier)
+        if (
+            requirement.name in definition.identifier or
+            requirement.name in definition.description
+        ):
+            if Version(definition.version) in requirement.specifier:
+                mapping.setdefault(definition.identifier, [])
+                mapping[definition.identifier].append(definition)
+
+    return mapping
 
 
 def discover(paths, max_depth=None):
