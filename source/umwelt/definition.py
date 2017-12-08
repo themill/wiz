@@ -4,8 +4,8 @@ import os
 import collections
 import json
 
-from packaging.requirements import Requirement
-from packaging.version import Version
+from packaging.requirements import Requirement, InvalidRequirement
+from packaging.version import Version, InvalidVersion
 import mlog
 
 
@@ -44,15 +44,16 @@ def search_definitions(definition_specifier, paths, max_depth=None):
         .format(definition_specifier)
     )
 
+    requirement = Requirement(definition_specifier)
+
     mapping = dict()
 
     for definition in discover(paths, max_depth=max_depth):
-        requirement = Requirement(definition_specifier)
         if (
             requirement.name in definition.identifier or
             requirement.name in definition.description
         ):
-            if Version(definition.version) in requirement.specifier:
+            if definition.version in requirement.specifier:
                 mapping.setdefault(definition.identifier, [])
                 mapping[definition.identifier].append(definition)
 
@@ -165,7 +166,10 @@ def discover(paths, max_depth=None):
 
                 try:
                     environment = load(environment_path)
-                except (IOError, ValueError, TypeError):
+                except (
+                    IOError, ValueError, TypeError,
+                    InvalidRequirement, InvalidVersion
+                ):
                     logger.warning(
                         "Error occurred trying to load environment definition "
                         "from {!r}".format(environment_path),
@@ -181,12 +185,20 @@ def discover(paths, max_depth=None):
 
 
 def load(path):
-    """Load and return :class:`Environment` from *path*."""
+    """Load and return :class:`Definition` from *path*."""
     with open(path, "r") as stream:
-        environment_data = json.load(stream)
+        definition_data = json.load(stream)
+
         # TODO: Validate with JSON-Schema.
-        environment = Definition(**environment_data)
-        return environment
+
+        definition = Definition(**definition_data)
+        definition["version"] = Version(definition.version)
+        definition["dependency"] = map(
+            lambda requirement: Requirement(requirement),
+            definition.get("dependency", [])
+        )
+
+        return definition
 
 
 class Definition(collections.MutableMapping):
