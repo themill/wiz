@@ -32,7 +32,9 @@ def construct_parser():
     )
 
     parser.add_argument(
-        "--no-pwd", help="Do not discover registry from current path.",
+        "--no-cwd", help=(
+            "Do not discover registry from current working directory."
+        ),
         action="store_true"
     )
 
@@ -142,7 +144,9 @@ def main(arguments=None):
 
     # Fetch all registries
     registries = fetch_registries(
-        namespace.registries, include_local=not namespace.no_local
+        namespace.registries,
+        include_local=not namespace.no_local,
+        include_working_directory=not namespace.no_cwd
     )
     logger.debug("Registries: " + ", ".join(registries))
 
@@ -198,10 +202,13 @@ def default_registries():
     ]
 
 
-def fetch_registries(paths, include_local=True):
+def fetch_registries(paths, include_local=True, include_working_directory=True):
     """Fetch all registries from *paths*.
 
     *include_local* indicate whether the local registry should be included.
+
+    *include_local* indicate whether the current working directory should be
+     parsed to discover a registry.
 
     """
     registries = []
@@ -214,9 +221,10 @@ def fetch_registries(paths, include_local=True):
 
         registries.append(path)
 
-    registry_path = discover_registry_from_path(os.getcwd())
-    if registry_path:
-        registries.append(registry_path)
+    if include_working_directory:
+        registry_path = discover_registry_from_path(os.getcwd())
+        if registry_path:
+            registries.append(registry_path)
 
     registry_path = local_registry()
     if registry_path and include_local:
