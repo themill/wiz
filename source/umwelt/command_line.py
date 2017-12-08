@@ -4,8 +4,10 @@ import argparse
 import os
 
 import mlog
+from packaging.requirements import InvalidRequirement
 
 import umwelt.definition
+import umwelt.environment
 
 
 def construct_parser():
@@ -168,8 +170,14 @@ def main(arguments=None):
         mapping = umwelt.definition.fetch_definition_mapping(
             registries, max_depth=namespace.definition_search_depth
         )
-        definition = umwelt.definition.get(namespace.definition, mapping)
-        umwelt.definition.update_dependencies(definition, mapping)
+
+        try:
+            umwelt.environment.create_tree([namespace.definition], mapping)
+        except (RuntimeError, InvalidRequirement):
+            logger.error(
+                "Impossible to resolve the environment tree.",
+                traceback=True
+            )
 
 
 def local_registry():
