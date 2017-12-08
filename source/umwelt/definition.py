@@ -66,9 +66,6 @@ def get(requirement, definition_mapping):
     *requirement* indicates a definition requirement which must
     adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
 
-    indicate a :class:`` which must
-    adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
-
     *definition_mapping* is a mapping regrouping all available environment
     definition associated with their unique identifier.
 
