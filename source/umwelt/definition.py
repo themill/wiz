@@ -25,10 +25,10 @@ def fetch_definition_mapping(paths, max_depth=None):
     return mapping
 
 
-def search_definitions(definition_specifier, paths, max_depth=None):
+def search_definitions(requirement, paths, max_depth=None):
     """Return mapping from environment definitions matching *requirement*.
 
-    *definition_specifier* can indicate a definition specifier which must
+    *requirement* can indicate a definition requirement which must
     adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
 
     :exc:`packaging.requirements.InvalidRequirement` is raised if the
@@ -40,30 +40,33 @@ def search_definitions(definition_specifier, paths, max_depth=None):
     """
     logger = mlog.Logger(__name__ + ".search_definitions")
     logger.info(
-        "Search environment definition definitions matching {0!r}"
-        .format(definition_specifier)
+        "Search environment definition definitions matching {!r}"
+        .format(requirement)
     )
 
-    requirement = Requirement(definition_specifier)
+    _requirement = Requirement(requirement)
 
     mapping = dict()
 
     for definition in discover(paths, max_depth=max_depth):
         if (
-            requirement.name in definition.identifier or
-            requirement.name in definition.description
+            _requirement.name in definition.identifier or
+            _requirement.name in definition.description
         ):
-            if definition.version in requirement.specifier:
+            if definition.version in _requirement.specifier:
                 mapping.setdefault(definition.identifier, [])
                 mapping[definition.identifier].append(definition)
 
     return mapping
 
 
-def get(definition_specifier, definition_mapping):
+def get(requirement, definition_mapping):
     """Get fittest :class:`Definition` instance for *definition_specifier*.
 
-    *definition_specifier* can indicate a definition specifier which must
+    *requirement* can indicate a definition requirement which must
+    adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
+
+    indicate a :class:`` which must
     adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
 
     *definition_mapping* is a mapping regrouping all available environment
@@ -73,54 +76,34 @@ def get(definition_specifier, definition_mapping):
     requirement specifier is incorrect.
 
     """
-    requirement = Requirement(definition_specifier)
-    if requirement.name not in definition_mapping:
+    _requirement = Requirement(requirement)
+
+    if _requirement.name not in definition_mapping:
         raise RuntimeError(
             "No definition identified as {!r} has been found."
-            .format(requirement.name)
+            .format(_requirement.name)
         )
 
     required_definition = None
 
     # Sort the definition so that the fittest highest version is loaded first.
     sorted_definitions = sorted(
-        definition_mapping[requirement.name],
+        definition_mapping[_requirement.name],
         key=lambda d: d.version, reverse=True
     )
 
     for definition in sorted_definitions:
-        if Version(definition.version) in requirement.specifier:
+        if definition.version in _requirement.specifier:
             required_definition = definition
             break
 
     if required_definition is None:
         raise RuntimeError(
-            "No definition has been found for this specifier: {!r}."
-            .format(definition_specifier)
+            "No definition has been found for this specifier: {}."
+            .format(_requirement)
         )
 
     return required_definition
-
-
-def update_dependencies(definition, definition_mapping):
-    """Mutate *definition* with dependent definitions instead of specifiers.
-
-    Recursively look for dependencies keyword in *definition* and replace all
-    specifier by the corresponding definition.
-
-    """
-    logger = mlog.Logger(__name__ + ".update_dependencies")
-
-    dependencies = definition.get("dependency", [])
-    logger.debug("Dependencies: {!r}".format(dependencies))
-
-    # Reset the dependency array before filling it with definition instances
-    definition["dependency"] = []
-
-    for definition_specifier in dependencies:
-        dependent_definition = get(definition_specifier, definition_mapping)
-        update_dependencies(dependent_definition, definition_mapping)
-        definition["dependency"].append(dependent_definition)
 
 
 def discover(paths, max_depth=None):
@@ -193,11 +176,6 @@ def load(path):
 
         definition = Definition(**definition_data)
         definition["version"] = Version(definition.version)
-        definition["dependency"] = map(
-            lambda requirement: Requirement(requirement),
-            definition.get("dependency", [])
-        )
-
         return definition
 
 
