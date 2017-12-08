@@ -28,7 +28,7 @@ def fetch_definition_mapping(paths, max_depth=None):
 def search_definitions(requirement, paths, max_depth=None):
     """Return mapping from environment definitions matching *requirement*.
 
-    *requirement* can indicate a definition requirement which must
+    *requirement* indicates a definition requirement which must
     adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
 
     :exc:`packaging.requirements.InvalidRequirement` is raised if the
@@ -63,7 +63,7 @@ def search_definitions(requirement, paths, max_depth=None):
 def get(requirement, definition_mapping):
     """Get fittest :class:`Definition` instance for *definition_specifier*.
 
-    *requirement* can indicate a definition requirement which must
+    *requirement* indicates a definition requirement which must
     adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
 
     indicate a :class:`` which must
