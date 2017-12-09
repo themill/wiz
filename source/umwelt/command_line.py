@@ -107,12 +107,12 @@ def construct_parser():
         "definition", help="Definition specifier"
     )
 
-    load_subparsers = subparsers.add_parser(
-        "view", description="View combined environment from definition(s).",
+    view_subparsers = subparsers.add_parser(
+        "view", help="View combined environment from definition(s).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    load_subparsers.add_argument(
+    view_subparsers.add_argument(
         "--registries", nargs="+", metavar="PATH",
         help=(
             "Indicate registries containing all available "
@@ -121,7 +121,7 @@ def construct_parser():
         default=default_registries()
     )
 
-    load_subparsers.add_argument(
+    view_subparsers.add_argument(
         "definitions", nargs="+", help="Definition specifiers"
     )
 
