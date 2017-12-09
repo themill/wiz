@@ -44,8 +44,11 @@ def resolve(requirements, definition_mapping):
 
     definitions = sorted_definitions(graph)
 
+    print([d.identifier for d in definitions])
+
     return reduce(
-        lambda def1, def2: combined_environment(def1, def2), definitions
+        lambda def1, def2: combined_environment(def1, def2),
+        definitions, dict(data={})
     )
 
 
