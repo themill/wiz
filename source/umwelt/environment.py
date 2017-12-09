@@ -1,5 +1,6 @@
 # :coding: utf-8
 
+import os
 try:
     from queue import Queue
 except ImportError:
@@ -44,9 +45,12 @@ def resolve(requirements, definition_mapping):
 
     definitions = sorted_definitions(graph)
 
-    return reduce(
+    environ = reduce(
         lambda def1, def2: combined_data(def1, def2), definitions, {}
     ).get("data", {})
+
+    serialize_environment_values(environ)
+    return environ
 
 
 def sorted_definitions(graph):
@@ -119,6 +123,17 @@ def combined_data(definition1, definition2):
             definition["data"][key] = value1 or value2
 
     return definition
+
+
+def serialize_environment_values(environment):
+    """Mutate *environment* mapping to serialize its values."""
+    for key in environment.keys():
+        value = environment[key]
+
+        if isinstance(value, list):
+            environment[key] = os.pathsep.join(value)
+        else:
+            environment[key] = str(value)
 
 
 class Graph(object):

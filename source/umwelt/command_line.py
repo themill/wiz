@@ -315,14 +315,10 @@ def display_environment(environment):
     print("+".join(["-"*40]*2) + "-"*40)
 
     for key in sorted(environment.keys()):
-        value = environment[key]
-
-        if isinstance(value, list):
-            for _key, _value in itertools.izip_longest([key], value):
-                line = format_row([_key or "", _value],  width=40)
-                print(line)
-        else:
-            line = format_row([key, value], width=40)
+        for _key, value in itertools.izip_longest(
+            [key], environment[key].split(os.pathsep)
+        ):
+            line = format_row([_key or "", value],  width=40)
             print(line)
 
     print()
