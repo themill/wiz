@@ -44,12 +44,9 @@ def resolve(requirements, definition_mapping):
 
     definitions = sorted_definitions(graph)
 
-    print([d.identifier for d in definitions])
-
     return reduce(
-        lambda def1, def2: combined_environment(def1, def2),
-        definitions, dict(data={})
-    )
+        lambda def1, def2: combined_data(def1, def2), definitions, {}
+    ).get("data", {})
 
 
 def sorted_definitions(graph):
@@ -88,39 +85,40 @@ def sorted_definitions(graph):
     return definitions
 
 
-def combined_environment(definition1, definition2):
-    """Return combined data environment from *definition1* and *definition2*"""
-    environment = dict()
+def combined_data(definition1, definition2):
+    """Return combined environment data from *definition1* and *definition2*"""
+    definition = {"data": dict()}
 
     # Extract environment from definitions
     environment1 = definition1.get("data", {})
     environment2 = definition2.get("data", {})
 
-    for key, value2 in environment2.items():
+    for key in set(environment1.keys() + environment2.keys()):
         value1 = environment1.get(key)
+        value2 = environment2.get(key)
 
         # The keyword must not have a value in the two environment, unless if
         # it is a list that can be combined.
-        if value1 is not None:
-            if not isinstance(value1, list):
+        if value1 is not None and value2 is not None:
+            if not isinstance(value1, list) or not isinstance(value2, list):
                 raise RuntimeError(
                     "Overriding environment variable per definition is "
                     "forbidden\n"
-                    " - {key}={value1} [{definition1}]\n"
-                    " - {key}={value2} [{definition2}]\n".format(
+                    " - {definition1}: {key}={value1!r}\n"
+                    " - {definition2}: {key}={value2!r}\n".format(
                         key=key, value1=value1, value2=value2,
                         definition1=definition1.identifier,
                         definition2=definition2.identifier,
                     )
                 )
 
-            environment[key] = value1 + value2
+            definition["data"][key] = value1 + value2
 
-        # Otherwise simply set the value2
+        # Otherwise simply set the valid value
         else:
-            environment[key] = value2
+            definition["data"][key] = value1 or value2
 
-    return environment
+    return definition
 
 
 class Graph(object):
