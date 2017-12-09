@@ -1,7 +1,9 @@
 # :coding: utf-8
 
+from __future__ import print_function
 import argparse
 import os
+import itertools
 
 import mlog
 from packaging.requirements import InvalidRequirement
@@ -106,7 +108,7 @@ def construct_parser():
     )
 
     load_subparsers = subparsers.add_parser(
-        "load", description="Load an environment.",
+        "view", description="View combined environment from definition(s).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
@@ -120,7 +122,7 @@ def construct_parser():
     )
 
     load_subparsers.add_argument(
-        "definition", help="Definition specifier"
+        "definitions", nargs="+", help="Definition specifiers"
     )
 
     return parser
@@ -152,7 +154,7 @@ def main(arguments=None):
 
     # Process requested operation.
     if namespace.commands == "registries":
-        print "\n".join(registries)
+        print("\n".join(registries))
 
     elif namespace.commands == "definitions":
         mapping = umwelt.definition.fetch_definition_mapping(
@@ -166,22 +168,28 @@ def main(arguments=None):
             registries, max_depth=namespace.definition_search_depth
         )
         if not len(mapping):
-            print "No results found."
+            print("No results found.")
         else:
             display_definitions(mapping, all_versions=namespace.all)
 
-    elif namespace.commands == "load":
+    elif namespace.commands == "view":
         mapping = umwelt.definition.fetch_definition_mapping(
             registries, max_depth=namespace.definition_search_depth
         )
 
         try:
-            umwelt.environment.create_tree([namespace.definition], mapping)
+            environment = umwelt.environment.resolve(
+                namespace.definitions, mapping
+            )
+
         except (RuntimeError, InvalidRequirement):
             logger.error(
                 "Impossible to resolve the environment tree.",
                 traceback=True
             )
+
+        else:
+            display_environment(environment)
 
 
 def local_registry():
@@ -270,6 +278,10 @@ def display_definitions(definition_mapping, all_versions=False):
     displayed.
 
     """
+    line = format_row(["Definition", "Version", "Description"])
+    print("\n" + line)
+    print("+".join(["-"*20]*3) + "-"*20)
+
     for identifier, definitions in definition_mapping.items():
         sorted_definitions = sorted(
             definitions, key=lambda d: d.version, reverse=True
@@ -277,13 +289,62 @@ def display_definitions(definition_mapping, all_versions=False):
 
         if all_versions:
             for definition in sorted_definitions:
-                print (
-                    "{0[identifier]} [{0[version]}]\t\t\t{0[description]}"
-                    .format(definition)
-                )
+                line = format_row([
+                    definition.identifier,
+                    definition.version,
+                    definition.description
+                ])
+                print(line)
 
         else:
-            print (
-                "{0[identifier]} [{0[version]}]\t\t\t{0[description]}"
-                .format(sorted_definitions[0])
-            )
+            definition = sorted_definitions[0]
+            line = format_row([
+                definition.identifier,
+                definition.version,
+                definition.description
+            ])
+            print(line)
+
+    print()
+
+
+def display_environment(environment):
+    """Display the content of the *environment* mapping."""
+    line = format_row(["Environment variable", "Value"], width=40)
+    print("\n" + line)
+    print("+".join(["-"*40]*2) + "-"*40)
+
+    for key in sorted(environment.keys()):
+        value = environment[key]
+
+        if isinstance(value, list):
+            for _key, _value in itertools.izip_longest([key], value):
+                line = format_row([_key or "", _value],  width=40)
+                print(line)
+        else:
+            line = format_row([key, value], width=40)
+            print(line)
+
+    print()
+
+
+def format_row(elements, width=20):
+    """Return formatted line of *elements* in columns.
+
+    *width* indicates the size of each column (except the last one).
+
+    """
+    line = ""
+    number_elements = len(elements)
+
+    for index in range(number_elements):
+        element = " {} ".format(elements[index])
+
+        if index == number_elements - 1:
+            line += element
+        elif len(element) > width:
+            line += "{}...|".format(element[:width-3])
+        else:
+            line += "{}{}|".format(element, " " * (width-len(element)))
+
+    return line
