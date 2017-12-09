@@ -8,6 +8,7 @@ except ImportError:
 
 import mlog
 import collections
+from packaging.requirements import Requirement
 
 import umwelt.definition
 
@@ -198,7 +199,12 @@ class Graph(object):
         definition = umwelt.definition.get(requirement, definition_mapping)
 
         # Create node from definition.
-        node = Node(definition.identifier, definition, requirement, parent)
+        node = Node(
+            definition.identifier,
+            definition,
+            Requirement(requirement),
+            parent
+        )
 
         # Check is a node with the same definition identifier is in the graph.
         if node.identifier in self._nodes.keys():
