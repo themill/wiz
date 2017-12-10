@@ -10,6 +10,7 @@ from packaging.requirements import InvalidRequirement
 
 import umwelt.definition
 import umwelt.environment
+import umwelt.shell
 
 
 def construct_parser():
@@ -104,7 +105,7 @@ def construct_parser():
     )
 
     search_parser.add_argument(
-        "definition", help="Definition specifier"
+        "requirement", help="Definition requirement to search."
     )
 
     view_subparsers = subparsers.add_parser(
@@ -122,7 +123,25 @@ def construct_parser():
     )
 
     view_subparsers.add_argument(
-        "definitions", nargs="+", help="Definition specifiers"
+        "requirements", nargs="+", help="Definition requirements required."
+    )
+
+    load_subparsers = subparsers.add_parser(
+        "load", help="Load combined environment from definition(s).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    load_subparsers.add_argument(
+        "--registries", nargs="+", metavar="PATH",
+        help=(
+            "Indicate registries containing all available "
+            "environment definitions."
+        ),
+        default=default_registries()
+    )
+
+    load_subparsers.add_argument(
+        "requirements", nargs="+", help="Definition requirements required."
     )
 
     return parser
@@ -164,7 +183,7 @@ def main(arguments=None):
 
     elif namespace.commands == "search":
         mapping = umwelt.definition.search_definitions(
-            namespace.definition,
+            namespace.requirement,
             registries, max_depth=namespace.definition_search_depth
         )
         if not len(mapping):
@@ -179,7 +198,7 @@ def main(arguments=None):
 
         try:
             environment = umwelt.environment.resolve(
-                namespace.definitions, mapping
+                namespace.requirements, mapping
             )
 
         except (RuntimeError, InvalidRequirement):
@@ -190,6 +209,25 @@ def main(arguments=None):
 
         else:
             display_environment(environment)
+
+    elif namespace.commands == "load":
+        mapping = umwelt.definition.fetch_definition_mapping(
+            registries, max_depth=namespace.definition_search_depth
+        )
+
+        try:
+            environment = umwelt.environment.resolve(
+                namespace.requirements, mapping
+            )
+
+        except (RuntimeError, InvalidRequirement):
+            logger.error(
+                "Impossible to resolve the environment tree.",
+                traceback=True
+            )
+
+        else:
+            umwelt.shell.spawn_shell(environment)
 
 
 def local_registry():
