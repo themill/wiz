@@ -87,11 +87,73 @@ def get(requirement, definition_mapping):
 
     if required_definition is None:
         raise RuntimeError(
-            "No definition has been found for this specifier: {}."
+            "No definition has been found for '{}'."
             .format(requirement)
         )
 
+    if len(requirement.extras) > 0:
+        variant = next(iter(requirement.extras))
+
+        variant_mapping = required_definition.get("variant", {})
+
+        if variant not in variant_mapping.keys():
+            raise RuntimeError(
+                "The variant '{}' has not been found for '{}'.".format(
+                    variant, requirement
+                )
+            )
+
+        required_definition.update(
+            combine(variant_mapping[variant], required_definition)
+        )
+
     return required_definition
+
+
+def combine(definition1, definition2):
+    """Return combined mapping from *definition1* and *definition2*.
+
+    The final mapping will only contain the 'data' and 'dependency' keywords.
+
+    """
+    definition = {"data": {}, "dependency": []}
+
+    # Extract and combine data from definitions
+    data1 = definition1.get("data", {})
+    data2 = definition2.get("data", {})
+
+    for key in set(data1.keys() + data2.keys()):
+        value1 = data1.get(key)
+        value2 = data2.get(key)
+
+        # The keyword must not have a value in the two environment, unless if
+        # it is a list that can be combined.
+        if value1 is not None and value2 is not None:
+            if not isinstance(value1, list) or not isinstance(value2, list):
+                raise RuntimeError(
+                    "Overriding environment variable per definition is "
+                    "forbidden\n"
+                    " - {definition1}: {key}={value1!r}\n"
+                    " - {definition2}: {key}={value2!r}\n".format(
+                        key=key, value1=value1, value2=value2,
+                        definition1=definition1.identifier,
+                        definition2=definition2.identifier,
+                    )
+                )
+
+            definition["data"][key] = value1 + value2
+
+        # Otherwise simply set the valid value
+        else:
+            definition["data"][key] = value1 or value2
+
+    # Extract and combine dependency from definitions
+    dependency1 = definition1.get("dependency", [])
+    dependency2 = definition2.get("dependency", [])
+
+    definition["dependency"] = dependency1 + dependency2
+
+    return definition
 
 
 def discover(paths, max_depth=None):
@@ -168,6 +230,14 @@ def load(path):
             Requirement(requirement) for requirement
             in definition.get("dependency", [])
         ]
+
+        if "variant" in definition.keys():
+            for variant_definition in definition["variant"].values():
+                variant_definition["dependency"] = [
+                    Requirement(requirement) for requirement
+                    in variant_definition.get("dependency", [])
+                ]
+
         return definition
 
 

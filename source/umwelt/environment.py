@@ -46,11 +46,23 @@ def resolve(requirements, definition_mapping):
     definitions = sorted_definitions(graph)
 
     environ = reduce(
-        lambda def1, def2: combined_data(def1, def2), definitions, {}
+        lambda def1, def2: umwelt.definition.combine(def1, def2),
+        definitions, {}
     ).get("data", {})
 
     serialize_environment_values(environ)
     return environ
+
+
+def serialize_environment_values(environment):
+    """Mutate *environment* mapping to serialize its values."""
+    for key in environment.keys():
+        value = environment[key]
+
+        if isinstance(value, list):
+            environment[key] = os.pathsep.join(value)
+        else:
+            environment[key] = str(value)
 
 
 def sorted_definitions(graph):
@@ -87,53 +99,6 @@ def sorted_definitions(graph):
         )
 
     return definitions
-
-
-def combined_data(definition1, definition2):
-    """Return combined environment data from *definition1* and *definition2*"""
-    definition = {"data": dict()}
-
-    # Extract environment from definitions
-    environment1 = definition1.get("data", {})
-    environment2 = definition2.get("data", {})
-
-    for key in set(environment1.keys() + environment2.keys()):
-        value1 = environment1.get(key)
-        value2 = environment2.get(key)
-
-        # The keyword must not have a value in the two environment, unless if
-        # it is a list that can be combined.
-        if value1 is not None and value2 is not None:
-            if not isinstance(value1, list) or not isinstance(value2, list):
-                raise RuntimeError(
-                    "Overriding environment variable per definition is "
-                    "forbidden\n"
-                    " - {definition1}: {key}={value1!r}\n"
-                    " - {definition2}: {key}={value2!r}\n".format(
-                        key=key, value1=value1, value2=value2,
-                        definition1=definition1.identifier,
-                        definition2=definition2.identifier,
-                    )
-                )
-
-            definition["data"][key] = value1 + value2
-
-        # Otherwise simply set the valid value
-        else:
-            definition["data"][key] = value1 or value2
-
-    return definition
-
-
-def serialize_environment_values(environment):
-    """Mutate *environment* mapping to serialize its values."""
-    for key in environment.keys():
-        value = environment[key]
-
-        if isinstance(value, list):
-            environment[key] = os.pathsep.join(value)
-        else:
-            environment[key] = str(value)
 
 
 class Graph(object):
@@ -212,7 +177,10 @@ class Graph(object):
             # If the definition identifier has already been used in the graph
             # with a specifier incompatible with the current definition's
             # version, raise an error.
-            if node.definition.version not in _node.requirement.specifier:
+            if (
+                node.definition.version not in _node.requirement.specifier or
+                node.requirement.extras != _node.requirement.extras
+            ):
                 raise RuntimeError(
                     "A version conflict has been detected for '{id!r}'\n"
                     " - {node1}\n"
