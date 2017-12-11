@@ -199,17 +199,15 @@ class Graph(object):
                     )
                 )
 
-            # Otherwise update the node with the highest version if necessary.
-            updated = max(node, _node, key=lambda n: n.definition.version)
-
-            if updated.definition.version != _node.requirement.specifier:
-                self._nodes[node.identifier] = updated
+            # Otherwise update the node with the new version if necessary.
+            if node.definition.version != _node.definition.version:
+                self._nodes[node.identifier] = node
 
                 self._logger.debug(
                     "Replace {identifier!r}: {version1} -> {version2}".format(
                         identifier=node.identifier,
                         version1=_node.definition.version,
-                        version2=updated.definition.version
+                        version2=node.definition.version
                     )
                 )
 
