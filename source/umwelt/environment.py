@@ -34,7 +34,7 @@ def resolve(requirements, definition_mapping):
     requirement specifier is incorrect.
 
     """
-    logger = mlog.Logger(__name__ + ".create_tree")
+    logger = mlog.Logger(__name__ + ".resolve")
     logger.info(
         "Resolve environment: {!r}".format(requirements)
     )
@@ -68,6 +68,8 @@ def serialize_environment_values(environment):
 def sorted_definitions(graph):
     """Return list of definitions topologically sorted from *graph*.
     """
+    logger = mlog.Logger(__name__ + ".sorted_definitions")
+
     queue = Queue()
     indegree_mapping = dict()
 
@@ -97,6 +99,12 @@ def sorted_definitions(graph):
         raise RuntimeError(
             "A cycle has been detected in the dependency graph"
         )
+
+    logger.debug(
+        "Topologically sorted definitions: {}".format(
+            [d.identifier for d in definitions]
+        )
+    )
 
     return definitions
 
