@@ -28,11 +28,7 @@ def fetch_definition_mapping(paths, max_depth=None):
 def search_definitions(requirement, paths, max_depth=None):
     """Return mapping from environment definitions matching *requirement*.
 
-    *requirement* indicates a definition requirement which must
-    adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
-
-    :exc:`packaging.requirements.InvalidRequirement` is raised if the
-    requirement specifier is incorrect.
+    *requirement* is an instance of :class:`packaging.requirements.Requirement`.
 
     :func:`~umwelt.definition.discover` available environments under *paths*,
     searching recursively up to *max_depth*.
@@ -40,20 +36,18 @@ def search_definitions(requirement, paths, max_depth=None):
     """
     logger = mlog.Logger(__name__ + ".search_definitions")
     logger.info(
-        "Search environment definition definitions matching {!r}"
+        "Search environment definition definitions matching '{}'"
         .format(requirement)
     )
-
-    _requirement = Requirement(requirement)
 
     mapping = dict()
 
     for definition in discover(paths, max_depth=max_depth):
         if (
-            _requirement.name in definition.identifier or
-            _requirement.name in definition.description
+            requirement.name in definition.identifier or
+            requirement.name in definition.description
         ):
-            if definition.version in _requirement.specifier:
+            if definition.version in requirement.specifier:
                 mapping.setdefault(definition.identifier, [])
                 mapping[definition.identifier].append(definition)
 
@@ -63,8 +57,7 @@ def search_definitions(requirement, paths, max_depth=None):
 def get(requirement, definition_mapping):
     """Get fittest :class:`Definition` instance for *definition_specifier*.
 
-    *requirement* indicates a definition requirement which must
-    adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
+    *requirement* is an instance of :class:`packaging.requirements.Requirement`.
 
     *definition_mapping* is a mapping regrouping all available environment
     definition associated with their unique identifier.
@@ -73,31 +66,29 @@ def get(requirement, definition_mapping):
     requirement specifier is incorrect.
 
     """
-    _requirement = Requirement(requirement)
-
-    if _requirement.name not in definition_mapping:
+    if requirement.name not in definition_mapping:
         raise RuntimeError(
             "No definition identified as {!r} has been found."
-            .format(_requirement.name)
+            .format(requirement.name)
         )
 
     required_definition = None
 
     # Sort the definition so that the fittest highest version is loaded first.
     sorted_definitions = sorted(
-        definition_mapping[_requirement.name],
+        definition_mapping[requirement.name],
         key=lambda d: d.version, reverse=True
     )
 
     for definition in sorted_definitions:
-        if definition.version in _requirement.specifier:
+        if definition.version in requirement.specifier:
             required_definition = definition
             break
 
     if required_definition is None:
         raise RuntimeError(
             "No definition has been found for this specifier: {}."
-            .format(_requirement)
+            .format(requirement)
         )
 
     return required_definition
@@ -173,6 +164,10 @@ def load(path):
 
         definition = Definition(**definition_data)
         definition["version"] = Version(definition.version)
+        definition["dependency"] = [
+            Requirement(requirement) for requirement
+            in definition.get("dependency", [])
+        ]
         return definition
 
 

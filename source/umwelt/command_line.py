@@ -6,7 +6,7 @@ import os
 import itertools
 
 import mlog
-from packaging.requirements import InvalidRequirement
+from packaging.requirements import Requirement, InvalidRequirement
 
 import umwelt.definition
 import umwelt.environment
@@ -182,10 +182,11 @@ def main(arguments=None):
         display_definitions(mapping, all_versions=namespace.all)
 
     elif namespace.commands == "search":
+        requirement = Requirement(namespace.requirement)
         mapping = umwelt.definition.search_definitions(
-            namespace.requirement,
-            registries, max_depth=namespace.definition_search_depth
+            requirement, registries, max_depth=namespace.definition_search_depth
         )
+
         if not len(mapping):
             print("No results found.")
         else:
@@ -196,12 +197,14 @@ def main(arguments=None):
             registries, max_depth=namespace.definition_search_depth
         )
 
-        try:
-            environment = umwelt.environment.resolve(
-                namespace.requirements, mapping
-            )
+        requirements = [
+            Requirement(requirement) for requirement in namespace.requirements
+        ]
 
-        except (RuntimeError, InvalidRequirement):
+        try:
+            environment = umwelt.environment.resolve(requirements, mapping)
+
+        except RuntimeError:
             logger.error(
                 "Impossible to resolve the environment tree.",
                 traceback=True
@@ -215,10 +218,12 @@ def main(arguments=None):
             registries, max_depth=namespace.definition_search_depth
         )
 
+        requirements = [
+            Requirement(requirement) for requirement in namespace.requirements
+        ]
+
         try:
-            environment = umwelt.environment.resolve(
-                namespace.requirements, mapping
-            )
+            environment = umwelt.environment.resolve(requirements, mapping)
 
         except (RuntimeError, InvalidRequirement):
             logger.error(

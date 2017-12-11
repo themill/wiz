@@ -8,7 +8,6 @@ except ImportError:
 
 import mlog
 import collections
-from packaging.requirements import Requirement
 
 import umwelt.definition
 
@@ -22,8 +21,8 @@ Node = collections.namedtuple(
 def resolve(requirements, definition_mapping):
     """Return resolved environment mapping corresponding to *requirements*.
 
-    *requirements* indicates a list of definition requirements which must
-    adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
+    *requirements* should be a list of
+    class:`packaging.requirements.Requirement` instances.
 
     *definition_mapping* is a mapping regrouping all available environment
     definition associated with their unique identifier. It is used to
@@ -182,8 +181,8 @@ class Graph(object):
     def add_node(self, requirement, definition_mapping, parent=None):
         """Recursively create dependency node(s) from *definition_requirement*.
 
-        *requirement* indicates a definition requirement which must
-        adhere to `PEP 508 <https://www.python.org/dev/peps/pep-0508>`_.
+        *requirement* is an instance of
+        :class:`packaging.requirements.Requirement`.
 
         *definition_mapping* is a mapping regrouping all available environment
         definition associated with their unique identifier. It is used to
@@ -202,7 +201,7 @@ class Graph(object):
         node = Node(
             definition.identifier,
             definition,
-            Requirement(requirement),
+            requirement,
             parent
         )
 
