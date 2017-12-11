@@ -6,7 +6,7 @@ import os
 import itertools
 
 import mlog
-from packaging.requirements import Requirement, InvalidRequirement
+from packaging.requirements import Requirement
 
 import umwelt.definition
 import umwelt.environment
@@ -225,7 +225,7 @@ def main(arguments=None):
         try:
             environment = umwelt.environment.resolve(requirements, mapping)
 
-        except (RuntimeError, InvalidRequirement):
+        except RuntimeError:
             logger.error(
                 "Impossible to resolve the environment tree.",
                 traceback=True
