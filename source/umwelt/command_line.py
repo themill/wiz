@@ -321,9 +321,9 @@ def display_definitions(definition_mapping, all_versions=False):
     displayed.
 
     """
-    line = format_row(["Definition", "Version", "Description"])
+    line = format_row(["Definition", "Version", "Variants", "Description"])
     print("\n" + line)
-    print("+".join(["-"*20]*3) + "-"*20)
+    print("+".join(["-"*20]*4) + "-"*20)
 
     for identifier, definitions in definition_mapping.items():
         sorted_definitions = sorted(
@@ -332,18 +332,22 @@ def display_definitions(definition_mapping, all_versions=False):
 
         if all_versions:
             for definition in sorted_definitions:
+                variant_mapping = definition.get("variant", {})
                 line = format_row([
                     definition.identifier,
                     definition.version,
+                    ", ".join(variant_mapping.keys()),
                     definition.description
                 ])
                 print(line)
 
         else:
             definition = sorted_definitions[0]
+            variant_mapping = definition.get("variant", {})
             line = format_row([
                 definition.identifier,
                 definition.version,
+                ", ".join(variant_mapping.keys()),
                 definition.description
             ])
             print(line)
