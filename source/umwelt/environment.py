@@ -185,10 +185,7 @@ class Graph(object):
             # If the definition identifier has already been used in the graph
             # with a specifier incompatible with the current definition's
             # version, raise an error.
-            if (
-                node.definition.version not in _node.requirement.specifier or
-                node.requirement.extras != _node.requirement.extras
-            ):
+            if not self._is_compatible(node, _node):
                 raise RuntimeError(
                     "A version conflict has been detected for '{id!r}'\n"
                     " - {node1}\n"
@@ -200,7 +197,10 @@ class Graph(object):
                 )
 
             # Otherwise update the node with the new version if necessary.
-            if node.definition.version != _node.definition.version:
+            if (
+                node.definition.version != _node.definition.version and
+                _node.definition.version not in node.requirement.specifier
+            ):
                 self._nodes[node.identifier] = node
 
                 self._logger.debug(
@@ -230,6 +230,23 @@ class Graph(object):
             self.add_node(
                 dependency_requirement, definition_mapping, parent=definition
             )
+
+    def _is_compatible(self, node1, node2):
+        """Return whether *node1* and *node2* are compatible."""
+
+        # Nodes are not compatible if both definition versions are not
+        # compatible with at least one of the specifier.
+        if (
+            node1.definition.version not in node2.requirement.specifier and
+            node2.definition.version not in node1.requirement.specifier
+        ):
+            return False
+
+        # Nodes are not compatible if different variants were requested.
+        if node1.requirement.extras != node2.requirement.extras:
+            return False
+
+        return True
 
     def _display_node(self, node):
         """Return formatted identifier for :class:`Node` instance*."""
