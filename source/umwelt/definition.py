@@ -44,8 +44,8 @@ def search_definitions(requirement, paths, max_depth=None):
 
     for definition in discover(paths, max_depth=max_depth):
         if (
-            requirement.name in definition.identifier or
-            requirement.name in definition.description
+            requirement.name.lower() in definition.identifier.lower() or
+            requirement.name.lower() in definition.description.lower()
         ):
             if definition.version in requirement.specifier:
                 mapping.setdefault(definition.identifier, [])
