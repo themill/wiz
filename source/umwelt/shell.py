@@ -10,7 +10,7 @@ import tty
 import pty
 
 
-def spawn_shell(environment, shell_type="sh"):
+def spawn_shell(environment, shell_type="bash"):
     """Spawn a sub-shell."""
     executable = distutils.spawn.find_executable(shell_type)
 
