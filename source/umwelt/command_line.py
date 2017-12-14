@@ -325,7 +325,7 @@ def display_definitions(definition_mapping, all_versions=False):
     print("\n" + line)
     print("+".join(["-"*30]*4) + "-"*30)
 
-    for identifier, definitions in definition_mapping.items():
+    for identifier, definitions in sorted(definition_mapping.items()):
         sorted_definitions = sorted(
             definitions, key=lambda d: d.version, reverse=True
         )
