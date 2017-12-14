@@ -323,7 +323,7 @@ def display_definitions(definition_mapping, all_versions=False):
     """
     line = format_row(["Definition", "Version", "Variants", "Description"])
     print("\n" + line)
-    print("+".join(["-"*20]*4) + "-"*20)
+    print("+".join(["-"*30]*4) + "-"*30)
 
     for identifier, definitions in definition_mapping.items():
         sorted_definitions = sorted(
@@ -371,7 +371,7 @@ def display_environment(environment):
     print()
 
 
-def format_row(elements, width=20):
+def format_row(elements, width=30):
     """Return formatted line of *elements* in columns.
 
     *width* indicates the size of each column (except the last one).
