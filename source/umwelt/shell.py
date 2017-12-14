@@ -17,6 +17,15 @@ def spawn_shell(environment, shell_type="bash"):
     # Update the environment to connect to X server within shell
     environment["DISPLAY"] = ":0.0"
 
+    # Update environment to preserve important values from current context
+    environment["USER"] = os.environ.get("USER")
+    environment["HOME"] = os.environ.get("HOME")
+    environment["PATH"] = os.pathsep.join([
+        environment.get("PATH", ""),
+        "/usr/local/sbin", "/usr/local/bin", "/sbin:/bin",
+        "/usr/sbin", "/usr/bin", "/root/bin"
+    ])
+
     # save original tty setting then set it to raw mode
     old_tty = termios.tcgetattr(sys.stdin)
     tty.setraw(sys.stdin.fileno())
@@ -24,9 +33,10 @@ def spawn_shell(environment, shell_type="bash"):
     # open pseudo-terminal to interact with subprocess
     master_fd, slave_fd = pty.openpty()
 
+    # Run in a new process group to enable job control
     process = subprocess.Popen(
         executable,
-        preexec_fn=os.setsid, # Run in a new process group to enable job control
+        preexec_fn=os.setsid,
         stdin=slave_fd,
         stdout=slave_fd,
         stderr=slave_fd,
