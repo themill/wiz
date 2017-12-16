@@ -112,7 +112,7 @@ class Graph(object):
 
     def __init__(self):
         """Initialise Graph."""
-        self._logger = mlog.Logger(__name__ + ".EnvironmentGraph")
+        self._logger = mlog.Logger(__name__ + ".Graph")
 
         # Record the weight of each link in the graph.
         self._links = dict()
