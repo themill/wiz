@@ -12,7 +12,7 @@ import collections
 import umwelt.definition
 
 
-#: Node leaf composing the :class:`DependencyTree`.
+#: Node leaf composing the :class:`Graph`.
 Node = collections.namedtuple(
     "Node", ["identifier", "definition", "requirement", "parent"]
 )
