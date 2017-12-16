@@ -30,9 +30,6 @@ def resolve(requirements, definition_mapping):
 
     Raise :exc:`RuntimeError` if the tree cannot be built.
 
-    :exc:`packaging.requirements.InvalidRequirement` is raised if a
-    requirement specifier is incorrect.
-
     """
     logger = mlog.Logger(__name__ + ".resolve")
     logger.info(
