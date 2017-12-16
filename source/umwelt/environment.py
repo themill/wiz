@@ -135,7 +135,7 @@ class Graph(object):
 
         for parent_identifier in self._nodes.keys():
             if self._links.get(parent_identifier, {}).get(identifier, 0) > 0:
-                indegree = indegree + 1
+                indegree += 1
 
         return indegree
 
