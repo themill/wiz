@@ -38,7 +38,7 @@ class Graph(object):
         envD==0.1.1 [required by 'envB==0.1.0' with 'envD>=0.1.0']
         envD==0.1.0 [required by 'envC==0.3.2' with 'envD==0.1.0']
         envE==2.3.0 [required by 'envD==0.1.1' with 'envE>=2']
-        envF==1.0.0 [required by 'envB==0.1.1' with 'envF>=1']
+        envF==1.0.0 [required by 'envB==0.1.0' with 'envF>=1']
         envF==0.2.0 [required by 'envE==2.3.0' with 'envF>=0.2']
 
     However, the final environment cannot be deducted from such a tree as it
@@ -174,13 +174,14 @@ class Graph(object):
                 node.identifier == identifiers[-1] and
                 node.identifier not in valid_identifiers
             ):
+                self._logger.debug("Keep '{}'".format(node.identifier))
                 valid_identifiers.append(node.identifier)
 
                 for parent_identifier in self.parents(node.identifier):
-                    queue.put(parent_identifier)
+                    queue.put(self._nodes[parent_identifier])
 
         # Remove all nodes outside of the valid ones recorded
-        for node in self._nodes.keys():
+        for node in self._nodes.values():
             if node.identifier not in valid_identifiers:
                 self._remove_node(node)
 
@@ -235,6 +236,8 @@ class Graph(object):
     def _remove_node(self, node):
         """Remove *node* from graph."""
         # Remove node from nodes mapping.
+        self._logger.debug("Remove {}".format(node.identifier))
+
         del self._nodes[node.identifier]
 
         # Remove node from required definition set.
@@ -288,7 +291,7 @@ class Graph(object):
                 indegree_mapping[identifier] = indegree_mapping[identifier] - 1
 
                 if indegree_mapping[identifier] == 0:
-                    queue.put(identifier)
+                    queue.put(self._nodes[identifier])
 
         if len(definitions) != len(self._nodes):
             raise RuntimeError(
