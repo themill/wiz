@@ -23,7 +23,9 @@ def resolve_environment(requirements, definition_mapping):
     """
     logger = mlog.Logger(__name__ + ".resolve_environment")
     logger.info(
-        "Resolve environment: {!r}".format(requirements)
+        "Resolve environment: {}".format(
+            ", ".join([str(requirement) for requirement in requirements])
+        )
     )
 
     graph = umwelt.graph.Graph(definition_mapping)
