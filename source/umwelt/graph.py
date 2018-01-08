@@ -192,7 +192,7 @@ class Graph(object):
             self._logger.debug("Adding definition: {}".format(node_identifier))
             self._nodes[node_identifier] = _Node(definition)
 
-            requirements = definition.get("dependency")
+            requirements = definition.get("requirement")
             if requirements is not None:
                 self.update_from_requirements(
                     requirements, parent_identifier=node_identifier

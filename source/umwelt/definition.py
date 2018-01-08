@@ -113,10 +113,10 @@ def get(requirement, definition_mapping):
 def combine(definition1, definition2):
     """Return combined mapping from *definition1* and *definition2*.
 
-    The final mapping will only contain the 'data' and 'dependency' keywords.
+    The final mapping will only contain the 'data' and 'requirement' keywords.
 
     """
-    definition = {"data": {}, "dependency": []}
+    definition = {"data": {}, "requirement": []}
 
     # Extract and combine data from definitions
     data1 = definition1.get("data", {})
@@ -147,11 +147,11 @@ def combine(definition1, definition2):
         else:
             definition["data"][key] = value1 or value2
 
-    # Extract and combine dependency from definitions
-    dependency1 = definition1.get("dependency", [])
-    dependency2 = definition2.get("dependency", [])
+    # Extract and combine requirements from definitions
+    requirement1 = definition1.get("requirement", [])
+    requirement2 = definition2.get("requirement", [])
 
-    definition["dependency"] = dependency1 + dependency2
+    definition["requirement"] = requirement1 + requirement2
 
     return definition
 
@@ -226,16 +226,16 @@ def load(path):
 
         definition = Definition(**definition_data)
         definition["version"] = Version(definition.version)
-        definition["dependency"] = [
+        definition["requirement"] = [
             Requirement(requirement) for requirement
-            in definition.get("dependency", [])
+            in definition.get("requirement", [])
         ]
 
         if "variant" in definition.keys():
             for variant_definition in definition["variant"].values():
-                variant_definition["dependency"] = [
+                variant_definition["requirement"] = [
                     Requirement(requirement) for requirement
-                    in variant_definition.get("dependency", [])
+                    in variant_definition.get("requirement", [])
                 ]
 
         return definition
