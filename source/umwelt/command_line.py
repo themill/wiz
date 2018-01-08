@@ -253,7 +253,7 @@ def default_registries():
     """Return the default registries."""
     return [
         os.path.join(os.sep, "mill3d", "server", "REGISTRY"),
-        os.path.join(os.sep, "jobs", "ads", ".registry")
+        # os.path.join(os.sep, "jobs", "ads", ".registry")
     ]
 
 
