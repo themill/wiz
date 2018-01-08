@@ -202,7 +202,9 @@ def main(arguments=None):
         ]
 
         try:
-            environment = umwelt.environment.resolve(requirements, mapping)
+            environment = umwelt.environment.resolve_environment(
+                requirements, mapping
+            )
 
         except RuntimeError:
             logger.error(
@@ -223,7 +225,9 @@ def main(arguments=None):
         ]
 
         try:
-            environment = umwelt.environment.resolve(requirements, mapping)
+            environment = umwelt.environment.resolve_environment(
+                requirements, mapping
+            )
 
         except RuntimeError:
             logger.error(
