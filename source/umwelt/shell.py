@@ -14,10 +14,8 @@ def spawn_shell(environment, shell_type="bash"):
     """Spawn a sub-shell."""
     executable = distutils.spawn.find_executable(shell_type)
 
-    # Update the environment to connect to X server within shell
-    environment["DISPLAY"] = ":0.0"
-
     # Update environment to preserve important values from current context
+    environment["DISPLAY"] = os.environ.get("DISPLAY")
     environment["USER"] = os.environ.get("USER")
     environment["HOME"] = os.environ.get("HOME")
     environment["PATH"] = os.pathsep.join([
