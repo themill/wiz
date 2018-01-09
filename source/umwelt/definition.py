@@ -126,8 +126,8 @@ def combine(definition1, definition2):
     environ2 = definition2.get("environ", {})
 
     for key in set(environ1.keys() + environ2.keys()):
-        value1 = environ1.get(key)
-        value2 = environ2.get(key)
+        value1 = str(environ1.get(key))
+        value2 = str(environ2.get(key))
 
         # Check if the values can be combined.
         if value1 is not None and value2 is not None:
