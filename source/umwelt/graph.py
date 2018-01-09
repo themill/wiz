@@ -473,8 +473,18 @@ def resolve_conflicts(graph, definition_mapping):
         logger.debug("No conflicts in the graph.")
         return
 
-    while len(identifiers) > 0:
+    while True:
         priority_mapping = compute_priority_mapping(graph)
+
+        # Remove nodes unreachable from the root level.
+        for identifier in graph.node_identifiers():
+            if priority_mapping[identifier][0] is None:
+                logger.debug("Remove '{}'".format(identifier))
+                graph.remove_node(identifier)
+
+        # If no identifiers are left in the queue, exit the loop.
+        if len(identifiers) == 0:
+            break
 
         # Sort identifiers per distance from the root level.
         identifiers = sorted(
@@ -495,12 +505,6 @@ def resolve_conflicts(graph, definition_mapping):
             )
         )
 
-        # Filter out nodes that are not reachable from the root level.
-        similar_identifiers = filter(
-            lambda _identifier: priority_mapping[_identifier][0] is not None,
-            similar_identifiers
-        )
-
         # Ensure that all requirements from parent links are compatibles.
         validate_node_requirements(
             graph, current_identifier, similar_identifiers, priority_mapping
@@ -519,12 +523,15 @@ def resolve_conflicts(graph, definition_mapping):
             logger.debug("Remove '{}'".format(current_identifier))
             graph.remove_node(current_identifier)
 
+            # If the valid identifier is not in the graph, add it to the queue.
             if valid_identifier not in similar_identifiers:
                 logger.debug(
                     "Append '{}' to conflicted nodes".format(valid_identifier)
                 )
                 identifiers.append(valid_identifier)
                 graph.update_from_requirement(requirement)
+
+        priority_mapping = compute_priority_mapping(graph)
 
 
 def combined_requirement(graph, identifiers, priority_mapping):
