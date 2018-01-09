@@ -19,8 +19,9 @@ def fetch_definition_mapping(paths, max_depth=None):
     mapping = dict()
 
     for definition in discover(paths, max_depth=max_depth):
-        mapping.setdefault(definition.identifier, [])
-        mapping[definition.identifier].append(definition)
+        base_version = definition.version.base_version
+        mapping.setdefault(definition.identifier, {})
+        mapping[definition.identifier][base_version] = definition
 
     return mapping
 
@@ -76,7 +77,7 @@ def get(requirement, definition_mapping):
 
     # Sort the definition so that the fittest highest version is loaded first.
     sorted_definitions = sorted(
-        definition_mapping[requirement.name],
+        definition_mapping[requirement.name].values(),
         key=lambda d: d.version, reverse=True
     )
 
