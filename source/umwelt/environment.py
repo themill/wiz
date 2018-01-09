@@ -1,7 +1,5 @@
 # :coding: utf-8
 
-import os
-
 import mlog
 
 import umwelt.definition
@@ -39,17 +37,4 @@ def resolve_environment(requirements, definition_mapping):
         umwelt.definition.combine, definitions, {}
     ).get("environ", {})
 
-    serialize_environment_values(environ)
-
     return environ
-
-
-def serialize_environment_values(environment):
-    """Mutate *environment* mapping to serialize its values."""
-    for key in environment.keys():
-        value = environment[key]
-
-        if isinstance(value, list):
-            environment[key] = os.pathsep.join(value)
-        else:
-            environment[key] = str(value)
