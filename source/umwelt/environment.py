@@ -35,12 +35,9 @@ def resolve_environment(requirements, definition_mapping):
 
     definitions = umwelt.graph.extract_ordered_definitions(graph)
 
-    environ = reduce(
-        lambda def1, def2: umwelt.definition.combine(def1, def2),
-        definitions, {}
-    ).get("data", {})
-
+    environ = reduce(umwelt.definition.combine, definitions, {}).get("data", {})
     serialize_environment_values(environ)
+
     return environ
 
 
