@@ -68,7 +68,7 @@ def get(requirement, definition_mapping):
     """
     if requirement.name not in definition_mapping:
         raise RuntimeError(
-            "No definition identified as {!r} has been found."
+            "No definition identified as '{}' has been found."
             .format(requirement.name)
         )
 
