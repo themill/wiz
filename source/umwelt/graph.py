@@ -1,5 +1,6 @@
 # :coding: utf-8
 
+import itertools
 import copy
 from heapq import heapify, heappush, heappop
 try:
@@ -164,8 +165,7 @@ class Graph(object):
             node.identifier
         )
 
-        if parent_identifier is not None:
-            node.add_parent(parent_identifier)
+        node.add_parent(parent_identifier or self.ROOT)
 
         # Create link with requirement and weight.
         self._create_link(
@@ -490,7 +490,6 @@ def resolve_conflicts(graph, definition_mapping):
         identifiers = sorted(
             identifiers,
             key=lambda _identifier: priority_mapping[_identifier][0],
-            reverse=True
         )
 
         # Pick up the nearest node.
@@ -507,7 +506,7 @@ def resolve_conflicts(graph, definition_mapping):
 
         # Ensure that all requirements from parent links are compatibles.
         validate_node_requirements(
-            graph, current_identifier, similar_identifiers, priority_mapping
+            graph, current_identifier, similar_identifiers
         )
 
         # Compute valid node identifier from combined requirements.
@@ -570,93 +569,89 @@ def combined_requirement(graph, identifiers, priority_mapping):
     return requirement
 
 
-def validate_node_requirements(
-    graph, identifier, identifiers, priority_mapping
-):
+def validate_node_requirements(graph, identifier, identifiers):
     """Validate node *identifier* against other node *identifiers* in *graph*.
 
     *graph* must be an instance of :class:`Graph`.
 
     *identifier* and *identifiers* must be valid node identifiers.
 
-    *priority_mapping* is a mapping indicating the lowest possible priority
-    of each node identifier from the root level of the graph with its
-    corresponding parent node identifier.
-
     Raise :exc:`RuntimeError` if two node requirements are incompatible.
-
-    """
-    for _identifier in identifiers:
-        if not compatible_in_graph(
-            graph, identifier, _identifier, priority_mapping
-        ):
-            node = graph.node(identifier)
-
-            raise RuntimeError(
-                "A requirement conflict has been detected for '{definition}'\n"
-                " - {requirement1} [from {parent1}]\n"
-                " - {requirement2} [from {parent2}]\n".format(
-                    definition=node.definition.identifier,
-                    requirement1=graph.link_requirement(
-                        identifier, priority_mapping[identifier][1]
-                    ),
-                    requirement2=graph.link_requirement(
-                        _identifier, priority_mapping[_identifier][1]
-                    ),
-                    parent1=priority_mapping[identifier][1],
-                    parent2=priority_mapping[_identifier][1],
-                )
-            )
-
-
-def compatible_in_graph(graph, identifier1, identifier2, priority_mapping):
-    """Check node *identifier1* compatibility against node *identifiers2*.
-
-    Ensure that both node requirements are compatible within the *graph*.
-
-    *graph* must be an instance of :class:`Graph`.
-
-    *identifier1* and *identifier2* must be valid node identifiers.
-
-    *priority_mapping* is a mapping indicating the lowest possible priority
-    of each node identifier from the root level of the graph with its
-    corresponding parent node identifier.
-
-    Raise :exc:`RuntimeError` if two nodes are incompatible.
 
     """
     logger = mlog.Logger(__name__ + ".validate_node_requirements")
 
-    node1 = graph.node(identifier1)
-    requirement1 = graph.link_requirement(
-        identifier1, priority_mapping[identifier1][1]
+    node1 = graph.node(identifier)
+    mapping1 = compute_requirement_mapping(graph, identifier)
+
+    for identifier2 in identifiers:
+        node2 = graph.node(identifier2)
+        mapping2 = compute_requirement_mapping(graph, identifier2)
+
+        for requirement1, requirement2 in itertools.combinations(
+                mapping1.keys() + mapping2.keys(), 2
+        ):
+            conflict = False
+
+            # Nodes are not compatible if both definition versions are not
+            # compatible with at least one of the specifier.
+            if (
+                node1.definition.version not in requirement2.specifier and
+                node2.definition.version not in requirement1.specifier
+            ):
+                conflict = True
+
+            # Nodes are not compatible if different variants were requested.
+            elif requirement1.extras != requirement2.extras:
+                conflict = True
+
+            if conflict:
+                raise RuntimeError(
+                    "A requirement conflict has been detected for "
+                    "'{definition}'\n"
+                    " - {requirement1} [from {parent1}]\n"
+                    " - {requirement2} [from {parent2}]\n".format(
+                        definition=node1.definition.identifier,
+                        requirement1=requirement1,
+                        requirement2=requirement2,
+                        parent1=mapping1[requirement1],
+                        parent2=mapping2[requirement2],
+                    )
+                )
+
+            logger.debug(
+                "'{requirement1}' and '{requirement2}' are compatibles".format(
+                    requirement1=requirement1,
+                    requirement2=requirement2
+                )
+            )
+
+
+def compute_requirement_mapping(graph, identifier):
+    """Return mapping regrouping all requirements for node *identifier*.
+
+    The mapping associates each requirement name with a parent *identifier*.
+
+    *graph* must be an instance of :class:`Graph`.
+
+    *identifier* and *identifiers* must be valid node identifiers.
+
+    """
+    node = graph.node(identifier)
+
+    # Filter out non existing nodes from incoming.
+    incoming_identifiers = filter(
+        lambda _id: graph.node(_id) is not None or _id == Graph.ROOT,
+        node.parent_identifiers
     )
 
-    node2 = graph.node(identifier2)
-    requirement2 = graph.link_requirement(
-        identifier2, priority_mapping[identifier2][1]
-    )
+    mapping = {}
 
-    # Nodes are not compatible if both definition versions are not
-    # compatible with at least one of the specifier.
-    if (
-        node1.definition.version not in requirement2.specifier and
-        node2.definition.version not in requirement1.specifier
-    ):
-        return False
+    for incoming_identifier in incoming_identifiers:
+        requirement = graph.link_requirement(identifier, incoming_identifier)
+        mapping[requirement] = incoming_identifier
 
-    # Nodes are not compatible if different variants were requested.
-    if requirement1.extras != requirement2.extras:
-        return False
-
-    logger.debug(
-        "'{requirement1}' and '{requirement2}' are compatibles".format(
-            requirement1=requirement1,
-            requirement2=requirement2
-        )
-    )
-
-    return True
+    return mapping
 
 
 def compute_priority_mapping(graph):
@@ -725,7 +720,7 @@ def compute_priority_mapping(graph):
 
 
 def extract_ordered_definitions(graph):
-    """Return topologically sorted list of definitions from *graph*.
+    """Return sorted list of definitions from *graph*.
 
     Best matching :class:`~umwelt.definition.Definition` instances are
     extracted from each node instance and added to the list.
@@ -735,41 +730,21 @@ def extract_ordered_definitions(graph):
     """
     logger = mlog.Logger(__name__ + ".extract_ordered_definitions")
 
-    queue = Queue()
-    outdegree_mapping = {}
-
-    for identifier in graph.node_identifiers():
-        outdegree = graph.outdegree(identifier)
-        outdegree_mapping[identifier] = outdegree
-
-        # Queue all node identifiers which have no dependencies.
-        if outdegree_mapping[identifier] == 0:
-            queue.put(graph.node(identifier))
+    # TODO: Use memoization to optimize the priority mapping creation.
+    priority_mapping = compute_priority_mapping(graph)
 
     definitions = []
 
-    while not queue.empty():
-        node = queue.get()
+    for identifier in sorted(
+        graph.node_identifiers(),
+        key=lambda _identifier: priority_mapping[_identifier],
+        reverse=True
+    ):
+        node = graph.node(identifier)
         definitions.append(node.definition)
 
-        for identifier in node.parent_identifiers:
-            if identifier not in outdegree_mapping.keys():
-                continue
-
-            outdegree_mapping[identifier] = (
-                outdegree_mapping[identifier] - 1
-            )
-
-            if outdegree_mapping[identifier] == 0:
-                queue.put(graph.node(identifier))
-
-    if len(definitions) != len(graph.node_identifiers()):
-        raise RuntimeError(
-            "A cycle has been detected in the dependency graph"
-        )
-
     logger.debug(
-        "Topologically sorted definitions: {}".format(
+        "Sorted definitions: {}".format(
             [definition.identifier for definition in definitions]
         )
     )
