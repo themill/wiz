@@ -113,31 +113,39 @@ def get(requirement, definition_mapping):
 def combine(definition1, definition2):
     """Return combined mapping from *definition1* and *definition2*.
 
-    The final mapping will only contain the 'data' and 'requirement' keywords.
+    The final mapping will only contain the 'environ' and 'requirement'
+    keywords.
 
     """
-    definition = {"data": {}, "requirement": []}
+    logger = mlog.Logger(__name__ + ".combine")
 
-    # Extract and combine data from definitions
-    data1 = definition1.get("data", {})
-    data2 = definition2.get("data", {})
+    definition = {"environ": {}, "requirement": []}
 
-    for key in set(data1.keys() + data2.keys()):
-        value1 = data1.get(key)
-        value2 = data2.get(key)
+    # Extract and combine environ from definitions
+    environ1 = definition1.get("environ", {})
+    environ2 = definition2.get("environ", {})
+
+    for key in set(environ1.keys() + environ2.keys()):
+        value1 = environ1.get(key)
+        value2 = environ2.get(key)
 
         # Check if the values can be combined.
         if value1 is not None and value2 is not None:
-            if not isinstance(value1, list):
-                value1 = [value1]
-            if not isinstance(value2, list):
-                value2 = [value2]
+            if "${{{}}}".format(key) not in value1:
+                logger.warning(
+                    "The '{key}' variable is being overridden in definition "
+                    "'{identifier}' [{version}]".format(
+                        key=key,
+                        identifier=definition1.identifier,
+                        version=definition1.version
+                    )
+                )
 
-            definition["data"][key] = value1 + value2
+            definition["environ"][key] = value1.format(**environ2)
 
         # Otherwise simply set the valid value.
         else:
-            definition["data"][key] = value1 or value2
+            definition["environ"][key] = value1 or value2
 
     # Extract and combine requirements from definitions
     requirement1 = definition1.get("requirement", [])
