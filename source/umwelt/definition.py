@@ -126,24 +126,16 @@ def combine(definition1, definition2):
         value1 = data1.get(key)
         value2 = data2.get(key)
 
-        # The keyword must not have a value in the two environment, unless if
-        # it is a list that can be combined.
+        # Check if the values can be combined.
         if value1 is not None and value2 is not None:
-            if not isinstance(value1, list) or not isinstance(value2, list):
-                raise RuntimeError(
-                    "Overriding environment variable per definition is "
-                    "forbidden\n"
-                    " - {definition1}: {key}={value1!r}\n"
-                    " - {definition2}: {key}={value2!r}\n".format(
-                        key=key, value1=value1, value2=value2,
-                        definition1=definition1.identifier,
-                        definition2=definition2.identifier,
-                    )
-                )
+            if not isinstance(value1, list):
+                value1 = [value1]
+            if not isinstance(value2, list):
+                value2 = [value2]
 
             definition["data"][key] = value1 + value2
 
-        # Otherwise simply set the valid value
+        # Otherwise simply set the valid value.
         else:
             definition["data"][key] = value1 or value2
 
