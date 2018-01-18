@@ -367,12 +367,31 @@ def display_environment(environment):
 
     for key in sorted(environment.keys()):
         for _key, value in itertools.izip_longest(
-            [key], environment[key].split(os.pathsep)
+            [key], split_environment_variable_value(key, environment[key])
         ):
             line = format_row([_key or "", value],  width=40)
             print(line)
 
     print()
+
+
+def split_environment_variable_value(name, value):
+    """Return *value* for environment variable *name* as a list.
+
+    Example::
+
+        >>> split_environment_variable_value("name", "value1:value2:value3")
+        ["value1", "value2", "value3"]
+
+        >>> split_environment_variable_value("name", "value1")
+        ["value1"]
+
+    Depending on the *name*, some value should keep the ":" (e.g. "DISPLAY")
+
+    """
+    if key == "DISPLAY":
+        return [value]
+    return value.split(os.pathsep)
 
 
 def format_row(elements, width=30):
