@@ -66,7 +66,8 @@ def compute_environment_from_definitions(definitions, environ_mapping=None):
     """
     def _combine(definition1, definition2):
         """Return intermediate definition combining both environments"""
-        return {"environ": merge_environments(definition1, definition2)}
+        definition2["environ"] = merge_environments(definition1, definition2)
+        return definition2
 
     combined_defintion = reduce(
         _combine, definitions, dict(environ=environ_mapping)
@@ -157,8 +158,8 @@ def merge_environments(definition1, definition2):
                     "The '{key}' variable is being overridden in "
                     "definition '{identifier}' [{version}]".format(
                         key=key,
-                        identifier=definition1.identifier,
-                        version=definition1.version
+                        identifier=definition2.identifier,
+                        version=definition2.version
                     )
                 )
 
