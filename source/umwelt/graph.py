@@ -530,8 +530,6 @@ def resolve_conflicts(graph, definition_mapping):
                 identifiers.append(valid_identifier)
                 graph.update_from_requirement(requirement)
 
-        priority_mapping = compute_priority_mapping(graph)
-
 
 def combined_requirement(graph, identifiers, priority_mapping):
     """Return combined requirement from node *identifiers* in *graph*.
