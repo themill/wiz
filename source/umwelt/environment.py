@@ -87,40 +87,40 @@ def merge_environments(definition1, definition2):
     combined environment.
 
     If the variable exists in both "environ" mappings, the value from
-    *definition1* must reference the variable name for the value from
-    *definition2* to be included in the combined environment::
+    *definition2* must reference the variable name for the value from
+    *definition1* to be included in the combined environment::
 
         >>> merge_environments(
-        ...     Definition({"environ": {"key": "value1:${key}"}})
         ...     Definition({"environ": {"key": "value2"})
+        ...     Definition({"environ": {"key": "value1:${key}"}})
         ... )
 
         {"key": "value1:value2"}
 
-    Otherwise the value from *definition1* will override the value from
-    *definition2*::
+    Otherwise the value from *definition2* will override the value from
+    *definition1*::
 
         >>> merge_environments(
-        ...     Definition({"environ": {"key": "value1"}})
         ...     Definition({"environ": {"key": "value2"})
+        ...     Definition({"environ": {"key": "value1"}})
         ... )
 
         {"key": "value1"}
 
-    If other variables from *definition2* are referenced in the value fetched
-    from *definition1*, they will be replaced as well::
+    If other variables from *definition1* are referenced in the value fetched
+    from *definition2*, they will be replaced as well::
 
         >>> merge_environments(
-        ...     Definition({
-        ...         "environ": {
-        ...             "PLUGIN_PATH": "${HOME}/.app:${PLUGIN_PATH}"
-        ...         }
-        ...     }),
         ...     Definition({
         ...         "environ": {
         ...             "PLUGIN_PATH": "/path/to/settings",
         ...             "HOME": "/usr/people/me"
         ...        }
+        ...     }),
+        ...     Definition({
+        ...         "environ": {
+        ...             "PLUGIN_PATH": "${HOME}/.app:${PLUGIN_PATH}"
+        ...         }
         ...     })
         ... )
 
@@ -152,7 +152,7 @@ def merge_environments(definition1, definition2):
         value2 = environ2.get(key)
 
         if value1 is not None and value2 is not None:
-            if "${{{}}}".format(key) not in value1:
+            if "${{{}}}".format(key) not in value2:
                 logger.warning(
                     "The '{key}' variable is being overridden in "
                     "definition '{identifier}' [{version}]".format(
@@ -164,8 +164,8 @@ def merge_environments(definition1, definition2):
 
             environ[key] = re.sub(
                 "\${(\w+)}",
-                lambda match: environ2.get(match.group(1)) or match.group(0),
-                str(value1)
+                lambda match: environ1.get(match.group(1)) or match.group(0),
+                str(value2)
             )
 
         else:
