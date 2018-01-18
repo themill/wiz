@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import os
+import re
 
 import mlog
 
@@ -49,11 +50,11 @@ def resolve_environment(requirements, definition_mapping, environ_mapping=None):
 
     # Combine all environments from each definition version extracted with the
     # initial environment.
-    return compute_environment(definitions, environ_mapping)
+    return compute_environment_from_definitions(definitions, environ_mapping)
 
 
-def compute_environment(definitions, environ_mapping=None):
-    """Return environment mapping based on *definitions*.
+def compute_environment_from_definitions(definitions, environ_mapping=None):
+    """Return environment mapping from combination of *definitions*.
 
     *definitions* should be a list of :class:`~umwelt.definition.Definition`
     instances. it should be ordered from the less important to the most
@@ -63,11 +64,114 @@ def compute_environment(definitions, environ_mapping=None):
     be augmented by the resolved environment.
 
     """
+    def _combine(definition1, definition2):
+        """Return intermediate definition combining both environments"""
+        return {"environ": merge_environments(definition1, definition2)}
+
     combined_defintion = reduce(
-        umwelt.definition.combine, definitions, dict(environ=environ_mapping)
+        _combine, definitions, dict(environ=environ_mapping)
     )
 
     return combined_defintion.get("environ", {})
+
+
+def merge_environments(definition1, definition2):
+    """Return combined environment from *definition1* and *definition2*
+
+    *definition1* and *definition2* must be valie
+    :class:`~umwelt.definition.Definition` instances.
+
+    Each variable name from both definition's "environ" mappings will be
+    gathered so that a final value can be set. If the a variable is only
+    contained in one of the "environ" mapping, its value will be kept in the
+    combined environment.
+
+    If the variable exists in both "environ" mappings, the value from
+    *definition1* must reference the variable name for the value from
+    *definition2* to be included in the combined environment::
+
+        >>> merge_environments(
+        ...     Definition({"environ": {"key": "value1:${key}"}})
+        ...     Definition({"environ": {"key": "value2"})
+        ... )
+
+        {"key": "value1:value2"}
+
+    Otherwise the value from *definition1* will override the value from
+    *definition2*::
+
+        >>> merge_environments(
+        ...     Definition({"environ": {"key": "value1"}})
+        ...     Definition({"environ": {"key": "value2"})
+        ... )
+
+        {"key": "value1"}
+
+    If other variables from *definition2* are referenced in the value fetched
+    from *definition1*, they will be replaced as well::
+
+        >>> merge_environments(
+        ...     Definition({
+        ...         "environ": {
+        ...             "PLUGIN_PATH": "${HOME}/.app:${PLUGIN_PATH}"
+        ...         }
+        ...     }),
+        ...     Definition({
+        ...         "environ": {
+        ...             "PLUGIN_PATH": "/path/to/settings",
+        ...             "HOME": "/usr/people/me"
+        ...        }
+        ...     })
+        ... )
+
+        >>> compute_variable_value(
+        ...    "PLUGIN_PATH",
+        ...    {"PLUGIN_PATH": "${HOME}/.app:${PLUGIN_PATH}"},
+        ...    {"PLUGIN_PATH": "/path/to/settings", "HOME": "/usr/people/me"}
+        ... )
+
+        {
+            "HOME": "/usr/people/me",
+            "PLUGIN_PATH": "/usr/people/me/.app:/path/to/settings"
+        }
+
+    .. warining::
+
+        This process will stringify all variable values.
+
+    """
+    logger = mlog.Logger(__name__ + ".merge_environments")
+
+    environ = {}
+
+    environ1 = definition1.get("environ", {})
+    environ2 = definition2.get("environ", {})
+
+    for key in set(environ1.keys() + environ2.keys()):
+        value1 = environ1.get(key)
+        value2 = environ2.get(key)
+
+        if value1 is not None and value2 is not None:
+            if "${{{}}}".format(key) not in value1:
+                logger.warning(
+                    "The '{key}' variable is being overridden in "
+                    "definition '{identifier}' [{version}]".format(
+                        key=key,
+                        identifier=definition1.identifier,
+                        version=definition1.version
+                    )
+                )
+
+            environ[key] = re.sub(
+                "\${(\w+)}",
+                lambda match: environ2.get(match.group(1)) or match.group(0),
+                str(value1)
+            )
+
+        else:
+            environ[key] = str(value1 or value2)
+
+    return environ
 
 
 def initial_environment(environ_mapping=None):

@@ -8,6 +8,8 @@ from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 import mlog
 
+import umwelt.environment
+
 
 def fetch_definition_mapping(paths, max_depth=None):
     """Return mapping from all environment definitions available under *paths*.
@@ -104,57 +106,24 @@ def get(requirement, definition_mapping):
                 )
             )
 
-        required_definition.update(
-            combine(variant_mapping[variant], required_definition)
+        required_definition["environ"] = umwelt.environment.merge_environments(
+            variant_mapping[variant], required_definition
+        )
+
+        required_definition["requirement"] = merge_requirements(
+            variant_mapping[variant], required_definition
         )
 
     return required_definition
 
 
-def combine(definition1, definition2):
-    """Return combined mapping from *definition1* and *definition2*.
-
-    The final mapping will only contain the 'environ' and 'requirement'
-    keywords.
-
+def merge_requirements(definition1, definition2):
+    """Return combined requirement from *definition1* and *definition2*
     """
-    logger = mlog.Logger(__name__ + ".combine")
-
-    definition = {"environ": {}, "requirement": []}
-
-    # Extract and combine environ from definitions
-    environ1 = definition1.get("environ", {})
-    environ2 = definition2.get("environ", {})
-
-    for key in set(environ1.keys() + environ2.keys()):
-        value1 = environ1.get(key)
-        value2 = environ2.get(key)
-
-        # Check if the values can be combined.
-        if value1 is not None and value2 is not None:
-            if "${{{}}}".format(key) not in value1:
-                logger.warning(
-                    "The '{key}' variable is being overridden in definition "
-                    "'{identifier}' [{version}]".format(
-                        key=key,
-                        identifier=definition1.identifier,
-                        version=definition1.version
-                    )
-                )
-
-            definition["environ"][key] = str(value1).format(**environ2)
-
-        # Otherwise simply set the valid value.
-        else:
-            definition["environ"][key] = str(value1 or value2)
-
-    # Extract and combine requirements from definitions
     requirement1 = definition1.get("requirement", [])
     requirement2 = definition2.get("requirement", [])
 
-    definition["requirement"] = requirement1 + requirement2
-
-    return definition
+    return requirement1 + requirement2
 
 
 def discover(paths, max_depth=None):
