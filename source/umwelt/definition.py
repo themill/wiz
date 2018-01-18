@@ -58,7 +58,7 @@ def search_definitions(requirement, paths, max_depth=None):
 
 
 def get(requirement, definition_mapping):
-    """Get fittest :class:`Definition` instance for *definition_specifier*.
+    """Get best matching :class:`Definition` instance for *requirement*.
 
     *requirement* is an instance of :class:`packaging.requirements.Requirement`.
 
@@ -71,59 +71,59 @@ def get(requirement, definition_mapping):
     """
     if requirement.name not in definition_mapping:
         raise RuntimeError(
-            "No definition identified as '{}' has been found."
+            "The requirement '{}' could not be resolved."
             .format(requirement.name)
         )
 
-    required_definition = None
+    definition = None
 
-    # Sort the definition so that the fittest highest version is loaded first.
+    # Sort the definition so that the highest version is first. It is more
+    # efficient to do the sorting when a definition is required rather than for
+    # all the definitions found in the registries...
     sorted_definitions = sorted(
         definition_mapping[requirement.name].values(),
-        key=lambda d: d.version, reverse=True
+        key=lambda _definition: _definition.version,
+        reverse=True
     )
 
+    # Get the best matching definition.
     for definition in sorted_definitions:
         if definition.version in requirement.specifier:
-            required_definition = definition
+            definition = definition
             break
 
-    if required_definition is None:
+    if definition is None:
         raise RuntimeError(
-            "No definition has been found for '{}'."
-            .format(requirement)
+            "The requirement '{}' could not be resolved."
+            .format(requirement.name)
         )
 
     if len(requirement.extras) > 0:
         variant = next(iter(requirement.extras))
-
-        variant_mapping = required_definition.get("variant", {})
+        variant_mapping = definition.get("variant", {})
 
         if variant not in variant_mapping.keys():
             raise RuntimeError(
-                "The variant '{}' has not been found for '{}'.".format(
-                    variant, requirement
+                "The variant '{}' could not been resolved for '{}'.".format(
+                    variant, requirement.name
                 )
             )
 
-        required_definition["environ"] = umwelt.environment.merge_environments(
-            variant_mapping[variant], required_definition
+        # Merge variant environment with the global environment if necessary.
+        definition["environ"] = umwelt.environment.merge_environments(
+            definition, variant_mapping[variant]
         )
 
-        required_definition["requirement"] = merge_requirements(
-            variant_mapping[variant], required_definition
+        # Update the definition requirement if necessary.
+        definition_requirement = (
+            definition.get("requirement", []) +
+            variant_mapping[variant].get("requirement", [])
         )
 
-    return required_definition
+        if len(definition_requirement) > 0:
+            definition["requirement"] = definition_requirement
 
-
-def merge_requirements(definition1, definition2):
-    """Return combined requirement from *definition1* and *definition2*
-    """
-    requirement1 = definition1.get("requirement", [])
-    requirement2 = definition2.get("requirement", [])
-
-    return requirement1 + requirement2
+    return definition
 
 
 def discover(paths, max_depth=None):
