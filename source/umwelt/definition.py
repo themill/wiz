@@ -127,8 +127,8 @@ def combine(definition1, definition2):
     environ2 = definition2.get("environ", {})
 
     for key in set(environ1.keys() + environ2.keys()):
-        value1 = str(environ1.get(key))
-        value2 = str(environ2.get(key))
+        value1 = environ1.get(key)
+        value2 = environ2.get(key)
 
         # Check if the values can be combined.
         if value1 is not None and value2 is not None:
@@ -142,11 +142,11 @@ def combine(definition1, definition2):
                     )
                 )
 
-            definition["environ"][key] = value1.format(**environ2)
+            definition["environ"][key] = str(value1).format(**environ2)
 
         # Otherwise simply set the valid value.
         else:
-            definition["environ"][key] = value1 or value2
+            definition["environ"][key] = str(value1 or value2)
 
     # Extract and combine requirements from definitions
     requirement1 = definition1.get("requirement", [])
