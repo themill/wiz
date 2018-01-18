@@ -527,8 +527,8 @@ def resolve_conflicts(graph, definition_mapping):
                 logger.debug(
                     "Append '{}' to conflicted nodes".format(valid_identifier)
                 )
-                identifiers.append(valid_identifier)
                 graph.update_from_requirement(requirement)
+                identifiers = list(set(identifiers + graph.conflicts()))
 
 
 def combined_requirement(graph, identifiers, priority_mapping):
