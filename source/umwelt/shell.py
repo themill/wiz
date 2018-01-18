@@ -14,16 +14,6 @@ def spawn_shell(environment, shell_type="bash"):
     """Spawn a sub-shell."""
     executable = distutils.spawn.find_executable(shell_type)
 
-    # Update environment to preserve important values from current context
-    environment["DISPLAY"] = os.environ.get("DISPLAY")
-    environment["USER"] = os.environ.get("USER")
-    environment["HOME"] = os.environ.get("HOME")
-    environment["PATH"] = os.pathsep.join([
-        environment.get("PATH", ""),
-        "/usr/local/sbin", "/usr/local/bin", "/sbin:/bin",
-        "/usr/sbin", "/usr/bin", "/root/bin"
-    ])
-
     # save original tty setting then set it to raw mode
     old_tty = termios.tcgetattr(sys.stdin)
     tty.setraw(sys.stdin.fileno())

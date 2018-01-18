@@ -1,12 +1,14 @@
 # :coding: utf-8
 
+import os
+
 import mlog
 
 import umwelt.definition
 import umwelt.graph
 
 
-def resolve_environment(requirements, definition_mapping):
+def resolve_environment(requirements, definition_mapping, environ_mapping=None):
     """Return resolved environment mapping corresponding to *requirements*.
 
     *requirements* should be a list of
@@ -15,6 +17,9 @@ def resolve_environment(requirements, definition_mapping):
     *definition_mapping* is a mapping regrouping all available environment
     definition associated with their unique identifier. It is used to
     resolve dependent definition specifiers.
+
+    *environ_mapping* can be a mapping of environment variables which would
+    be augmented by the resolved environment.
 
     Raise :exc:`RuntimeError` if the graph cannot be built.
 
@@ -26,15 +31,81 @@ def resolve_environment(requirements, definition_mapping):
         )
     )
 
+    # Compute initial environment mapping to augment.
+    environ_mapping = initial_environment(environ_mapping)
+
+    # Create a graph with all required definition versions.
     graph = umwelt.graph.Graph(definition_mapping)
     graph.update_from_requirements(requirements)
 
+    # Ensure that only one version is required for each definition in the graph.
+    # Otherwise attempt to resolve the possible conflicts.
     umwelt.graph.resolve_conflicts(graph, definition_mapping)
 
+    # Extract all definition versions from the graph from the less important to
+    # the most important. The most important being the highest definition
+    # versions in the graph.
     definitions = umwelt.graph.extract_ordered_definitions(graph)
 
-    environ = reduce(
-        umwelt.definition.combine, definitions, {}
-    ).get("environ", {})
+    # Combine all environments from each definition version extracted with the
+    # initial environment.
+    return compute_environment(definitions, environ_mapping)
+
+
+def compute_environment(definitions, environ_mapping=None):
+    """Return environment mapping based on *definitions*.
+
+    *definitions* should be a list of :class:`~umwelt.definition.Definition`
+    instances. it should be ordered from the less important to the most
+    important so that the later are prioritized over the first.
+
+    *environ_mapping* can be a mapping of environment variables which would
+    be augmented by the resolved environment.
+
+    """
+    combined_defintion = reduce(
+        umwelt.definition.combine, definitions, dict(environ=environ_mapping)
+    )
+
+    return combined_defintion.get("environ", {})
+
+
+def initial_environment(environ_mapping=None):
+    """Return the initial environment to augment.
+
+    The initial environment contains basic variables from the external
+    environment that can be used in the environment definitions, such as
+    the *USER* or the *HOME* variables.
+
+    The other variable added are:
+
+    * DISPLAY:
+        This variable is necessary to open user interface within the current
+        X display name.
+
+    * PATH:
+        This variable is initialised with default values to have access to the
+        basic UNIX commands.
+
+    *environ_mapping* can be a custom environment mapping which will be added
+    to the initial environment.
+
+    """
+    environ = {
+        "USER": os.environ.get("USER"),
+        "HOME": os.environ.get("HOME"),
+        "DISPLAY": os.environ.get("DISPLAY"),
+        "PATH": os.pathsep.join([
+            "/usr/local/sbin",
+            "/usr/local/bin",
+            "/usr/sbin",
+            "/usr/bin",
+            "/sbin",
+            "/bin",
+        ])
+    }
+
+    if environ_mapping is not None:
+        environ.update(**environ_mapping)
 
     return environ
