@@ -389,7 +389,7 @@ def split_environment_variable_value(name, value):
     Depending on the *name*, some value should keep the ":" (e.g. "DISPLAY")
 
     """
-    if key == "DISPLAY":
+    if name == "DISPLAY":
         return [value]
     return value.split(os.pathsep)
 
