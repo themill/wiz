@@ -183,8 +183,10 @@ def main(arguments=None):
 
     elif namespace.commands == "search":
         requirement = Requirement(namespace.requirement)
-        mapping = umwelt.definition.search_definitions(
-            requirement, registries, max_depth=namespace.definition_search_depth
+        mapping = umwelt.definition.search(
+            requirement,
+            registries,
+            max_depth=namespace.definition_search_depth
         )
 
         if not len(mapping):

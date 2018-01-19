@@ -28,7 +28,7 @@ def fetch_definition_mapping(paths, max_depth=None):
     return mapping
 
 
-def search_definitions(requirement, paths, max_depth=None):
+def search(requirement, paths, max_depth=None):
     """Return mapping from environment definitions matching *requirement*.
 
     *requirement* is an instance of :class:`packaging.requirements.Requirement`.
@@ -37,7 +37,7 @@ def search_definitions(requirement, paths, max_depth=None):
     searching recursively up to *max_depth*.
 
     """
-    logger = mlog.Logger(__name__ + ".search_definitions")
+    logger = mlog.Logger(__name__ + ".search")
     logger.info(
         "Search environment definition definitions matching '{}'"
         .format(requirement)
