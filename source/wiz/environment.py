@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import os
+import re
 
 import mlog
 
@@ -70,11 +71,16 @@ def extract(definitions, environ_mapping=None):
         )
         return definition2
 
-    combined_defintion = reduce(
+    combined_definition = reduce(
         _combine, definitions, dict(environ=environ_mapping)
     )
 
-    return combined_defintion.get("environ", {})
+    # Clean all values from possible key references.
+    environ = combined_definition.get("environ", {})
+    for key, value in environ.items():
+        environ[key] = re.sub(":?\${{{}}}:?".format(key), lambda x: "", value)
+
+    return environ
 
 
 def initiate(environ_mapping=None):
