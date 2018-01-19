@@ -11,7 +11,7 @@ from packaging.requirements import Requirement
 import umwelt.registry
 import umwelt.definition
 import umwelt.environment
-import umwelt.shell
+import umwelt.spawn
 
 
 def construct_parser():
@@ -207,7 +207,6 @@ def main(arguments=None):
                 "Impossible to resolve the environment graph.",
                 traceback=True
             )
-
         else:
             display_environment(environment)
 
@@ -225,9 +224,8 @@ def main(arguments=None):
                 "Impossible to resolve the environment graph.",
                 traceback=True
             )
-
         else:
-            umwelt.shell.spawn_shell(environment)
+            umwelt.spawn.shell(environment)
 
 
 def display_definitions(definition_mapping, all_versions=False):

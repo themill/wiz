@@ -10,8 +10,12 @@ import tty
 import pty
 
 
-def spawn_shell(environment, shell_type="bash"):
-    """Spawn a sub-shell."""
+def shell(environment, shell_type="bash"):
+    """Spawn a sub-shell with resolved *environment*.
+
+    *shell_type* can indicate a specific type of shell. Default is Bash.
+
+    """
     executable = distutils.spawn.find_executable(shell_type)
 
     # save original tty setting then set it to raw mode
