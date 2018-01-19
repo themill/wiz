@@ -1,14 +1,13 @@
 # :coding: utf-8
 
 import os
+import re
 import collections
 import json
 
 from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 import mlog
-
-import umwelt.environment
 
 
 def fetch(paths, max_depth=None):
@@ -142,7 +141,7 @@ def extract_environment(definition1, definition2):
     *definition2* must reference the variable name for the value from
     *definition1* to be included in the combined environment::
 
-        >>> merge_environments(
+        >>> extract_environment(
         ...     Definition({"environ": {"key": "value2"})
         ...     Definition({"environ": {"key": "value1:${key}"}})
         ... )
@@ -152,7 +151,7 @@ def extract_environment(definition1, definition2):
     Otherwise the value from *definition2* will override the value from
     *definition1*::
 
-        >>> merge_environments(
+        >>> extract_environment(
         ...     Definition({"environ": {"key": "value2"})
         ...     Definition({"environ": {"key": "value1"}})
         ... )
@@ -162,7 +161,7 @@ def extract_environment(definition1, definition2):
     If other variables from *definition1* are referenced in the value fetched
     from *definition2*, they will be replaced as well::
 
-        >>> merge_environments(
+        >>> extract_environment(
         ...     Definition({
         ...         "environ": {
         ...             "PLUGIN_PATH": "/path/to/settings",
@@ -176,7 +175,7 @@ def extract_environment(definition1, definition2):
         ...     })
         ... )
 
-        >>> compute_variable_value(
+        >>> extract_environment(
         ...    "PLUGIN_PATH",
         ...    {"PLUGIN_PATH": "${HOME}/.app:${PLUGIN_PATH}"},
         ...    {"PLUGIN_PATH": "/path/to/settings", "HOME": "/usr/people/me"}
