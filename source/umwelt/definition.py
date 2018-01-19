@@ -11,11 +11,11 @@ import mlog
 import umwelt.environment
 
 
-def fetch_definition_mapping(paths, max_depth=None):
+def fetch(paths, max_depth=None):
     """Return mapping from all environment definitions available under *paths*.
 
-    :func:`discover` available environments under *paths*,
-    searching recursively up to *max_depth*.
+    :func:`discover` available environments under *paths*, searching recursively
+    up to *max_depth*.
 
     """
     mapping = dict()
@@ -51,8 +51,9 @@ def search(requirement, paths, max_depth=None):
             requirement.name.lower() in definition.description.lower()
         ):
             if definition.version in requirement.specifier:
-                mapping.setdefault(definition.identifier, [])
-                mapping[definition.identifier].append(definition)
+                base_version = definition.version.base_version
+                mapping.setdefault(definition.identifier, {})
+                mapping[definition.identifier][base_version] = definition
 
     return mapping
 

@@ -176,7 +176,7 @@ def main(arguments=None):
         print("\n".join(registries))
 
     elif namespace.commands == "definitions":
-        mapping = umwelt.definition.fetch_definition_mapping(
+        mapping = umwelt.definition.fetch(
             registries, max_depth=namespace.definition_search_depth
         )
         display_definitions(mapping, all_versions=namespace.all)
@@ -195,8 +195,9 @@ def main(arguments=None):
             display_definitions(mapping, all_versions=namespace.all)
 
     elif namespace.commands == "view":
-        mapping = umwelt.definition.fetch_definition_mapping(
-            registries, max_depth=namespace.definition_search_depth
+        mapping = umwelt.definition.fetch(
+            registries,
+            max_depth=namespace.definition_search_depth
         )
 
         requirements = [
@@ -218,7 +219,7 @@ def main(arguments=None):
             display_environment(environment)
 
     elif namespace.commands == "load":
-        mapping = umwelt.definition.fetch_definition_mapping(
+        mapping = umwelt.definition.fetch(
             registries, max_depth=namespace.definition_search_depth
         )
 
@@ -331,9 +332,11 @@ def display_definitions(definition_mapping, all_versions=False):
     print("\n" + line)
     print("+".join(["-"*30]*4) + "-"*30)
 
-    for identifier, definitions in sorted(definition_mapping.items()):
+    for identifier, version_mapping in sorted(definition_mapping.items()):
         sorted_definitions = sorted(
-            definitions, key=lambda d: d.version, reverse=True
+            version_mapping.values(),
+            key=lambda _definition: _definition.version,
+            reverse=True
         )
 
         if all_versions:
