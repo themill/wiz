@@ -111,7 +111,7 @@ def get(requirement, definition_mapping):
             )
 
         # Merge variant environment with the global environment if necessary.
-        definition["environ"] = umwelt.environment.merge_environments(
+        definition["environ"] = extract_environment(
             definition, variant_mapping[variant]
         )
 
@@ -125,6 +125,105 @@ def get(requirement, definition_mapping):
             definition["requirement"] = definition_requirement
 
     return definition
+
+
+def extract_environment(definition1, definition2):
+    """Return combined environment from *definition1* and *definition2*
+
+    *definition1* and *definition2* must be valie
+    :class:`~umwelt.definition.Definition` instances.
+
+    Each variable name from both definition's "environ" mappings will be
+    gathered so that a final value can be set. If the a variable is only
+    contained in one of the "environ" mapping, its value will be kept in the
+    combined environment.
+
+    If the variable exists in both "environ" mappings, the value from
+    *definition2* must reference the variable name for the value from
+    *definition1* to be included in the combined environment::
+
+        >>> merge_environments(
+        ...     Definition({"environ": {"key": "value2"})
+        ...     Definition({"environ": {"key": "value1:${key}"}})
+        ... )
+
+        {"key": "value1:value2"}
+
+    Otherwise the value from *definition2* will override the value from
+    *definition1*::
+
+        >>> merge_environments(
+        ...     Definition({"environ": {"key": "value2"})
+        ...     Definition({"environ": {"key": "value1"}})
+        ... )
+
+        {"key": "value1"}
+
+    If other variables from *definition1* are referenced in the value fetched
+    from *definition2*, they will be replaced as well::
+
+        >>> merge_environments(
+        ...     Definition({
+        ...         "environ": {
+        ...             "PLUGIN_PATH": "/path/to/settings",
+        ...             "HOME": "/usr/people/me"
+        ...        }
+        ...     }),
+        ...     Definition({
+        ...         "environ": {
+        ...             "PLUGIN_PATH": "${HOME}/.app:${PLUGIN_PATH}"
+        ...         }
+        ...     })
+        ... )
+
+        >>> compute_variable_value(
+        ...    "PLUGIN_PATH",
+        ...    {"PLUGIN_PATH": "${HOME}/.app:${PLUGIN_PATH}"},
+        ...    {"PLUGIN_PATH": "/path/to/settings", "HOME": "/usr/people/me"}
+        ... )
+
+        {
+            "HOME": "/usr/people/me",
+            "PLUGIN_PATH": "/usr/people/me/.app:/path/to/settings"
+        }
+
+    .. warining::
+
+        This process will stringify all variable values.
+
+    """
+    logger = mlog.Logger(__name__ + ".extract_environment")
+
+    environ = {}
+
+    environ1 = definition1.get("environ", {})
+    environ2 = definition2.get("environ", {})
+
+    for key in set(environ1.keys() + environ2.keys()):
+        value1 = environ1.get(key)
+        value2 = environ2.get(key)
+
+        if value1 is not None and value2 is not None:
+            if "${{{}}}".format(key) not in value2:
+                logger.warning(
+                    "The '{key}' variable is being overridden in "
+                    "definition '{identifier}' [{version}]".format(
+                        key=key,
+                        identifier=definition2.identifier,
+                        version=definition2.version
+                    )
+                )
+
+            environ[key] = re.sub(
+                "\${(\w+)}",
+                lambda match: environ1.get(match.group(1)) or match.group(0),
+                str(value2)
+            )
+
+        else:
+            environ[key] = str(value1 or value2)
+
+    return environ
 
 
 def discover(paths, max_depth=None):
@@ -161,31 +260,31 @@ def discover(paths, max_depth=None):
                 if extension != ".json":
                     continue
 
-                environment_path = os.path.join(base, filename)
+                definition_path = os.path.join(base, filename)
                 logger.debug(
                     "Discovered environment definition file {!r}.".format(
-                        environment_path
+                        definition_path
                     )
                 )
 
                 try:
-                    environment = load(environment_path)
+                    definition = load(definition_path)
                 except (
                     IOError, ValueError, TypeError,
                     InvalidRequirement, InvalidVersion
                 ):
                     logger.warning(
                         "Error occurred trying to load environment definition "
-                        "from {!r}".format(environment_path),
+                        "from {!r}".format(definition_path),
                         traceback=True
                     )
                     continue
                 else:
                     logger.debug(
                         "Loaded environment definition {!r} from {!r}."
-                        .format(environment.identifier, environment_path)
+                        .format(definition.identifier, definition_path)
                     )
-                    yield environment
+                    yield definition
 
 
 def load(path):
