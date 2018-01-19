@@ -11,7 +11,7 @@ import pty
 
 
 def shell(environment, shell_type="bash"):
-    """Spawn a sub-shell with resolved *environment*.
+    """Spawn a sub-shell with an *environment* mapping.
 
     *shell_type* can indicate a specific type of shell. Default is Bash.
 
