@@ -9,7 +9,7 @@ import umwelt.definition
 import umwelt.graph
 
 
-def resolve_environment(requirements, definition_mapping, environ_mapping=None):
+def resolve(requirements, definition_mapping, environ_mapping=None):
     """Return resolved environment mapping corresponding to *requirements*.
 
     *requirements* should be a list of
@@ -25,7 +25,7 @@ def resolve_environment(requirements, definition_mapping, environ_mapping=None):
     Raise :exc:`RuntimeError` if the graph cannot be built.
 
     """
-    logger = mlog.Logger(__name__ + ".resolve_environment")
+    logger = mlog.Logger(__name__ + ".resolve")
     logger.info(
         "Resolve environment: {}".format(
             ", ".join([str(requirement) for requirement in requirements])

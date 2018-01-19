@@ -205,7 +205,7 @@ def main(arguments=None):
         ]
 
         try:
-            environment = umwelt.environment.resolve_environment(
+            environment = umwelt.environment.resolve(
                 requirements, mapping
             )
 
@@ -228,7 +228,7 @@ def main(arguments=None):
         ]
 
         try:
-            environment = umwelt.environment.resolve_environment(
+            environment = umwelt.environment.resolve(
                 requirements, mapping
             )
 
