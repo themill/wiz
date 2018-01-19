@@ -103,8 +103,8 @@ def initiate(environ_mapping=None):
         "HOME": os.environ.get("HOME"),
         "DISPLAY": os.environ.get("DISPLAY"),
         "PATH": os.pathsep.join([
-            "/usr/local/sbin",
-            "/usr/local/bin",
+            "/usr/get_local/sbin",
+            "/usr/get_local/bin",
             "/usr/sbin",
             "/usr/bin",
             "/sbin",

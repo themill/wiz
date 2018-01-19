@@ -8,6 +8,7 @@ import itertools
 import mlog
 from packaging.requirements import Requirement
 
+import umwelt.registry
 import umwelt.definition
 import umwelt.environment
 import umwelt.shell
@@ -63,7 +64,7 @@ def construct_parser():
             "Indicate registries containing all available "
             "environment definitions."
         ),
-        default=default_registries()
+        default=umwelt.registry.get_defaults()
     )
 
     definitions_parser = subparsers.add_parser(
@@ -82,7 +83,7 @@ def construct_parser():
             "Indicate registries containing all available "
             "environment definitions."
         ),
-        default=default_registries()
+        default=umwelt.registry.get_defaults()
     )
 
     search_parser = subparsers.add_parser(
@@ -101,7 +102,7 @@ def construct_parser():
             "Indicate registries containing all available "
             "environment definitions."
         ),
-        default=default_registries()
+        default=umwelt.registry.get_defaults()
     )
 
     search_parser.add_argument(
@@ -119,7 +120,7 @@ def construct_parser():
             "Indicate registries containing all available "
             "environment definitions."
         ),
-        default=default_registries()
+        default=umwelt.registry.get_defaults()
     )
 
     view_subparsers.add_argument(
@@ -137,7 +138,7 @@ def construct_parser():
             "Indicate registries containing all available "
             "environment definitions."
         ),
-        default=default_registries()
+        default=umwelt.registry.get_defaults()
     )
 
     load_subparsers.add_argument(
@@ -163,7 +164,7 @@ def main(arguments=None):
     mlog.root.handlers["stderr"].filterer.filterers[0].min = namespace.verbosity
 
     # Fetch all registries.
-    registries = fetch_registries(
+    registries = umwelt.registry.fetch(
         namespace.registries,
         include_local=not namespace.no_local,
         include_working_directory=not namespace.no_cwd
@@ -229,81 +230,6 @@ def main(arguments=None):
             umwelt.shell.spawn_shell(environment)
 
 
-def local_registry():
-    """Return the local registry if available."""
-    registry_path = os.path.join(
-        os.path.expanduser("~"), ".registry"
-    )
-
-    if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
-        return registry_path
-
-
-def default_registries():
-    """Return the default registries."""
-    return [
-        os.path.join(os.sep, "mill3d", "server", "REGISTRY"),
-        # os.path.join(os.sep, "jobs", "ads", ".registry")
-    ]
-
-
-def fetch_registries(paths, include_local=True, include_working_directory=True):
-    """Fetch all registries from *paths*.
-
-    *include_local* indicate whether the local registry should be included.
-
-    *include_local* indicate whether the current working directory should be
-     parsed to discover a registry.
-
-    """
-    registries = []
-
-    for path in paths:
-        if not os.path.isdir(path):
-            raise IOError("The registry must be a directory: {}".format(path))
-        if not os.access(path, os.R_OK):
-            raise IOError("The registry must be readable: {}".format(path))
-
-        registries.append(path)
-
-    if include_working_directory:
-        registry_path = discover_registry_from_path(os.getcwd())
-        if registry_path:
-            registries.append(registry_path)
-
-    registry_path = local_registry()
-    if registry_path and include_local:
-        registries.append(registry_path)
-
-    registries.reverse()
-    return registries
-
-
-def discover_registry_from_path(path):
-    """Return registry from *path* if available under the folder structure.
-
-    The registry path should be a ".registry" folder within *path*.
-
-    Return the registry path discovered, or None if the register is not found
-    or not accessible.
-
-    .. note::
-
-        No registry will be fetched if *path* is not under `/jobs/ads`.
-
-    """
-    path = os.path.abspath(path)
-
-    # Only discover the registry if the top level hierarchy is /jobs/ads.
-    prefix = os.path.join(os.sep, "jobs", "ads")
-    if not path.startswith(prefix):
-        return
-
-    registry_path = os.path.join(path, ".registry")
-    if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
-        return registry_path
-
-
 def display_definitions(definition_mapping, all_versions=False):
     """Display the environment definitions stored in *definition_mapping*.
 
@@ -315,7 +241,7 @@ def display_definitions(definition_mapping, all_versions=False):
     displayed.
 
     """
-    line = format_row(["Definition", "Version", "Variants", "Description"])
+    line = _format_row(["Definition", "Version", "Variants", "Description"])
     print("\n" + line)
     print("+".join(["-"*30]*4) + "-"*30)
 
@@ -329,7 +255,7 @@ def display_definitions(definition_mapping, all_versions=False):
         if all_versions:
             for definition in sorted_definitions:
                 variant_mapping = definition.get("variant", {})
-                line = format_row([
+                line = _format_row([
                     definition.identifier,
                     definition.version,
                     ", ".join(variant_mapping.keys()),
@@ -340,7 +266,7 @@ def display_definitions(definition_mapping, all_versions=False):
         else:
             definition = sorted_definitions[0]
             variant_mapping = definition.get("variant", {})
-            line = format_row([
+            line = _format_row([
                 definition.identifier,
                 definition.version,
                 ", ".join(variant_mapping.keys()),
@@ -353,40 +279,27 @@ def display_definitions(definition_mapping, all_versions=False):
 
 def display_environment(environment):
     """Display the content of the *environment* mapping."""
-    line = format_row(["Environment variable", "Value"], width=40)
+    line = _format_row(["Environment variable", "Value"], width=40)
     print("\n" + line)
     print("+".join(["-"*40]*2) + "-"*40)
 
+    def _compute_value(name, value):
+        """Compute value to display."""
+        if name == "DISPLAY":
+            return [value]
+        return value.split(os.pathsep)
+
     for key in sorted(environment.keys()):
-        for _key, value in itertools.izip_longest(
-            [key], split_environment_variable_value(key, environment[key])
+        for _key, _value in itertools.izip_longest(
+            [key], _compute_value(key, environment[key])
         ):
-            line = format_row([_key or "", value],  width=40)
+            line = _format_row([_key or "", _value], width=40)
             print(line)
 
     print()
 
 
-def split_environment_variable_value(name, value):
-    """Return *value* for environment variable *name* as a list.
-
-    Example::
-
-        >>> split_environment_variable_value("name", "value1:value2:value3")
-        ["value1", "value2", "value3"]
-
-        >>> split_environment_variable_value("name", "value1")
-        ["value1"]
-
-    Depending on the *name*, some value should keep the ":" (e.g. "DISPLAY")
-
-    """
-    if name == "DISPLAY":
-        return [value]
-    return value.split(os.pathsep)
-
-
-def format_row(elements, width=30):
+def _format_row(elements, width=30):
     """Return formatted line of *elements* in columns.
 
     *width* indicates the size of each column (except the last one).
