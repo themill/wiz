@@ -159,11 +159,10 @@ def main(arguments=None):
     parser = construct_parser()
     namespace = parser.parse_args(arguments)
 
-    mlog.root.handlers["stderr"].filterer.filterers[0].min = (
-        namespace.verbosity
-    )
+    # Set verbosity level.
+    mlog.root.handlers["stderr"].filterer.filterers[0].min = namespace.verbosity
 
-    # Fetch all registries
+    # Fetch all registries.
     registries = fetch_registries(
         namespace.registries,
         include_local=not namespace.no_local,
@@ -184,8 +183,7 @@ def main(arguments=None):
     elif namespace.commands == "search":
         requirement = Requirement(namespace.requirement)
         mapping = umwelt.definition.search(
-            requirement,
-            registries,
+            requirement, registries,
             max_depth=namespace.definition_search_depth
         )
 
@@ -196,22 +194,16 @@ def main(arguments=None):
 
     elif namespace.commands == "view":
         mapping = umwelt.definition.fetch(
-            registries,
-            max_depth=namespace.definition_search_depth
+            registries, max_depth=namespace.definition_search_depth
         )
 
-        requirements = [
-            Requirement(requirement) for requirement in namespace.requirements
-        ]
+        requirements = [Requirement(req) for req in namespace.requirements]
 
         try:
-            environment = umwelt.environment.resolve(
-                requirements, mapping
-            )
-
+            environment = umwelt.environment.resolve(requirements, mapping)
         except RuntimeError:
             logger.error(
-                "Impossible to resolve the environment tree.",
+                "Impossible to resolve the environment graph.",
                 traceback=True
             )
 
@@ -223,18 +215,13 @@ def main(arguments=None):
             registries, max_depth=namespace.definition_search_depth
         )
 
-        requirements = [
-            Requirement(requirement) for requirement in namespace.requirements
-        ]
+        requirements = [Requirement(req) for req in namespace.requirements]
 
         try:
-            environment = umwelt.environment.resolve(
-                requirements, mapping
-            )
-
+            environment = umwelt.environment.resolve(requirements, mapping)
         except RuntimeError:
             logger.error(
-                "Impossible to resolve the environment tree.",
+                "Impossible to resolve the environment graph.",
                 traceback=True
             )
 
