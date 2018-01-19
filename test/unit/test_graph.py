@@ -4,8 +4,8 @@ import pytest
 from packaging.requirements import Requirement
 from packaging.version import Version
 
-import umwelt.graph
-import umwelt.definition
+import wiz.graph
+import wiz.definition
 
 
 @pytest.fixture()
@@ -14,7 +14,7 @@ def definition_mapping():
     """
     return {
         "envA": {
-            "0.2.0": umwelt.definition.Definition({
+            "0.2.0": wiz.definition.Definition({
                 "identifier": "envA",
                 "version": Version("0.2.0"),
                 "requirement": {
@@ -23,7 +23,7 @@ def definition_mapping():
             }),
         },
         "envB": {
-            "0.1.0": umwelt.definition.Definition({
+            "0.1.0": wiz.definition.Definition({
                 "identifier": "envB",
                 "version": Version("0.1.0"),
                 "requirement": [
@@ -33,7 +33,7 @@ def definition_mapping():
             })
         },
         "envC": {
-            "0.3.2": umwelt.definition.Definition({
+            "0.3.2": wiz.definition.Definition({
                 "identifier": "envC",
                 "version": Version("0.3.2"),
                 "requirement": [
@@ -42,20 +42,20 @@ def definition_mapping():
             })
         },
         "envD": {
-            "0.1.1": umwelt.definition.Definition({
+            "0.1.1": wiz.definition.Definition({
                 "identifier": "envD",
                 "version": Version("0.1.1"),
                 "requirement": [
                     Requirement("envE >= 2")
                 ]
             }),
-            "0.1.0": umwelt.definition.Definition({
+            "0.1.0": wiz.definition.Definition({
                 "identifier": "envD",
                 "version": Version("0.1.0")
             })
         },
         "envE": {
-            "2.3.0": umwelt.definition.Definition({
+            "2.3.0": wiz.definition.Definition({
                 "identifier": "envE",
                 "version": Version("2.3.0"),
                 "requirement": [
@@ -64,17 +64,17 @@ def definition_mapping():
             }),
         },
         "envF": {
-            "1.0.0": umwelt.definition.Definition({
+            "1.0.0": wiz.definition.Definition({
                 "identifier": "envF",
                 "version": Version("1.0.0")
             }),
-            "0.2.0": umwelt.definition.Definition({
+            "0.2.0": wiz.definition.Definition({
                 "identifier": "envF",
                 "version": Version("0.2.0")
             })
         },
         "envG": {
-            "2.0.2": umwelt.definition.Definition({
+            "2.0.2": wiz.definition.Definition({
                 "identifier": "envG",
                 "version": Version("2.0.2"),
                 "requirement": [
@@ -83,27 +83,27 @@ def definition_mapping():
             })
         },
         "envH": {
-            "1.0.0": umwelt.definition.Definition({
+            "1.0.0": wiz.definition.Definition({
                 "identifier": "envH",
                 "version": Version("1.0.0"),
                 "requirement": [
                     Requirement("envI < 1")
                 ]
             }),
-            "0.9.0": umwelt.definition.Definition({
+            "0.9.0": wiz.definition.Definition({
                 "identifier": "envH",
                 "version": Version("0.9.0"),
             })
         },
         "envI": {
-            "1.0.0": umwelt.definition.Definition({
+            "1.0.0": wiz.definition.Definition({
                 "identifier": "envI",
                 "version": Version("1.0.0"),
                 "requirement": [
                     Requirement("envH < 1")
                 ]
             }),
-            "0.9.0": umwelt.definition.Definition({
+            "0.9.0": wiz.definition.Definition({
                 "identifier": "envI",
                 "version": Version("0.9.0"),
             })
@@ -157,14 +157,14 @@ def definition_mapping():
 ])
 def test_graph_creation(requirements, expected_nodes, definition_mapping):
     """Create a graph from a specific definition mapping."""
-    graph = umwelt.graph.Graph(definition_mapping)
+    graph = wiz.graph.Graph(definition_mapping)
     graph.update_from_requirements(requirements)
     assert sorted(graph.node_identifiers()) == expected_nodes
 
 
 def test_graph_conflict_resolution(definition_mapping):
     """Resolve conflicts from graph."""
-    graph = umwelt.graph.Graph(definition_mapping)
+    graph = wiz.graph.Graph(definition_mapping)
     graph.update_from_requirements([
         Requirement("envA"), Requirement("envG")
     ])
@@ -179,7 +179,7 @@ def test_graph_conflict_resolution(definition_mapping):
         "envG==2.0.2"
     ]
 
-    umwelt.graph.resolve_conflicts(graph, definition_mapping)
+    wiz.graph.resolve_conflicts(graph, definition_mapping)
     assert sorted(graph.node_identifiers()) == [
         "envA==0.2.0",
         "envB==0.1.0",
@@ -192,7 +192,7 @@ def test_graph_conflict_resolution(definition_mapping):
 
 def test_graph_conflict_resolution_error(definition_mapping):
     """Fail to resolve conflicts from graph."""
-    graph = umwelt.graph.Graph(definition_mapping)
+    graph = wiz.graph.Graph(definition_mapping)
     graph.update_from_requirements([
         Requirement("envA"), Requirement("envF==0.2.0"), Requirement("envG")
     ])
@@ -209,7 +209,7 @@ def test_graph_conflict_resolution_error(definition_mapping):
     ]
 
     with pytest.raises(RuntimeError) as exception:
-        umwelt.graph.resolve_conflicts(graph, definition_mapping)
+        wiz.graph.resolve_conflicts(graph, definition_mapping)
 
     assert str(exception.value) == (
         "A requirement conflict has been detected for 'envF'\n"
@@ -220,7 +220,7 @@ def test_graph_conflict_resolution_error(definition_mapping):
 
 def test_graph_conflict_resolution_from_priority(definition_mapping):
     """Fail to resolve conflicts from graph."""
-    graph = umwelt.graph.Graph(definition_mapping)
+    graph = wiz.graph.Graph(definition_mapping)
     graph.update_from_requirements([
         Requirement("envH"), Requirement("envI")
     ])
@@ -231,7 +231,7 @@ def test_graph_conflict_resolution_from_priority(definition_mapping):
         "envI==1.0.0",
     ]
 
-    umwelt.graph.resolve_conflicts(graph, definition_mapping)
+    wiz.graph.resolve_conflicts(graph, definition_mapping)
     assert sorted(graph.node_identifiers()) == [
         "envH==1.0.0", "envI==0.9.0"
     ]
@@ -239,11 +239,11 @@ def test_graph_conflict_resolution_from_priority(definition_mapping):
 
 def test_graph_extract_ordered_definitions(definition_mapping):
     """Return sorted definitions from graph."""
-    graph = umwelt.graph.Graph(definition_mapping)
+    graph = wiz.graph.Graph(definition_mapping)
     graph.update_from_requirements([
         Requirement("envA"), Requirement("envG")
     ])
-    assert umwelt.graph.extract_ordered_definitions(graph) == [
+    assert wiz.graph.extract_ordered_definitions(graph) == [
         definition_mapping["envF"]["1.0.0"],
         definition_mapping["envE"]["2.3.0"],
         definition_mapping["envD"]["0.1.1"],
@@ -254,8 +254,8 @@ def test_graph_extract_ordered_definitions(definition_mapping):
         definition_mapping["envA"]["0.2.0"],
     ]
 
-    umwelt.graph.resolve_conflicts(graph, definition_mapping)
-    assert umwelt.graph.extract_ordered_definitions(graph) == [
+    wiz.graph.resolve_conflicts(graph, definition_mapping)
+    assert wiz.graph.extract_ordered_definitions(graph) == [
         definition_mapping["envF"]["1.0.0"],
         definition_mapping["envB"]["0.1.0"],
         definition_mapping["envD"]["0.1.0"],

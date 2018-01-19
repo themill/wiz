@@ -11,7 +11,7 @@ RESOURCE_PATH = os.path.join(ROOT_PATH, "resource")
 SOURCE_PATH = os.path.join(ROOT_PATH, "source")
 README_PATH = os.path.join(ROOT_PATH, "README.rst")
 
-PACKAGE_NAME = "umwelt"
+PACKAGE_NAME = "wiz"
 
 # Read version from source.
 with open(
@@ -48,11 +48,11 @@ TEST_REQUIRES = [
 
 
 setup(
-    name="umwelt",
+    name="wiz",
     version=VERSION,
     description="Fetch and create run-time environments.",
     long_description=open(README_PATH).read(),
-    url="http://gitlab/rnd/umwelt",
+    url="http://gitlab/rnd/wiz",
     keywords="",
     author="The Mill",
     packages=find_packages(SOURCE_PATH),
@@ -70,7 +70,7 @@ setup(
     zip_safe=False,
     entry_points={
         "console_scripts": [
-            "umwelt = umwelt.__main__:main"
+            "wiz = wiz.__main__:main"
         ]
     },
 )

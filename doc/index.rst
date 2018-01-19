@@ -1,8 +1,8 @@
 .. _main:
 
-######
-Umwelt
-######
+###
+Wiz
+###
 
 Fetch and create run-time environments.
 

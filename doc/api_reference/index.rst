@@ -4,10 +4,10 @@
 API Reference
 *************
 
-umwelt
-======
+wiz
+===
 
-.. automodule:: umwelt
+.. automodule:: wiz
 
 .. toctree::
     :maxdepth: 1

@@ -12,17 +12,17 @@ Installing
 
 Installation is simple with `pip <http://www.pip-installer.org/>`_::
 
-    pip install --no-index --find-links /mill3d/server/apps/PYTHON/package-index/ umwelt
+    pip install --no-index --find-links /mill3d/server/apps/PYTHON/package-index/ wiz
 
 Installing from source
 ======================
 
 You can also install manually from the source for more control. First obtain a
 copy of the source by either downloading the
-`zipball <http://gitlab/rnd/umwelt/repository/archive.zip?ref=master>`_ or
+`zipball <http://gitlab/rnd/wiz/repository/archive.zip?ref=master>`_ or
 cloning the public repository::
 
-    git clone git@gitlab:rnd/umwelt.git
+    git clone git@gitlab:rnd/wiz.git
 
 Then you can build and install the package into your current Python
 environment::
@@ -59,7 +59,7 @@ Then you can build the documentation with the command::
 
 View the result in your browser at::
 
-    file:///path/to/umwelt/build/doc/html/index.html
+    file:///path/to/wiz/build/doc/html/index.html
 
 Running tests against the source
 --------------------------------
@@ -78,5 +78,5 @@ You can also generate a coverage report when running tests::
 
 View the generated report at::
 
-    file:///path/to/umwelt/htmlcov/index.html
+    file:///path/to/wiz/htmlcov/index.html
 

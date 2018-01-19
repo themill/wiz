@@ -4,5 +4,5 @@
 Command line
 ************
 
-.. autoprogram:: umwelt.command_line:construct_parser()
-    :prog: umwelt
+.. autoprogram:: wiz.command_line:construct_parser()
+    :prog: wiz

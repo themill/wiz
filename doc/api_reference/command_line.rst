@@ -1,5 +1,5 @@
-*******************
-umwelt.command_line
-*******************
+****************
+wiz.command_line
+****************
 
-.. automodule:: umwelt.command_line
+.. automodule:: wiz.command_line

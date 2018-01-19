@@ -4,4 +4,4 @@
 Tutorial
 ********
 
-A quick dive into using Umwelt.
+A quick dive into using Wiz.

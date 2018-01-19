@@ -1,6 +1,6 @@
 # :coding: utf-8
 
-"""Umwelt documentation build configuration file."""
+"""Wiz documentation build configuration file."""
 
 import sys
 import os
@@ -30,14 +30,14 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"Umwelt"
+project = u"Wiz"
 copyright = u"2017, The Mill"
 
 # Version
 with open(
     os.path.join(
         os.path.dirname(__file__), "..", "source",
-        "umwelt", "_version.py"
+        "wiz", "_version.py"
     )
 ) as _version_file:
     _version = re.match(
@@ -53,7 +53,7 @@ exclude_patterns = ["_template"]
 
 # A list of prefixes to ignore for module listings.
 modindex_common_prefix = [
-    "umwelt."
+    "wiz."
 ]
 
 
