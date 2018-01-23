@@ -295,17 +295,15 @@ def load(path):
 
         definition = Definition(**definition_data)
         definition["version"] = Version(definition.version)
-        definition["requirement"] = [
-            Requirement(requirement) for requirement
-            in definition.get("requirement", [])
-        ]
+        definition["requirement"] = map(
+            Requirement, definition.get("requirement", [])
+        )
 
         if "variant" in definition.keys():
             for variant_definition in definition["variant"].values():
-                variant_definition["requirement"] = [
-                    Requirement(requirement) for requirement
-                    in variant_definition.get("requirement", [])
-                ]
+                variant_definition["requirement"] = map(
+                    Requirement, variant_definition.get("requirement", [])
+                )
 
         return definition
 
