@@ -86,9 +86,9 @@ def get(requirement, definition_mapping):
     )
 
     # Get the best matching definition.
-    for definition in sorted_definitions:
-        if definition.version in requirement.specifier:
-            definition = definition
+    for _definition in sorted_definitions:
+        if _definition.version in requirement.specifier:
+            definition = _definition
             break
 
     if definition is None:
