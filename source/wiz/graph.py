@@ -11,6 +11,7 @@ except ImportError:
 import mlog
 
 import wiz.definition
+import wiz.exception
 
 
 class Graph(object):
@@ -218,8 +219,8 @@ class Graph(object):
         link. The lesser this number, the higher is the importance of the link.
         Default is 1.
 
-        Raise :exc:`RuntimeError` is *definition* identifier has already be
-        set for this *parent*.
+        Raise :exc:`wiz.exception.IncorrectDefinition` is *definition*
+        identifier has already be set for this *parent*.
 
         """
         self._logger.debug(
@@ -231,7 +232,7 @@ class Graph(object):
         self._links.setdefault(parent_identifier, {})
 
         if identifier in self._links[parent_identifier].keys():
-            raise RuntimeError(
+            raise wiz.exception.IncorrectDefinition(
                 "There cannot be several dependency links to '{child}' from "
                 "'{parent}'".format(
                     parent=parent_identifier, child=identifier
@@ -463,7 +464,8 @@ def resolve_conflicts(graph, definition_mapping):
     definition associated with their unique identifier. It is used to
     resolve dependent definition specifiers.
 
-    Raise :exc:`RuntimeError` if two node requirements are incompatible.
+    Raise :exc:`wiz.exception.GraphResolutionError` if two node requirements
+    are incompatible.
 
     """
     logger = mlog.Logger(__name__ + ".resolve_conflicts")
@@ -542,7 +544,8 @@ def combined_requirement(graph, identifiers, priority_mapping):
     of each node identifier from the root level of the graph with its
     corresponding parent node identifier.
 
-    Raise :exc:`RuntimeError` if requirements cannot be combined.
+    Raise :exc:`wiz.exception.GraphResolutionError` if requirements cannot be
+    combined.
 
     """
     requirement = None
@@ -556,7 +559,7 @@ def combined_requirement(graph, identifiers, priority_mapping):
             requirement = copy.copy(_requirement)
 
         elif requirement.name != _requirement.name:
-            raise RuntimeError(
+            raise wiz.exception.GraphResolutionError(
                 "Impossible to combine requirements with different names "
                 "['{}' and '{}'].".format(requirement.name, _requirement.name)
             )
@@ -574,7 +577,8 @@ def validate_node_requirements(graph, identifier, identifiers):
 
     *identifier* and *identifiers* must be valid node identifiers.
 
-    Raise :exc:`RuntimeError` if two node requirements are incompatible.
+    Raise :exc:`wiz.exception.GraphResolutionError` if two node requirements
+    are incompatible.
 
     """
     logger = mlog.Logger(__name__ + ".validate_node_requirements")
@@ -604,7 +608,7 @@ def validate_node_requirements(graph, identifier, identifiers):
                 conflict = True
 
             if conflict:
-                raise RuntimeError(
+                raise wiz.exception.GraphResolutionError(
                     "A requirement conflict has been detected for "
                     "'{definition}'\n"
                     " - {requirement1} [from {parent1}]\n"
@@ -722,8 +726,6 @@ def extract_ordered_definitions(graph):
 
     Best matching :class:`~wiz.definition.Definition` instances are
     extracted from each node instance and added to the list.
-
-    Raise :exc:`RuntimeError` if the graph cannot be sorted.
 
     """
     logger = mlog.Logger(__name__ + ".extract_ordered_definitions")

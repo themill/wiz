@@ -6,6 +6,7 @@ from packaging.version import Version
 
 import wiz.graph
 import wiz.definition
+import wiz.exception
 
 
 @pytest.fixture()
@@ -208,7 +209,7 @@ def test_graph_conflict_resolution_error(definition_mapping):
         "envG==2.0.2"
     ]
 
-    with pytest.raises(RuntimeError) as exception:
+    with pytest.raises(wiz.exception.GraphResolutionError) as exception:
         wiz.graph.resolve_conflicts(graph, definition_mapping)
 
     assert str(exception.value) == (

@@ -9,6 +9,8 @@ from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 import mlog
 
+import wiz.exception
+
 
 def fetch(paths, max_depth=None):
     """Return mapping from all environment definitions available under *paths*.
@@ -65,15 +67,12 @@ def get(requirement, definition_mapping):
     *definition_mapping* is a mapping regrouping all available environment
     definition associated with their unique identifier.
 
-    :exc:`packaging.requirements.InvalidRequirement` is raised if the
-    requirement specifier is incorrect.
+    :exc:`wiz.exception.IncorrectRequirement` is raised if the
+    requirement can not be resolved.
 
     """
     if requirement.name not in definition_mapping:
-        raise RuntimeError(
-            "The requirement '{}' could not be resolved."
-            .format(requirement.name)
-        )
+        raise wiz.exception.IncorrectRequirement(requirement)
 
     definition = None
 
@@ -93,17 +92,14 @@ def get(requirement, definition_mapping):
             break
 
     if definition is None:
-        raise RuntimeError(
-            "The requirement '{}' could not be resolved."
-            .format(requirement.name)
-        )
+        raise wiz.exception.IncorrectRequirement(requirement)
 
     if len(requirement.extras) > 0:
         variant = next(iter(requirement.extras))
         variant_mapping = definition.get("variant", {})
 
         if variant not in variant_mapping.keys():
-            raise RuntimeError(
+            raise wiz.exception.IncorrectRequirement(
                 "The variant '{}' could not been resolved for '{}'.".format(
                     variant, requirement.name
                 )

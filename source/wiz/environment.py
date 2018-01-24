@@ -7,10 +7,14 @@ import mlog
 
 import wiz.definition
 import wiz.graph
+import wiz.exception
 
 
-def resolve(requirements, definition_mapping, environ_mapping=None):
-    """Return resolved environment mapping corresponding to *requirements*.
+def resolve(requirements, definition_mapping):
+    """Return resolved definitions list corresponding to *requirements*.
+
+    The definition list should be :class:`~wiz.definition.Definition` instances
+    ordered from the less important to the most important.
 
     *requirements* should be a list of
     class:`packaging.requirements.Requirement` instances.
@@ -22,7 +26,8 @@ def resolve(requirements, definition_mapping, environ_mapping=None):
     *environ_mapping* can be a mapping of environment variables which would
     be augmented by the resolved environment.
 
-    Raise :exc:`RuntimeError` if the graph cannot be built.
+    Raise :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
+    resolved.
 
     """
     logger = mlog.Logger(__name__ + ".resolve")
@@ -31,9 +36,6 @@ def resolve(requirements, definition_mapping, environ_mapping=None):
             ", ".join([str(requirement) for requirement in requirements])
         )
     )
-
-    # Compute initial environment mapping to augment.
-    environ_mapping = initiate(environ_mapping)
 
     # Create a graph with all required definition versions.
     graph = wiz.graph.Graph(definition_mapping)
@@ -46,15 +48,26 @@ def resolve(requirements, definition_mapping, environ_mapping=None):
     # Extract all definition versions from the graph from the less important to
     # the most important. The most important being the highest definition
     # versions in the graph.
-    definitions = wiz.graph.extract_ordered_definitions(graph)
-
-    # Combine all environments from each definition version extracted with the
-    # initial environment.
-    return extract(definitions, environ_mapping)
+    return wiz.graph.extract_ordered_definitions(graph)
 
 
-def extract(definitions, environ_mapping=None):
-    """Return environment mapping extracted from *definitions*.
+def extract_mapping(definitions, environ_mapping=None):
+    """Return resolved mapping extracted from *definitions*.
+
+    A mapping should look as follow::
+
+        >>> extract_mapping(definitions)
+        {
+            "command": {
+                "app": "AppExe"
+                ...
+            },
+            "environ": {
+                "KEY1": "value1",
+                "KEY2": "value2",
+                ...
+            }
+        }
 
     *definitions* should be a list of :class:`~wiz.definition.Definition`
     instances. it should be ordered from the less important to the most
@@ -64,23 +77,29 @@ def extract(definitions, environ_mapping=None):
     be augmented by the resolved environment.
 
     """
+    # Compute initial environment mapping to augment.
+    environ_mapping = initiate(environ_mapping)
+
     def _combine(definition1, definition2):
-        """Return intermediate definition combining both environments"""
-        definition2["environ"] = wiz.definition.extract_environment(
-            definition1, definition2
+        """Return intermediate definition combining both extracted data."""
+        _command = dict(
+            definition1.get("command", {}),
+            **definition2.get("command", {})
         )
+        _environ = wiz.definition.extract_environment(definition1, definition2)
+
+        definition2["command"] = _command
+        definition2["environ"] = _environ
         return definition2
 
-    combined_definition = reduce(
-        _combine, definitions, dict(environ=environ_mapping)
-    )
+    mapping = reduce(_combine, definitions, dict(environ=environ_mapping))
 
     # Clean all values from possible key references.
-    environ = combined_definition.get("environ", {})
-    for key, value in environ.items():
-        environ[key] = re.sub(":?\${{{}}}:?".format(key), lambda x: "", value)
+    for key, value in mapping["environ"].items():
+        _value = re.sub(":?\${{{}}}:?".format(key), lambda x: "", value)
+        mapping["environ"][key] = _value
 
-    return environ
+    return mapping
 
 
 def initiate(environ_mapping=None):

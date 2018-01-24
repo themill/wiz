@@ -12,6 +12,7 @@ import wiz.registry
 import wiz.definition
 import wiz.environment
 import wiz.spawn
+import wiz.exception
 
 
 def construct_parser():
@@ -31,13 +32,16 @@ def construct_parser():
     )
 
     parser.add_argument(
-        "--no-local", help="Skip local registry.",
+        "--no-local",
+        help="Skip local registry.",
         action="store_true"
     )
 
     parser.add_argument(
-        "--no-cwd", help=(
-            "Do not discover registry from current working directory."
+        "--no-cwd",
+        help=(
+            "Do not attempt to discover environment definitions from current "
+            "working directory within project."
         ),
         action="store_true"
     )
@@ -53,96 +57,130 @@ def construct_parser():
         dest="commands"
     )
 
-    registries_parser = subparsers.add_parser(
-        "registries", help="List all available registers.",
+    registries_parser= subparsers.add_parser(
+        "registries",
+        help="List all available registries.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     registries_parser.add_argument(
-        "--registries", nargs="+", metavar="PATH",
-        help=(
-            "Indicate registries containing all available "
-            "environment definitions."
-        ),
+        "-dsp", "--definition-search-paths",
+        nargs="+",
+        metavar="PATH",
+        help="Search paths for environment definitions.",
         default=wiz.registry.get_defaults()
     )
 
     definitions_parser = subparsers.add_parser(
-        "definitions", help="List all available environment definitions.",
+        "definitions",
+        help="List all available environment definitions.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     definitions_parser.add_argument(
-        "--all", help="Return all versions of the available definitions.",
+        "--all",
+        help="Return all versions of the available definitions.",
         action="store_true"
     )
 
     definitions_parser.add_argument(
-        "--registries", nargs="+", metavar="PATH",
-        help=(
-            "Indicate registries containing all available "
-            "environment definitions."
-        ),
+        "-dsp", "--definition-search-paths",
+        nargs="+",
+        metavar="PATH",
+        help="Search paths for environment definitions.",
         default=wiz.registry.get_defaults()
     )
 
     search_parser = subparsers.add_parser(
-        "search", help="Search an environment definition.",
+        "search",
+        help="Search an environment definitions.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     search_parser.add_argument(
-        "--all", help="Return all versions of the available definitions.",
+        "--all",
+        help="Return all versions of the available definitions.",
         action="store_true"
     )
 
     search_parser.add_argument(
-        "--registries", nargs="+", metavar="PATH",
-        help=(
-            "Indicate registries containing all available "
-            "environment definitions."
-        ),
+        "-dsp", "--definition-search-paths",
+        nargs="+",
+        metavar="PATH",
+        help="Search paths for environment definitions.",
         default=wiz.registry.get_defaults()
     )
 
     search_parser.add_argument(
-        "requirement", help="Definition requirement to search."
+        "requirement",
+        help="Definition requirement to search."
     )
 
     view_subparsers = subparsers.add_parser(
-        "view", help="View combined environment from definition(s).",
+        "view",
+        help="View resolved environment from requirements.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     view_subparsers.add_argument(
-        "--registries", nargs="+", metavar="PATH",
-        help=(
-            "Indicate registries containing all available "
-            "environment definitions."
-        ),
+        "-dsp", "--definition-search-paths",
+        nargs="+",
+        metavar="PATH",
+        help="Search paths for environment definitions.",
         default=wiz.registry.get_defaults()
     )
 
     view_subparsers.add_argument(
-        "requirements", nargs="+", help="Definition requirements required."
+        "requirements",
+        nargs="+",
+        help="Definition requirements required."
     )
 
     load_subparsers = subparsers.add_parser(
-        "load", help="Load combined environment from definition(s).",
+        "load",
+        help="Spawn shell with resolved environment from requirements.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     load_subparsers.add_argument(
-        "--registries", nargs="+", metavar="PATH",
-        help=(
-            "Indicate registries containing all available "
-            "environment definitions."
-        ),
+        "-dsp", "--definition-search-paths",
+        nargs="+",
+        metavar="PATH",
+        help="Search paths for environment definitions.",
         default=wiz.registry.get_defaults()
     )
 
     load_subparsers.add_argument(
-        "requirements", nargs="+", help="Definition requirements required."
+        "requirements",
+        nargs="+",
+        help="Definition requirements required."
+    )
+
+    run_subparsers = subparsers.add_parser(
+        "run",
+        help="Run command within resolved environment from requirements.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    run_subparsers.add_argument(
+        "--from",
+        nargs="+",
+        metavar="REQUIREMENT",
+        dest="requirements",
+        help="Indicate definition requirements required."
+    )
+
+    run_subparsers.add_argument(
+        "-dsp", "--definition-search-paths",
+        nargs="+",
+        metavar="PATH",
+        help="Search paths for environment definitions.",
+        default=wiz.registry.get_defaults()
+    )
+
+    run_subparsers.add_argument(
+        "command",
+        help="Command to run within resolved environment."
     )
 
     return parser
@@ -165,7 +203,7 @@ def main(arguments=None):
 
     # Fetch all registries.
     registries = wiz.registry.fetch(
-        namespace.registries,
+        namespace.definition_search_paths,
         include_local=not namespace.no_local,
         include_working_directory=not namespace.no_cwd
     )
@@ -188,44 +226,40 @@ def main(arguments=None):
             max_depth=namespace.definition_search_depth
         )
 
-        if not len(mapping):
-            print("No results found.")
-        else:
+        if len(mapping):
             display_definitions(mapping, all_versions=namespace.all)
+        else:
+            print("No results found.")
 
-    elif namespace.commands == "view":
+    elif namespace.commands in ["view", "load", "run"]:
         mapping = wiz.definition.fetch(
             registries, max_depth=namespace.definition_search_depth
         )
 
-        requirements = [Requirement(req) for req in namespace.requirements]
+        requirements = map(Requirement, namespace.requirements)
 
         try:
-            environment = wiz.environment.resolve(requirements, mapping)
-        except RuntimeError:
+            definitions = wiz.environment.resolve(requirements, mapping)
+            result = wiz.environment.extract_mapping(definitions)
+
+            if namespace.commands == "view":
+                display_environment(result["environ"])
+
+            elif namespace.commands == "load":
+                wiz.spawn.shell(result["environ"])
+
+            elif namespace.commands == "run":
+                if namespace.command not in result.get("command", []):
+                    raise wiz.exception.CommandError(namespace.command)
+
+                executable = result["command"][namespace.command]
+                wiz.spawn.command(executable, result["environ"])
+
+        except wiz.exception.WizError:
             logger.error(
                 "Impossible to resolve the environment graph.",
                 traceback=True
             )
-        else:
-            display_environment(environment)
-
-    elif namespace.commands == "load":
-        mapping = wiz.definition.fetch(
-            registries, max_depth=namespace.definition_search_depth
-        )
-
-        requirements = [Requirement(req) for req in namespace.requirements]
-
-        try:
-            environment = wiz.environment.resolve(requirements, mapping)
-        except RuntimeError:
-            logger.error(
-                "Impossible to resolve the environment graph.",
-                traceback=True
-            )
-        else:
-            wiz.spawn.shell(environment)
 
 
 def display_definitions(definition_mapping, all_versions=False):

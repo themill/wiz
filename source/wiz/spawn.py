@@ -1,5 +1,7 @@
 # :coding: utf-8
 
+from __future__ import print_function
+
 import os
 import sys
 import select
@@ -50,3 +52,23 @@ def shell(environment, shell_type="bash"):
 
     # restore tty settings back
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
+
+
+def command(executable, environment):
+    """Run an *executable* within a specific *environment*."""
+
+    # Run in a new process group to enable job control
+    process = subprocess.Popen(
+        executable,
+        preexec_fn=os.setsid,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+        env=environment
+    )
+
+    lines_iterator = iter(process.stdout.readline, b"")
+    while process.poll() is None:
+        for line in lines_iterator:
+            _line = line.rstrip()
+            print(_line.decode("latin"), end="\r\n")
