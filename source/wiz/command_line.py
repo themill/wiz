@@ -252,8 +252,8 @@ def main(arguments=None):
                 if namespace.command not in result.get("command", []):
                     raise wiz.exception.CommandError(namespace.command)
 
-                executable = result["command"][namespace.command]
-                wiz.spawn.command(executable, result["environ"])
+                command = result["command"][namespace.command]
+                wiz.spawn.execute(command, result["environ"])
 
         except wiz.exception.WizError:
             logger.error(

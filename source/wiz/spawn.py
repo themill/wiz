@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import os
 import sys
+import shlex
 import select
 import subprocess
 import distutils.spawn
@@ -54,12 +55,11 @@ def shell(environment, shell_type="bash"):
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
 
 
-def command(executable, environment):
+def execute(command, environment):
     """Run an *executable* within a specific *environment*."""
-
     # Run in a new process group to enable job control
     process = subprocess.Popen(
-        executable,
+        shlex.split(command),
         preexec_fn=os.setsid,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
