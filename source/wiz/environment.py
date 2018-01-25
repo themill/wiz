@@ -86,7 +86,7 @@ def extract_mapping(definitions, environ_mapping=None):
             definition1.get("command", {}),
             **definition2.get("command", {})
         )
-        _environ = wiz.definition.extract_environment(definition1, definition2)
+        _environ = wiz.definition.combine_environment(definition1, definition2)
 
         definition2["command"] = _command
         definition2["environ"] = _environ

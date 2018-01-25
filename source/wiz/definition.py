@@ -106,7 +106,7 @@ def get(requirement, definition_mapping):
             )
 
         # Merge variant environment with the global environment if necessary.
-        definition["environ"] = extract_environment(
+        definition["environ"] = combine_environment(
             definition, variant_mapping[variant]
         )
 
@@ -122,7 +122,7 @@ def get(requirement, definition_mapping):
     return definition
 
 
-def extract_environment(definition1, definition2):
+def combine_environment(definition1, definition2):
     """Return combined environment from *definition1* and *definition2*
 
     *definition1* and *definition2* must be valie
@@ -137,7 +137,7 @@ def extract_environment(definition1, definition2):
     *definition2* must reference the variable name for the value from
     *definition1* to be included in the combined environment::
 
-        >>> extract_environment(
+        >>> combine_environment(
         ...     Definition({"environ": {"key": "value2"})
         ...     Definition({"environ": {"key": "value1:${key}"}})
         ... )
@@ -147,7 +147,7 @@ def extract_environment(definition1, definition2):
     Otherwise the value from *definition2* will override the value from
     *definition1*::
 
-        >>> extract_environment(
+        >>> combine_environment(
         ...     Definition({"environ": {"key": "value2"})
         ...     Definition({"environ": {"key": "value1"}})
         ... )
@@ -157,7 +157,7 @@ def extract_environment(definition1, definition2):
     If other variables from *definition1* are referenced in the value fetched
     from *definition2*, they will be replaced as well::
 
-        >>> extract_environment(
+        >>> combine_environment(
         ...     Definition({
         ...         "environ": {
         ...             "PLUGIN_PATH": "/path/to/settings",
@@ -171,7 +171,7 @@ def extract_environment(definition1, definition2):
         ...     })
         ... )
 
-        >>> extract_environment(
+        >>> combine_environment(
         ...    "PLUGIN_PATH",
         ...    {"PLUGIN_PATH": "${HOME}/.app:${PLUGIN_PATH}"},
         ...    {"PLUGIN_PATH": "/path/to/settings", "HOME": "/usr/people/me"}
@@ -187,7 +187,7 @@ def extract_environment(definition1, definition2):
         This process will stringify all variable values.
 
     """
-    logger = mlog.Logger(__name__ + ".extract_environment")
+    logger = mlog.Logger(__name__ + ".combine_environment")
 
     environ = {}
 
