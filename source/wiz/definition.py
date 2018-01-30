@@ -20,7 +20,7 @@ def fetch(paths, max_depth=None):
     up to *max_depth*.
 
     """
-    mapping = dict()
+    mapping = {}
 
     for definition in discover(paths, max_depth=max_depth):
         base_version = definition.version.base_version
@@ -45,7 +45,7 @@ def search(requirement, paths, max_depth=None):
         .format(requirement)
     )
 
-    mapping = dict()
+    mapping = {}
 
     for definition in discover(paths, max_depth=max_depth):
         if (
