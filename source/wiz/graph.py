@@ -13,7 +13,7 @@ except ImportError:
 
 import mlog
 
-import wiz.definition
+import wiz.environment
 import wiz.exception
 
 
@@ -27,18 +27,17 @@ _NodeAttributes = namedtuple("_NodeAttributes", "priority, parent")
 class Resolver(object):
     """Graph resolver class."""
 
-    def __init__(self, definition_mapping):
+    def __init__(self, environment_mapping):
         """Initialise Resolver with *requirements*.
 
-        *definition_mapping* is a mapping regrouping all available environment
-        definition associated with their unique identifier. It is used to
-        resolve dependent definition specifiers.
+        *environment_mapping* is a mapping regrouping all available environments
+        associated with their unique identifier.
 
         """
         self._logger = mlog.Logger(__name__ + ".Resolver")
 
-        # All available definitions.
-        self._definitions = definition_mapping
+        # All available environments.
+        self._environment_mapping = environment_mapping
 
         # Stack of all graphs to resolve, sorted from the least important to
         # the most important.
@@ -50,12 +49,12 @@ class Resolver(object):
         return len(self._graphs_stack)
 
     @property
-    def definition_mapping(self):
-        """Return mapping of all available environment definitions."""
-        return self._definitions
+    def environment_mapping(self):
+        """Return mapping of all available environments."""
+        return self._environment_mapping
 
-    def compute_definitions(self, requirements):
-        """Resolve requirements graphs and return list of definition versions.
+    def compute_environments(self, requirements):
+        """Resolve requirements graphs and return list of environment versions.
 
         *requirements* should be a list of
         class:`packaging.requirements.Requirement` instances.
@@ -87,18 +86,20 @@ class Resolver(object):
 
             else:
                 priority_mapping = self.compute_priority_mapping(graph)
-                return self.extract_ordered_definitions(graph, priority_mapping)
+                return self.extract_ordered_environments(
+                    graph, priority_mapping
+                )
 
     def divide(self, graph, priority_mapping):
         """Divide *graph* if necessary and return number of graphs created.
 
-        A *graph* must be divided when it contains at least one definition
+        A *graph* must be divided when it contains at least one environment
         version node with more than one variant available. The total number
         of graphs created will be equal to the multiplication of each variant
         number.
 
         The nearest nodes are computed first, and the order of variants within
-        each definition version is preserved so that the graphs created are
+        each environment version is preserved so that the graphs created are
         added to the stack from the most important to the least important.
 
         *graph* must be an instance of :class:`Graph`.
@@ -162,7 +163,7 @@ class Resolver(object):
         Raise :exc:`wiz.exception.GraphResolutionError` if two node requirements
         are incompatible.
 
-        Raise :exc:`wiz.exception.GraphResolutionError` if new definition
+        Raise :exc:`wiz.exception.GraphResolutionError` if new environment
         versions added to the graph during the resolution process lead to
         a division of the graph.
 
@@ -247,7 +248,7 @@ class Resolver(object):
         """Return identifiers from nodes conflicting with node *identifier*.
 
         A node from the *graph* is in conflict with the node *identifier* when
-        its definition identifier is identical.
+        its environment identifier is identical.
 
         *graph* must be an instance of :class:`Graph`.
 
@@ -256,11 +257,11 @@ class Resolver(object):
         """
         node = graph.node(identifier)
 
-        # Extract definition identifier from node.
-        definition = node.definition.identifier
+        # Extract environment identifier from node.
+        environment = node.environment.identifier
 
-        # Get all nodes in the graph with the same definition identifier.
-        identifiers = graph.node_identifiers_from_definition(definition)
+        # Get all nodes in the graph with the same environment identifier.
+        identifiers = graph.node_identifiers_from_environment(environment)
 
         return filter(lambda _id: _id != identifier, identifiers)
 
@@ -272,8 +273,10 @@ class Resolver(object):
             The nodes will **NOT** be created in any graphs.
 
         """
-        definitions = wiz.definition.get(requirement, self.definition_mapping)
-        return map(_Node.generate_identifier, definitions)
+        environments = wiz.environment.get(
+            requirement, self.environment_mapping
+        )
+        return map(_Node.generate_identifier, environments)
 
     def _remove_unreachable_nodes(self, graph, priority_mapping):
         """Remove unreachable nodes from *graph* based on *priority_mapping*.
@@ -317,11 +320,11 @@ class Resolver(object):
             ):
                 conflict = False
 
-                # Nodes are not compatible if both definition versions are not
+                # Nodes are not compatible if both environment versions are not
                 # compatible with at least one of the specifier.
                 if (
-                    node1.definition.version not in requirement2.specifier and
-                    node2.definition.version not in requirement1.specifier
+                    node1.environment.version not in requirement2.specifier and
+                    node2.environment.version not in requirement1.specifier
                 ):
                     conflict = True
 
@@ -332,10 +335,10 @@ class Resolver(object):
                 if conflict:
                     raise wiz.exception.GraphResolutionError(
                         "A requirement conflict has been detected for "
-                        "'{definition}'\n"
+                        "'{environment}'\n"
                         " - {requirement1} [from {parent1}]\n"
                         " - {requirement2} [from {parent2}]\n".format(
-                            definition=node1.definition.identifier,
+                            environment=node1.environment.identifier,
                             requirement1=requirement1,
                             requirement2=requirement2,
                             parent1=mapping1[requirement1],
@@ -417,10 +420,10 @@ class Resolver(object):
 
         return mapping
 
-    def extract_ordered_definitions(self, graph, priority_mapping):
-        """Return sorted list of definitions from *graph*.
+    def extract_ordered_environments(self, graph, priority_mapping):
+        """Return sorted list of environments from *graph*.
 
-        Best matching :class:`~wiz.definition.Definition` instances are
+        Best matching :class:`~wiz.environment.Environment` instances are
         extracted from each node instance and added to the list.
 
         *priority_mapping* is a mapping indicating the lowest possible priority
@@ -428,7 +431,7 @@ class Resolver(object):
         corresponding parent node identifier.
 
         """
-        definitions = []
+        environments = []
 
         for identifier in sorted(
             graph.node_identifiers(),
@@ -436,17 +439,16 @@ class Resolver(object):
             reverse=True
         ):
             node = graph.node(identifier)
-            definitions.append(node.definition)
+            environments.append(node.environment)
 
         self._logger.debug(
-            "Sorted definitions: {}".format(
+            "Sorted environments: {}".format(
                 ", ".join([
-                    _Node.generate_identifier(definition) for definition
-                    in definitions
+                    _Node.generate_identifier(_env) for _env in environments
                 ])
             )
         )
-        return definitions
+        return environments
 
     def compute_priority_mapping(self, graph):
         """Return priority mapping for each node of *graph*.
@@ -514,18 +516,13 @@ class Resolver(object):
 
 
 class Graph(object):
-    """Requirement Graph.
-
-    A requirement graph can be created from required environment definitions.
-    All possible definition versions will be created.
-
-    """
+    """Requirement Graph."""
 
     #: Identify the root of the graph
     ROOT = "root"
 
     def __init__(
-        self, resolver, node_mapping=None, definition_mapping=None,
+        self, resolver, node_mapping=None, environment_mapping=None,
         variant_mapping=None, link_mapping=None
     ):
         """Initialise Graph.
@@ -535,8 +532,8 @@ class Graph(object):
         *node_mapping* can be an initial mapping of nodes organised node
         identifier.
 
-        *definition_mapping* can be an initial mapping of node identifier sets
-        organised per definition identifier.
+        *environment_mapping* can be an initial mapping of node identifier sets
+        organised per environment identifier.
 
         *variant_mapping* can be an initial mapping of node identifier variant
         lists organised per unique variant group identifier.
@@ -551,8 +548,8 @@ class Graph(object):
         # All nodes created per node identifier.
         self._node_mapping = node_mapping or {}
 
-        # Set of node identifiers organised per definition identifier.
-        self._definition_mapping = definition_mapping or {}
+        # Set of node identifiers organised per environment identifier.
+        self._environment_mapping = environment_mapping or {}
 
         # List of node identifier variants per hashed variant group identifier.
         self._variant_mapping = variant_mapping or {}
@@ -565,7 +562,7 @@ class Graph(object):
         return Graph(
             self._resolver,
             node_mapping=self._node_mapping.copy(),
-            definition_mapping=self._definition_mapping.copy(),
+            environment_mapping=self._environment_mapping.copy(),
             variant_mapping=self._variant_mapping.copy(),
             link_mapping=self._link_mapping.copy()
         )
@@ -578,11 +575,12 @@ class Graph(object):
         """Indicate whether the node *identifier* is in the graph."""
         return identifier in self._node_mapping.keys()
 
-    def node_identifiers_from_definition(self, definition_identifier):
-        """Return node identifiers in the graph from *definition_identifier*."""
+    def node_identifiers_from_environment(self, environment_identifier):
+        """Return node identifiers in the graph from *environment_identifier*.
+        """
         return filter(
             lambda _identifier: self._node_exists(_identifier),
-            self._definition_mapping[definition_identifier]
+            self._environment_mapping[environment_identifier]
         )
 
     def variant_groups(self):
@@ -622,12 +620,12 @@ class Graph(object):
         """Return conflicting node identifiers.
 
         A conflict appears when several nodes are found for a single
-        definition.
+        environment.
 
         """
         identifiers = []
 
-        for _identifiers in self._definition_mapping.values():
+        for _identifiers in self._environment_mapping.values():
             if len(_identifiers) > 1:
                 identifiers += filter(
                     lambda _identifier: self._node_exists(_identifier),
@@ -677,25 +675,27 @@ class Graph(object):
         """
         self._logger.debug("Update from requirement: {}".format(requirement))
 
-        # Get best matching definitions from requirement.
-        definitions = wiz.definition.get(
-            requirement, self._resolver.definition_mapping
+        # Get best matching environments from requirement.
+        environments = wiz.environment.get(
+            requirement, self._resolver.environment_mapping
         )
-        identifiers = map(_Node.generate_identifier, definitions)
+        identifiers = map(_Node.generate_identifier, environments)
 
-        # If more than one definitions is returned, record all node identifiers
+        # If more than one environments is returned, record all node identifiers
         # into a variant group.
-        if len(definitions) > 1:
+        if len(environments) > 1:
             hashed_object = hashlib.md5("".join(identifiers))
             self._variant_mapping[hashed_object.hexdigest()] = identifiers
 
-        # Create a node for each definition version if necessary.
-        for definition, identifier in itertools.izip(definitions, identifiers):
+        # Create a node for each environment version if necessary.
+        for environment, identifier in itertools.izip(
+            environments, identifiers
+        ):
             if identifier not in self._node_mapping.keys():
-                self._logger.debug("Adding definition: {}".format(identifier))
-                self._node_mapping[identifier] = _Node(definition)
+                self._logger.debug("Adding environment: {}".format(identifier))
+                self._node_mapping[identifier] = _Node(environment)
 
-                requirements = definition.get("requirement")
+                requirements = environment.get("requirement")
                 if requirements is not None:
                     self.update_from_requirements(
                         requirements, parent_identifier=identifier
@@ -703,9 +703,9 @@ class Graph(object):
 
             node = self._node_mapping[identifier]
 
-            # Record node identifiers per definition to identify conflicts.
-            self._definition_mapping.setdefault(definition.identifier, set())
-            self._definition_mapping[definition.identifier].add(
+            # Record node identifiers per environment to identify conflicts.
+            self._environment_mapping.setdefault(environment.identifier, set())
+            self._environment_mapping[environment.identifier].add(
                 node.identifier
             )
 
@@ -737,7 +737,7 @@ class Graph(object):
         link. The lesser this number, the higher is the importance of the link.
         Default is 1.
 
-        Raise :exc:`wiz.exception.IncorrectDefinition` is *definition*
+        Raise :exc:`wiz.exception.IncorrectEnvironment` is *environment*
         identifier has already be set for this *parent*.
 
         """
@@ -750,7 +750,7 @@ class Graph(object):
         self._link_mapping.setdefault(parent_identifier, {})
 
         if identifier in self._link_mapping[parent_identifier].keys():
-            raise wiz.exception.IncorrectDefinition(
+            raise wiz.exception.IncorrectEnvironment(
                 "There cannot be several dependency links to '{child}' from "
                 "'{parent}'".format(
                     parent=parent_identifier, child=identifier
@@ -784,41 +784,44 @@ class Graph(object):
 
 
 class _Node(object):
-    """Node encapsulating a definition version in the graph.
+    """Node encapsulating a environment version in the graph.
     """
 
-    def __init__(self, definition):
+    def __init__(self, environment):
         """Initialise Node.
 
-        *definition* indicates a :class:`~wiz.definition.Definition`.
+        *environment* indicates a :class:`~wiz.environment.Environment`.
 
         """
-        self._definition = definition
+        self._environment = environment
         self._parent_identifiers = set()
 
     @classmethod
-    def generate_identifier(cls, definition):
-        """Generate identifier from a :class:`~wiz.definition.Definition`.
+    def generate_identifier(cls, environment):
+        """Generate identifier from an *environment*.
+
+        *environment* indicates a :class:`~wiz.environment.Environment`.
+
         """
-        variant = definition.get("variant")
+        variant = environment.get("variant")
         if variant is not None:
             variant = "[{}]".format(variant)
 
-        return "{definition}{variant}=={version}".format(
-            definition=definition.identifier,
-            version=definition.version,
+        return "{environment}{variant}=={version}".format(
+            environment=environment.identifier,
+            version=environment.version,
             variant=variant or ""
         )
 
     @property
     def identifier(self):
         """Return identifier of the node."""
-        return self.generate_identifier(self._definition)
+        return self.generate_identifier(self._environment)
 
     @property
-    def definition(self):
-        """Return :class:`~wiz.definition.Definition` encapsulated."""
-        return self._definition
+    def environment(self):
+        """Return :class:`~wiz.environment.Environment` encapsulated."""
+        return self._environment
 
     @property
     def parent_identifiers(self):

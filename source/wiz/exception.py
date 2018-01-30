@@ -44,10 +44,16 @@ class IncorrectDefinition(WizError):
     default_message = "The definition {definition[identifier]} is incorrect."
 
 
-class GraphResolutionError(WizError):
-    """Raise when the definition graph is incorrect."""
+class IncorrectEnvironment(WizError):
+    """Raise when a environment is incorrect."""
 
-    default_message = "The environment definition graph could not be resolved."
+    default_message = "The environment {environment[identifier]} is incorrect."
+
+
+class GraphResolutionError(WizError):
+    """Raise when the environment graph is incorrect."""
+
+    default_message = "The environment graph could not be resolved."
 
 
 class CommandError(WizError):

@@ -40,7 +40,7 @@ def construct_parser():
     parser.add_argument(
         "--no-cwd",
         help=(
-            "Do not attempt to discover environment definitions from current "
+            "Do not attempt to discover definitions from current "
             "working directory within project."
         ),
         action="store_true"
@@ -48,7 +48,7 @@ def construct_parser():
 
     parser.add_argument(
         "-dsd", "--definition-search-depth",
-        help="Maximum depth to recursively search for environment definitions.",
+        help="Maximum depth to recursively search for definitions.",
         type=int
     )
 
@@ -57,7 +57,7 @@ def construct_parser():
         dest="commands"
     )
 
-    registries_parser= subparsers.add_parser(
+    registries_parser = subparsers.add_parser(
         "registries",
         help="List all available registries.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -67,39 +67,45 @@ def construct_parser():
         "-dsp", "--definition-search-paths",
         nargs="+",
         metavar="PATH",
-        help="Search paths for environment definitions.",
+        help="Search paths for definitions.",
         default=wiz.registry.get_defaults()
     )
 
-    definitions_parser = subparsers.add_parser(
-        "definitions",
-        help="List all available environment definitions.",
+    environment_parser = subparsers.add_parser(
+        "environments",
+        help="List all available environments.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    definitions_parser.add_argument(
+    environment_parser.add_argument(
         "--all",
-        help="Return all versions of the available definitions.",
+        help="Return all versions of the environment definitions.",
         action="store_true"
     )
 
-    definitions_parser.add_argument(
+    environment_parser.add_argument(
+        "--with-commands",
+        help="Return only environment definitions with commands.",
+        action="store_true"
+    )
+
+    environment_parser.add_argument(
         "-dsp", "--definition-search-paths",
         nargs="+",
         metavar="PATH",
-        help="Search paths for environment definitions.",
+        help="Search paths for definitions.",
         default=wiz.registry.get_defaults()
     )
 
     search_parser = subparsers.add_parser(
         "search",
-        help="Search an environment definitions.",
+        help="Search definitions.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     search_parser.add_argument(
         "--all",
-        help="Return all versions of the available definitions.",
+        help="Return all versions of the available environment definitions.",
         action="store_true"
     )
 
@@ -107,7 +113,7 @@ def construct_parser():
         "-dsp", "--definition-search-paths",
         nargs="+",
         metavar="PATH",
-        help="Search paths for environment definitions.",
+        help="Search paths for definitions.",
         default=wiz.registry.get_defaults()
     )
 
@@ -126,7 +132,7 @@ def construct_parser():
         "-dsp", "--definition-search-paths",
         nargs="+",
         metavar="PATH",
-        help="Search paths for environment definitions.",
+        help="Search paths for definitions.",
         default=wiz.registry.get_defaults()
     )
 
@@ -138,7 +144,11 @@ def construct_parser():
 
     load_subparsers = subparsers.add_parser(
         "load",
-        help="Spawn shell with resolved environment from requirements.",
+        help=(
+            "Spawn shell with resolved environment from requirements, or run "
+            "a command within the resolved environment if indicated after the "
+            "'--' symbol."
+        ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
@@ -146,7 +156,7 @@ def construct_parser():
         "-dsp", "--definition-search-paths",
         nargs="+",
         metavar="PATH",
-        help="Search paths for environment definitions.",
+        help="Search paths for definitions.",
         default=wiz.registry.get_defaults()
     )
 
@@ -167,14 +177,14 @@ def construct_parser():
         nargs="+",
         metavar="REQUIREMENT",
         dest="requirements",
-        help="Indicate definition requirements required."
+        help="Indicate environment requirements required."
     )
 
     run_subparsers.add_argument(
         "-dsp", "--definition-search-paths",
         nargs="+",
         metavar="PATH",
-        help="Search paths for environment definitions.",
+        help="Search paths for definitions.",
         default=wiz.registry.get_defaults()
     )
 
@@ -213,11 +223,15 @@ def main(arguments=None):
     if namespace.commands == "registries":
         print("\n".join(registries))
 
-    elif namespace.commands == "definitions":
+    elif namespace.commands == "environments":
         mapping = wiz.definition.fetch(
             registries, max_depth=namespace.definition_search_depth
         )
-        display_definitions(mapping, all_versions=namespace.all)
+        display_environments(
+            mapping["environment"],
+            all_versions=namespace.all,
+            commands_only=namespace.with_commands
+        )
 
     elif namespace.commands == "search":
         requirement = Requirement(namespace.requirement)
@@ -227,11 +241,13 @@ def main(arguments=None):
         )
 
         if len(mapping):
-            display_definitions(mapping, all_versions=namespace.all)
+            display_environments(
+                mapping["environment"], all_versions=namespace.all
+            )
         else:
             print("No results found.")
 
-    elif namespace.commands in ["view", "load", "run"]:
+    elif namespace.commands in ["view", "load"]:
         mapping = wiz.definition.fetch(
             registries, max_depth=namespace.definition_search_depth
         )
@@ -239,21 +255,23 @@ def main(arguments=None):
         requirements = map(Requirement, namespace.requirements)
 
         try:
-            definitions = wiz.environment.resolve(requirements, mapping)
-            result = wiz.environment.extract_mapping(definitions)
+            environments = wiz.environment.compute(
+                requirements, mapping["environment"]
+            )
+            environment = wiz.environment.resolve(environments)
 
             if namespace.commands == "view":
-                display_environment(result["environ"])
+                display_environment(environment)
 
             elif namespace.commands == "load":
-                wiz.spawn.shell(result["environ"])
+                wiz.spawn.shell(environment["data"])
 
-            elif namespace.commands == "run":
-                if namespace.command not in result.get("command", []):
-                    raise wiz.exception.CommandError(namespace.command)
-
-                command = result["command"][namespace.command]
-                wiz.spawn.execute(command, result["environ"])
+            # elif namespace.commands == "run":
+            #     if namespace.command not in result.get("command", []):
+            #         raise wiz.exception.CommandError(namespace.command)
+            #
+            #     command = result["command"][namespace.command]
+            #     wiz.spawn.execute(command, result["data"])
 
         except wiz.exception.WizError:
             logger.error(
@@ -262,14 +280,19 @@ def main(arguments=None):
             )
 
 
-def display_definitions(definition_mapping, all_versions=False):
-    """Display the environment definitions stored in *definition_mapping*.
+def display_environments(
+    environment_mapping, all_versions=False, commands_only=False,
+):
+    """Display the environments stored in *environment_mapping*.
 
-    *definition_mapping* is a mapping regrouping all available environment
-    definition associated with their unique identifier.
+    *environment_mapping* is a mapping regrouping all available environment
+    environment associated with their unique identifier.
 
-    *all_versions* indicate whether all versions from the definitions must be
-    returned. If not, only the latest version of each definition identifier is
+    *all_versions* indicate whether all versions from the environments must be
+    returned. If not, only the latest version of each environment identifier is
+    displayed.
+
+    *commands_only* indicate whether only environments with 'commands' should be
     displayed.
 
     """
@@ -277,46 +300,48 @@ def display_definitions(definition_mapping, all_versions=False):
     print("\n" + line)
     print("+".join(["-"*30]*4) + "-"*30)
 
-    for identifier, version_mapping in sorted(definition_mapping.items()):
-        sorted_definitions = sorted(
-            version_mapping.values(),
-            key=lambda _definition: _definition.version,
+    def _display(_environment):
+        """Display information about *environment*."""
+        if commands_only and _environment.get("command") is None:
+            return
+
+        variants = [
+            _env.get("identifier") for _env in _environment.get("variant", [])
+        ]
+
+        _line = _format_row([
+            _environment.identifier,
+            _environment.version,
+            ", ".join(variants),
+            _environment.description
+        ])
+        print(_line)
+
+    for identifier, version_mapping in sorted(environment_mapping.items()):
+        sorted_environments = sorted(
+            version_mapping.values(), key=lambda _env: _env.version,
             reverse=True
         )
 
         if all_versions:
-            for definition in sorted_definitions:
-                variants = [
-                    _definition.get("identifier") for _definition
-                    in definition.get("variant", [])
-                ]
-                line = _format_row([
-                    definition.identifier,
-                    definition.version,
-                    ", ".join(variants),
-                    definition.description
-                ])
-                print(line)
-
+            for environment in sorted_environments:
+                _display(environment)
         else:
-            definition = sorted_definitions[0]
-            variants = [
-                _definition.get("identifier") for _definition
-                in definition.get("variant", [])
-            ]
-            line = _format_row([
-                definition.identifier,
-                definition.version,
-                ", ".join(variants),
-                definition.description
-            ])
-            print(line)
+            environment = sorted_environments[0]
+            _display(environment)
 
     print()
 
 
 def display_environment(environment):
     """Display the content of the *environment* mapping."""
+    commands = sorted(environment.get("command", {}).keys())
+    if len(commands) > 0:
+        print("\n Commands")
+        print("-"*120)
+        print(", ".join(commands))
+        print()
+
     line = _format_row(["Environment variable", "Value"], width=40)
     print("\n" + line)
     print("+".join(["-"*40]*2) + "-"*40)
@@ -327,9 +352,10 @@ def display_environment(environment):
             return [value]
         return value.split(os.pathsep)
 
-    for key in sorted(environment.keys()):
+    data_mapping = environment.get("data", {})
+    for key in sorted(data_mapping.keys()):
         for _key, _value in itertools.izip_longest(
-            [key], _compute_value(key, environment[key])
+            [key], _compute_value(key, data_mapping[key])
         ):
             line = _format_row([_key or "", _value], width=40)
             print(line)
