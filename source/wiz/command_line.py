@@ -334,10 +334,9 @@ def display_environments(
         ])
         print(_line)
 
-    for identifier, version_mapping in sorted(environment_mapping.items()):
+    for identifier, environments in sorted(environment_mapping.items()):
         sorted_environments = sorted(
-            version_mapping.values(), key=lambda _env: _env.version,
-            reverse=True
+            environments, key=lambda _env: _env.version, reverse=True
         )
 
         if all_versions:

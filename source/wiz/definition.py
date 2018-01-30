@@ -23,10 +23,8 @@ def fetch(paths, max_depth=None):
     }
 
     for definition in discover(paths, max_depth=max_depth):
-        _type = definition.type
-        base_version = definition.version.base_version
-        mapping[_type].setdefault(definition.identifier, {})
-        mapping[_type][definition.identifier][base_version] = definition
+        mapping[definition.type].setdefault(definition.identifier, [])
+        mapping[definition.type][definition.identifier].append(definition)
 
     return mapping
 
@@ -58,9 +56,8 @@ def search(requirement, paths, max_depth=None):
         ):
             if definition.version in requirement.specifier:
                 _type = definition.type
-                base_version = definition.version.base_version
-                mapping[_type].setdefault(definition.identifier, {})
-                mapping[_type][definition.identifier][base_version] = definition
+                mapping[_type].setdefault(definition.identifier, [])
+                mapping[_type][definition.identifier].append(definition)
 
     return mapping
 

@@ -161,8 +161,8 @@ def get(requirement, environment_mapping):
 
     # Sort the environments so that the highest version is first.
     sorted_environments = sorted(
-        environment_mapping[requirement.name].values(),
-        key=lambda _environ: _environ.version, reverse=True
+        environment_mapping[requirement.name], key=lambda _env: _env.version,
+        reverse=True
     )
 
     # Get the best matching environment.
