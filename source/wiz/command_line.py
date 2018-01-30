@@ -59,20 +59,6 @@ def construct_parser():
         dest="commands"
     )
 
-    registries_parser = subparsers.add_parser(
-        "registries",
-        help="List all available registries.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    registries_parser.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
-    )
-
     environment_parser = subparsers.add_parser(
         "environments",
         help="List all available environments.",
@@ -228,10 +214,7 @@ def main(arguments=None):
     logger.debug("Registries: " + ", ".join(registries))
 
     # Process requested operation.
-    if namespace.commands == "registries":
-        print("\n".join(registries))
-
-    elif namespace.commands == "environments":
+    if namespace.commands == "environments":
         mapping = wiz.definition.fetch(
             registries, max_depth=namespace.definition_search_depth
         )
