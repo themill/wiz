@@ -9,6 +9,7 @@ import mlog
 from packaging.requirements import Requirement
 
 import wiz.registry
+import wiz.symbol
 import wiz.definition
 import wiz.environment
 import wiz.spawn
@@ -204,6 +205,17 @@ def main(arguments=None):
     mlog.configure()
     logger = mlog.Logger(__name__ + ".main")
 
+    # Extract the command section of the arguments list if necessary
+    command_arguments = None
+
+    if wiz.symbol.COMMAND_SEPARATOR in arguments:
+        index = arguments.index(wiz.symbol.COMMAND_SEPARATOR)
+        command_arguments = arguments[index+1:]
+        arguments = arguments[:index]
+
+    if command_arguments and len(command_arguments) == 0:
+        raise wiz.exception.CommandError("")
+
     # Process arguments.
     parser = construct_parser()
     namespace = parser.parse_args(arguments)
@@ -228,7 +240,7 @@ def main(arguments=None):
             registries, max_depth=namespace.definition_search_depth
         )
         display_environments(
-            mapping["environment"],
+            mapping[wiz.symbol.ENVIRONMENT_TYPE],
             all_versions=namespace.all,
             commands_only=namespace.with_commands
         )
@@ -240,9 +252,13 @@ def main(arguments=None):
             max_depth=namespace.definition_search_depth
         )
 
-        if len(mapping):
+        if (
+            len(mapping[wiz.symbol.ENVIRONMENT_TYPE]) or
+            len(mapping[wiz.symbol.APPLICATION_TYPE])
+        ):
             display_environments(
-                mapping["environment"], all_versions=namespace.all
+                mapping[wiz.symbol.ENVIRONMENT_TYPE],
+                all_versions=namespace.all
             )
         else:
             print("No results found.")
@@ -256,7 +272,7 @@ def main(arguments=None):
 
         try:
             environments = wiz.environment.compute(
-                requirements, mapping["environment"]
+                requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
             )
             environment = wiz.environment.resolve(environments)
 
@@ -264,14 +280,15 @@ def main(arguments=None):
                 display_environment(environment)
 
             elif namespace.commands == "load":
-                wiz.spawn.shell(environment["data"])
-
-            # elif namespace.commands == "run":
-            #     if namespace.command not in result.get("command", []):
-            #         raise wiz.exception.CommandError(namespace.command)
-            #
-            #     command = result["command"][namespace.command]
-            #     wiz.spawn.execute(command, result["data"])
+                if command_arguments is None:
+                    wiz.spawn.shell(environment["data"])
+                else:
+                    command_mapping = environment.get("command", {})
+                    if command_arguments[0] in command_mapping.keys():
+                        command_arguments[0] = (
+                            command_mapping[command_arguments[0]]
+                        )
+                    wiz.spawn.execute(command_arguments, environment["data"])
 
         except wiz.exception.WizError:
             logger.error(

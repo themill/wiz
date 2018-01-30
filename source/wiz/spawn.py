@@ -4,13 +4,14 @@ from __future__ import print_function
 
 import os
 import sys
-import shlex
 import select
 import subprocess
 import distutils.spawn
 import termios
 import tty
 import pty
+
+import mlog
 
 
 def shell(environment, shell_type="bash"):
@@ -19,7 +20,10 @@ def shell(environment, shell_type="bash"):
     *shell_type* can indicate a specific type of shell. Default is Bash.
 
     """
+    logger = mlog.Logger(__name__ + ".shell")
+
     executable = distutils.spawn.find_executable(shell_type)
+    logger.info("Spawn shell: {}".format(executable))
 
     # save original tty setting then set it to raw mode
     old_tty = termios.tcgetattr(sys.stdin)
@@ -55,11 +59,14 @@ def shell(environment, shell_type="bash"):
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
 
 
-def execute(command, environment):
-    """Run an *executable* within a specific *environment*."""
+def execute(commands, environment):
+    """Run *commands* within a specific *environment*."""
     # Run in a new process group to enable job control
+    logger = mlog.Logger(__name__ + ".shell")
+    logger.info("Start command: {}".format(" ".join(commands)))
+
     process = subprocess.Popen(
-        shlex.split(command),
+        commands,
         preexec_fn=os.setsid,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

@@ -5,6 +5,7 @@ import json
 
 import mlog
 
+import wiz.symbol
 import wiz.environment
 import wiz.exception
 
@@ -16,7 +17,10 @@ def fetch(paths, max_depth=None):
     up to *max_depth*.
 
     """
-    mapping = {"application": {}, "environment": {}}
+    mapping = {
+        wiz.symbol.APPLICATION_TYPE: {},
+        wiz.symbol.ENVIRONMENT_TYPE: {}
+    }
 
     for definition in discover(paths, max_depth=max_depth):
         _type = definition.type
@@ -42,7 +46,10 @@ def search(requirement, paths, max_depth=None):
         .format(requirement)
     )
 
-    mapping = {"application": {}, "environment": {}}
+    mapping = {
+        wiz.symbol.APPLICATION_TYPE: {},
+        wiz.symbol.ENVIRONMENT_TYPE: {}
+    }
 
     for definition in discover(paths, max_depth=max_depth):
         if (
@@ -122,7 +129,7 @@ def load(path):
 
         # TODO: Validate with JSON-Schema.
 
-        if definition_data.get("type") == "environment":
+        if definition_data.get("type") == wiz.symbol.ENVIRONMENT_TYPE:
             definition = wiz.environment.Environment(**definition_data)
             return definition
 
