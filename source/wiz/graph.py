@@ -4,6 +4,7 @@ import copy
 import hashlib
 import itertools
 from collections import deque
+from collections import namedtuple
 from heapq import heapify, heappush, heappop
 try:
     from queue import Queue
@@ -14,6 +15,13 @@ import mlog
 
 import wiz.definition
 import wiz.exception
+
+
+#: Weighted link associating nodes in the requirement graph.
+_Link = namedtuple("_Link", "requirement, weight")
+
+#: Element with palatable properties access used to create the priority mapping.
+_NodeAttributes = namedtuple("_NodeAttributes", "priority, parent")
 
 
 class Resolver(object):
@@ -62,7 +70,7 @@ class Resolver(object):
         while len(self._graphs_stack) != 0:
             graph = self._graphs_stack.pop()
 
-            priority_mapping = compute_priority_mapping(graph)
+            priority_mapping = self.compute_priority_mapping(graph)
 
             # Check if the graph must be divided.
             if self.divide(graph, priority_mapping) > 0:
@@ -78,7 +86,7 @@ class Resolver(object):
                 self._logger.debug("Failed to resolve graph: {}".format(error))
 
             else:
-                priority_mapping = compute_priority_mapping(graph)
+                priority_mapping = self.compute_priority_mapping(graph)
                 return self.extract_ordered_definitions(graph, priority_mapping)
 
     def divide(self, graph, priority_mapping):
@@ -110,7 +118,8 @@ class Resolver(object):
         # priority, so we can sort the group list by using the first identifier
         # of each group as a key reference.
         sorted_variant_groups = sorted(
-            variant_groups, key=lambda _group: priority_mapping[_group[0]][0],
+            variant_groups,
+            key=lambda _group: priority_mapping[_group[0]].priority,
         )
 
         graph_list = [graph.copy()]
@@ -166,7 +175,7 @@ class Resolver(object):
         self._logger.debug("Conflicts: {}".format(", ".join(identifiers)))
 
         while True:
-            priority_mapping = compute_priority_mapping(graph)
+            priority_mapping = self.compute_priority_mapping(graph)
 
             # Update graph and conflict identifiers list to remove all
             # unreachable nodes.
@@ -182,7 +191,7 @@ class Resolver(object):
 
             # Sort identifiers per distance from the root level.
             identifiers = sorted(
-                identifiers, key=lambda _id: priority_mapping[_id][0],
+                identifiers, key=lambda _id: priority_mapping[_id].priority,
             )
 
             # Pick up the nearest node.
@@ -228,7 +237,7 @@ class Resolver(object):
 
                     # Check if the graph must be divided. If this is the case,
                     # the current graph cannot be resolved.
-                    priority_mapping = compute_priority_mapping(graph)
+                    priority_mapping = self.compute_priority_mapping(graph)
                     if self.divide(graph, priority_mapping) > 0:
                         raise wiz.exception.GraphResolutionError(
                             "The current graph has been divided."
@@ -281,7 +290,7 @@ class Resolver(object):
 
         """
         for identifier in graph.node_identifiers():
-            if priority_mapping[identifier][0] is None:
+            if priority_mapping[identifier].priority is None:
                 self._logger.debug("Remove '{}'".format(identifier))
                 graph.remove_node(identifier)
 
@@ -361,7 +370,7 @@ class Resolver(object):
 
         for identifier in identifiers:
             _requirement = graph.link_requirement(
-                identifier, priority_mapping[identifier][1]
+                identifier, priority_mapping[identifier].parent
             )
 
             if requirement is None:
@@ -439,70 +448,69 @@ class Resolver(object):
         )
         return definitions
 
+    def compute_priority_mapping(self, graph):
+        """Return priority mapping for each node of *graph*.
 
-def compute_priority_mapping(graph):
-    """Return priority mapping for each node of *graph*.
+        The mapping indicates the lowest possible priority of each node
+        identifier from the root level of the graph with its corresponding
+        parent node identifier.
 
-    The mapping indicates the lowest possible priority of each node identifier
-    from the root level of the graph with its corresponding parent node
-    identifier.
+        The priority is defined by the sum of the weights from each node to the
+        root level.
 
-    The priority is defined by the sum of the weights from each node to the
-    root level.
+        *graph* must be an instance of :class:`Graph`.
 
-    *graph* must be an instance of :class:`Graph`.
+        This is using `Dijkstra's shortest path algorithm
+        <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>`_.
 
-    This is using `Dijkstra's shortest path algorithm
-    <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>`_.
+        .. note::
 
-    .. note::
+            When a node is being visited twice, the path with the smallest
+            priority is being kept.
 
-        When a node is being visited twice, the path with the smallest priority
-        is being kept.
+        """
+        # Initiate mapping
+        priority_mapping = {
+            node_identifier: _NodeAttributes(None, None) for node_identifier
+            in graph.node_identifiers()
+        }
 
-    """
-    logger = mlog.Logger(__name__ + ".compute_priority_mapping")
+        priority_mapping[graph.ROOT] = _NodeAttributes(0, graph.ROOT)
 
-    # Initiate mapping
-    priority_mapping = {
-        node_identifier: (None, None) for node_identifier
-        in graph.node_identifiers()
-    }
+        queue = _PriorityQueue()
+        queue[graph.ROOT] = 0
 
-    priority_mapping[graph.ROOT] = (0, graph.ROOT)
+        while not queue.empty():
+            identifier = queue.pop_smallest()
+            current_priority = priority_mapping[identifier].priority
 
-    queue = _PriorityQueue()
-    queue[graph.ROOT] = 0
-
-    while not queue.empty():
-        identifier = queue.pop_smallest()
-        current_priority = priority_mapping[identifier][0]
-
-        for child_identifier in graph.outcoming(identifier):
-            priority = current_priority + graph.link_weight(
-                child_identifier, identifier
-            )
-
-            # The last recorded priority of this node from the source
-            last_priority = priority_mapping[child_identifier][0]
-
-            # If there is a currently recorded priority from the source and this
-            # is lesser than the priority of the node found, update the current
-            # priority from the root level in the mapping.
-            if last_priority is None or last_priority < priority:
-                priority_mapping[child_identifier] = (priority, identifier)
-                queue[child_identifier] = priority
-
-                logger.debug(
-                    "Priority {priority} set to '{node}' from '{parent}'"
-                    .format(
-                        priority=priority,
-                        node=child_identifier,
-                        parent=identifier
-                    )
+            for child_identifier in graph.outcoming(identifier):
+                priority = current_priority + graph.link_weight(
+                    child_identifier, identifier
                 )
 
-    return priority_mapping
+                # The last recorded priority of this node from the source
+                last_priority = priority_mapping[child_identifier].priority
+
+                # If there is a currently recorded priority from the source and
+                # this is lesser than the priority of the node found, update the
+                # current priority from the root level in the mapping.
+                if last_priority is None or last_priority < priority:
+                    priority_mapping[child_identifier] = _NodeAttributes(
+                        priority, identifier
+                    )
+                    queue[child_identifier] = priority
+
+                    self._logger.debug(
+                        "Priority {priority} set to '{node}' from '{parent}'"
+                        .format(
+                            priority=priority,
+                            node=child_identifier,
+                            parent=identifier
+                        )
+                    )
+
+        return priority_mapping
 
 
 class Graph(object):
@@ -749,7 +757,7 @@ class Graph(object):
                 )
             )
 
-        link = _Link(requirement, weight=weight)
+        link = _Link(requirement, weight)
         self._link_mapping[parent_identifier][identifier] = link
 
     def remove_node(self, identifier):
@@ -820,39 +828,6 @@ class _Node(object):
     def add_parent(self, identifier):
         """Add *identifier* as a parent to the node."""
         self._parent_identifiers.add(identifier)
-
-
-class _Link(object):
-    """Weighted link between two nodes in the graph.
-    """
-
-    def __init__(self, requirement, weight=1):
-        """Initialise Link.
-
-        *requirement* should be an instance of
-        :class:`packaging.requirements.Requirement`.
-
-        *weight* is a number which indicate the importance of the dependency
-        link. default is 1. The lesser this number, the higher is the
-        importance of the link.
-
-        """
-        self._requirement = requirement
-        self._weight = weight
-
-    @property
-    def requirement(self):
-        """Return requirement of the link.
-
-        This should be a :class:`packaging.requirements.Requirement` instance.
-
-        """
-        return self._requirement
-
-    @property
-    def weight(self):
-        """Return weight number of the link."""
-        return self._weight
 
 
 class _PriorityQueue(dict):
