@@ -14,6 +14,106 @@ import wiz.symbol
 import wiz.exception
 
 
+def get(requirement, environment_mapping):
+    """Get best matching :class:`Environment` instances for *requirement*.
+
+    The best matching environment version corresponding to the *requirement*
+    will be returned.
+
+    If this environment contains variants, the ordered list of environment
+    combined with each variant will be returned. If one variant is explicitly
+    requested, only the corresponding variant combined with the required
+    environment will be returned. Otherwise, the required environment will be
+    returned
+
+    *requirement* is an instance of :class:`packaging.requirements.Requirement`.
+
+    *environment_mapping* is a mapping regrouping all available environment
+    associated with their unique identifier.
+
+    :exc:`wiz.exception.IncorrectRequirement` is raised if the
+    requirement can not be resolved.
+
+    """
+    if requirement.name not in environment_mapping:
+        raise wiz.exception.IncorrectRequirement(requirement)
+
+    environment = None
+
+    # Sort the environments so that the highest version is first.
+    sorted_environments = sorted(
+        environment_mapping[requirement.name], key=lambda _env: _env.version,
+        reverse=True
+    )
+
+    # Get the best matching environment.
+    for _environment in sorted_environments:
+        if _environment.version in requirement.specifier:
+            environment = _environment
+            break
+
+    if environment is None:
+        raise wiz.exception.IncorrectRequirement(requirement)
+
+    # Extract variants from environment if available.
+    variants = environment.get("variant", [])
+
+    # Simply return the main environment if no variants is available.
+    if len(variants) == 0:
+        return [environment]
+
+    # Extract and return the requested variant if necessary.
+    elif len(requirement.extras) > 0:
+        variant_identifier = next(iter(requirement.extras))
+        variant_mapping = reduce(
+            lambda res, mapping: dict(res, **{mapping["identifier"]: mapping}),
+            variants, {}
+        )
+
+        if variant_identifier not in variant_mapping.keys():
+            raise wiz.exception.IncorrectRequirement(
+                "The variant '{}' could not been resolved for '{}'.".format(
+                    variant_identifier, requirement.name
+                )
+            )
+
+        return [
+            _combine_variant(environment, variant_mapping[variant_identifier])
+        ]
+
+    # Otherwise, extract and return all possible variants.
+    else:
+        return map(
+            lambda variant: _combine_variant(environment, variant), variants
+        )
+
+
+def resolve(requirements, environment_mapping, data_mapping=None):
+    """Return combined :class:`Environment` instance from *requirements*.
+
+    *requirements* should be a list of
+    class:`packaging.requirements.Requirement` instances.
+
+    *environment_mapping* is a mapping regrouping all available environments
+    associated with their unique identifier.
+
+    *data_mapping* can be a mapping of environment variables which would
+    be augmented by the resolved environment.
+
+    Raise :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
+    resolved.
+
+    """
+    logger = mlog.Logger(__name__ + ".resolve")
+    logger.info(
+        "Resolve environment: {}".format(
+            ", ".join([str(requirement) for requirement in requirements])
+        )
+    )
+    environments = compute(requirements, environment_mapping)
+    return combine(environments, data_mapping)
+
+
 def compute(requirements, environment_mapping):
     """Return resolved :class:`Environment` instances from *requirements*.
 
@@ -30,23 +130,16 @@ def compute(requirements, environment_mapping):
     resolved.
 
     """
-    logger = mlog.Logger(__name__ + ".resolve")
-    logger.info(
-        "Resolve environment: {}".format(
-            ", ".join([str(requirement) for requirement in requirements])
-        )
-    )
-
     resolver = wiz.graph.Resolver(environment_mapping)
     return resolver.compute_environments(requirements)
 
 
-def resolve(environments, data_mapping=None):
-    """Return resolved mapping extracted from *environments*.
+def combine(environments, data_mapping=None):
+    """Return combined mapping extracted from *environments*.
 
     A mapping should look as follow::
 
-        >>> resolve(environments)
+        >>> combine(environments)
         {
             "command": {
                 "app": "AppExe"
@@ -131,80 +224,6 @@ def initiate_data(data_mapping=None):
         environ.update(**data_mapping)
 
     return environ
-
-
-def get(requirement, environment_mapping):
-    """Get best matching :class:`Environment` instances for *requirement*.
-
-    The best matching environment version corresponding to the *requirement*
-    will be returned.
-
-    If this environment contains variants, the ordered list of environment
-    combined with each variant will be returned. If one variant is explicitly
-    requested, only the corresponding variant combined with the required
-    environment will be returned. Otherwise, the required environment will be
-    returned
-
-    *requirement* is an instance of :class:`packaging.requirements.Requirement`.
-
-    *environment_mapping* is a mapping regrouping all available environment
-    associated with their unique identifier.
-
-    :exc:`wiz.exception.IncorrectRequirement` is raised if the
-    requirement can not be resolved.
-
-    """
-    if requirement.name not in environment_mapping:
-        raise wiz.exception.IncorrectRequirement(requirement)
-
-    environment = None
-
-    # Sort the environments so that the highest version is first.
-    sorted_environments = sorted(
-        environment_mapping[requirement.name], key=lambda _env: _env.version,
-        reverse=True
-    )
-
-    # Get the best matching environment.
-    for _environment in sorted_environments:
-        if _environment.version in requirement.specifier:
-            environment = _environment
-            break
-
-    if environment is None:
-        raise wiz.exception.IncorrectRequirement(requirement)
-
-    # Extract variants from environment if available.
-    variants = environment.get("variant", [])
-
-    # Simply return the main environment if no variants is available.
-    if len(variants) == 0:
-        return [environment]
-
-    # Extract and return the requested variant if necessary.
-    elif len(requirement.extras) > 0:
-        variant_identifier = next(iter(requirement.extras))
-        variant_mapping = reduce(
-            lambda res, mapping: dict(res, **{mapping["identifier"]: mapping}),
-            variants, {}
-        )
-
-        if variant_identifier not in variant_mapping.keys():
-            raise wiz.exception.IncorrectRequirement(
-                "The variant '{}' could not been resolved for '{}'.".format(
-                    variant_identifier, requirement.name
-                )
-            )
-
-        return [
-            _combine_variant(environment, variant_mapping[variant_identifier])
-        ]
-
-    # Otherwise, extract and return all possible variants.
-    else:
-        return map(
-            lambda variant: _combine_variant(environment, variant), variants
-        )
 
 
 def _combine_variant(environment, variant_mapping):

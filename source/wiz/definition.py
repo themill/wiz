@@ -7,6 +7,7 @@ import mlog
 
 import wiz.symbol
 import wiz.environment
+import wiz.application
 import wiz.exception
 
 
@@ -128,6 +129,10 @@ def load(path):
 
         if definition_data.get("type") == wiz.symbol.ENVIRONMENT_TYPE:
             definition = wiz.environment.Environment(**definition_data)
+            return definition
+
+        elif definition_data.get("type") == wiz.symbol.APPLICATION_TYPE:
+            definition = wiz.application.Application(**definition_data)
             return definition
 
         raise wiz.exception.IncorrectDefinition(

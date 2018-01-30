@@ -41,30 +41,19 @@ class WizError(Exception):
 class IncorrectDefinition(WizError):
     """Raise when a definition is incorrect."""
 
-    default_message = "The definition {definition[identifier]} is incorrect."
+    default_message = "The definition is incorrect."
 
 
-class IncorrectEnvironment(WizError):
-    """Raise when a environment is incorrect."""
+class IncorrectEnvironment(IncorrectDefinition):
+    """Raise when an environment definition is incorrect."""
 
-    default_message = "The environment {environment[identifier]} is incorrect."
-
-
-class GraphResolutionError(WizError):
-    """Raise when the environment graph is incorrect."""
-
-    default_message = "The environment graph could not be resolved."
+    default_message = "The environment definition is incorrect"
 
 
-class CommandError(WizError):
-    """Raise when the command requested is incorrect."""
+class IncorrectApplication(IncorrectDefinition):
+    """Raise when an application definition is incorrect."""
 
-    def __init__(self, command):
-        """Initialise with *command*."""
-        super(CommandError, self).__init__(
-            message="The command '{name}' requested could not be found.",
-            details={"name": command}
-        )
+    default_message = "The application definition is incorrect"
 
 
 class IncorrectRequirement(WizError):
@@ -94,3 +83,9 @@ class IncorrectRequirement(WizError):
         super(IncorrectRequirement, self).__init__(
             message=message, details=details
         )
+
+
+class GraphResolutionError(WizError):
+    """Raise when the environment graph is incorrect."""
+
+    default_message = "The environment graph could not be resolved."

@@ -752,9 +752,7 @@ class Graph(object):
         if identifier in self._link_mapping[parent_identifier].keys():
             raise wiz.exception.IncorrectEnvironment(
                 "There cannot be several dependency links to '{child}' from "
-                "'{parent}'".format(
-                    parent=parent_identifier, child=identifier
-                )
+                "'{parent}'.".format(parent=parent_identifier, child=identifier)
             )
 
         link = _Link(requirement, weight)

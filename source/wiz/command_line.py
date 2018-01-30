@@ -12,6 +12,7 @@ import wiz.registry
 import wiz.symbol
 import wiz.definition
 import wiz.environment
+import wiz.application
 import wiz.spawn
 import wiz.exception
 
@@ -169,16 +170,8 @@ def construct_parser():
 
     run_subparsers = subparsers.add_parser(
         "run",
-        help="Run command within resolved environment from requirements.",
+        help="Run application command.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    run_subparsers.add_argument(
-        "--from",
-        nargs="+",
-        metavar="REQUIREMENT",
-        dest="requirements",
-        help="Indicate environment requirements required."
     )
 
     run_subparsers.add_argument(
@@ -190,8 +183,7 @@ def construct_parser():
     )
 
     run_subparsers.add_argument(
-        "command",
-        help="Command to run within resolved environment."
+        "application", help="Application identifier to run."
     )
 
     return parser
@@ -214,7 +206,11 @@ def main(arguments=None):
         arguments = arguments[:index]
 
     if command_arguments is not None and len(command_arguments) == 0:
-        raise wiz.exception.CommandError("")
+        logger.error(
+            "The command indicated after the symbol '{}' is "
+            "incorrect.".format(wiz.symbol.COMMAND_SEPARATOR),
+        )
+        return
 
     # Process arguments.
     parser = construct_parser()
@@ -271,10 +267,9 @@ def main(arguments=None):
         requirements = map(Requirement, namespace.requirements)
 
         try:
-            environments = wiz.environment.compute(
+            environment = wiz.environment.resolve(
                 requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
             )
-            environment = wiz.environment.resolve(environments)
 
             if namespace.commands == "view":
                 display_environment(environment)
@@ -290,9 +285,30 @@ def main(arguments=None):
                         )
                     wiz.spawn.execute(command_arguments, environment["data"])
 
-        except wiz.exception.WizError:
+        except wiz.exception.WizError as error:
             logger.error(
-                "Impossible to resolve the environment graph.",
+                "Impossible to resolve the environment: {}".format(error),
+                traceback=True
+            )
+
+    elif namespace.commands in ["run"]:
+        mapping = wiz.definition.fetch(
+            registries, max_depth=namespace.definition_search_depth
+        )
+
+        try:
+            application = wiz.application.get(
+                namespace.application, mapping[wiz.symbol.APPLICATION_TYPE]
+            )
+
+            wiz.application.run(
+                application, mapping[wiz.symbol.ENVIRONMENT_TYPE],
+                arguments=command_arguments
+            )
+
+        except wiz.exception.WizError as error:
+            logger.error(
+                "Impossible to run the application: {}".format(error),
                 traceback=True
             )
 
