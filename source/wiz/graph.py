@@ -122,7 +122,6 @@ class Resolver(object):
             # isolated node identifier from the variant group.
             for _graph in graph_list:
                 for node_identifier in variant_group:
-                    print node_identifier
                     copied_graph = _graph.copy()
                     other_identifiers = (
                         _id for _id in variant_group if _id != node_identifier
@@ -130,7 +129,6 @@ class Resolver(object):
 
                     # Remove all other variant from the variant graph.
                     for _identifier in other_identifiers:
-                        print " --", _identifier
                         copied_graph.remove_node(_identifier)
 
                     new_graph_list.append(copied_graph)
