@@ -286,22 +286,28 @@ def display_definitions(definition_mapping, all_versions=False):
 
         if all_versions:
             for definition in sorted_definitions:
-                variant_mapping = definition.get("variant", {})
+                variants = [
+                    _definition.get("identifier") for _definition
+                    in definition.get("variant", [])
+                ]
                 line = _format_row([
                     definition.identifier,
                     definition.version,
-                    ", ".join(variant_mapping.keys()),
+                    ", ".join(variants),
                     definition.description
                 ])
                 print(line)
 
         else:
             definition = sorted_definitions[0]
-            variant_mapping = definition.get("variant", {})
+            variants = [
+                _definition.get("identifier") for _definition
+                in definition.get("variant", [])
+            ]
             line = _format_row([
                 definition.identifier,
                 definition.version,
-                ", ".join(variant_mapping.keys()),
+                ", ".join(variants),
                 definition.description
             ])
             print(line)

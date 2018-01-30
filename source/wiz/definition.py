@@ -2,6 +2,7 @@
 
 import os
 import re
+import copy
 import collections
 import json
 
@@ -60,7 +61,15 @@ def search(requirement, paths, max_depth=None):
 
 
 def get(requirement, definition_mapping):
-    """Get best matching :class:`Definition` instance for *requirement*.
+    """Get best matching :class:`Definition` instances for *requirement*.
+
+    The best matching definition version corresponding to the *requirement*
+    will be returned.
+
+    If this definition contains variants, the ordered list of combined
+    definition variants will be returned. If one variant is explicitly
+    requested, only the corresponding combined definition variant will be
+    returned. Otherwise, the required definition will be returned
 
     *requirement* is an instance of :class:`packaging.requirements.Requirement`.
 
@@ -94,38 +103,154 @@ def get(requirement, definition_mapping):
     if definition is None:
         raise wiz.exception.IncorrectRequirement(requirement)
 
-    if len(requirement.extras) > 0:
-        variant = next(iter(requirement.extras))
-        variant_mapping = definition.get("variant", {})
+    # Extract variants from definitions.
+    variants = definition.get("variant", [])
 
-        if variant not in variant_mapping.keys():
+    # Simply return the main definition if no variants is available.
+    if len(variants) == 0:
+        return [definition]
+
+    # Extract and return the requested variant if necessary.
+    elif len(requirement.extras) > 0:
+        variant_identifier = next(iter(requirement.extras))
+        variant_mapping = reduce(
+            lambda res, mapping: dict(res, **{mapping["identifier"]: mapping}),
+            variants, {}
+        )
+
+        if variant_identifier not in variant_mapping.keys():
             raise wiz.exception.IncorrectRequirement(
                 "The variant '{}' could not been resolved for '{}'.".format(
-                    variant, requirement.name
+                    variant_identifier, requirement.name
                 )
             )
 
-        # Merge variant environment with the global environment if necessary.
-        definition["environ"] = combine_environment(
-            definition, variant_mapping[variant]
-        )
+        return [combine(definition, variant_mapping[variant_identifier])]
 
-        # Update the definition requirement if necessary.
-        definition_requirement = (
-            definition.get("requirement", []) +
-            variant_mapping[variant].get("requirement", [])
-        )
+    # Otherwise, extract and return all possible variants.
+    else:
+        return map(lambda variant: combine(definition, variant), variants)
 
-        if len(definition_requirement) > 0:
-            definition["requirement"] = definition_requirement
 
+def combine(definition1, definition2):
+    """Return combined definition from *definition1* and *definition2*
+
+    *definition1* and *definition2* must be valid
+    :class:`~wiz.definition.Definition` instances.
+
+    In case of conflicted elements in both definitions, the elements from the
+    *definition2* will have priority over elements from *definition1*.
+
+    The 'identifier' keyword from *definition2* will be set as a 'variant'
+    keyword of the combined definition.
+
+    """
+    definition = copy.deepcopy(definition1)
+    definition["variant"] = definition2.get("identifier")
+
+    definition["system"] = combine_system(definition1, definition2)
+    definition["commands"] = combine_commands(definition1, definition2)
+    definition["environ"] = combine_environment(definition1, definition2)
+    definition["requirement"] = (
+        definition1.get("requirement", []) + definition2.get("requirement", [])
+    )
     return definition
 
 
-def combine_environment(definition1, definition2):
-    """Return combined environment from *definition1* and *definition2*
+def combine_commands(definition1, definition2):
+    """Return combined commands from *definition1* and *definition2*.
 
-    *definition1* and *definition2* must be valie
+    *definition1* and *definition2* must be valid
+    :class:`~wiz.definition.Definition` instances.
+
+    If a command exists in both "commands" mappings, the value from
+    *definition2* will have priority over elements from *definition1*.::
+
+        >>> combine_system(
+        ...     Definition({"commands": {"app": "App1.1 --run"})
+        ...     Definition({"commands": {"app": "App2.1"}})
+        ... )
+
+        {"app": "App2.1"}
+
+    """
+    logger = mlog.Logger(__name__ + ".combine_commands")
+
+    commands = {}
+
+    commands1 = definition1.get("system", {})
+    commands2 = definition2.get("system", {})
+
+    for command in set(commands1.keys() + commands2.keys()):
+        value1 = commands1.get(command)
+        value2 = commands2.get(command)
+
+        if value1 is not None and value2 is not None:
+            logger.warning(
+                "The '{key}' command is being overridden in "
+                "definition '{identifier}' [{version}]".format(
+                    key=command,
+                    identifier=definition2.identifier,
+                    version=definition2.version
+                )
+            )
+            commands[command] = str(value2)
+
+        else:
+            commands[command] = str(value1 or value2)
+
+    return commands
+
+
+def combine_system(definition1, definition2):
+    """Return combined system from *definition1* and *definition2*.
+
+    *definition1* and *definition2* must be valid
+    :class:`~wiz.definition.Definition` instances.
+
+    If a keyword exists in both "system" mappings, the value from
+    *definition2* will have priority over elements from *definition1*.::
+
+        >>> combine_system(
+        ...     Definition({"system": {"platform": "linux", "arch": "x86_64"})
+        ...     Definition({"system": {"platform": "macOS"}})
+        ... )
+
+        {"platform": "macOS", "arch": "x86_64"}
+
+    """
+    logger = mlog.Logger(__name__ + ".combine_system")
+
+    system = {}
+
+    system1 = definition1.get("system", {})
+    system2 = definition2.get("system", {})
+
+    for key in set(system1.keys() + system2.keys()):
+        value1 = system1.get(key)
+        value2 = system2.get(key)
+
+        if value1 is not None and value2 is not None:
+            logger.warning(
+                "The '{key}' system is being overridden in "
+                "definition '{identifier}' [{version}]".format(
+                    key=key,
+                    identifier=definition2.identifier,
+                    version=definition2.version
+                )
+            )
+            system[key] = str(value2)
+
+        else:
+            system[key] = str(value1 or value2)
+
+    return system
+
+
+def combine_environment(definition1, definition2):
+    """Return combined environment from *definition1* and *definition2*.
+
+    *definition1* and *definition2* must be valid
     :class:`~wiz.definition.Definition` instances.
 
     Each variable name from both definition's "environ" mappings will be
@@ -182,7 +307,7 @@ def combine_environment(definition1, definition2):
             "PLUGIN_PATH": "/usr/people/me/.app:/path/to/settings"
         }
 
-    .. warining::
+    .. warning::
 
         This process will stringify all variable values.
 
@@ -296,7 +421,7 @@ def load(path):
         )
 
         if "variant" in definition.keys():
-            for variant_definition in definition["variant"].values():
+            for variant_definition in definition["variant"]:
                 variant_definition["requirement"] = map(
                     Requirement, variant_definition.get("requirement", [])
                 )

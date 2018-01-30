@@ -37,18 +37,8 @@ def resolve(requirements, definition_mapping):
         )
     )
 
-    # Create a graph with all required definition versions.
-    graph = wiz.graph.Graph(definition_mapping)
-    graph.update_from_requirements(requirements)
-
-    # Ensure that only one version is required for each definition in the graph.
-    # Otherwise attempt to resolve the possible conflicts.
-    wiz.graph.resolve_conflicts(graph, definition_mapping)
-
-    # Extract all definition versions from the graph from the less important to
-    # the most important. The most important being the highest definition
-    # versions in the graph.
-    return wiz.graph.extract_ordered_definitions(graph)
+    resolver = wiz.graph.Resolver(definition_mapping)
+    return resolver.compute_definitions(requirements)
 
 
 def extract_mapping(definitions, environ_mapping=None):
