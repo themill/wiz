@@ -68,7 +68,7 @@ def resolve(environments, data_mapping=None):
 
     """
     # Compute initial environment mapping to augment.
-    data_mapping = initiate(data_mapping)
+    data_mapping = initiate_data(data_mapping)
 
     def _combine(environment1, environment2):
         """Return intermediate environment combining both extracted results."""
@@ -76,7 +76,7 @@ def resolve(environments, data_mapping=None):
             environment1.get("command", {}),
             **environment2.get("command", {})
         )
-        _environ = combine_data_mapping(environment1, environment2)
+        _environ = _combine_data_mapping(environment1, environment2)
 
         environment2["command"] = _command
         environment2["data"] = _environ
@@ -92,8 +92,8 @@ def resolve(environments, data_mapping=None):
     return mapping
 
 
-def initiate(data_mapping=None):
-    """Return the initiate environment to augment.
+def initiate_data(data_mapping=None):
+    """Return the initiate environment data to augment.
 
     The initial environment contains basic variables from the external
     environment that can be used by the resolved environment, such as
@@ -197,17 +197,17 @@ def get(requirement, environment_mapping):
             )
 
         return [
-            combine_variant(environment, variant_mapping[variant_identifier])
+            _combine_variant(environment, variant_mapping[variant_identifier])
         ]
 
     # Otherwise, extract and return all possible variants.
     else:
         return map(
-            lambda variant: combine_variant(environment, variant), variants
+            lambda variant: _combine_variant(environment, variant), variants
         )
 
 
-def combine_variant(environment, variant_mapping):
+def _combine_variant(environment, variant_mapping):
     """Return combined environment from *environment* and *variant_mapping*
 
     *environment* must be a valid :class:`Environment` instance.
@@ -224,9 +224,9 @@ def combine_variant(environment, variant_mapping):
     """
     env = copy.deepcopy(environment)
     env["variant"] = variant_mapping.get("identifier")
-    env["system"] = combine_system_mapping(environment, variant_mapping)
-    env["command"] = combine_command_mapping(environment, variant_mapping)
-    env["data"] = combine_data_mapping(environment, variant_mapping)
+    env["system"] = _combine_system_mapping(environment, variant_mapping)
+    env["command"] = _combine_command_mapping(environment, variant_mapping)
+    env["data"] = _combine_data_mapping(environment, variant_mapping)
     env["requirement"] = (
         environment.get("requirement", []) +
         variant_mapping.get("requirement", [])
@@ -234,7 +234,7 @@ def combine_variant(environment, variant_mapping):
     return env
 
 
-def combine_command_mapping(environment1, environment2):
+def _combine_command_mapping(environment1, environment2):
     """Return combined command mapping from *environment1* and *environment2*.
 
     *environment1* and *environment2* must be valid :class:`Environment`
@@ -243,7 +243,7 @@ def combine_command_mapping(environment1, environment2):
     If a key exists in both "command" mappings, the value from
     *environment2* will have priority over elements from *environment1*.::
 
-        >>> combine_system_mapping(
+        >>> _combine_system_mapping(
         ...     Environment({"command": {"app": "App1.1 --run"})
         ...     Environment({"command": {"app": "App2.1"}})
         ... )
@@ -251,7 +251,7 @@ def combine_command_mapping(environment1, environment2):
         {"app": "App2.1"}
 
     """
-    logger = mlog.Logger(__name__ + ".combine_command_mapping")
+    logger = mlog.Logger(__name__ + "._combine_command_mapping")
 
     mapping = {}
 
@@ -279,7 +279,7 @@ def combine_command_mapping(environment1, environment2):
     return mapping
 
 
-def combine_system_mapping(environment1, environment2):
+def _combine_system_mapping(environment1, environment2):
     """Return combined system mapping from *environment1* and *environment2*.
 
     *environment1* and *environment2* must be valid :class:`Environment`
@@ -288,7 +288,7 @@ def combine_system_mapping(environment1, environment2):
     If a key exists in both "system" mappings, the value from
     *environment2* will have priority over elements from *environment1*.::
 
-        >>> combine_system_mapping(
+        >>> _combine_system_mapping(
         ...     Environment({
         ...         "system": {"platform": "linux", "arch": "x86_64"}
         ...     }),
@@ -298,7 +298,7 @@ def combine_system_mapping(environment1, environment2):
         {"platform": "macOS", "arch": "x86_64"}
 
     """
-    logger = mlog.Logger(__name__ + ".combine_system_mapping")
+    logger = mlog.Logger(__name__ + "._combine_system_mapping")
 
     mapping = {}
 
@@ -326,7 +326,7 @@ def combine_system_mapping(environment1, environment2):
     return mapping
 
 
-def combine_data_mapping(environment1, environment2):
+def _combine_data_mapping(environment1, environment2):
     """Return combined data mapping from *environment1* and *environment2*.
 
     *environment1* and *environment2* must be valid :class:`Environment`
@@ -341,7 +341,7 @@ def combine_data_mapping(environment1, environment2):
     *environment2* must reference the variable name for the value from
     *environment1* to be included in the combined environment::
 
-        >>> combine_data_mapping(
+        >>> _combine_data_mapping(
         ...     Environment({"data": {"key": "value2"})
         ...     Environment({"data": {"key": "value1:${key}"}})
         ... )
@@ -351,7 +351,7 @@ def combine_data_mapping(environment1, environment2):
     Otherwise the value from *environment2* will override the value from
     *environment1*::
 
-        >>> combine_data_mapping(
+        >>> _combine_data_mapping(
         ...     Environment({"data": {"key": "value2"})
         ...     Environment({"data": {"key": "value1"}})
         ... )
@@ -361,7 +361,7 @@ def combine_data_mapping(environment1, environment2):
     If other variables from *environment1* are referenced in the value fetched
     from *environment2*, they will be replaced as well::
 
-        >>> combine_data_mapping(
+        >>> _combine_data_mapping(
         ...     Environment({
         ...         "data": {
         ...             "PLUGIN_PATH": "/path/to/settings",
@@ -375,7 +375,7 @@ def combine_data_mapping(environment1, environment2):
         ...     })
         ... )
 
-        >>> combine_data_mapping(
+        >>> _combine_data_mapping(
         ...    "PLUGIN_PATH",
         ...    {"PLUGIN_PATH": "${HOME}/.app:${PLUGIN_PATH}"},
         ...    {"PLUGIN_PATH": "/path/to/settings", "HOME": "/usr/people/me"}
@@ -391,7 +391,7 @@ def combine_data_mapping(environment1, environment2):
         This process will stringify all variable values.
 
     """
-    logger = mlog.Logger(__name__ + ".combine_data_mapping")
+    logger = mlog.Logger(__name__ + "._combine_data_mapping")
 
     mapping = {}
 
