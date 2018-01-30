@@ -80,13 +80,13 @@ def construct_parser():
 
     environment_parser.add_argument(
         "--all",
-        help="Return all versions of the environment definitions.",
+        help="Return all environment versions.",
         action="store_true"
     )
 
     environment_parser.add_argument(
         "--with-commands",
-        help="Return only environment definitions with commands.",
+        help="Return only environment defining commands.",
         action="store_true"
     )
 
@@ -100,13 +100,13 @@ def construct_parser():
 
     search_parser = subparsers.add_parser(
         "search",
-        help="Search definitions.",
+        help="Search environment or application definitions.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     search_parser.add_argument(
         "--all",
-        help="Return all versions of the available environment definitions.",
+        help="Return all environment versions.",
         action="store_true"
     )
 
@@ -120,7 +120,7 @@ def construct_parser():
 
     search_parser.add_argument(
         "requirement",
-        help="Definition requirement to search."
+        help="Environment or Application requirement to search."
     )
 
     view_subparsers = subparsers.add_parser(
@@ -140,7 +140,7 @@ def construct_parser():
     view_subparsers.add_argument(
         "requirements",
         nargs="+",
-        help="Definition requirements required."
+        help="Environment requirements required."
     )
 
     load_subparsers = subparsers.add_parser(
@@ -164,7 +164,7 @@ def construct_parser():
     load_subparsers.add_argument(
         "requirements",
         nargs="+",
-        help="Definition requirements required."
+        help="Environment requirements required."
     )
 
     run_subparsers = subparsers.add_parser(
@@ -213,7 +213,7 @@ def main(arguments=None):
         command_arguments = arguments[index+1:]
         arguments = arguments[:index]
 
-    if command_arguments and len(command_arguments) == 0:
+    if command_arguments is not None and len(command_arguments) == 0:
         raise wiz.exception.CommandError("")
 
     # Process arguments.

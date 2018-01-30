@@ -9,8 +9,8 @@ from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 import mlog
 
-import wiz.definition
 import wiz.graph
+import wiz.symbol
 import wiz.exception
 
 
@@ -96,7 +96,7 @@ def initiate(data_mapping=None):
     """Return the initiate environment to augment.
 
     The initial environment contains basic variables from the external
-    environment that can be used in the environment definitions, such as
+    environment that can be used by the resolved environment, such as
     the *USER* or the *HOME* variables.
 
     The other variable added are:
@@ -460,7 +460,7 @@ class Environment(collections.MutableMapping):
     @property
     def type(self):
         """Return environment type."""
-        return "environment"
+        return wiz.symbol.ENVIRONMENT_TYPE
 
     @property
     def version(self):
