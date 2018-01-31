@@ -409,7 +409,7 @@ def display_environment_mapping(
         else:
             environments_to_display.append(_environments[0])
 
-    display_environments(environments_to_display, commands_only)
+    display_environments(environments_to_display, commands_only=commands_only)
 
 
 def display_environments(environments, header=None, commands_only=False):
