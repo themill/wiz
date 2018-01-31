@@ -59,6 +59,20 @@ def construct_parser():
         dest="commands"
     )
 
+    application_parser = subparsers.add_parser(
+        "applications",
+        help="List all available applications.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    application_parser.add_argument(
+        "-dsp", "--definition-search-paths",
+        nargs="+",
+        metavar="PATH",
+        help="Search paths for definitions.",
+        default=wiz.registry.get_defaults()
+    )
+
     environment_parser = subparsers.add_parser(
         "environments",
         help="List all available environments.",
@@ -214,11 +228,20 @@ def main(arguments=None):
     logger.debug("Registries: " + ", ".join(registries))
 
     # Process requested operation.
-    if namespace.commands == "environments":
+    if namespace.commands == "applications":
         mapping = wiz.definition.fetch(
             registries, max_depth=namespace.definition_search_depth
         )
-        display_environments(
+
+        display_applications(
+            mapping[wiz.symbol.APPLICATION_TYPE],
+        )
+
+    elif namespace.commands == "environments":
+        mapping = wiz.definition.fetch(
+            registries, max_depth=namespace.definition_search_depth
+        )
+        display_environment_mapping(
             mapping[wiz.symbol.ENVIRONMENT_TYPE],
             all_versions=namespace.all,
             commands_only=namespace.with_commands
@@ -235,7 +258,7 @@ def main(arguments=None):
             len(mapping[wiz.symbol.ENVIRONMENT_TYPE]) or
             len(mapping[wiz.symbol.APPLICATION_TYPE])
         ):
-            display_environments(
+            display_environment_mapping(
                 mapping[wiz.symbol.ENVIRONMENT_TYPE],
                 all_versions=namespace.all
             )
@@ -250,16 +273,19 @@ def main(arguments=None):
         requirements = map(Requirement, namespace.requirements)
 
         try:
-            environment = wiz.environment.resolve(
-                requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
-            )
-
             if namespace.commands == "view":
-                display_environment(environment)
+                _resolve_and_display_environment(
+                    requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
+                )
 
             elif namespace.commands == "load":
+                environment = wiz.environment.resolve(
+                    requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
+                )
+
                 if command_arguments is None:
                     wiz.spawn.shell(environment["data"])
+
                 else:
                     command_mapping = environment.get("command", {})
                     if command_arguments[0] in command_mapping.keys():
@@ -296,7 +322,58 @@ def main(arguments=None):
             )
 
 
-def display_environments(
+def _resolve_and_display_environment(requirements, environment_mapping):
+    """Display content of resolved environment from *requirements*.
+
+    *environment_mapping* is a mapping regrouping all available environment
+    environment associated with their unique identifier.
+
+    Raise :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
+    resolved.
+
+    """
+    environments = wiz.environment.compute(requirements, environment_mapping)
+    environment = wiz.environment.combine(environments)
+
+    display_environments(environments, header="Resolved Environments")
+
+    # Display Commands
+    if len(environment.get("command", {})) > 0:
+        display_environment_commands(environment.get("command"))
+
+    # Display data
+    display_environment_data(environment.get("data", {}))
+
+
+def display_applications(application_mapping):
+    """Display the applications stored in *application_mapping*.
+
+    *application_mapping* is a mapping regrouping all available application
+    associated with their unique identifier.
+
+    """
+    titles = ["Application", "Requirements", "Description"]
+    mappings = [
+        {"size": len(title), "items": [], "title": title} for title in titles
+    ]
+
+    for _, application in sorted(application_mapping.items()):
+        _identifier = application.identifier
+        mappings[0]["items"].append(_identifier)
+        mappings[0]["size"] = max(len(_identifier), mappings[0]["size"])
+
+        requirement = ", ".join(map(str, application.requirement))
+        mappings[1]["items"].append(requirement)
+        mappings[1]["size"] = max(len(requirement), mappings[1]["size"])
+
+        description = application.description
+        mappings[2]["items"].append(description)
+        mappings[2]["size"] = max(len(description), mappings[2]["size"])
+
+    _display_mappings(mappings)
+
+
+def display_environment_mapping(
     environment_mapping, all_versions=False, commands_only=False,
 ):
     """Display the environments stored in *environment_mapping*.
@@ -312,89 +389,134 @@ def display_environments(
     displayed.
 
     """
-    line = _format_row(["Definition", "Version", "Variants", "Description"])
-    print("\n" + line)
-    print("+".join(["-"*30]*4) + "-"*30)
+    environments_to_display = []
 
-    def _display(_environment):
-        """Display information about *environment*."""
-        if commands_only and _environment.get("command") is None:
-            return
-
-        variants = [
-            _env.get("identifier") for _env in _environment.get("variant", [])
-        ]
-
-        _line = _format_row([
-            _environment.identifier,
-            _environment.version,
-            ", ".join(variants),
-            _environment.description
-        ])
-        print(_line)
-
-    for identifier, environments in sorted(environment_mapping.items()):
-        sorted_environments = sorted(
+    for _, environments in sorted(environment_mapping.items()):
+        _environments = sorted(
             environments, key=lambda _env: _env.version, reverse=True
         )
 
         if all_versions:
-            for environment in sorted_environments:
-                _display(environment)
+            for environment in _environments:
+                environments_to_display.append(environment)
         else:
-            environment = sorted_environments[0]
-            _display(environment)
+            environments_to_display.append(_environments[0])
 
-    print()
+    display_environments(environments_to_display, commands_only)
 
 
-def display_environment(environment):
-    """Display the content of the *environment* mapping."""
-    commands = sorted(environment.get("command", {}).keys())
-    if len(commands) > 0:
-        print("\n Commands")
-        print("-"*120)
-        print(", ".join(commands))
-        print()
+def display_environments(environments, header=None, commands_only=False):
+    titles = [header or "Environment", "Version", "Description"]
+    mappings = [
+        {"size": len(title), "items": [], "title": title} for title in titles
+    ]
 
-    line = _format_row(["Environment variable", "Value"], width=40)
-    print("\n" + line)
-    print("+".join(["-"*40]*2) + "-"*40)
+    def _format_unit(_environment, _variant=None):
+        """Format *_mapping* from *_environment* unit with optional *_variant*.
+        """
+        if commands_only and _environment.get("command") is None:
+            return
 
-    def _compute_value(name, value):
+        _identifier = _environment.identifier
+        if _variant is not None:
+            _identifier += " [{}]".format(_variant)
+
+        mappings[0]["items"].append(_identifier)
+        mappings[0]["size"] = max(len(_identifier), mappings[0]["size"])
+
+        _version = str(_environment.version)
+        mappings[1]["items"].append(_version)
+        mappings[1]["size"] = max(len(_version), mappings[1]["size"])
+
+        _description = _environment.description
+        mappings[2]["items"].append(_description)
+        mappings[2]["size"] = max(len(_description), mappings[2]["size"])
+
+    for environment in environments:
+        if len(environment.get("variant", [])) > 0:
+            for variant in environment.get("variant"):
+                _variant = variant.get("identifier", "unknown")
+                _format_unit(environment, _variant)
+
+        else:
+            _format_unit(environment, environment.get("variant_name"))
+
+    _display_mappings(mappings)
+
+
+def display_environment_commands(command_mapping):
+    titles = ["Resolved Commands", "Value"]
+    mappings = [
+        {"size": len(title), "items": [], "title": title} for title in titles
+    ]
+
+    for command, value in sorted(command_mapping.items()):
+        mappings[0]["items"].append(command)
+        mappings[0]["size"] = max(len(command), mappings[0]["size"])
+
+        mappings[1]["items"].append(value)
+        mappings[1]["size"] = max(len(value), mappings[1]["size"])
+
+    _display_mappings(mappings)
+
+
+def display_environment_data(data_mapping):
+    titles = ["Environment Variable", "Environment Value"]
+    mappings = [
+        {"size": len(title), "items": [], "title": title} for title in titles
+    ]
+
+    def _compute_value(_variable, value):
         """Compute value to display."""
-        if name == "DISPLAY":
+        if _variable == "DISPLAY":
             return [value]
         return value.split(os.pathsep)
 
-    data_mapping = environment.get("data", {})
-    for key in sorted(data_mapping.keys()):
-        for _key, _value in itertools.izip_longest(
-            [key], _compute_value(key, data_mapping[key])
+    for variable in sorted(data_mapping.keys()):
+        for key, _value in itertools.izip_longest(
+            [variable], _compute_value(variable, data_mapping[variable])
         ):
-            line = _format_row([_key or "", _value], width=40)
-            print(line)
+            _key = key or ""
+            mappings[0]["items"].append(_key)
+            mappings[0]["size"] = max(len(_key), mappings[0]["size"])
 
+            mappings[1]["items"].append(_value)
+            mappings[1]["size"] = max(len(_value), mappings[1]["size"])
+
+    _display_mappings(mappings)
+
+
+def _display_mappings(mappings):
+    """Display *mapping*."""
+    spaces = []
+    for mapping in mappings:
+        space = mapping["size"] - len(mapping["title"])
+        spaces.append(space)
+
+    # Print titles.
+    print(
+        "\n" + "   ".join([
+            mappings[i]["title"] + " " * spaces[i]
+            for i in range(len(mappings))
+        ])
+    )
+
+    # Print underlines.
+    print(
+        "   ".join([
+            "-" * (len(mappings[i]["title"]) + spaces[i])
+            for i in range(len(mappings))
+        ])
+    )
+
+    # Print elements.
+    for elements in itertools.izip(*[mapping["items"] for mapping in mappings]):
+        print(
+            "   ".join([
+                elements[i] + " " * (mappings[i]["size"] - len(elements[i]))
+                for i in range(len(elements))
+            ])
+        )
+
+    # Print final blank line.
     print()
-
-
-def _format_row(elements, width=30):
-    """Return formatted line of *elements* in columns.
-
-    *width* indicates the size of each column (except the last one).
-
-    """
-    line = ""
-    number_elements = len(elements)
-
-    for index in range(number_elements):
-        element = " {} ".format(elements[index])
-
-        if index == number_elements - 1:
-            line += element
-        elif len(element) > width:
-            line += "{}...|".format(element[:width-3])
-        else:
-            line += "{}{}|".format(element, " " * (width-len(element)))
-
-    return line

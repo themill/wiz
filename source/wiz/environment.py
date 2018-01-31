@@ -242,7 +242,7 @@ def _combine_variant(environment, variant_mapping):
 
     """
     env = copy.deepcopy(environment)
-    env["variant"] = variant_mapping.get("identifier")
+    env["variant_name"] = variant_mapping.get("identifier")
     env["system"] = _combine_system_mapping(environment, variant_mapping)
     env["command"] = _combine_command_mapping(environment, variant_mapping)
     env["data"] = _combine_data_mapping(environment, variant_mapping)
@@ -250,6 +250,7 @@ def _combine_variant(environment, variant_mapping):
         environment.get("requirement", []) +
         variant_mapping.get("requirement", [])
     )
+    del env["variant"]
     return env
 
 

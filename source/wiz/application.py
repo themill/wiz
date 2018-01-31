@@ -102,6 +102,11 @@ class Application(collections.MutableMapping):
         """Return name."""
         return self.get("description", "unknown")
 
+    @property
+    def requirement(self):
+        """Return name."""
+        return self.get("requirement", [])
+
     def __str__(self):
         """Return string representation."""
         return "{}({!r}, {!r})".format(

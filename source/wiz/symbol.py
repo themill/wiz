@@ -9,4 +9,4 @@ COMMAND_SEPARATOR = "--"
 ENVIRONMENT_TYPE = "environment"
 
 #: Application definition type.
-APPLICATION_TYPE = "environment"
+APPLICATION_TYPE = "application"

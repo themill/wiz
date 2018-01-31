@@ -801,14 +801,14 @@ class _Node(object):
         *environment* indicates a :class:`~wiz.environment.Environment`.
 
         """
-        variant = environment.get("variant")
-        if variant is not None:
-            variant = "[{}]".format(variant)
+        variant_name = environment.get("variant_name")
+        if variant_name is not None:
+            variant_name = "[{}]".format(variant_name)
 
         return "{environment}{variant}=={version}".format(
             environment=environment.identifier,
             version=environment.version,
-            variant=variant or ""
+            variant=variant_name or ""
         )
 
     @property

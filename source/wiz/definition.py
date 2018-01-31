@@ -24,9 +24,11 @@ def fetch(paths, max_depth=None):
     }
 
     for definition in discover(paths, max_depth=max_depth):
-        mapping[definition.type].setdefault(definition.identifier, [])
-        mapping[definition.type][definition.identifier].append(definition)
-
+        if definition.type == wiz.symbol.ENVIRONMENT_TYPE:
+            mapping[definition.type].setdefault(definition.identifier, [])
+            mapping[definition.type][definition.identifier].append(definition)
+        elif definition.type == wiz.symbol.APPLICATION_TYPE:
+            mapping[definition.type][definition.identifier] = definition
     return mapping
 
 
@@ -57,8 +59,11 @@ def search(requirement, paths, max_depth=None):
         ):
             if definition.version in requirement.specifier:
                 _type = definition.type
-                mapping[_type].setdefault(definition.identifier, [])
-                mapping[_type][definition.identifier].append(definition)
+                if _type == wiz.symbol.ENVIRONMENT_TYPE:
+                    mapping[_type].setdefault(definition.identifier, [])
+                    mapping[_type][definition.identifier].append(definition)
+                elif _type == wiz.symbol.APPLICATION_TYPE:
+                    mapping[_type][definition.identifier] = definition
 
     return mapping
 
