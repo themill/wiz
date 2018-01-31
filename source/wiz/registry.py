@@ -6,7 +6,7 @@ import os
 def get_local():
     """Return the local registry if available."""
     registry_path = os.path.join(
-        os.path.expanduser("~"), ".registry"
+        os.path.expanduser("~"), ".wiz", "registry"
     )
 
     if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
@@ -16,8 +16,8 @@ def get_local():
 def get_defaults():
     """Return the default registries."""
     return [
-        os.path.join(os.sep, "mill3d", "server", "REGISTRY"),
-        # os.path.join(os.sep, "jobs", "ads", ".registry")
+        os.path.join(os.sep, "mill3d", "server", "apps", "WIZ", "registry"),
+        os.path.join(os.sep, "jobs", "ads", ".wiz", "registry")
     ]
 
 
@@ -33,11 +33,8 @@ def fetch(paths, include_local=True, include_working_directory=True):
     registries = []
 
     for path in paths:
-        if not os.path.isdir(path):
-            raise IOError("The registry must be a directory: {}".format(path))
-        if not os.access(path, os.R_OK):
-            raise IOError("The registry must be readable: {}".format(path))
-
+        if not os.path.isdir(path) and not os.access(path, os.R_OK):
+            continue
         registries.append(path)
 
     if include_working_directory:
@@ -73,6 +70,6 @@ def discover(path):
     if not path.startswith(prefix):
         return
 
-    registry_path = os.path.join(path, ".registry")
+    registry_path = os.path.join(path, ".wiz", "registry")
     if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
         return registry_path
