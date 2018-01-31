@@ -50,7 +50,7 @@ def run(
 
     """
     environment = wiz.environment.resolve(
-        application.requirements, environment_mapping,
+        application.requirement, environment_mapping,
         data_mapping=data_mapping
     )
 
@@ -99,12 +99,17 @@ class Application(collections.MutableMapping):
 
     @property
     def description(self):
-        """Return name."""
+        """Return description."""
         return self.get("description", "unknown")
 
     @property
+    def command(self):
+        """Return command."""
+        return self.get("command", "unknown")
+
+    @property
     def requirement(self):
-        """Return name."""
+        """Return requirement list."""
         return self.get("requirement", [])
 
     def __str__(self):
