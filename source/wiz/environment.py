@@ -422,8 +422,11 @@ def _combine_data_mapping(environment1, environment2):
         value1 = mapping1.get(key)
         value2 = mapping2.get(key)
 
-        if value1 is not None and value2 is not None:
-            if "${{{}}}".format(key) not in value2:
+        if value2 is None:
+            mapping[key] = str(value1)
+
+        else:
+            if value1 is not None and "${{{}}}".format(key) not in value2:
                 logger.warning(
                     "The '{key}' variable is being overridden in "
                     "environment '{identifier}' [{version}]".format(
@@ -438,9 +441,6 @@ def _combine_data_mapping(environment1, environment2):
                 lambda match: mapping1.get(match.group(1)) or match.group(0),
                 str(value2)
             )
-
-        else:
-            mapping[key] = str(value1 or value2)
 
     return mapping
 
