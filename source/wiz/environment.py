@@ -177,9 +177,15 @@ def combine(environments, data_mapping=None):
 
     mapping = reduce(_combine, environments, dict(data=data_mapping))
 
-    # Clean all values from possible key references.
+    # Clean up any possible reference to the same variable key for each value
+    # (e.g. {"PATH": "/path/to/somewhere:${PATH}") and resolve any missing
+    # references from within data mapping.
     for key, value in mapping["data"].items():
-        _value = re.sub(":?\${{{}}}:?".format(key), lambda x: "", value)
+        _value = re.sub(":?\${{{}}}:?".format(key), lambda m: "", value)
+        _value = re.sub(
+            "\${(\w+)}",
+            lambda m: mapping["data"].get(m.group(1)) or m.group(0), _value
+        )
         mapping["data"][key] = _value
 
     return mapping
@@ -437,8 +443,7 @@ def _combine_data_mapping(environment1, environment2):
                 )
 
             mapping[key] = re.sub(
-                "\${(\w+)}",
-                lambda match: mapping1.get(match.group(1)) or match.group(0),
+                "\${(\w+)}", lambda m: mapping1.get(m.group(1)) or m.group(0),
                 str(value2)
             )
 

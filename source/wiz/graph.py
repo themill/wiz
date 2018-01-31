@@ -471,6 +471,8 @@ class Resolver(object):
             priority is being kept.
 
         """
+        self._logger.debug("Compute priority mapping...")
+
         # Initiate mapping
         priority_mapping = {
             node_identifier: _NodeAttributes(None, None) for node_identifier
