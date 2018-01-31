@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import collections
+import shlex
 
 from packaging.requirements import Requirement, InvalidRequirement
 
@@ -59,7 +60,7 @@ def run(
     if command in command_mapping.keys():
         command = command_mapping[command]
 
-    commands = [command]
+    commands = shlex.split(command)
     if arguments is not None:
         commands += arguments
 
