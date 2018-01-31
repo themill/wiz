@@ -35,8 +35,8 @@ DOC_REQUIRES = [
     # Restricted as 0.1.3 causes failed builds.
     # https://bitbucket.org/birkenfeld/sphinx-contrib/issues/168
     "sphinxcontrib-autoprogram >= 0.1.2, !=0.1.3, < 1"
-
 ]
+
 TEST_REQUIRES = [
     "pytest-runner >= 2.7, < 3",
     "pytest >= 3.2.2, < 4",
