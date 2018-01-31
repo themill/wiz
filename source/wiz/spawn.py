@@ -22,6 +22,9 @@ def shell(environment, shell_type="bash"):
     """
     logger = mlog.Logger(__name__ + ".shell")
 
+    # TODO: Improve default shell to make it cross platform...
+    default_shell = "/bin/bash"
+
     executable = distutils.spawn.find_executable(shell_type)
     logger.info("Spawn shell: {}".format(executable))
 
@@ -34,7 +37,7 @@ def shell(environment, shell_type="bash"):
 
     # Run in a new process group to enable job control
     process = subprocess.Popen(
-        executable,
+        executable or default_shell,
         preexec_fn=os.setsid,
         stdin=slave_fd,
         stdout=slave_fd,
