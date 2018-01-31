@@ -57,13 +57,16 @@ def search(requirement, paths, max_depth=None):
             requirement.name.lower() in definition.identifier.lower() or
             requirement.name.lower() in definition.description.lower()
         ):
-            if definition.version in requirement.specifier:
-                _type = definition.type
-                if _type == wiz.symbol.ENVIRONMENT_TYPE:
-                    mapping[_type].setdefault(definition.identifier, [])
-                    mapping[_type][definition.identifier].append(definition)
-                elif _type == wiz.symbol.APPLICATION_TYPE:
-                    mapping[_type][definition.identifier] = definition
+            _type = definition.type
+            if (
+                _type == wiz.symbol.ENVIRONMENT_TYPE and
+                definition.version in requirement.specifier
+            ):
+                mapping[_type].setdefault(definition.identifier, [])
+                mapping[_type][definition.identifier].append(definition)
+
+            elif _type == wiz.symbol.APPLICATION_TYPE:
+                mapping[_type][definition.identifier] = definition
 
     return mapping
 

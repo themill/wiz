@@ -233,7 +233,7 @@ def main(arguments=None):
             registries, max_depth=namespace.definition_search_depth
         )
 
-        display_applications(
+        display_applications_mapping(
             mapping[wiz.symbol.APPLICATION_TYPE],
         )
 
@@ -255,15 +255,22 @@ def main(arguments=None):
         )
 
         if (
-            len(mapping[wiz.symbol.ENVIRONMENT_TYPE]) or
-            len(mapping[wiz.symbol.APPLICATION_TYPE])
+            len(mapping[wiz.symbol.ENVIRONMENT_TYPE]) == 0 and
+            len(mapping[wiz.symbol.APPLICATION_TYPE]) == 0
         ):
-            display_environment_mapping(
-                mapping[wiz.symbol.ENVIRONMENT_TYPE],
-                all_versions=namespace.all
-            )
-        else:
             print("No results found.")
+
+        else:
+            if len(mapping[wiz.symbol.APPLICATION_TYPE]):
+                display_applications_mapping(
+                    mapping[wiz.symbol.APPLICATION_TYPE]
+                )
+
+            if len(mapping[wiz.symbol.ENVIRONMENT_TYPE]):
+                display_environment_mapping(
+                    mapping[wiz.symbol.ENVIRONMENT_TYPE],
+                    all_versions=namespace.all
+                )
 
     elif namespace.commands in ["view", "load"]:
         mapping = wiz.definition.fetch(
@@ -345,7 +352,7 @@ def _resolve_and_display_environment(requirements, environment_mapping):
     display_environment_data(environment.get("data", {}))
 
 
-def display_applications(application_mapping):
+def display_applications_mapping(application_mapping):
     """Display the applications stored in *application_mapping*.
 
     *application_mapping* is a mapping regrouping all available application
