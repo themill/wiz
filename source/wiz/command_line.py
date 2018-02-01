@@ -313,7 +313,7 @@ def main(arguments=None):
             )
 
         if not results_found:
-            print("No results found.")
+            print("No results found.\n")
 
     elif namespace.commands in ["view", "use"]:
         mapping = wiz.definition.fetch(
