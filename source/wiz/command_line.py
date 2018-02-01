@@ -123,6 +123,23 @@ def construct_parser():
     )
 
     search_parser.add_argument(
+        "--with-commands",
+        help="Return only environment defining commands.",
+        action="store_true"
+    )
+
+    search_parser.add_argument(
+        "-t", "--type",
+        help="Set the type of definitions requested.",
+        choices=[
+            "all",
+            wiz.symbol.APPLICATION_TYPE,
+            wiz.symbol.ENVIRONMENT_TYPE
+        ],
+        default="all"
+    )
+
+    search_parser.add_argument(
         "-dsp", "--definition-search-paths",
         nargs="+",
         metavar="PATH",
@@ -270,27 +287,33 @@ def main(arguments=None):
             max_depth=namespace.definition_search_depth
         )
 
+        display_registries(registries)
+        results_found = False
+
         if (
-            len(mapping[wiz.symbol.ENVIRONMENT_TYPE]) == 0 and
-            len(mapping[wiz.symbol.APPLICATION_TYPE]) == 0
+            namespace.type in ["application", "all"] and
+            len(mapping[wiz.symbol.ENVIRONMENT_TYPE]) > 0
         ):
+            results_found = True
+            display_applications_mapping(
+                mapping[wiz.symbol.APPLICATION_TYPE],
+                registries
+            )
+
+        if (
+            namespace.type in ["environment", "all"] and
+            len(mapping[wiz.symbol.APPLICATION_TYPE]) > 0
+        ):
+            results_found = True
+            display_environment_mapping(
+                mapping[wiz.symbol.ENVIRONMENT_TYPE],
+                registries,
+                all_versions=namespace.all,
+                commands_only=namespace.with_commands
+            )
+
+        if not results_found:
             print("No results found.")
-
-        else:
-            display_registries(registries)
-
-            if len(mapping[wiz.symbol.APPLICATION_TYPE]):
-                display_applications_mapping(
-                    mapping[wiz.symbol.APPLICATION_TYPE],
-                    registries
-                )
-
-            if len(mapping[wiz.symbol.ENVIRONMENT_TYPE]):
-                display_environment_mapping(
-                    mapping[wiz.symbol.ENVIRONMENT_TYPE],
-                    registries,
-                    all_versions=namespace.all
-                )
 
     elif namespace.commands in ["view", "use"]:
         mapping = wiz.definition.fetch(
