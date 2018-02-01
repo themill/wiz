@@ -110,6 +110,7 @@ def discover(paths, max_depth=None):
 
                 try:
                     definition = load(definition_path)
+                    definition["registry"] = path
                 except (
                     IOError, ValueError, TypeError,
                     wiz.exception.WizError

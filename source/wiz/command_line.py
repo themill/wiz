@@ -232,17 +232,20 @@ def main(arguments=None):
         mapping = wiz.definition.fetch(
             registries, max_depth=namespace.definition_search_depth
         )
-
+        display_registries(registries)
         display_applications_mapping(
             mapping[wiz.symbol.APPLICATION_TYPE],
+            registries
         )
 
     elif namespace.commands == "environments":
         mapping = wiz.definition.fetch(
             registries, max_depth=namespace.definition_search_depth
         )
+        display_registries(registries)
         display_environment_mapping(
             mapping[wiz.symbol.ENVIRONMENT_TYPE],
+            registries,
             all_versions=namespace.all,
             commands_only=namespace.with_commands
         )
@@ -261,14 +264,18 @@ def main(arguments=None):
             print("No results found.")
 
         else:
+            display_registries(registries)
+
             if len(mapping[wiz.symbol.APPLICATION_TYPE]):
                 display_applications_mapping(
-                    mapping[wiz.symbol.APPLICATION_TYPE]
+                    mapping[wiz.symbol.APPLICATION_TYPE],
+                    registries
                 )
 
             if len(mapping[wiz.symbol.ENVIRONMENT_TYPE]):
                 display_environment_mapping(
                     mapping[wiz.symbol.ENVIRONMENT_TYPE],
+                    registries,
                     all_versions=namespace.all
                 )
 
@@ -282,7 +289,8 @@ def main(arguments=None):
         try:
             if namespace.commands == "view":
                 _resolve_and_display_environment(
-                    requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
+                    registries, requirements,
+                    mapping[wiz.symbol.ENVIRONMENT_TYPE]
                 )
 
             elif namespace.commands == "load":
@@ -329,8 +337,12 @@ def main(arguments=None):
             )
 
 
-def _resolve_and_display_environment(requirements, environment_mapping):
-    """Display content of resolved environment from *requirements*.
+def _resolve_and_display_environment(
+    registries, requirements, environment_mapping
+):
+    """Resolve environment from *requirements* and display related information.
+
+    *registries* should be a list of available registry paths.
 
     *environment_mapping* is a mapping regrouping all available environment
     environment associated with their unique identifier.
@@ -342,7 +354,11 @@ def _resolve_and_display_environment(requirements, environment_mapping):
     environments = wiz.environment.compute(requirements, environment_mapping)
     environment = wiz.environment.combine(environments)
 
-    display_environments(environments, header="Resolved Environments")
+    display_registries(registries)
+
+    display_environments(
+        environments, registries, header="Resolved Environments"
+    )
 
     # Display Commands
     if len(environment.get("command", {})) > 0:
@@ -352,14 +368,30 @@ def _resolve_and_display_environment(requirements, environment_mapping):
     display_environment_data(environment.get("data", {}))
 
 
-def display_applications_mapping(application_mapping):
+def display_registries(paths):
+    title = "Registries"
+    mappings = [
+        {"size": len(title), "items": [], "title": title}
+    ]
+
+    for index, path in enumerate(paths):
+        item = "[{}] {}".format(index, path)
+        mappings[0]["items"].append(item)
+        mappings[0]["size"] = max(len(item), mappings[0]["size"])
+
+    _display_mappings(mappings)
+
+
+def display_applications_mapping(application_mapping, registries):
     """Display the applications stored in *application_mapping*.
 
     *application_mapping* is a mapping regrouping all available application
     associated with their unique identifier.
 
+    *registries* should be a list of available registry paths.
+
     """
-    titles = ["Application", "Requirements", "Description"]
+    titles = ["Application", "Registry", "Description"]
     mappings = [
         {"size": len(title), "items": [], "title": title} for title in titles
     ]
@@ -369,9 +401,9 @@ def display_applications_mapping(application_mapping):
         mappings[0]["items"].append(_identifier)
         mappings[0]["size"] = max(len(_identifier), mappings[0]["size"])
 
-        requirement = ", ".join(map(str, application.requirement))
-        mappings[1]["items"].append(requirement)
-        mappings[1]["size"] = max(len(requirement), mappings[1]["size"])
+        registry_index = str(registries.index(application.get("registry")))
+        mappings[1]["items"].append(registry_index)
+        mappings[1]["size"] = max(len(registry_index), mappings[1]["size"])
 
         description = application.description
         mappings[2]["items"].append(description)
@@ -381,12 +413,14 @@ def display_applications_mapping(application_mapping):
 
 
 def display_environment_mapping(
-    environment_mapping, all_versions=False, commands_only=False,
+    environment_mapping, registries, all_versions=False, commands_only=False,
 ):
     """Display the environments stored in *environment_mapping*.
 
     *environment_mapping* is a mapping regrouping all available environment
     environment associated with their unique identifier.
+
+    *registries* should be a list of available registry paths.
 
     *all_versions* indicate whether all versions from the environments must be
     returned. If not, only the latest version of each environment identifier is
@@ -409,11 +443,15 @@ def display_environment_mapping(
         else:
             environments_to_display.append(_environments[0])
 
-    display_environments(environments_to_display, commands_only=commands_only)
+    display_environments(
+        environments_to_display, registries, commands_only=commands_only
+    )
 
 
-def display_environments(environments, header=None, commands_only=False):
-    titles = [header or "Environment", "Version", "Description"]
+def display_environments(
+    environments, registries, header=None, commands_only=False
+):
+    titles = [header or "Environment", "Version", "Registry", "Description"]
     mappings = [
         {"size": len(title), "items": [], "title": title} for title in titles
     ]
@@ -435,9 +473,13 @@ def display_environments(environments, header=None, commands_only=False):
         mappings[1]["items"].append(_version)
         mappings[1]["size"] = max(len(_version), mappings[1]["size"])
 
+        registry_index = str(registries.index(_environment.get("registry")))
+        mappings[2]["items"].append(registry_index)
+        mappings[2]["size"] = max(len(registry_index), mappings[2]["size"])
+
         _description = _environment.description
-        mappings[2]["items"].append(_description)
-        mappings[2]["size"] = max(len(_description), mappings[2]["size"])
+        mappings[3]["items"].append(_description)
+        mappings[3]["size"] = max(len(_description), mappings[3]["size"])
 
     for environment in environments:
         if len(environment.get("variant", [])) > 0:
