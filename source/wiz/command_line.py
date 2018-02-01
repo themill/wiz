@@ -155,8 +155,8 @@ def construct_parser():
         help="Environment requirements required."
     )
 
-    load_subparsers = subparsers.add_parser(
-        "load",
+    use_subparsers = subparsers.add_parser(
+        "use",
         help=(
             "Spawn shell with resolved environment from requirements, or run "
             "a command within the resolved environment if indicated after the "
@@ -165,7 +165,7 @@ def construct_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    load_subparsers.add_argument(
+    use_subparsers.add_argument(
         "-dsp", "--definition-search-paths",
         nargs="+",
         metavar="PATH",
@@ -173,7 +173,7 @@ def construct_parser():
         default=wiz.registry.get_defaults()
     )
 
-    load_subparsers.add_argument(
+    use_subparsers.add_argument(
         "requirements",
         nargs="+",
         help="Environment requirements required."
@@ -291,7 +291,7 @@ def main(arguments=None):
                     all_versions=namespace.all
                 )
 
-    elif namespace.commands in ["view", "load"]:
+    elif namespace.commands in ["view", "use"]:
         mapping = wiz.definition.fetch(
             registries, max_depth=namespace.definition_search_depth
         )
@@ -305,7 +305,7 @@ def main(arguments=None):
                     mapping[wiz.symbol.ENVIRONMENT_TYPE]
                 )
 
-            elif namespace.commands == "load":
+            elif namespace.commands == "use":
                 environment = wiz.environment.resolve(
                     requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
                 )
