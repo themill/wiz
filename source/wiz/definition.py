@@ -32,10 +32,11 @@ def fetch(paths, max_depth=None):
     return mapping
 
 
-def search(requirement, paths, max_depth=None):
+def search(requirements, paths, max_depth=None):
     """Return mapping from environment definitions matching *requirement*.
 
-    *requirement* is an instance of :class:`packaging.requirements.Requirement`.
+    *requirement* should be an instance of
+    :class:`packaging.requirements.Requirement`.
 
     :func:`~wiz.definition.discover` available environments under *paths*,
     searching recursively up to *max_depth*.
@@ -43,8 +44,9 @@ def search(requirement, paths, max_depth=None):
     """
     logger = mlog.Logger(__name__ + ".search")
     logger.info(
-        "Search environment environment definitions matching '{}'"
-        .format(requirement)
+        "Search environment environment definitions matching '{}'".format(
+            ", ".join(map(str, requirements))
+        )
     )
 
     mapping = {
@@ -53,20 +55,32 @@ def search(requirement, paths, max_depth=None):
     }
 
     for definition in discover(paths, max_depth=max_depth):
-        if (
-            requirement.name.lower() in definition.identifier.lower() or
-            requirement.name.lower() in definition.description.lower()
-        ):
-            _type = definition.type
-            if (
-                _type == wiz.symbol.ENVIRONMENT_TYPE and
-                definition.version in requirement.specifier
-            ):
-                mapping[_type].setdefault(definition.identifier, [])
-                mapping[_type][definition.identifier].append(definition)
+        compatible = True
 
-            elif _type == wiz.symbol.APPLICATION_TYPE:
-                mapping[_type][definition.identifier] = definition
+        for requirement in requirements:
+            if not (
+                requirement.name.lower() in definition.identifier.lower() or
+                requirement.name.lower() in definition.description.lower()
+            ):
+                compatible = False
+                break
+
+            if (
+                definition.type == wiz.symbol.ENVIRONMENT_TYPE and
+                definition.version not in requirement.specifier
+            ):
+                compatible = False
+                break
+
+        if not compatible:
+            continue
+
+        if definition.type == wiz.symbol.ENVIRONMENT_TYPE:
+            mapping[definition.type].setdefault(definition.identifier, [])
+            mapping[definition.type][definition.identifier].append(definition)
+
+        elif definition.type == wiz.symbol.APPLICATION_TYPE:
+            mapping[definition.type][definition.identifier] = definition
 
     return mapping
 

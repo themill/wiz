@@ -131,8 +131,9 @@ def construct_parser():
     )
 
     search_parser.add_argument(
-        "requirement",
-        help="Environment or Application requirement to search."
+        "requirements",
+        nargs="+",
+        help="Environment or application requirements to search."
     )
 
     view_subparsers = subparsers.add_parser(
@@ -263,9 +264,9 @@ def main(arguments=None):
             )
 
     elif namespace.commands == "search":
-        requirement = Requirement(namespace.requirement)
+        requirements = map(Requirement, namespace.requirements)
         mapping = wiz.definition.search(
-            requirement, registries,
+            requirements, registries,
             max_depth=namespace.definition_search_depth
         )
 
