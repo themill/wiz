@@ -111,6 +111,14 @@ def discover(paths, max_depth=None):
                 try:
                     definition = load(definition_path)
                     definition["registry"] = path
+
+                    if definition.get("disabled", False):
+                        logger.warning(
+                            "Definition fetched from {!r} is"
+                            " disabled".format(definition_path),
+                        )
+                        continue
+
                 except (
                     IOError, ValueError, TypeError,
                     wiz.exception.WizError
