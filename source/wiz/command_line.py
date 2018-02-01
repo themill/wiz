@@ -59,8 +59,19 @@ def construct_parser():
         dest="commands"
     )
 
-    application_parser = subparsers.add_parser(
-        "applications",
+    list_parser = subparsers.add_parser(
+        "list",
+        help="List available application or environment definitions.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    list_subparsers = list_parser.add_subparsers(
+        title="Additional subcommands",
+        dest="subcommands"
+    )
+
+    application_parser = list_subparsers.add_parser(
+        "application",
         help="List all available applications.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
@@ -73,8 +84,8 @@ def construct_parser():
         default=wiz.registry.get_defaults()
     )
 
-    environment_parser = subparsers.add_parser(
-        "environments",
+    environment_parser = list_subparsers.add_parser(
+        "environment",
         help="List all available environments.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
@@ -228,27 +239,28 @@ def main(arguments=None):
     logger.debug("Registries: " + ", ".join(registries))
 
     # Process requested operation.
-    if namespace.commands == "applications":
-        mapping = wiz.definition.fetch(
-            registries, max_depth=namespace.definition_search_depth
-        )
-        display_registries(registries)
-        display_applications_mapping(
-            mapping[wiz.symbol.APPLICATION_TYPE],
-            registries
-        )
+    if namespace.commands == "list":
+        if namespace.subcommands == "application":
+            mapping = wiz.definition.fetch(
+                registries, max_depth=namespace.definition_search_depth
+            )
+            display_registries(registries)
+            display_applications_mapping(
+                mapping[wiz.symbol.APPLICATION_TYPE],
+                registries
+            )
 
-    elif namespace.commands == "environments":
-        mapping = wiz.definition.fetch(
-            registries, max_depth=namespace.definition_search_depth
-        )
-        display_registries(registries)
-        display_environment_mapping(
-            mapping[wiz.symbol.ENVIRONMENT_TYPE],
-            registries,
-            all_versions=namespace.all,
-            commands_only=namespace.with_commands
-        )
+        elif namespace.subcommands == "environment":
+            mapping = wiz.definition.fetch(
+                registries, max_depth=namespace.definition_search_depth
+            )
+            display_registries(registries)
+            display_environment_mapping(
+                mapping[wiz.symbol.ENVIRONMENT_TYPE],
+                registries,
+                all_versions=namespace.all,
+                commands_only=namespace.with_commands
+            )
 
     elif namespace.commands == "search":
         requirement = Requirement(namespace.requirement)
