@@ -297,7 +297,7 @@ def main(arguments=None):
 
         if (
             namespace.type in ["application", "all"] and
-            len(mapping[wiz.symbol.ENVIRONMENT_TYPE]) > 0
+            len(mapping[wiz.symbol.APPLICATION_TYPE]) > 0
         ):
             results_found = True
             display_applications_mapping(
@@ -307,7 +307,7 @@ def main(arguments=None):
 
         if (
             namespace.type in ["environment", "all"] and
-            len(mapping[wiz.symbol.APPLICATION_TYPE]) > 0
+            len(mapping[wiz.symbol.ENVIRONMENT_TYPE]) > 0
         ):
             results_found = True
             display_environment_mapping(
