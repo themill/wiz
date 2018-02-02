@@ -155,7 +155,7 @@ def construct_parser():
 
     view_subparsers = subparsers.add_parser(
         "view",
-        help="View resolved environment from requirements.",
+        help="View content of an environment or application definition.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
@@ -168,38 +168,13 @@ def construct_parser():
     )
 
     view_subparsers.add_argument(
-        "requirements",
-        nargs="+",
-        help="Environment requirements required."
-    )
-
-    use_subparsers = subparsers.add_parser(
-        "use",
-        help=(
-            "Spawn shell with resolved environment from requirements, or run "
-            "a command within the resolved environment if indicated after the "
-            "'--' symbol."
-        ),
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    use_subparsers.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
-    )
-
-    use_subparsers.add_argument(
-        "requirements",
-        nargs="+",
-        help="Environment requirements required."
+        "requirement",
+        help="Environment or Application identifier required."
     )
 
     run_subparsers = subparsers.add_parser(
         "run",
-        help="Run application command.",
+        help="Run command from application.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
@@ -213,6 +188,36 @@ def construct_parser():
 
     run_subparsers.add_argument(
         "application", help="Application identifier to run."
+    )
+
+    use_subparsers = subparsers.add_parser(
+        "use",
+        help=(
+            "Spawn shell with resolved environment from requirements, or run "
+            "a command within the resolved environment if indicated after "
+            "the '--' symbol."
+        ),
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    use_subparsers.add_argument(
+        "-v", "--view-only",
+        help="Only view the resolved environment.",
+        action="store_true"
+    )
+
+    use_subparsers.add_argument(
+        "-dsp", "--definition-search-paths",
+        nargs="+",
+        metavar="PATH",
+        help="Search paths for definitions.",
+        default=wiz.registry.get_defaults()
+    )
+
+    use_subparsers.add_argument(
+        "requirements",
+        nargs="+",
+        help="Environment requirements required."
     )
 
     return parser
@@ -313,9 +318,57 @@ def main(arguments=None):
             )
 
         if not results_found:
-            print("No results found.\n")
+            logger.warning("No results found.\n")
 
-    elif namespace.commands in ["view", "use"]:
+    elif namespace.commands == "view":
+        mapping = wiz.definition.fetch(
+            registries, max_depth=namespace.definition_search_depth
+        )
+
+        results_found = False
+
+        try:
+            application = wiz.application.get(
+                namespace.requirement,
+                mapping[wiz.symbol.APPLICATION_TYPE]
+            )
+            results_found = True
+
+        except wiz.exception.RequestNotFound:
+            logger.debug(
+                "No application found for requirement: '{}'\n".format(
+                    namespace.requirement
+                )
+            )
+
+        else:
+            display_application(application, logger)
+
+        try:
+            requirement = Requirement(namespace.requirement)
+            environment = wiz.environment.get(
+                requirement, mapping[wiz.symbol.ENVIRONMENT_TYPE],
+                divide_variants=False
+            )[0]
+            results_found = True
+
+        except wiz.exception.RequestNotFound:
+            logger.debug(
+                "No environment found for requirement: '{}'\n".format(
+                    namespace.requirement
+                )
+            )
+
+        else:
+            display_environment(environment, logger)
+
+        if not results_found:
+            logger.warning(
+                "No application nor environment could be found for "
+                "requirement: '{}'\n".format(namespace.requirement)
+            )
+
+    elif namespace.commands == "use":
         mapping = wiz.definition.fetch(
             registries, max_depth=namespace.definition_search_depth
         )
@@ -323,33 +376,45 @@ def main(arguments=None):
         requirements = map(Requirement, namespace.requirements)
 
         try:
-            if namespace.commands == "view":
-                _resolve_and_display_environment(
-                    registries, requirements,
-                    mapping[wiz.symbol.ENVIRONMENT_TYPE]
+            environments = wiz.environment.resolve(
+                requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
+            )
+
+            environment = wiz.environment.combine(environments)
+
+            # Only view thw resolved environment without spawning a shell nor
+            # running any commands.
+            if namespace.view_only:
+                display_registries(registries)
+
+                display_environments(
+                    environments, registries,
+                    header="Resolved Environments"
                 )
 
-            elif namespace.commands == "use":
-                environment = wiz.environment.resolve(
-                    requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
+                display_environment_commands(
+                    environment.get("command", {}),
+                    header="Resolved Commands"
                 )
 
-                if command_arguments is None:
-                    wiz.spawn.shell(environment["data"])
+                display_environment_data(environment.get("data", {}))
 
-                else:
-                    command_mapping = environment.get("command", {})
-                    if command_arguments[0] in command_mapping.keys():
-                        command_arguments[0] = (
-                            command_mapping[command_arguments[0]]
-                        )
-                    wiz.spawn.execute(command_arguments, environment["data"])
+            # If no commands are indicated, spawn a shell.
+            elif command_arguments is None:
+                wiz.spawn.shell(environment["data"])
+
+            # Otherwise, resolve the command and run it within the resolved
+            # environment.
+            else:
+                command_mapping = environment.get("command", {})
+                if command_arguments[0] in command_mapping.keys():
+                    command_arguments[0] = (
+                        command_mapping[command_arguments[0]]
+                    )
+                wiz.spawn.execute(command_arguments, environment["data"])
 
         except wiz.exception.WizError as error:
-            logger.error(
-                "Impossible to resolve the environment: {}".format(error),
-                traceback=True
-            )
+            logger.error(str(error), traceback=True)
 
     elif namespace.commands in ["run"]:
         mapping = wiz.definition.fetch(
@@ -367,41 +432,7 @@ def main(arguments=None):
             )
 
         except wiz.exception.WizError as error:
-            logger.error(
-                "Impossible to run the application: {}".format(error),
-                traceback=True
-            )
-
-
-def _resolve_and_display_environment(
-    registries, requirements, environment_mapping
-):
-    """Resolve environment from *requirements* and display related information.
-
-    *registries* should be a list of available registry paths.
-
-    *environment_mapping* is a mapping regrouping all available environment
-    environment associated with their unique identifier.
-
-    Raise :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
-    resolved.
-
-    """
-    environments = wiz.environment.compute(requirements, environment_mapping)
-    environment = wiz.environment.combine(environments)
-
-    display_registries(registries)
-
-    display_environments(
-        environments, registries, header="Resolved Environments"
-    )
-
-    # Display Commands
-    if len(environment.get("command", {})) > 0:
-        display_environment_commands(environment.get("command"))
-
-    # Display data
-    display_environment_data(environment.get("data", {}))
+            logger.error(str(error), traceback=True)
 
 
 def display_registries(paths):
@@ -416,6 +447,62 @@ def display_registries(paths):
         mappings[0]["size"] = max(len(item), mappings[0]["size"])
 
     _display_mappings(mappings)
+
+
+def display_application(application, logger):
+    logger.info("View application: {}".format(application.identifier))
+
+    print("identifier: {}".format(application.identifier))
+    print("registry: {}".format(application.get("registry")))
+    print("description: {}".format(application.description))
+    print("command: {}".format(application.command))
+    print("requirement:")
+    for requirement in application.requirement:
+        print("    - {}".format(requirement))
+    print()
+
+
+def display_environment(environment, logger):
+    logger.info(
+        "View environment: {} ({})".format(
+            environment.identifier, environment.version
+        )
+    )
+
+    print("identifier: {}".format(environment.identifier))
+    print("registry: {}".format(environment.get("registry")))
+    print("description: {}".format(environment.description))
+    print("version: {}".format(environment.version))
+    if len(environment.get("system", {})) > 0:
+        print("system:")
+        for key, value in sorted(environment.get("system").items()):
+            print("    - {}: {}".format(key, value))
+    if len(environment.get("command", {})) > 0:
+        print("command:")
+        for key, value in sorted(environment.get("command").items()):
+            print("    - {}: {}".format(key, value))
+    if len(environment.get("data", {})) > 0:
+        print("data:")
+        for key, value in sorted(environment.get("data").items()):
+            print("    - {}: {}".format(key, value))
+    if len(environment.get("requirement", [])) > 0:
+        print("requirement:")
+        for requirement in environment.get("requirement"):
+            print("    - {}".format(requirement))
+    if len(environment.get("variant", [])) > 0:
+        print("variant:")
+        for variant in environment.get("variant"):
+            print("    - {}".format(variant.get("identifier")))
+            if len(variant.get("data", {})) > 0:
+                print("        data:")
+                for key, value in sorted(variant.get("data").items()):
+                    print("            - {}: {}".format(key, value))
+            if len(variant.get("requirement", [])) > 0:
+                print("        requirement:")
+                for requirement in variant.get("requirement"):
+                    print("            - {}".format(requirement))
+
+    print()
 
 
 def display_applications_mapping(application_mapping, registries):
@@ -529,8 +616,12 @@ def display_environments(
     _display_mappings(mappings)
 
 
-def display_environment_commands(command_mapping):
-    titles = ["Resolved Commands", "Value"]
+def display_environment_commands(command_mapping, header=None):
+    if len(command_mapping) == 0:
+        print("No commands to display.")
+        return
+
+    titles = [header or "Commands", "Value"]
     mappings = [
         {"size": len(title), "items": [], "title": title} for title in titles
     ]
@@ -546,6 +637,10 @@ def display_environment_commands(command_mapping):
 
 
 def display_environment_data(data_mapping):
+    if len(data_mapping) == 0:
+        print("No environment variables to display.")
+        return
+
     titles = ["Environment Variable", "Environment Value"]
     mappings = [
         {"size": len(title), "items": [], "title": title} for title in titles
@@ -555,7 +650,7 @@ def display_environment_data(data_mapping):
         """Compute value to display."""
         if _variable == "DISPLAY":
             return [value]
-        return value.split(os.pathsep)
+        return str(value).split(os.pathsep)
 
     for variable in sorted(data_mapping.keys()):
         for key, _value in itertools.izip_longest(

@@ -56,7 +56,7 @@ class IncorrectApplication(IncorrectDefinition):
     default_message = "The application definition is incorrect"
 
 
-class IncorrectRequirement(WizError):
+class RequestNotFound(WizError):
     """Raise when a requirement is incorrect."""
 
     default_message = "The requirement could not be resolved."
@@ -80,7 +80,7 @@ class IncorrectRequirement(WizError):
             details.setdefault("name", message.name)
             message = "The requirement '{name}' could not be resolved."
 
-        super(IncorrectRequirement, self).__init__(
+        super(RequestNotFound, self).__init__(
             message=message, details=details
         )
 

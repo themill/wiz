@@ -14,7 +14,7 @@ import wiz.symbol
 import wiz.exception
 
 
-def get(requirement, environment_mapping):
+def get(requirement, environment_mapping, divide_variants=True):
     """Get best matching :class:`Environment` instances for *requirement*.
 
     The best matching environment version corresponding to the *requirement*
@@ -31,12 +31,15 @@ def get(requirement, environment_mapping):
     *environment_mapping* is a mapping regrouping all available environment
     associated with their unique identifier.
 
-    :exc:`wiz.exception.IncorrectRequirement` is raised if the
+    *divide_variants* indicate whether variants should be divided into separate
+    environment. Default is true.
+
+    :exc:`wiz.exception.RequestNotFound` is raised if the
     requirement can not be resolved.
 
     """
     if requirement.name not in environment_mapping:
-        raise wiz.exception.IncorrectRequirement(requirement)
+        raise wiz.exception.RequestNotFound(requirement)
 
     environment = None
 
@@ -53,13 +56,13 @@ def get(requirement, environment_mapping):
             break
 
     if environment is None:
-        raise wiz.exception.IncorrectRequirement(requirement)
+        raise wiz.exception.RequestNotFound(requirement)
 
     # Extract variants from environment if available.
     variants = environment.get("variant", [])
 
     # Simply return the main environment if no variants is available.
-    if len(variants) == 0:
+    if len(variants) == 0 or not divide_variants:
         return [environment]
 
     # Extract and return the requested variant if necessary.
@@ -71,7 +74,7 @@ def get(requirement, environment_mapping):
         )
 
         if variant_identifier not in variant_mapping.keys():
-            raise wiz.exception.IncorrectRequirement(
+            raise wiz.exception.RequestNotFound(
                 "The variant '{}' could not been resolved for '{}'.".format(
                     variant_identifier, requirement.name
                 )
@@ -88,33 +91,7 @@ def get(requirement, environment_mapping):
         )
 
 
-def resolve(requirements, environment_mapping, data_mapping=None):
-    """Return combined :class:`Environment` instance from *requirements*.
-
-    *requirements* should be a list of
-    class:`packaging.requirements.Requirement` instances.
-
-    *environment_mapping* is a mapping regrouping all available environments
-    associated with their unique identifier.
-
-    *data_mapping* can be a mapping of environment variables which would
-    be augmented by the resolved environment.
-
-    Raise :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
-    resolved.
-
-    """
-    logger = mlog.Logger(__name__ + ".resolve")
-    logger.info(
-        "Resolve environment: {}".format(
-            ", ".join([str(requirement) for requirement in requirements])
-        )
-    )
-    environments = compute(requirements, environment_mapping)
-    return combine(environments, data_mapping)
-
-
-def compute(requirements, environment_mapping):
+def resolve(requirements, environment_mapping):
     """Return resolved :class:`Environment` instances from *requirements*.
 
     The returned environment list should be ordered from the less important to
@@ -130,6 +107,12 @@ def compute(requirements, environment_mapping):
     resolved.
 
     """
+    logger = mlog.Logger(__name__ + ".resolve")
+    logger.info(
+        "Resolve environment: {}".format(
+            ", ".join([str(requirement) for requirement in requirements])
+        )
+    )
     resolver = wiz.graph.Resolver(environment_mapping)
     return resolver.compute_environments(requirements)
 

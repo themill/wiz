@@ -19,12 +19,12 @@ def get(identifier, application_mapping):
     *application_mapping* is a mapping regrouping all available application
     associated with their unique identifier.
 
-    :exc:`wiz.exception.IncorrectApplication` is raised if the
+    :exc:`wiz.exception.RequestNotFound` is raised if the
     identifier can not be found.
 
     """
     if identifier not in application_mapping:
-        raise wiz.exception.IncorrectApplication(
+        raise wiz.exception.RequestNotFound(
             "The application '{}' can not be found.".format(identifier)
         )
 
@@ -50,9 +50,12 @@ def run(
     cannot be resolved.
 
     """
-    environment = wiz.environment.resolve(
-        application.requirement, environment_mapping,
-        data_mapping=data_mapping
+    environments = wiz.environment.resolve(
+        application.requirement, environment_mapping
+    )
+
+    environment = wiz.environment.combine(
+        environments, data_mapping=data_mapping
     )
 
     command = application.command
