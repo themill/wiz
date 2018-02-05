@@ -164,7 +164,9 @@ def combine(environments, data_mapping=None):
     # (e.g. {"PATH": "/path/to/somewhere:${PATH}") and resolve any missing
     # references from within data mapping.
     for key, value in mapping["data"].items():
-        _value = re.sub("(\${{{0}}}:?|:?\${{{0}}})".format(key), lambda m: "", value)
+        _value = re.sub(
+            "(\${{{0}}}:?|:?\${{{0}}})".format(key), lambda m: "", value
+        )
         _value = re.sub(
             "\${(\w+)}",
             lambda m: mapping["data"].get(m.group(1)) or m.group(0), _value
