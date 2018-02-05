@@ -10,6 +10,8 @@ import distutils.spawn
 import termios
 import tty
 import pty
+import signal
+import functools
 
 import mlog
 
@@ -46,6 +48,11 @@ def shell(environment, shell_type="bash"):
         env=environment
     )
 
+    # Register the cleanup function as handler for SIGINT and SIGTERM.
+    handler = functools.partial(_cleanup, process, logger)
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+
     while process.poll() is None:
         read_list, write_list, _ = select.select([sys.stdin, master_fd], [], [])
 
@@ -77,8 +84,20 @@ def execute(commands, environment):
         env=environment
     )
 
+    # Register the cleanup function as handler for SIGINT and SIGTERM.
+    handler = functools.partial(_cleanup, process, logger)
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+
     lines_iterator = iter(process.stdout.readline, b"")
     while process.poll() is None:
         for line in lines_iterator:
             _line = line.rstrip()
             print(_line.decode("latin"), end="\r\n")
+
+
+def _cleanup(process, logger, signum, frame):
+    """Kill the sub-process *process* with all children and exit."""
+    logger.warning("Kill process [pid: {}]".format(process.pid))
+    os.killpg(process.pid, signal.SIGTERM)
+    sys.exit(0)
