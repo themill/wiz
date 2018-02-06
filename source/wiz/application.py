@@ -1,9 +1,6 @@
 # :coding: utf-8
 
-import collections
 import shlex
-
-from packaging.requirements import Requirement, InvalidRequirement
 
 import wiz.symbol
 import wiz.exception
@@ -12,7 +9,7 @@ import wiz.spawn
 
 
 def get(identifier, application_mapping):
-    """Get :class:`Application` instance from *identifier*.
+    """Get :class:`wiz.definition.Application` instance from *identifier*.
 
     *identifier* should be the reference to the application identifier required.
 
@@ -36,7 +33,7 @@ def run(
 ):
     """Run *application* command.
 
-    *application* must be valid :class:`Application` instance.
+    *application* must be valid :class:`wiz.definition.Application` instance.
 
     *environment_mapping* is a mapping regrouping all available environment
     associated with their unique identifier.
@@ -54,6 +51,7 @@ def run(
         application.requirement, environment_mapping
     )
 
+    data_mapping = wiz.environment.initiate_data(data_mapping=data_mapping)
     environment = wiz.environment.combine(
         environments, data_mapping=data_mapping
     )
@@ -68,77 +66,3 @@ def run(
         commands += arguments
 
     wiz.spawn.execute(commands, environment["data"])
-
-
-class Application(collections.MutableMapping):
-    """Application Definition."""
-
-    def __init__(self, *args, **kwargs):
-        """Initialise application."""
-        super(Application, self).__init__()
-        self._mapping = {}
-        self.update(*args, **kwargs)
-
-        try:
-            self._mapping["requirement"] = map(
-                Requirement, self.get("requirement", [])
-            )
-
-        except InvalidRequirement as error:
-            raise wiz.exception.IncorrectApplication(
-                "The application '{}' is incorrect: {}".format(
-                    self.identifier, error
-                )
-            )
-
-    @property
-    def identifier(self):
-        """Return identifier."""
-        return self.get("identifier", "unknown")
-
-    @property
-    def type(self):
-        """Return application type."""
-        return wiz.symbol.APPLICATION_TYPE
-
-    @property
-    def description(self):
-        """Return description."""
-        return self.get("description", "unknown")
-
-    @property
-    def command(self):
-        """Return command."""
-        return self.get("command", "unknown")
-
-    @property
-    def requirement(self):
-        """Return requirement list."""
-        return self.get("requirement", [])
-
-    def __str__(self):
-        """Return string representation."""
-        return "{}({!r}, {!r})".format(
-            self.__class__.__name__, self.identifier, self._mapping
-        )
-
-    def __getitem__(self, key):
-        """Return value for *key*."""
-        return self._mapping[key]
-
-    def __setitem__(self, key, value):
-        """Set *value* for *key*."""
-        self._mapping[key] = value
-
-    def __delitem__(self, key):
-        """Delete *key*."""
-        del self._mapping[key]
-
-    def __iter__(self):
-        """Iterate over all keys."""
-        for key in self._mapping:
-            yield key
-
-    def __len__(self):
-        """Return count of keys."""
-        return len(self._mapping)

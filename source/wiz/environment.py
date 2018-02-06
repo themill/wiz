@@ -3,10 +3,7 @@
 import os
 import re
 import copy
-import collections
 
-from packaging.requirements import Requirement, InvalidRequirement
-from packaging.version import Version, InvalidVersion
 import mlog
 
 import wiz.graph
@@ -14,11 +11,28 @@ import wiz.symbol
 import wiz.exception
 
 
-def get(requirement, environment_mapping, divide_variants=True):
-    """Get best matching :class:`Environment` instances for *requirement*.
+def generate_identifier(environment):
+    """Generate a unique identifier for *environment*.
 
-    The best matching environment version corresponding to the *requirement*
-    will be returned.
+    environment must be an :class:`Environment` instance.
+
+    """
+    variant_name = environment.get("variant_name")
+    if variant_name is not None:
+        variant_name = "[{}]".format(variant_name)
+
+    return "{environment}{variant}=={version}".format(
+        environment=environment.identifier,
+        version=environment.version,
+        variant=variant_name or ""
+    )
+
+
+def get(requirement, environment_mapping, divide_variants=True):
+    """Get best matching environment version for *requirement*.
+
+    The best matching :class:`~wiz.definition.Environment` version instances
+    corresponding to the *requirement* will be returned.
 
     If this environment contains variants, the ordered list of environment
     combined with each variant will be returned. If one variant is explicitly
@@ -92,10 +106,10 @@ def get(requirement, environment_mapping, divide_variants=True):
 
 
 def resolve(requirements, environment_mapping):
-    """Return resolved :class:`Environment` instances from *requirements*.
+    """Return resolved environment from *requirements*.
 
-    The returned environment list should be ordered from the less important to
-    the most important.
+    The returned :class:`~wiz.definition.Environment` list should be ordered
+    from the least important to the most important.
 
     *requirements* should be a list of
     class:`packaging.requirements.Requirement` instances.
@@ -143,9 +157,6 @@ def combine(environments, data_mapping=None):
     be augmented by the resolved environment.
 
     """
-    # Compute initial environment mapping to augment.
-    data_mapping = initiate_data(data_mapping)
-
     def _combine(environment1, environment2):
         """Return intermediate environment combining both extracted results."""
         _command = dict(
@@ -158,7 +169,7 @@ def combine(environments, data_mapping=None):
         environment2["data"] = _environ
         return environment2
 
-    mapping = reduce(_combine, environments, dict(data=data_mapping))
+    mapping = reduce(_combine, environments, dict(data=data_mapping or {}))
 
     # Clean up any possible reference to the same variable key for each value
     # (e.g. {"PATH": "/path/to/somewhere:${PATH}") and resolve any missing
@@ -255,8 +266,8 @@ def _combine_command_mapping(environment1, environment2):
     *environment2* will have priority over elements from *environment1*.::
 
         >>> _combine_system_mapping(
-        ...     Environment({"command": {"app": "App1.1 --run"})
-        ...     Environment({"command": {"app": "App2.1"}})
+        ...     wiz.definition.Environment({"command": {"app": "App1.1 --run"})
+        ...     wiz.definition.Environment({"command": {"app": "App2.1"}})
         ... )
 
         {"app": "App2.1"}
@@ -300,10 +311,10 @@ def _combine_system_mapping(environment1, environment2):
     *environment2* will have priority over elements from *environment1*.::
 
         >>> _combine_system_mapping(
-        ...     Environment({
+        ...     wiz.definition.Environment({
         ...         "system": {"platform": "linux", "arch": "x86_64"}
         ...     }),
-        ...     Environment({"system": {"platform": "macOS"}})
+        ...     wiz.definition.Environment({"system": {"platform": "macOS"}})
         ... )
 
         {"platform": "macOS", "arch": "x86_64"}
@@ -353,8 +364,8 @@ def _combine_data_mapping(environment1, environment2):
     *environment1* to be included in the combined environment::
 
         >>> _combine_data_mapping(
-        ...     Environment({"data": {"key": "value2"})
-        ...     Environment({"data": {"key": "value1:${key}"}})
+        ...     wiz.definition.Environment({"data": {"key": "value2"})
+        ...     wiz.definition.Environment({"data": {"key": "value1:${key}"}})
         ... )
 
         {"key": "value1:value2"}
@@ -363,8 +374,8 @@ def _combine_data_mapping(environment1, environment2):
     *environment1*::
 
         >>> _combine_data_mapping(
-        ...     Environment({"data": {"key": "value2"})
-        ...     Environment({"data": {"key": "value1"}})
+        ...     wiz.definition.Environment({"data": {"key": "value2"})
+        ...     wiz.definition.Environment({"data": {"key": "value1"}})
         ... )
 
         {"key": "value1"}
@@ -373,13 +384,13 @@ def _combine_data_mapping(environment1, environment2):
     from *environment2*, they will be replaced as well::
 
         >>> _combine_data_mapping(
-        ...     Environment({
+        ...     wiz.definition.Environment({
         ...         "data": {
         ...             "PLUGIN_PATH": "/path/to/settings",
         ...             "HOME": "/usr/people/me"
         ...        }
         ...     }),
-        ...     Environment({
+        ...     wiz.definition.Environment({
         ...         "data": {
         ...             "PLUGIN_PATH": "${HOME}/.app:${PLUGIN_PATH}"
         ...         }
@@ -433,78 +444,3 @@ def _combine_data_mapping(environment1, environment2):
             )
 
     return mapping
-
-
-class Environment(collections.MutableMapping):
-    """Environment Definition."""
-
-    def __init__(self, *args, **kwargs):
-        """Initialise environment."""
-        super(Environment, self).__init__()
-        self._mapping = {}
-        self.update(*args, **kwargs)
-
-        try:
-            self._mapping["version"] = Version(self.version)
-            self._mapping["requirement"] = map(
-                Requirement, self.get("requirement", [])
-            )
-
-            for variant_mapping in self._mapping.get("variant", []):
-                variant_mapping["requirement"] = map(
-                    Requirement, variant_mapping.get("requirement", [])
-                )
-
-        except (InvalidRequirement, InvalidVersion) as error:
-            raise wiz.exception.IncorrectEnvironment(
-                "The environment '{}' is incorrect: {}".format(
-                    self.identifier, error
-                )
-            )
-
-    @property
-    def identifier(self):
-        """Return identifier."""
-        return self.get("identifier", "unknown")
-
-    @property
-    def type(self):
-        """Return environment type."""
-        return wiz.symbol.ENVIRONMENT_TYPE
-
-    @property
-    def version(self):
-        """Return version."""
-        return self.get("version", "unknown")
-
-    @property
-    def description(self):
-        """Return name."""
-        return self.get("description", "unknown")
-
-    def __str__(self):
-        """Return string representation."""
-        return "{}({!r}, {!r})".format(
-            self.__class__.__name__, self.identifier, self._mapping
-        )
-
-    def __getitem__(self, key):
-        """Return value for *key*."""
-        return self._mapping[key]
-
-    def __setitem__(self, key, value):
-        """Set *value* for *key*."""
-        self._mapping[key] = value
-
-    def __delitem__(self, key):
-        """Delete *key*."""
-        del self._mapping[key]
-
-    def __iter__(self):
-        """Iterate over all keys."""
-        for key in self._mapping:
-            yield key
-
-    def __len__(self):
-        """Return count of keys."""
-        return len(self._mapping)

@@ -276,7 +276,7 @@ class Resolver(object):
         environments = wiz.environment.get(
             requirement, self.environment_mapping
         )
-        return map(_Node.generate_identifier, environments)
+        return map(wiz.environment.generate_identifier, environments)
 
     def _remove_unreachable_nodes(self, graph, priority_mapping):
         """Remove unreachable nodes from *graph* based on *priority_mapping*.
@@ -423,7 +423,7 @@ class Resolver(object):
     def extract_ordered_environments(self, graph, priority_mapping):
         """Return sorted list of environments from *graph*.
 
-        Best matching :class:`~wiz.environment.Environment` instances are
+        Best matching :class:`~wiz.definition.Environment` instances are
         extracted from each node instance and added to the list.
 
         *priority_mapping* is a mapping indicating the lowest possible priority
@@ -444,7 +444,8 @@ class Resolver(object):
         self._logger.debug(
             "Sorted environments: {}".format(
                 ", ".join([
-                    _Node.generate_identifier(_env) for _env in environments
+                    wiz.environment.generate_identifier(_env)
+                    for _env in environments
                 ])
             )
         )
@@ -681,7 +682,7 @@ class Graph(object):
         environments = wiz.environment.get(
             requirement, self._resolver.environment_mapping
         )
-        identifiers = map(_Node.generate_identifier, environments)
+        identifiers = map(wiz.environment.generate_identifier, environments)
 
         # If more than one environments is returned, record all node identifiers
         # into a variant group.
@@ -790,37 +791,20 @@ class _Node(object):
     def __init__(self, environment):
         """Initialise Node.
 
-        *environment* indicates a :class:`~wiz.environment.Environment`.
+        *environment* indicates a :class:`~wiz.definition.Environment`.
 
         """
         self._environment = environment
         self._parent_identifiers = set()
 
-    @classmethod
-    def generate_identifier(cls, environment):
-        """Generate identifier from an *environment*.
-
-        *environment* indicates a :class:`~wiz.environment.Environment`.
-
-        """
-        variant_name = environment.get("variant_name")
-        if variant_name is not None:
-            variant_name = "[{}]".format(variant_name)
-
-        return "{environment}{variant}=={version}".format(
-            environment=environment.identifier,
-            version=environment.version,
-            variant=variant_name or ""
-        )
-
     @property
     def identifier(self):
         """Return identifier of the node."""
-        return self.generate_identifier(self._environment)
+        return wiz.environment.generate_identifier(self._environment)
 
     @property
     def environment(self):
-        """Return :class:`~wiz.environment.Environment` encapsulated."""
+        """Return :class:`~wiz.definition.Environment` encapsulated."""
         return self._environment
 
     @property
