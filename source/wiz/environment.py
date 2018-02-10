@@ -210,11 +210,12 @@ def initiate_data(data_mapping=None):
     """
     environ = {
         "USER": os.environ.get("USER"),
+        "LOGNAME": os.environ.get("LOGNAME"),
         "HOME": os.environ.get("HOME"),
         "DISPLAY": os.environ.get("DISPLAY"),
         "PATH": os.pathsep.join([
-            "/usr/get_local/sbin",
-            "/usr/get_local/bin",
+            "/usr/local/sbin",
+            "/usr/local/bin",
             "/usr/sbin",
             "/usr/bin",
             "/sbin",
