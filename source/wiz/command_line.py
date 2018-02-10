@@ -4,6 +4,7 @@ from __future__ import print_function
 import argparse
 import os
 import itertools
+import shlex
 
 import mlog
 from packaging.requirements import Requirement
@@ -447,9 +448,11 @@ def main(arguments=None):
             else:
                 command_mapping = environment.get("command", {})
                 if command_arguments[0] in command_mapping.keys():
-                    command_arguments[0] = (
+                    commands = shlex.split(
                         command_mapping[command_arguments[0]]
                     )
+                    command_arguments = commands + command_arguments[1:]
+
                 wiz.spawn.execute(command_arguments, environment["data"])
 
         except wiz.exception.WizError as error:
