@@ -28,35 +28,33 @@ def get(identifier, application_mapping):
     return application_mapping[identifier]
 
 
-def run(
-    application, environment_mapping, arguments=None, data_mapping=None
-):
-    """Run *application* command.
+def resolve_environments(application, environment_mapping):
+    """Return resolved environments from *application*'s requirements.
 
     *application* must be valid :class:`wiz.definition.Application` instance.
 
     *environment_mapping* is a mapping regrouping all available environment
     associated with their unique identifier.
 
-    *arguments* can be an optional list of command arguments.
-
-    *data_mapping* can be a mapping of environment variables which would
-    be augmented by the resolved environment.
-
     Raise :exc:`wiz.exception.GraphResolutionError` if the environment graph
     cannot be resolved.
 
     """
-    environments = wiz.environment.resolve(
-        application.requirement, environment_mapping
-    )
+    return wiz.environment.resolve(application.requirement, environment_mapping)
 
-    data_mapping = wiz.environment.initiate_data(data_mapping=data_mapping)
-    environment = wiz.environment.combine(
-        environments, data_mapping=data_mapping
-    )
 
+def extract_commands(application, environment, arguments=None):
+    """Extract command list from *application*.
+
+    *application* must be valid :class:`wiz.definition.Application` instance.
+
+    *environment* must be valid :class:`wiz.definition.Environment` instance.
+
+    *arguments* can be an optional list of command arguments.
+
+    """
     command = application.command
+
     command_mapping = environment.get("command", {})
     if command in command_mapping.keys():
         command = command_mapping[command]
@@ -65,4 +63,4 @@ def run(
     if arguments is not None:
         commands += arguments
 
-    wiz.spawn.execute(commands, environment["data"])
+    return commands

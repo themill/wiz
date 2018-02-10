@@ -182,6 +182,12 @@ def construct_parser():
     )
 
     run_subparsers.add_argument(
+        "--view",
+        help="Only view the resolved environment.",
+        action="store_true"
+    )
+
+    run_subparsers.add_argument(
         "-dsp", "--definition-search-paths",
         nargs="+",
         metavar="PATH",
@@ -204,7 +210,7 @@ def construct_parser():
     )
 
     use_subparsers.add_argument(
-        "-v", "--view-only",
+        "--view",
         help="Only view the resolved environment.",
         action="store_true"
     )
@@ -422,9 +428,9 @@ def main(arguments=None):
                 environments, data_mapping=data_mapping
             )
 
-            # Only view thw resolved environment without spawning a shell nor
+            # Only view the resolved environment without spawning a shell nor
             # running any commands.
-            if namespace.view_only:
+            if namespace.view:
                 display_registries(registries)
 
                 display_environments(
@@ -468,10 +474,34 @@ def main(arguments=None):
                 namespace.application, mapping[wiz.symbol.APPLICATION_TYPE]
             )
 
-            wiz.application.run(
-                application, mapping[wiz.symbol.ENVIRONMENT_TYPE],
-                arguments=command_arguments
+            environments = wiz.application.resolve_environments(
+                application, mapping[wiz.symbol.ENVIRONMENT_TYPE]
             )
+
+            data_mapping = wiz.environment.initiate_data()
+            environment = wiz.environment.combine(
+                environments, data_mapping=data_mapping
+            )
+
+            commands = wiz.application.extract_commands(
+                application, environment, arguments=command_arguments
+            )
+
+            # Only view the resolved environment without running any commands.
+            if namespace.view:
+                logger.info("Start command: {}".format(" ".join(commands)))
+
+                display_registries(registries)
+
+                display_environments(
+                    environments, registries,
+                    header="Resolved Environments"
+                )
+
+                display_environment_data(environment.get("data", {}))
+
+            else:
+                wiz.spawn.execute(commands, environment["data"])
 
         except wiz.exception.WizError as error:
             logger.error(str(error), traceback=True)
