@@ -24,7 +24,7 @@ def construct_parser():
     """Return argument parser."""
     parser = argparse.ArgumentParser(
         prog="wiz",
-        description="Fetch and create run-time environments.",
+        description="Environment manager.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
@@ -438,8 +438,8 @@ def main(arguments=None):
                     header="Resolved Environments"
                 )
 
-                display_environment_commands(
-                    environment.get("command", {}),
+                display_environment_aliases(
+                    environment.get("alias", {}),
                     header="Resolved Commands"
                 )
 
@@ -452,10 +452,10 @@ def main(arguments=None):
             # Otherwise, resolve the command and run it within the resolved
             # environment.
             else:
-                command_mapping = environment.get("command", {})
-                if command_arguments[0] in command_mapping.keys():
+                alias_mapping = environment.get("alias", {})
+                if command_arguments[0] in alias_mapping.keys():
                     commands = shlex.split(
-                        command_mapping[command_arguments[0]]
+                        alias_mapping[command_arguments[0]]
                     )
                     command_arguments = commands + command_arguments[1:]
 
@@ -550,7 +550,7 @@ def main(arguments=None):
                 )
 
                 command = _query_command(
-                    environment.get("command", {}).values()
+                    environment.get("alias", {}).values()
                 )
 
                 # Indicate information about the generation process.
@@ -633,11 +633,11 @@ def _query_version(logger, default="0.1.0"):
         return version
 
 
-def _query_command(commands=None):
+def _query_command(aliases=None):
     """Query the commands to run within the exported wrapper."""
-    if commands > 0:
-        print("Available commands:")
-        for _command in commands:
+    if aliases > 0:
+        print("Available aliases:")
+        for _command in aliases:
             print("- {}".format(_command))
     print("Indicate a command (No command by default):", end=" ")
     command = raw_input()
@@ -687,9 +687,9 @@ def display_environment(environment, logger):
         print("system:")
         for key, value in sorted(environment.get("system").items()):
             print("    - {}: {}".format(key, value))
-    if len(environment.get("command", {})) > 0:
-        print("command:")
-        for key, value in sorted(environment.get("command").items()):
+    if len(environment.get("alias", {})) > 0:
+        print("alias:")
+        for key, value in sorted(environment.get("alias").items()):
             print("    - {}: {}".format(key, value))
     if len(environment.get("data", {})) > 0:
         print("data:")
@@ -826,17 +826,17 @@ def display_environments(
     _display_mappings(mappings)
 
 
-def display_environment_commands(command_mapping, header=None):
-    if len(command_mapping) == 0:
-        print("No commands to display.")
+def display_environment_aliases(alias_mapping, header=None):
+    if len(alias_mapping) == 0:
+        print("No aliases to display.")
         return
 
-    titles = [header or "Commands", "Value"]
+    titles = [header or "Aliases", "Value"]
     mappings = [
         {"size": len(title), "items": [], "title": title} for title in titles
     ]
 
-    for command, value in sorted(command_mapping.items()):
+    for command, value in sorted(alias_mapping.items()):
         mappings[0]["items"].append(command)
         mappings[0]["size"] = max(len(command), mappings[0]["size"])
 

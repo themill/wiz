@@ -55,7 +55,7 @@ def extract_commands(application, environment, arguments=None):
     """
     command = application.command
 
-    command_mapping = environment.get("command", {})
+    command_mapping = environment.get("alias", {})
     if command in command_mapping.keys():
         command = command_mapping[command]
 
