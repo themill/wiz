@@ -6,6 +6,7 @@ import copy
 
 import mlog
 
+from wiz import __version__
 import wiz.graph
 import wiz.symbol
 import wiz.exception
@@ -209,6 +210,7 @@ def initiate_data(data_mapping=None):
 
     """
     environ = {
+        "WIZ_VERSION": __version__,
         "USER": os.environ.get("USER"),
         "LOGNAME": os.environ.get("LOGNAME"),
         "HOME": os.environ.get("HOME"),
