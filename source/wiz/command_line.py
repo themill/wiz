@@ -100,8 +100,8 @@ def construct_parser():
     )
 
     environment_parser.add_argument(
-        "--with-commands",
-        help="Return only environment defining commands.",
+        "--with-aliases",
+        help="Return only environment defining aliases.",
         action="store_true"
     )
 
@@ -126,8 +126,8 @@ def construct_parser():
     )
 
     search_parser.add_argument(
-        "--with-commands",
-        help="Return only environment defining commands.",
+        "--with-aliases",
+        help="Return only environment defining aliases.",
         action="store_true"
     )
 
@@ -306,12 +306,22 @@ def main(arguments=None):
 
     # Process requested operation.
     if namespace.commands == "list":
-        display_definitions(
-            namespace.subcommands, registries,
-            max_depth=namespace.definition_search_depth,
-            all_versions=namespace.all,
-            commands_only=namespace.with_commands
+        mapping = wiz.definition.fetch(
+            registries, max_depth=namespace.definition_search_depth
         )
+        display_registries(registries)
+
+        if namespace.subcommands == "application":
+            display_applications(
+                mapping[wiz.symbol.APPLICATION_TYPE], registries
+            )
+
+        elif namespace.subcommands == "environment":
+            display_environment_mapping(
+                mapping[wiz.symbol.ENVIRONMENT_TYPE], registries,
+                all_versions=namespace.all,
+                with_aliases=namespace.with_aliases
+            )
 
     elif namespace.commands == "search":
         requirements = map(Requirement, namespace.requirements)
@@ -342,7 +352,7 @@ def main(arguments=None):
                 mapping[wiz.symbol.ENVIRONMENT_TYPE],
                 registries,
                 all_versions=namespace.all,
-                commands_only=namespace.with_commands
+                with_aliases=namespace.with_aliases
             )
 
         if not results_found:
@@ -574,44 +584,6 @@ def main(arguments=None):
             logger.warning("Aborted.")
 
 
-def display_definitions(
-    definition_type, paths, max_depth=None, all_versions=False,
-    commands_only=False
-):
-    """Fetch and display definitions from *definition_type* in *registries*.
-
-    *definition_type* must be "application" or "environment".
-
-    Discover all available definitions under *paths*, searching recursively
-    up to *max_depth*.
-
-    *all_versions* indicate whether all versions from the environments must be
-    returned. If not, only the latest version of each environment identifier is
-    displayed.
-
-    *commands_only* indicate whether only environments with 'aliases' should be
-    displayed.
-
-    """
-    if definition_type == "application":
-        mapping = wiz.definition.fetch(paths, max_depth=max_depth)
-        display_registries(paths)
-        display_applications(
-            mapping[wiz.symbol.APPLICATION_TYPE],
-            paths
-        )
-
-    elif definition_type == "environment":
-        mapping = wiz.definition.fetch(paths, max_depth=max_depth)
-        display_registries(paths)
-        display_environment_mapping(
-            mapping[wiz.symbol.ENVIRONMENT_TYPE],
-            paths,
-            all_versions=all_versions,
-            commands_only=commands_only
-        )
-
-
 def display_registries(paths):
     """Display all registries from *paths* with an identifier.
 
@@ -766,7 +738,7 @@ def display_applications(application_mapping, registries):
 
 
 def display_environment_mapping(
-    environment_mapping, registries, all_versions=False, commands_only=False,
+    environment_mapping, registries, all_versions=False, with_aliases=False,
 ):
     """Display the environments contained in *environment_mapping*.
 
@@ -779,7 +751,7 @@ def display_environment_mapping(
     returned. If not, only the latest version of each environment identifier is
     displayed.
 
-    *commands_only* indicate whether only environments with 'aliases' should be
+    *with_aliases* indicate whether only environments with 'aliases' should be
     displayed.
 
     """
@@ -797,12 +769,12 @@ def display_environment_mapping(
             environments_to_display.append(_environments[0])
 
     display_environments(
-        environments_to_display, registries, commands_only=commands_only
+        environments_to_display, registries, with_aliases=with_aliases
     )
 
 
 def display_environments(
-    environments, registries, header=None, commands_only=False
+    environments, registries, header=None, with_aliases=False
 ):
     """Display *environments* instances.
 
@@ -814,7 +786,7 @@ def display_environments(
     *header* can be the name of the table displayed ("Environment" is the
     default value).
 
-    *commands_only* indicate whether only environments with 'aliases' should be
+    *with_aliases* indicate whether only environments with 'aliases' should be
     displayed.
 
     """
@@ -826,7 +798,7 @@ def display_environments(
     def _format_unit(_environment, _variant=None):
         """Format *_mapping* from *_environment* unit with optional *_variant*.
         """
-        if commands_only and _environment.get("alias") is None:
+        if with_aliases and _environment.get("alias") is None:
             return
 
         _identifier = _environment.identifier
