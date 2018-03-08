@@ -311,7 +311,7 @@ def main(arguments=None):
                 registries, max_depth=namespace.definition_search_depth
             )
             display_registries(registries)
-            display_applications_mapping(
+            display_applications(
                 mapping[wiz.symbol.APPLICATION_TYPE],
                 registries
             )
@@ -343,7 +343,7 @@ def main(arguments=None):
             len(mapping[wiz.symbol.APPLICATION_TYPE]) > 0
         ):
             results_found = True
-            display_applications_mapping(
+            display_applications(
                 mapping[wiz.symbol.APPLICATION_TYPE],
                 registries
             )
@@ -589,6 +589,327 @@ def main(arguments=None):
             logger.warning("Aborted.")
 
 
+def display_registries(paths):
+    """Display all registries from *paths* with an identifier.
+
+    Example::
+
+        >>> display_registries(paths)
+
+        [0] /path/to/registry-1
+        [1] /path/to/registry-2
+
+    """
+    title = "Registries"
+    mappings = [
+        {"size": len(title), "items": [], "title": title}
+    ]
+
+    for index, path in enumerate(paths):
+        item = "[{}] {}".format(index, path)
+        mappings[0]["items"].append(item)
+        mappings[0]["size"] = max(len(item), mappings[0]["size"])
+
+    _display_table(mappings)
+
+
+def display_application(application, logger):
+    """Display *application* instance.
+
+    *application* should be a :class:`wiz.definition.Application` instance.
+
+    Example::
+
+        >>> display_application(application)
+
+        identifier: my-app
+        registry: /path/to/registry
+        description: My Application
+        command: app
+        requirement:
+            - app-env==3.0.2
+
+    """
+    logger.info("View application: {}".format(application.identifier))
+
+    print("identifier: {}".format(application.identifier))
+    print("registry: {}".format(application.get("registry")))
+    print("description: {}".format(application.description))
+    print("command: {}".format(application.command))
+    print("requirement:")
+    for requirement in application.requirement:
+        print("    - {}".format(requirement))
+    print()
+
+
+def display_environment(environment, logger):
+    """Display *environment* instance.
+
+    *environment* should be a :class:`wiz.definition.Environment` instance.
+
+    Example::
+
+        >>> display_environment(environment)
+
+        identifier: app-env
+        registry: /path/to/registry
+        description: My Application Environment
+        version: 0.1.0
+        system:
+            - os: el >= 7, < 8
+            - arch: x86_64
+        alias:
+            - app: App0.1.0
+            - appX: app0.1.0 --option value
+        data:
+            - KEY1: VALUE1
+            - KEY2: VALUE2
+            - KEY3: VALUE3
+        requirement:
+            - env1>=0.1
+            - env2==1.0.2
+
+    """
+    logger.info(
+        "View environment: {} ({})".format(
+            environment.identifier, environment.version
+        )
+    )
+
+    print("identifier: {}".format(environment.identifier))
+    print("registry: {}".format(environment.get("registry")))
+    print("description: {}".format(environment.description))
+    print("version: {}".format(environment.version))
+    if len(environment.get("system", {})) > 0:
+        print("system:")
+        for key, value in sorted(environment.get("system").items()):
+            print("    - {}: {}".format(key, value))
+    if len(environment.get("alias", {})) > 0:
+        print("alias:")
+        for key, value in sorted(environment.get("alias").items()):
+            print("    - {}: {}".format(key, value))
+    if len(environment.get("data", {})) > 0:
+        print("data:")
+        for key, value in sorted(environment.get("data").items()):
+            print("    - {}: {}".format(key, value))
+    if len(environment.get("requirement", [])) > 0:
+        print("requirement:")
+        for requirement in environment.get("requirement"):
+            print("    - {}".format(requirement))
+    if len(environment.get("variant", [])) > 0:
+        print("variant:")
+        for variant in environment.get("variant"):
+            print("    - {}".format(variant.get("identifier")))
+            if len(variant.get("data", {})) > 0:
+                print("        data:")
+                for key, value in sorted(variant.get("data").items()):
+                    print("            - {}: {}".format(key, value))
+            if len(variant.get("requirement", [])) > 0:
+                print("        requirement:")
+                for requirement in variant.get("requirement"):
+                    print("            - {}".format(requirement))
+
+    print()
+
+
+def display_applications(application_mapping, registries):
+    """Display the applications contained in *application_mapping*.
+
+    *application_mapping* is a mapping regrouping all available application
+    associated with their unique identifier.
+
+    *registries* should be a list of available registry paths.
+
+    """
+    titles = ["Application", "Registry", "Description"]
+    rows = [
+        {"size": len(title), "items": [], "title": title} for title in titles
+    ]
+
+    for _, application in sorted(application_mapping.items()):
+        _identifier = application.identifier
+        rows[0]["items"].append(_identifier)
+        rows[0]["size"] = max(len(_identifier), rows[0]["size"])
+
+        registry_index = str(registries.index(application.get("registry")))
+        rows[1]["items"].append(registry_index)
+        rows[1]["size"] = max(len(registry_index), rows[1]["size"])
+
+        description = application.description
+        rows[2]["items"].append(description)
+        rows[2]["size"] = max(len(description), rows[2]["size"])
+
+    _display_table(rows)
+
+
+def display_environment_mapping(
+    environment_mapping, registries, all_versions=False, commands_only=False,
+):
+    """Display the environments contained in *environment_mapping*.
+
+    *environment_mapping* is a mapping regrouping all available environment
+    environment associated with their unique identifier.
+
+    *registries* should be a list of available registry paths.
+
+    *all_versions* indicate whether all versions from the environments must be
+    returned. If not, only the latest version of each environment identifier is
+    displayed.
+
+    *commands_only* indicate whether only environments with 'aliases' should be
+    displayed.
+
+    """
+    environments_to_display = []
+
+    for _, environments in sorted(environment_mapping.items()):
+        _environments = sorted(
+            environments, key=lambda _env: _env.version, reverse=True
+        )
+
+        if all_versions:
+            for environment in _environments:
+                environments_to_display.append(environment)
+        else:
+            environments_to_display.append(_environments[0])
+
+    display_environments(
+        environments_to_display, registries, commands_only=commands_only
+    )
+
+
+def display_environments(
+    environments, registries, header=None, commands_only=False
+):
+    """Display *environments* instances.
+
+    *environments* should be a list of :class:`wiz.definition.Environment`
+    instances.
+
+    *registries* should be a list of available registry paths.
+
+    *header* can be the name of the table displayed ("Environment" is the
+    default value).
+
+    *commands_only* indicate whether only environments with 'aliases' should be
+    displayed.
+
+    """
+    titles = [header or "Environment", "Version", "Registry", "Description"]
+    rows = [
+        {"size": len(title), "items": [], "title": title} for title in titles
+    ]
+
+    def _format_unit(_environment, _variant=None):
+        """Format *_mapping* from *_environment* unit with optional *_variant*.
+        """
+        if commands_only and _environment.get("alias") is None:
+            return
+
+        _identifier = _environment.identifier
+        if _variant is not None:
+            _identifier += " [{}]".format(_variant)
+
+        rows[0]["items"].append(_identifier)
+        rows[0]["size"] = max(len(_identifier), rows[0]["size"])
+
+        _version = str(_environment.version)
+        rows[1]["items"].append(_version)
+        rows[1]["size"] = max(len(_version), rows[1]["size"])
+
+        registry_index = str(registries.index(_environment.get("registry")))
+        rows[2]["items"].append(registry_index)
+        rows[2]["size"] = max(len(registry_index), rows[2]["size"])
+
+        _description = _environment.description
+        rows[3]["items"].append(_description)
+        rows[3]["size"] = max(len(_description), rows[3]["size"])
+
+    for environment in environments:
+        if len(environment.get("variant", [])) > 0:
+            for variant in environment.get("variant"):
+                _variant = variant.get("identifier", "unknown")
+                _format_unit(environment, _variant)
+
+        else:
+            _format_unit(environment, environment.get("variant_name"))
+
+    _display_table(rows)
+
+
+def display_environment_aliases(alias_mapping, header=None):
+    """Display aliases defined in environment.
+
+    *alias_mapping* is a mapping of aliases in the form of::
+
+        {
+            "app": "App0.1.0",
+            "appX": "App0.1.0 --option value"
+        }
+
+    *header* can be the name of the table displayed ("Aliases" is the
+    default value).
+
+    """
+    if len(alias_mapping) == 0:
+        print("No aliases to display.")
+        return
+
+    titles = [header or "Aliases", "Value"]
+    mappings = [
+        {"size": len(title), "items": [], "title": title} for title in titles
+    ]
+
+    for command, value in sorted(alias_mapping.items()):
+        mappings[0]["items"].append(command)
+        mappings[0]["size"] = max(len(command), mappings[0]["size"])
+
+        mappings[1]["items"].append(value)
+        mappings[1]["size"] = max(len(value), mappings[1]["size"])
+
+    _display_table(mappings)
+
+
+def display_environment_data(data_mapping):
+    """Display data mapping defined in environment.
+
+    *data_mapping* can be a mapping of environment variables in the form of::
+
+        {
+            "KEY1": "VALUE1",
+            "KEY2": "VALUE2"
+        }
+
+    """
+    if len(data_mapping) == 0:
+        print("No environment variables to display.")
+        return
+
+    titles = ["Environment Variable", "Environment Value"]
+    mappings = [
+        {"size": len(title), "items": [], "title": title} for title in titles
+    ]
+
+    def _compute_value(_variable, value):
+        """Compute value to display."""
+        if _variable == "DISPLAY":
+            return [value]
+        return str(value).split(os.pathsep)
+
+    for variable in sorted(data_mapping.keys()):
+        for key, _value in itertools.izip_longest(
+            [variable], _compute_value(variable, data_mapping[variable])
+        ):
+            _key = key or ""
+            mappings[0]["items"].append(_key)
+            mappings[0]["size"] = max(len(_key), mappings[0]["size"])
+
+            mappings[1]["items"].append(_value)
+            mappings[1]["size"] = max(len(_value), mappings[1]["size"])
+
+    _display_table(mappings)
+
+
 def _query_identifier(logger):
     """Query an identifier for a resolved environment."""
     while True:
@@ -645,265 +966,34 @@ def _query_command(aliases=None):
         return command
 
 
-def display_registries(paths):
-    title = "Registries"
-    mappings = [
-        {"size": len(title), "items": [], "title": title}
-    ]
-
-    for index, path in enumerate(paths):
-        item = "[{}] {}".format(index, path)
-        mappings[0]["items"].append(item)
-        mappings[0]["size"] = max(len(item), mappings[0]["size"])
-
-    _display_mappings(mappings)
-
-
-def display_application(application, logger):
-    logger.info("View application: {}".format(application.identifier))
-
-    print("identifier: {}".format(application.identifier))
-    print("registry: {}".format(application.get("registry")))
-    print("description: {}".format(application.description))
-    print("command: {}".format(application.command))
-    print("requirement:")
-    for requirement in application.requirement:
-        print("    - {}".format(requirement))
-    print()
-
-
-def display_environment(environment, logger):
-    logger.info(
-        "View environment: {} ({})".format(
-            environment.identifier, environment.version
-        )
-    )
-
-    print("identifier: {}".format(environment.identifier))
-    print("registry: {}".format(environment.get("registry")))
-    print("description: {}".format(environment.description))
-    print("version: {}".format(environment.version))
-    if len(environment.get("system", {})) > 0:
-        print("system:")
-        for key, value in sorted(environment.get("system").items()):
-            print("    - {}: {}".format(key, value))
-    if len(environment.get("alias", {})) > 0:
-        print("alias:")
-        for key, value in sorted(environment.get("alias").items()):
-            print("    - {}: {}".format(key, value))
-    if len(environment.get("data", {})) > 0:
-        print("data:")
-        for key, value in sorted(environment.get("data").items()):
-            print("    - {}: {}".format(key, value))
-    if len(environment.get("requirement", [])) > 0:
-        print("requirement:")
-        for requirement in environment.get("requirement"):
-            print("    - {}".format(requirement))
-    if len(environment.get("variant", [])) > 0:
-        print("variant:")
-        for variant in environment.get("variant"):
-            print("    - {}".format(variant.get("identifier")))
-            if len(variant.get("data", {})) > 0:
-                print("        data:")
-                for key, value in sorted(variant.get("data").items()):
-                    print("            - {}: {}".format(key, value))
-            if len(variant.get("requirement", [])) > 0:
-                print("        requirement:")
-                for requirement in variant.get("requirement"):
-                    print("            - {}".format(requirement))
-
-    print()
-
-
-def display_applications_mapping(application_mapping, registries):
-    """Display the applications stored in *application_mapping*.
-
-    *application_mapping* is a mapping regrouping all available application
-    associated with their unique identifier.
-
-    *registries* should be a list of available registry paths.
-
-    """
-    titles = ["Application", "Registry", "Description"]
-    mappings = [
-        {"size": len(title), "items": [], "title": title} for title in titles
-    ]
-
-    for _, application in sorted(application_mapping.items()):
-        _identifier = application.identifier
-        mappings[0]["items"].append(_identifier)
-        mappings[0]["size"] = max(len(_identifier), mappings[0]["size"])
-
-        registry_index = str(registries.index(application.get("registry")))
-        mappings[1]["items"].append(registry_index)
-        mappings[1]["size"] = max(len(registry_index), mappings[1]["size"])
-
-        description = application.description
-        mappings[2]["items"].append(description)
-        mappings[2]["size"] = max(len(description), mappings[2]["size"])
-
-    _display_mappings(mappings)
-
-
-def display_environment_mapping(
-    environment_mapping, registries, all_versions=False, commands_only=False,
-):
-    """Display the environments stored in *environment_mapping*.
-
-    *environment_mapping* is a mapping regrouping all available environment
-    environment associated with their unique identifier.
-
-    *registries* should be a list of available registry paths.
-
-    *all_versions* indicate whether all versions from the environments must be
-    returned. If not, only the latest version of each environment identifier is
-    displayed.
-
-    *commands_only* indicate whether only environments with 'commands' should be
-    displayed.
-
-    """
-    environments_to_display = []
-
-    for _, environments in sorted(environment_mapping.items()):
-        _environments = sorted(
-            environments, key=lambda _env: _env.version, reverse=True
-        )
-
-        if all_versions:
-            for environment in _environments:
-                environments_to_display.append(environment)
-        else:
-            environments_to_display.append(_environments[0])
-
-    display_environments(
-        environments_to_display, registries, commands_only=commands_only
-    )
-
-
-def display_environments(
-    environments, registries, header=None, commands_only=False
-):
-    titles = [header or "Environment", "Version", "Registry", "Description"]
-    mappings = [
-        {"size": len(title), "items": [], "title": title} for title in titles
-    ]
-
-    def _format_unit(_environment, _variant=None):
-        """Format *_mapping* from *_environment* unit with optional *_variant*.
-        """
-        if commands_only and _environment.get("command") is None:
-            return
-
-        _identifier = _environment.identifier
-        if _variant is not None:
-            _identifier += " [{}]".format(_variant)
-
-        mappings[0]["items"].append(_identifier)
-        mappings[0]["size"] = max(len(_identifier), mappings[0]["size"])
-
-        _version = str(_environment.version)
-        mappings[1]["items"].append(_version)
-        mappings[1]["size"] = max(len(_version), mappings[1]["size"])
-
-        registry_index = str(registries.index(_environment.get("registry")))
-        mappings[2]["items"].append(registry_index)
-        mappings[2]["size"] = max(len(registry_index), mappings[2]["size"])
-
-        _description = _environment.description
-        mappings[3]["items"].append(_description)
-        mappings[3]["size"] = max(len(_description), mappings[3]["size"])
-
-    for environment in environments:
-        if len(environment.get("variant", [])) > 0:
-            for variant in environment.get("variant"):
-                _variant = variant.get("identifier", "unknown")
-                _format_unit(environment, _variant)
-
-        else:
-            _format_unit(environment, environment.get("variant_name"))
-
-    _display_mappings(mappings)
-
-
-def display_environment_aliases(alias_mapping, header=None):
-    if len(alias_mapping) == 0:
-        print("No aliases to display.")
-        return
-
-    titles = [header or "Aliases", "Value"]
-    mappings = [
-        {"size": len(title), "items": [], "title": title} for title in titles
-    ]
-
-    for command, value in sorted(alias_mapping.items()):
-        mappings[0]["items"].append(command)
-        mappings[0]["size"] = max(len(command), mappings[0]["size"])
-
-        mappings[1]["items"].append(value)
-        mappings[1]["size"] = max(len(value), mappings[1]["size"])
-
-    _display_mappings(mappings)
-
-
-def display_environment_data(data_mapping):
-    if len(data_mapping) == 0:
-        print("No environment variables to display.")
-        return
-
-    titles = ["Environment Variable", "Environment Value"]
-    mappings = [
-        {"size": len(title), "items": [], "title": title} for title in titles
-    ]
-
-    def _compute_value(_variable, value):
-        """Compute value to display."""
-        if _variable == "DISPLAY":
-            return [value]
-        return str(value).split(os.pathsep)
-
-    for variable in sorted(data_mapping.keys()):
-        for key, _value in itertools.izip_longest(
-            [variable], _compute_value(variable, data_mapping[variable])
-        ):
-            _key = key or ""
-            mappings[0]["items"].append(_key)
-            mappings[0]["size"] = max(len(_key), mappings[0]["size"])
-
-            mappings[1]["items"].append(_value)
-            mappings[1]["size"] = max(len(_value), mappings[1]["size"])
-
-    _display_mappings(mappings)
-
-
-def _display_mappings(mappings):
-    """Display *mapping*."""
+def _display_table(rows):
+    """Display table of *rows*."""
     spaces = []
-    for mapping in mappings:
-        space = mapping["size"] - len(mapping["title"])
+    for column in rows:
+        space = column["size"] - len(column["title"])
         spaces.append(space)
 
     # Print titles.
     print(
         "\n" + "   ".join([
-            mappings[i]["title"] + " " * spaces[i]
-            for i in range(len(mappings))
+            rows[i]["title"] + " " * spaces[i]
+            for i in range(len(rows))
         ])
     )
 
     # Print underlines.
     print(
         "   ".join([
-            "-" * (len(mappings[i]["title"]) + spaces[i])
-            for i in range(len(mappings))
+            "-" * (len(rows[i]["title"]) + spaces[i])
+            for i in range(len(rows))
         ])
     )
 
     # Print elements.
-    for elements in itertools.izip(*[mapping["items"] for mapping in mappings]):
+    for elements in itertools.izip(*[column["items"] for column in rows]):
         print(
             "   ".join([
-                elements[i] + " " * (mappings[i]["size"] - len(elements[i]))
+                elements[i] + " " * (rows[i]["size"] - len(elements[i]))
                 for i in range(len(elements))
             ])
         )
