@@ -306,27 +306,12 @@ def main(arguments=None):
 
     # Process requested operation.
     if namespace.commands == "list":
-        if namespace.subcommands == "application":
-            mapping = wiz.definition.fetch(
-                registries, max_depth=namespace.definition_search_depth
-            )
-            display_registries(registries)
-            display_applications(
-                mapping[wiz.symbol.APPLICATION_TYPE],
-                registries
-            )
-
-        elif namespace.subcommands == "environment":
-            mapping = wiz.definition.fetch(
-                registries, max_depth=namespace.definition_search_depth
-            )
-            display_registries(registries)
-            display_environment_mapping(
-                mapping[wiz.symbol.ENVIRONMENT_TYPE],
-                registries,
-                all_versions=namespace.all,
-                commands_only=namespace.with_commands
-            )
+        display_definitions(
+            namespace.subcommands, registries,
+            max_depth=namespace.definition_search_depth,
+            all_versions=namespace.all,
+            commands_only=namespace.with_commands
+        )
 
     elif namespace.commands == "search":
         requirements = map(Requirement, namespace.requirements)
@@ -587,6 +572,44 @@ def main(arguments=None):
 
         except KeyboardInterrupt:
             logger.warning("Aborted.")
+
+
+def display_definitions(
+    definition_type, paths, max_depth=None, all_versions=False,
+    commands_only=False
+):
+    """Fetch and display definitions from *definition_type* in *registries*.
+
+    *definition_type* must be "application" or "environment".
+
+    Discover all available definitions under *paths*, searching recursively
+    up to *max_depth*.
+
+    *all_versions* indicate whether all versions from the environments must be
+    returned. If not, only the latest version of each environment identifier is
+    displayed.
+
+    *commands_only* indicate whether only environments with 'aliases' should be
+    displayed.
+
+    """
+    if definition_type == "application":
+        mapping = wiz.definition.fetch(paths, max_depth=max_depth)
+        display_registries(paths)
+        display_applications(
+            mapping[wiz.symbol.APPLICATION_TYPE],
+            paths
+        )
+
+    elif definition_type == "environment":
+        mapping = wiz.definition.fetch(paths, max_depth=max_depth)
+        display_registries(paths)
+        display_environment_mapping(
+            mapping[wiz.symbol.ENVIRONMENT_TYPE],
+            paths,
+            all_versions=all_versions,
+            commands_only=commands_only
+        )
 
 
 def display_registries(paths):
