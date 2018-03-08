@@ -306,158 +306,16 @@ def main(arguments=None):
 
     # Process requested operation.
     if namespace.commands == "list":
-        mapping = wiz.definition.fetch(
-            registries, max_depth=namespace.definition_search_depth
-        )
-        display_registries(registries)
-
-        if namespace.subcommands == "application":
-            display_applications(
-                mapping[wiz.symbol.APPLICATION_TYPE], registries
-            )
-
-        elif namespace.subcommands == "environment":
-            display_environment_mapping(
-                mapping[wiz.symbol.ENVIRONMENT_TYPE], registries,
-                all_versions=namespace.all,
-                with_aliases=namespace.with_aliases
-            )
+        _fetch_and_display_definitions(namespace, registries)
 
     elif namespace.commands == "search":
-        requirements = map(Requirement, namespace.requirements)
-        mapping = wiz.definition.search(
-            requirements, registries,
-            max_depth=namespace.definition_search_depth
-        )
-
-        display_registries(registries)
-        results_found = False
-
-        if (
-            namespace.type in ["application", "all"] and
-            len(mapping[wiz.symbol.APPLICATION_TYPE]) > 0
-        ):
-            results_found = True
-            display_applications(
-                mapping[wiz.symbol.APPLICATION_TYPE],
-                registries
-            )
-
-        if (
-            namespace.type in ["environment", "all"] and
-            len(mapping[wiz.symbol.ENVIRONMENT_TYPE]) > 0
-        ):
-            results_found = True
-            display_environment_mapping(
-                mapping[wiz.symbol.ENVIRONMENT_TYPE],
-                registries,
-                all_versions=namespace.all,
-                with_aliases=namespace.with_aliases
-            )
-
-        if not results_found:
-            logger.warning("No results found.\n")
+        _search_and_display_definitions(namespace, registries)
 
     elif namespace.commands == "view":
-        mapping = wiz.definition.fetch(
-            registries, max_depth=namespace.definition_search_depth
-        )
-
-        results_found = False
-
-        try:
-            application = wiz.application.get(
-                namespace.requirement,
-                mapping[wiz.symbol.APPLICATION_TYPE]
-            )
-            results_found = True
-
-        except wiz.exception.RequestNotFound:
-            logger.debug(
-                "No application found for requirement: '{}'\n".format(
-                    namespace.requirement
-                )
-            )
-
-        else:
-            display_application(application, logger)
-
-        try:
-            requirement = Requirement(namespace.requirement)
-            environment = wiz.environment.get(
-                requirement, mapping[wiz.symbol.ENVIRONMENT_TYPE],
-                divide_variants=False
-            )[0]
-            results_found = True
-
-        except wiz.exception.RequestNotFound:
-            logger.debug(
-                "No environment found for requirement: '{}'\n".format(
-                    namespace.requirement
-                )
-            )
-
-        else:
-            display_environment(environment, logger)
-
-        if not results_found:
-            logger.warning(
-                "No application nor environment could be found for "
-                "requirement: '{}'\n".format(namespace.requirement)
-            )
+        _display_definition(namespace, registries)
 
     elif namespace.commands == "use":
-        mapping = wiz.definition.fetch(
-            registries, max_depth=namespace.definition_search_depth
-        )
-
-        requirements = map(Requirement, namespace.requirements)
-
-        try:
-            environments = wiz.environment.resolve(
-                requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
-            )
-
-            data_mapping = wiz.environment.initiate_data()
-            environment = wiz.environment.combine(
-                environments, data_mapping=data_mapping
-            )
-
-            # Only view the resolved environment without spawning a shell nor
-            # running any commands.
-            if namespace.view:
-                display_registries(registries)
-
-                display_environments(
-                    environments, registries,
-                    header="Resolved Environments"
-                )
-
-                display_environment_aliases(
-                    environment.get("alias", {}),
-                    header="Resolved Commands"
-                )
-
-                display_environment_data(environment.get("data", {}))
-
-            # If no commands are indicated, spawn a shell.
-            elif command_arguments is None:
-                wiz.spawn.shell(environment["data"])
-
-            # Otherwise, resolve the command and run it within the resolved
-            # environment.
-            else:
-                alias_mapping = environment.get("alias", {})
-                if command_arguments[0] in alias_mapping.keys():
-                    commands = shlex.split(
-                        alias_mapping[command_arguments[0]]
-                    )
-                    command_arguments = commands + command_arguments[1:]
-
-                wiz.spawn.execute(command_arguments, environment["data"])
-
-        except wiz.exception.WizError as error:
-            logger.error(str(error), traceback=True)
+        _resolve_and_use_environment(namespace, registries, command_arguments)
 
     elif namespace.commands == "run":
         mapping = wiz.definition.fetch(
@@ -582,6 +440,226 @@ def main(arguments=None):
 
         except KeyboardInterrupt:
             logger.warning("Aborted.")
+
+
+def _fetch_and_display_definitions(namespace, registries):
+    """Fetch and display definitions from arguments in *namespace*.
+
+    Command example::
+
+        wiz list application
+        wiz list environment
+        wiz list environment --all
+        wiz list environment --with-aliases
+
+    *namespace* is an instance of :class:`argparse.Namespace`.
+
+    *registries* should be a list of available registry paths.
+
+    """
+    mapping = wiz.definition.fetch(
+        registries, max_depth=namespace.definition_search_depth
+    )
+    display_registries(registries)
+
+    if namespace.subcommands == "application":
+        display_applications(
+            mapping[wiz.symbol.APPLICATION_TYPE], registries
+        )
+
+    elif namespace.subcommands == "environment":
+        display_environment_mapping(
+            mapping[wiz.symbol.ENVIRONMENT_TYPE], registries,
+            all_versions=namespace.all,
+            with_aliases=namespace.with_aliases
+        )
+
+
+def _search_and_display_definitions(namespace, registries):
+    """Search and display definitions from arguments in *namespace*.
+
+    Command example::
+
+        wiz search app
+        wiz search app --all
+        wiz search app --with-aliases
+        wiz search app1>=2
+        wiz search app other
+
+    *namespace* is an instance of :class:`argparse.Namespace`.
+
+    *registries* should be a list of available registry paths.
+
+    """
+    logger = mlog.Logger(__name__ + "._search_and_display_definitions")
+
+    requirements = map(Requirement, namespace.requirements)
+    mapping = wiz.definition.search(
+        requirements, registries,
+        max_depth=namespace.definition_search_depth
+    )
+
+    display_registries(registries)
+    results_found = False
+
+    if (
+        namespace.type in ["application", "all"] and
+        len(mapping[wiz.symbol.APPLICATION_TYPE]) > 0
+    ):
+        results_found = True
+        display_applications(
+            mapping[wiz.symbol.APPLICATION_TYPE],
+            registries
+        )
+
+    if (
+        namespace.type in ["environment", "all"] and
+        len(mapping[wiz.symbol.ENVIRONMENT_TYPE]) > 0
+    ):
+        results_found = True
+        display_environment_mapping(
+            mapping[wiz.symbol.ENVIRONMENT_TYPE],
+            registries,
+            all_versions=namespace.all,
+            with_aliases=namespace.with_aliases
+        )
+
+    if not results_found:
+        logger.warning("No results found.\n")
+
+
+def _display_definition(namespace, registries):
+    """Display definition from arguments in *namespace*.
+
+    Command example::
+
+        wiz view app
+
+    *namespace* is an instance of :class:`argparse.Namespace`.
+
+    *registries* should be a list of available registry paths.
+
+    """
+    logger = mlog.Logger(__name__ + "._display_definition")
+
+    mapping = wiz.definition.fetch(
+        registries, max_depth=namespace.definition_search_depth
+    )
+    results_found = False
+
+    # Display requested application if found.
+    try:
+        application = wiz.application.get(
+            namespace.requirement, mapping[wiz.symbol.APPLICATION_TYPE]
+        )
+        results_found = True
+
+    except wiz.exception.RequestNotFound:
+        logger.debug(
+            "No application found for requirement: '{}'\n".format(
+                namespace.requirement
+            )
+        )
+
+    else:
+        display_application(application, logger)
+
+    # Display requested environment if found.
+    try:
+        requirement = Requirement(namespace.requirement)
+        environment = wiz.environment.get(
+            requirement, mapping[wiz.symbol.ENVIRONMENT_TYPE],
+            divide_variants=False
+        )[0]
+        results_found = True
+
+    except wiz.exception.RequestNotFound:
+        logger.debug(
+            "No environment found for requirement: '{}'\n".format(
+                namespace.requirement
+            )
+        )
+
+    else:
+        display_environment(environment, logger)
+
+    # Otherwise, indicate that no result has been found...
+    if not results_found:
+        logger.warning(
+            "No application nor environment could be found for "
+            "requirement: '{}'\n".format(namespace.requirement)
+        )
+
+
+def _resolve_and_use_environment(namespace, registries, command_arguments):
+    """Resolve and use environment from arguments in *namespace*.
+
+    Command example::
+
+        wiz use env1>=1 env2==2.3.0 env3
+        wiz use --view app
+
+    *namespace* is an instance of :class:`argparse.Namespace`.
+
+    *registries* should be a list of available registry paths.
+
+    *command_arguments* could be the command list to execute within
+    the resolved environment.
+
+    """
+    logger = mlog.Logger(__name__ + "._resolve_and_use_environment")
+
+    mapping = wiz.definition.fetch(
+        registries, max_depth=namespace.definition_search_depth
+    )
+
+    requirements = map(Requirement, namespace.requirements)
+
+    try:
+        environments = wiz.environment.resolve(
+            requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
+        )
+
+        data_mapping = wiz.environment.initiate_data()
+        environment = wiz.environment.combine(
+            environments, data_mapping=data_mapping
+        )
+
+        # Only view the resolved environment without spawning a shell nor
+        # running any commands.
+        if namespace.view:
+            display_registries(registries)
+
+            display_environments(
+                environments, registries,
+                header="Resolved Environments"
+            )
+
+            display_environment_aliases(
+                environment.get("alias", {}),
+                header="Resolved Commands"
+            )
+
+            display_environment_data(environment.get("data", {}))
+
+        # If no commands are indicated, spawn a shell.
+        elif command_arguments is None:
+            wiz.spawn.shell(environment["data"])
+
+        # Otherwise, resolve the command and run it within the resolved
+        # environment.
+        else:
+            alias_mapping = environment.get("alias", {})
+            if command_arguments[0] in alias_mapping.keys():
+                commands = shlex.split(
+                    alias_mapping[command_arguments[0]]
+                )
+                command_arguments = commands + command_arguments[1:]
+
+            wiz.spawn.execute(command_arguments, environment["data"])
+
+    except wiz.exception.WizError as error:
+        logger.error(str(error), traceback=True)
 
 
 def display_registries(paths):
