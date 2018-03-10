@@ -3,6 +3,7 @@
 import os
 import json
 import collections
+import abc
 
 import mlog
 from packaging.requirements import Requirement, InvalidRequirement
@@ -26,11 +27,15 @@ def fetch(paths, max_depth=None):
     }
 
     for definition in discover(paths, max_depth=max_depth):
+        identifier = definition.identifier
+
         if definition.type == wiz.symbol.ENVIRONMENT_TYPE:
-            mapping[definition.type].setdefault(definition.identifier, [])
-            mapping[definition.type][definition.identifier].append(definition)
+            version = definition.version.base_version
+            mapping[definition.type].setdefault(identifier, {})
+            mapping[definition.type][identifier][version] = definition
+
         elif definition.type == wiz.symbol.APPLICATION_TYPE:
-            mapping[definition.type][definition.identifier] = definition
+            mapping[definition.type][identifier] = definition
 
     return mapping
 
@@ -126,8 +131,9 @@ def discover(paths, max_depth=None):
                 )
 
                 try:
-                    definition = load(definition_path)
-                    definition["registry"] = path
+                    definition = load(
+                        definition_path, mapping={"registry": path}
+                    )
 
                     if definition.get("disabled", False):
                         logger.warning(
@@ -154,8 +160,11 @@ def discover(paths, max_depth=None):
                     yield definition
 
 
-def load(path):
+def load(path, mapping=None):
     """Load and return a definition from *path*.
+
+    *mapping* can indicate a optional mapping which will augment the data
+    leading to the creation of the definition.
 
     If the definition data is of type "environment", an :class:`Environment`
     instance will be returned.
@@ -167,8 +176,12 @@ def load(path):
     otherwise.
 
     """
+    if mapping is None:
+        mapping = {}
+
     with open(path, "r") as stream:
         definition_data = json.load(stream)
+        definition_data.update(mapping)
         return create(definition_data)
 
 
@@ -202,23 +215,17 @@ def create(definition_data):
     )
 
 
-class _Definition(collections.MutableMapping):
+class _Definition(collections.Mapping):
     """Base Definition object."""
 
     def __init__(self, *args, **kwargs):
         """Initialise definition."""
-        super(_Definition, self).__init__()
-        self._mapping = {}
-        self.update(*args, **kwargs)
-
-    def _validate(self):
-        """Validate the definition."""
-        raise NotImplemented
+        self._mapping = dict(*args, **kwargs)
 
     @property
     def type(self):
         """Return application type."""
-        raise NotImplemented
+        return self.get("type")
 
     @property
     def identifier(self):
@@ -230,14 +237,18 @@ class _Definition(collections.MutableMapping):
         """Return name."""
         return self.get("description", "unknown")
 
-    def sorted_mapping(self):
+    def to_mapping(self):
         """Return ordered definition data."""
-        raise NotImplemented
+        return self._mapping.copy()
+
+    @abc.abstractmethod
+    def to_ordered_mapping(self):
+        """Return ordered definition data."""
 
     def encode(self):
         """Return serialized definition data."""
         return json.dumps(
-            self.sorted_mapping(),
+            self.to_ordered_mapping(),
             indent=4,
             separators=(",", ": "),
             ensure_ascii=False
@@ -252,14 +263,6 @@ class _Definition(collections.MutableMapping):
     def __getitem__(self, key):
         """Return value for *key*."""
         return self._mapping[key]
-
-    def __setitem__(self, key, value):
-        """Set *value* for *key*."""
-        self._mapping[key] = value
-
-    def __delitem__(self, key):
-        """Delete *key*."""
-        del self._mapping[key]
 
     def __iter__(self):
         """Iterate over all keys."""
@@ -276,81 +279,156 @@ class Environment(_Definition):
 
     def __init__(self, *args, **kwargs):
         """Initialise environment definition."""
-        super(Environment, self).__init__(*args, **kwargs)
-        self._validate()
+        mapping = dict(*args, **kwargs)
+        mapping["type"] = wiz.symbol.ENVIRONMENT_TYPE
 
-    def _validate(self):
-        """Validate the definition."""
         try:
-            self._mapping["version"] = Version(self.version)
-            self._mapping["requirement"] = map(
-                Requirement, self.get("requirement", [])
+            self._version = None
+            if "version" in mapping.keys():
+                self._version = Version(mapping["version"])
+
+            self._requirement = map(Requirement, mapping.get("requirement", []))
+            self._variant = map(
+                _EnvironmentVariant, mapping.get("variant", [])
             )
 
-            for variant_mapping in self._mapping.get("variant", []):
-                variant_mapping["requirement"] = map(
-                    Requirement, variant_mapping.get("requirement", [])
-                )
-
-        except (InvalidRequirement, InvalidVersion) as error:
+        except (InvalidRequirement, InvalidVersion) as exception:
             raise wiz.exception.IncorrectEnvironment(
                 "The environment '{}' is incorrect: {}".format(
-                    self.identifier, error
+                    self.identifier, exception
                 )
             )
 
-    @property
-    def type(self):
-        """Return environment type."""
-        return wiz.symbol.ENVIRONMENT_TYPE
+        super(Environment, self).__init__(mapping)
 
     @property
     def version(self):
         """Return version."""
-        return self.get("version", "unknown")
+        return self._version
 
-    def sorted_mapping(self):
+    @property
+    def data(self):
+        """Return data mapping."""
+        return self.get("data", {})
+
+    @property
+    def alias(self):
+        """Return alias mapping."""
+        return self.get("alias", {})
+
+    @property
+    def system(self):
+        """Return system constraint mapping."""
+        return self.get("system", {})
+
+    @property
+    def requirement(self):
+        """Return requirement list."""
+        return self._requirement
+
+    @property
+    def variant(self):
+        """Return requirement list."""
+        return self._variant
+
+    def to_ordered_mapping(self):
         """Return ordered definition data."""
-        mapping = self._mapping.copy()
+        mapping = self.to_mapping()
 
         content = collections.OrderedDict()
-
         content["identifier"] = mapping.pop("identifier")
-        content["version"] = str(mapping.pop("version"))
+
+        if mapping.get("version") is not None:
+            content["version"] = mapping.pop("version")
+
         content["type"] = mapping.pop("type")
-        content["description"] = mapping.pop("description", "unknown")
+
+        if mapping.get("description") is not None:
+            content["description"] = mapping.pop("description")
 
         if len(mapping.get("system", {})) > 0:
             content["system"] = mapping.pop("system")
 
-        if len(mapping.get("command", {})) > 0:
-            content["command"] = mapping.pop("command")
+        if len(mapping.get("alias", {})) > 0:
+            content["alias"] = mapping.pop("alias")
 
         if len(mapping.get("data", {})) > 0:
             content["data"] = mapping.pop("data")
 
         if len(mapping.get("requirement", [])) > 0:
-            content["requirement"] = map(str, mapping.pop("requirement"))
+            content["requirement"] = mapping.pop("requirement")
 
         if len(mapping.get("variant", [])) > 0:
-            variants = []
+            content["variant"] = [
+                variant.to_ordered_mapping() for variant
+                in self.variant
+            ]
+            mapping.pop("variant")
 
-            for variant in mapping.pop("variant", []):
-                _content = collections.OrderedDict()
-                _content["identifier"] = variant.get("identifier")
+        content.update(mapping)
+        return content
 
-                if len(variant.get("data", {})) > 0:
-                    _content["data"] = variant.get("data")
 
-                if len(variant.get("requirement", [])) > 0:
-                    _content["requirement"] = map(
-                        str, variant.get("requirement")
-                    )
+class _EnvironmentVariant(_Definition):
+    """Environment Variant Definition."""
 
-                _content.update(variant)
-                variants.append(_content)
+    def __init__(self, *args, **kwargs):
+        """Initialise environment definition."""
+        mapping = dict(*args, **kwargs)
 
-            content["variant"] = variants
+        try:
+            self._requirement = map(Requirement, mapping.get("requirement", []))
+
+        except (InvalidRequirement, InvalidVersion) as exception:
+            raise wiz.exception.IncorrectEnvironment(
+                "The environment '{}' is incorrect: {}".format(
+                    self.identifier, exception
+                )
+            )
+
+        super(_EnvironmentVariant, self).__init__(mapping)
+
+    @property
+    def data(self):
+        """Return data mapping."""
+        return self.get("data", {})
+
+    @property
+    def alias(self):
+        """Return alias mapping."""
+        return self.get("alias", {})
+
+    @property
+    def system(self):
+        """Return system constraint mapping."""
+        return self.get("system", {})
+
+    @property
+    def requirement(self):
+        """Return requirement list."""
+        return self._requirement
+
+    def to_ordered_mapping(self):
+        """Return ordered definition data."""
+        mapping = self.to_mapping()
+
+        content = collections.OrderedDict()
+        content["identifier"] = mapping.pop("identifier")
+
+        if mapping.get("description") is not None:
+            content["description"] = mapping.pop("description")
+
+        if len(mapping.get("system", {})) > 0:
+            content["system"] = mapping.pop("system")
+
+        if len(mapping.get("alias", {})) > 0:
+            content["alias"] = mapping.pop("alias")
+
+        if len(mapping.get("data", {})) > 0:
+            content["data"] = mapping.pop("data")
+
+        if len(mapping.get("requirement", [])) > 0:
+            content["requirement"] = mapping.pop("requirement")
 
         content.update(mapping)
         return content
@@ -361,15 +439,11 @@ class Application(_Definition):
 
     def __init__(self, *args, **kwargs):
         """Initialise application definition."""
-        super(Application, self).__init__(*args, **kwargs)
-        self._validate()
+        mapping = dict(*args, **kwargs)
+        mapping["type"] = wiz.symbol.APPLICATION_TYPE
 
-    def _validate(self):
-        """Validate the definition."""
         try:
-            self._mapping["requirement"] = map(
-                Requirement, self.get("requirement", [])
-            )
+            self._requirement = map(Requirement, mapping.get("requirement", []))
 
         except InvalidRequirement as error:
             raise wiz.exception.IncorrectApplication(
@@ -378,10 +452,7 @@ class Application(_Definition):
                 )
             )
 
-    @property
-    def type(self):
-        """Return application type."""
-        return wiz.symbol.APPLICATION_TYPE
+        super(Application, self).__init__(mapping)
 
     @property
     def command(self):
@@ -391,19 +462,18 @@ class Application(_Definition):
     @property
     def requirement(self):
         """Return requirement list."""
-        return self.get("requirement", [])
+        return self._requirement
 
-    def sorted_mapping(self):
+    def to_ordered_mapping(self):
         """Return ordered definition data."""
-        mapping = self._mapping.copy()
+        mapping = self.to_mapping()
 
         content = collections.OrderedDict()
-
         content["identifier"] = mapping.pop("identifier")
         content["type"] = mapping.pop("type")
         content["description"] = mapping.pop("description", "unknown")
         content["command"] = mapping.pop("command")
-        content["requirement"] = map(str, mapping.pop("requirement"))
+        content["requirement"] = mapping.pop("requirement")
 
         content.update(mapping)
         return content
