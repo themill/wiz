@@ -40,27 +40,36 @@ def fetch(paths, max_depth=None):
     return mapping
 
 
-def search(requirements, paths, max_depth=None):
+def search(requests, paths, max_depth=None):
     """Return mapping from definitions matching *requirement*.
 
-    *requirement* should be an instance of
-    :class:`packaging.requirements.Requirement`.
+    *requests* should be a list of element which can influence the definition
+    research. It can be in the form of "app-env >= 1.0.0, < 2" in order to
+    affine the research to a particular version range.
 
     :func:`~wiz.definition.discover` available definitions under *paths*,
     searching recursively up to *max_depth*.
 
     """
     logger = mlog.Logger(__name__ + ".search")
-    logger.info(
-        "Search definitions matching '{}'".format(
-            ", ".join(map(str, requirements))
-        )
-    )
+    logger.info("Search definitions matching '{}'".format(" ".join(requests)))
 
     mapping = {
         wiz.symbol.APPLICATION_TYPE: {},
         wiz.symbol.ENVIRONMENT_TYPE: {}
     }
+
+    requirements = []
+    for request in requests:
+        try:
+            requirement = Requirement(request)
+        except InvalidRequirement:
+            continue
+
+        requirements.append(requirement)
+
+    if len(requirements) == 0:
+        return mapping
 
     for definition in discover(paths, max_depth=max_depth):
         compatible = True
@@ -83,9 +92,12 @@ def search(requirements, paths, max_depth=None):
         if not compatible:
             continue
 
+        identifier = definition.identifier
+
         if definition.type == wiz.symbol.ENVIRONMENT_TYPE:
-            mapping[definition.type].setdefault(definition.identifier, [])
-            mapping[definition.type][definition.identifier].append(definition)
+            version = definition.version.base_version
+            mapping[definition.type].setdefault(definition.identifier, {})
+            mapping[definition.type][identifier][version] = definition
 
         elif definition.type == wiz.symbol.APPLICATION_TYPE:
             mapping[definition.type][definition.identifier] = definition
@@ -295,7 +307,7 @@ class Environment(_Definition):
         except (InvalidRequirement, InvalidVersion) as exception:
             raise wiz.exception.IncorrectEnvironment(
                 "The environment '{}' is incorrect: {}".format(
-                    self.identifier, exception
+                    mapping.get("identifier"), exception
                 )
             )
 
@@ -304,7 +316,7 @@ class Environment(_Definition):
     @property
     def version(self):
         """Return version."""
-        return self._version
+        return self._version or "unknown"
 
     @property
     def data(self):
@@ -375,17 +387,7 @@ class _EnvironmentVariant(_Definition):
     def __init__(self, *args, **kwargs):
         """Initialise environment definition."""
         mapping = dict(*args, **kwargs)
-
-        try:
-            self._requirement = map(Requirement, mapping.get("requirement", []))
-
-        except (InvalidRequirement, InvalidVersion) as exception:
-            raise wiz.exception.IncorrectEnvironment(
-                "The environment '{}' is incorrect: {}".format(
-                    self.identifier, exception
-                )
-            )
-
+        self._requirement = map(Requirement, mapping.get("requirement", []))
         super(_EnvironmentVariant, self).__init__(mapping)
 
     @property
@@ -399,11 +401,6 @@ class _EnvironmentVariant(_Definition):
         return self.get("alias", {})
 
     @property
-    def system(self):
-        """Return system constraint mapping."""
-        return self.get("system", {})
-
-    @property
     def requirement(self):
         """Return requirement list."""
         return self._requirement
@@ -414,12 +411,6 @@ class _EnvironmentVariant(_Definition):
 
         content = collections.OrderedDict()
         content["identifier"] = mapping.pop("identifier")
-
-        if mapping.get("description") is not None:
-            content["description"] = mapping.pop("description")
-
-        if len(mapping.get("system", {})) > 0:
-            content["system"] = mapping.pop("system")
 
         if len(mapping.get("alias", {})) > 0:
             content["alias"] = mapping.pop("alias")
@@ -448,7 +439,7 @@ class Application(_Definition):
         except InvalidRequirement as error:
             raise wiz.exception.IncorrectApplication(
                 "The application '{}' is incorrect: {}".format(
-                    self.identifier, error
+                    mapping.get("identifier"), error
                 )
             )
 
@@ -471,7 +462,10 @@ class Application(_Definition):
         content = collections.OrderedDict()
         content["identifier"] = mapping.pop("identifier")
         content["type"] = mapping.pop("type")
-        content["description"] = mapping.pop("description", "unknown")
+
+        if mapping.get("description") is not None:
+            content["description"] = mapping.pop("description")
+
         content["command"] = mapping.pop("command")
         content["requirement"] = mapping.pop("requirement")
 
