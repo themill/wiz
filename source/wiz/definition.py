@@ -391,14 +391,14 @@ class _EnvironmentVariant(_Definition):
         super(_EnvironmentVariant, self).__init__(mapping)
 
     @property
-    def data(self):
-        """Return data mapping."""
-        return self.get("data", {})
-
-    @property
     def alias(self):
         """Return alias mapping."""
         return self.get("alias", {})
+
+    @property
+    def data(self):
+        """Return data mapping."""
+        return self.get("data", {})
 
     @property
     def requirement(self):
