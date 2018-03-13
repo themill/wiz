@@ -192,9 +192,10 @@ def test_minimal_package_without_variant():
     assert package.data == {}
     assert package.requirement == []
 
-    assert len(package) == 5
+    assert len(package) == 6
     assert sorted(package) == [
-        "alias", "data", "description", "identifier", "requirement"
+        "alias", "data", "description", "environment", "identifier",
+        "requirement"
     ]
 
 

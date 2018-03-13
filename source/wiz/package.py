@@ -104,6 +104,7 @@ class Package(collections.Mapping):
             "identifier": generate_identifier(
                 environment, variant_name=variant_mapping.get("identifier")
             ),
+            "environment": environment.identifier,
             "description": environment.description,
             "alias": variant_mapping.get("alias") or environment.alias,
             "data": variant_mapping.get("data") or environment.data,
@@ -116,6 +117,11 @@ class Package(collections.Mapping):
     def identifier(self):
         """Return identifier."""
         return self.get("identifier")
+
+    @property
+    def environment(self):
+        """Return environment identifier."""
+        return self.get("environment")
 
     @property
     def description(self):
