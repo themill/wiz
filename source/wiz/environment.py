@@ -199,7 +199,7 @@ def combine_data(environment1, environment2):
             if value1 is not None and "${{{}}}".format(key) not in value2:
                 logger.warning(
                     "The '{key}' variable is being overridden in "
-                    "environment '{environment}'".format(
+                    "environment {environment}".format(
                         key=key, environment=environment2
                     )
                 )
@@ -242,11 +242,9 @@ def combine_alias(environment1, environment2):
 
         if value1 is not None and value2 is not None:
             logger.warning(
-                "The '{key}' command is being overridden in "
-                "environment '{identifier}' [{version}]".format(
-                    key=command,
-                    identifier=environment2.get("identifier"),
-                    version=environment2.get("version")
+                "The '{key}' alias is being overridden in "
+                "environment {environment}".format(
+                    key=command, environment=environment2
                 )
             )
             mapping[command] = str(value2)

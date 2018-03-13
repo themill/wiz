@@ -266,12 +266,6 @@ class _Definition(collections.Mapping):
             ensure_ascii=False
         )
 
-    def __str__(self):
-        """Return string representation."""
-        return "{}({!r}, {!r})".format(
-            self.__class__.__name__, self.identifier, self._mapping
-        )
-
     def __getitem__(self, key):
         """Return value for *key*."""
         return self._mapping[key]
@@ -301,7 +295,10 @@ class Environment(_Definition):
 
             self._requirement = map(Requirement, mapping.get("requirement", []))
             self._variant = map(
-                _EnvironmentVariant, mapping.get("variant", [])
+                lambda variant: _EnvironmentVariant(
+                    variant, mapping.get("identifier")
+                ),
+                mapping.get("variant", [])
             )
 
         except (InvalidRequirement, InvalidVersion) as exception:
@@ -312,6 +309,12 @@ class Environment(_Definition):
             )
 
         super(Environment, self).__init__(mapping)
+
+    def __str__(self):
+        """Return string representation."""
+        return "'{identifier}' [{version}]".format(
+            identifier=self.identifier, version=self.version
+        )
 
     @property
     def version(self):
@@ -384,11 +387,18 @@ class Environment(_Definition):
 class _EnvironmentVariant(_Definition):
     """Environment Variant Definition."""
 
-    def __init__(self, *args, **kwargs):
-        """Initialise environment definition."""
-        mapping = dict(*args, **kwargs)
+    def __init__(self, variant, identifier):
+        """Initialise environment variant definition."""
+        mapping = dict(variant)
+        self._identifier = identifier
         self._requirement = map(Requirement, mapping.get("requirement", []))
         super(_EnvironmentVariant, self).__init__(mapping)
+
+    def __str__(self):
+        """Return string representation."""
+        return "'{identifier}' [{variant_name}]".format(
+            identifier=self._identifier, variant_name=self.identifier
+        )
 
     @property
     def alias(self):
@@ -444,6 +454,10 @@ class Application(_Definition):
             )
 
         super(Application, self).__init__(mapping)
+
+    def __str__(self):
+        """Return string representation."""
+        return "'{identifier}'".format(identifier=self.identifier)
 
     @property
     def command(self):

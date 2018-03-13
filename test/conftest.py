@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import uuid
 
+import mlog
 import pytest
 
 
@@ -43,3 +44,16 @@ def temporary_directory(request):
     request.addfinalizer(cleanup)
 
     return path
+
+
+@pytest.fixture(autouse=True)
+def logger(mocker):
+    """Mock the mlog module and return logger."""
+    mocker.patch.object(mlog, "configure")
+    mocker.patch.object(mlog, "root")
+
+    mock_logger = mocker.Mock()
+    mocker.patch.object(
+        mlog, "Logger", return_value=mock_logger
+    )
+    return mock_logger

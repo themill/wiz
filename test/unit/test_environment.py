@@ -126,9 +126,7 @@ def test_resolve(mocker, environment_mapping):
 def mocked_combine_data(mocker):
     """Return mocked combine_data function."""
     return mocker.patch.object(
-        wiz.environment, "combine_data", return_value={
-            "_KEY": "_VALUE"
-        }
+        wiz.environment, "combine_data", return_value={"_KEY": "_VALUE"}
     )
 
 
@@ -136,9 +134,7 @@ def mocked_combine_data(mocker):
 def mocked_combine_alias(mocker):
     """Return mocked combine_alias function."""
     return mocker.patch.object(
-        wiz.environment, "combine_alias", return_value={
-            "_APP": "_APP_X"
-        }
+        wiz.environment, "combine_alias", return_value={"_APP": "_APP_X"}
     )
 
 
@@ -307,53 +303,110 @@ def test_extract_context_and_clean_data(mocked_combine_data):
     }
 
 
-@pytest.mark.parametrize("environment1, environment2, expected", [
+@pytest.mark.parametrize("environment1, environment2, expected, warning", [
     (
-        {"data": {"KEY": "HELLO"}},
-        {"data": {"KEY": "${KEY} WORLD!"}},
-        {"KEY": "HELLO WORLD!"}
+        wiz.definition.Environment({"data": {"KEY": "HELLO"}}),
+        wiz.definition.Environment({"data": {"KEY": "${KEY} WORLD!"}}),
+        {"KEY": "HELLO WORLD!"},
+        None
     ),
     (
-        {"data": {"KEY": "VALUE1"}},
-        {"data": {"KEY": "VALUE2"}},
-        {"KEY": "VALUE2"}
+        wiz.definition.Environment({"data": {"KEY": "VALUE1"}}),
+        wiz.definition.Environment({
+            "identifier": "ENV",
+            "version": "0.1.0",
+            "data": {"KEY": "VALUE2"}
+        }),
+        {"KEY": "VALUE2"},
+        (
+            "The 'KEY' variable is being overridden in "
+            "environment 'ENV' [0.1.0]"
+        )
     ),
     (
-        {"data": {"PLUGIN": "/path/to/settings", "HOME": "/usr/people/me"}},
-        {"data": {"PLUGIN": "${HOME}/.app:${PLUGIN}"}},
+        wiz.definition.Environment({"data": {"KEY": "VALUE1"}}),
+        wiz.definition._EnvironmentVariant({
+            "identifier": "Variant",
+            "data": {"KEY": "VALUE2"}
+        }, "ENV"),
+        {"KEY": "VALUE2"},
+        (
+            "The 'KEY' variable is being overridden in "
+            "environment 'ENV' [Variant]"
+        )
+    ),
+    (
+        wiz.definition.Environment({
+            "data": {"PLUGIN": "/path/to/settings", "HOME": "/usr/people/me"}
+        }),
+        wiz.definition.Environment({
+            "data": {"PLUGIN": "${HOME}/.app:${PLUGIN}"}
+        }),
         {
             "HOME": "/usr/people/me",
             "PLUGIN": "/usr/people/me/.app:/path/to/settings"
-        }
+        },
+        None
     )
 ], ids=[
     "combine-key",
     "override-key",
+    "override-variant-key",
     "mixed-combination"
 ])
-def test_combine_data(environment1, environment2, expected):
+def test_combine_data(logger, environment1, environment2, expected, warning):
     """Return combined data from *environment1* and *environment2*."""
     assert wiz.environment.combine_data(environment1, environment2) == expected
+    if warning is None:
+        logger.warning.assert_not_called()
+    else:
+        logger.warning.assert_called_once_with(warning)
 
 
-@pytest.mark.parametrize("environment1, environment2, expected", [
+@pytest.mark.parametrize("environment1, environment2, expected, warning", [
     (
-        {"alias": {"app1": "App1"}},
-        {"alias": {"app2": "App2"}},
-        {"app1": "App1", "app2": "App2"}
+        wiz.definition.Environment({"alias": {"app1": "App1"}}),
+        wiz.definition.Environment({"alias": {"app2": "App2"}}),
+        {"app1": "App1", "app2": "App2"},
+        None
     ),
     (
-        {"alias": {"app1": "App1.0"}},
-        {"alias": {"app1": "App1.5"}},
-        {"app1": "App1.5"}
+        wiz.definition.Environment({"alias": {"app1": "App1.0"}}),
+        wiz.definition.Environment({
+            "identifier": "ENV",
+            "version": "0.1.0",
+            "alias": {"app1": "App1.5"}
+        }),
+        {"app1": "App1.5"},
+        (
+            "The 'app1' alias is being overridden in "
+            "environment 'ENV' [0.1.0]"
+        )
+    ),
+    (
+        wiz.definition.Environment({"alias": {"app1": "App1.0"}}),
+        wiz.definition._EnvironmentVariant({
+            "identifier": "Variant",
+            "alias": {"app1": "App1.5"}
+        }, "ENV"),
+        {"app1": "App1.5"},
+        (
+            "The 'app1' alias is being overridden in "
+            "environment 'ENV' [Variant]"
+        )
     ),
 ], ids=[
     "combine-key",
     "override-key",
+    "override-variant-key",
 ])
-def test_combine_alias(environment1, environment2, expected):
+def test_combine_alias(logger, environment1, environment2, expected, warning):
     """Return combined alias from *environment1* and *environment2*."""
     assert wiz.environment.combine_alias(environment1, environment2) == expected
+    if warning is None:
+        logger.warning.assert_not_called()
+    else:
+        logger.warning.assert_called_once_with(warning)
 
 
 def test_initiate_data(monkeypatch):
