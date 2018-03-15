@@ -44,7 +44,7 @@ class LinuxPlatform(object):
 
 
 class MacOsPlatform(object):
-    """Mac platform."""
+    """MacOS platform."""
 
     def name(self):
         """Return platform name."""
