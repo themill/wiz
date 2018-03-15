@@ -104,20 +104,28 @@ def get(requirement, definition_mapping):
     be resolved.
 
     """
-    if requirement.name not in definition_mapping:
+    identifier = requirement.name
+    if identifier not in definition_mapping:
         raise wiz.exception.RequestNotFound(requirement)
 
     definition = None
 
     # Sort the definition versions so that the highest one is first.
     versions = sorted(
-        map(lambda d: d.version, definition_mapping[requirement.name].values()),
+        map(lambda d: d.version, definition_mapping[identifier].values()),
         reverse=True
     )
 
+    if None in versions and len(versions) > 1:
+        raise wiz.exception.IncorrectDefinition(
+            "Impossible to retrieve the best matching definition for "
+            "'{identifier}' as non-versioned and versioned definitions have "
+            "been fetched."
+        )
+
     # Get the best matching definition.
     for version in versions:
-        _definition = definition_mapping[requirement.name][str(version)]
+        _definition = definition_mapping[identifier][str(version)]
         if _definition.version in requirement.specifier:
             definition = _definition
             break
