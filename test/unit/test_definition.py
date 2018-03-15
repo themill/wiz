@@ -240,23 +240,11 @@ def test_fetch(mocked_discover, mocked_validate, definitions, options):
             }
         },
         "command": {
-            "foo": {
-                "1.1.0": definitions[1]
-            },
-            "bar": {
-                "1.0.0": definitions[2],
-                "0.9.2": definitions[3]
-            },
-            "baz": {
-                "0.1.1": definitions[4]
-            },
-            "bim-test": {
-                "0.2.1": definitions[6],
-            },
-            "bim": {
-                "0.2.1": definitions[5],
-                "0.1.0": definitions[7]
-            }
+            "foo": "foo-package",
+            "bar": "bar-package",
+            "baz": "baz-package",
+            "bim-test": "bim-package",
+            "bim": "bim-package"
         }
     }
 

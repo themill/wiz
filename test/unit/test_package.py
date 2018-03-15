@@ -448,8 +448,8 @@ def test_minimal_package_without_variant():
     assert package.environ == {}
     assert package.requirements == []
 
-    assert len(package) == 2
-    assert sorted(package) == ["definition", "identifier"]
+    assert len(package) == 3
+    assert sorted(package) == ["definition", "identifier", "variant_name"]
 
 
 def test_full_package_without_variant():
