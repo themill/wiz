@@ -21,15 +21,11 @@ def fetch_definitions(paths, max_depth=None):
 
         {
             "command": {
-                "app": {
-                    "1.1.0": <Definition(identifier="test", , version="1.1.0")>
-                    "1.0.0": <Definition(identifier="test", , version="1.0.0")>
-                    ...
-                },
+                "app": "my-package",
                 ...
             },
             "package": {
-                "test": {
+                "my-package": {
                     "1.1.0": <Definition(identifier="test", version="1.1.0")>,
                     "1.0.0": <Definition(identifier="test", version="1.0.0")>,
                     "0.1.0": <Definition(identifier="test", version="0.1.0")>,
