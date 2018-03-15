@@ -6,7 +6,8 @@ import shlex
 from packaging.requirements import Requirement
 
 import wiz.definition
-import wiz.environment
+import wiz.package
+import wiz.graph
 import wiz.symbol
 import wiz.spawn
 
@@ -20,17 +21,21 @@ def fetch_definitions(paths, max_depth=None):
     A definition mapping should be in the form of::
 
         {
-            "application": {
-                "app": <Application(identifier="app")>,
+            "command": {
+                "app": {
+                    "1.1.0": <Definition(identifier="test", , version="1.1.0")>
+                    "1.0.0": <Definition(identifier="test", , version="1.0.0")>
+                    ...
+                },
                 ...
             },
-            "environment": {
-                "app-env": [
-                    <Environment(identifier="app-env", version="1.1.0")>,
-                    <Environment(identifier="app-env", version="1.0.0")>,
-                    <Environment(identifier="app-env", version="0.1.0")>,
+            "package": {
+                "test": {
+                    "1.1.0": <Definition(identifier="test", version="1.1.0")>,
+                    "1.0.0": <Definition(identifier="test", version="1.0.0")>,
+                    "0.1.0": <Definition(identifier="test", version="0.1.0")>,
                     ...
-                ]
+                },
                 ...
             }
         }
@@ -39,51 +44,60 @@ def fetch_definitions(paths, max_depth=None):
     return wiz.definition.fetch(paths, max_depth=max_depth)
 
 
-def resolve_environment(requirements, definition_mapping, data_mapping=None):
-    """Return environment mapping from *requirements*.
+def resolve_context(requirements, definition_mapping, environ_mapping=None):
+    """Return context mapping from *requirements*.
 
-    An environment mapping should be in the form of::
+    The context should contain the resolved environment mapping, the
+    resolved command mapping, and an ordered list of all serialized packages
+    which constitute the resolved context.
+
+    It should be in the form of::
 
         {
-            "alias": {
+            "command": {
                 "app": "AppExe"
                 ...
             },
-            "data": {
+            "environ": {
                 "KEY1": "value1",
                 "KEY2": "value2",
                 ...
-            }
+            },
+            "packages": [
+                {"identifier": "test1==1.1.0", "version": "1.1.0", ...},
+                {"identifier": "test2==0.3.0", "version": "0.3.0", ...},
+                ...
+            ]
         }
 
     *requirements* should be a list of string indicating the environment version
-    requested to build the environment (e.g. ["app-env >= 1.0.0, < 2"])
+    requested to build the environment (e.g. ["package >= 1.0.0, < 2"])
 
-    *definition_mapping* is a mapping regrouping all available environment
-    and application definitions available.
+    *definition_mapping* is a mapping regrouping all available definitions
+    available.
 
-    *data_mapping* can be a mapping of environment variables which would
-    be augmented by the resolved data environment.
+    *environ_mapping* can be a mapping of environment variables which would
+    be augmented by the resolved environment.
 
     """
     requirements = map(Requirement, requirements)
 
-    environments = wiz.environment.resolve(
-        requirements, definition_mapping[wiz.symbol.ENVIRONMENT_TYPE]
+    resolver = wiz.graph.Resolver(definition_mapping[wiz.symbol.PACKAGE_TYPE])
+    packages = resolver.compute_packages(requirements)
+
+    _environ_mapping = wiz.package.initiate_environ(environ_mapping)
+    context = wiz.package.extract_context(
+        packages, environ_mapping=_environ_mapping
     )
 
-    _data_mapping = wiz.environment.initiate_data(data_mapping)
-    return wiz.environment.combine(
-        environments, data_mapping=_data_mapping
-    )
+    context["packages"] = packages
+    return context
 
 
-def resolve_environment_data(
-    requirements, definition_mapping, data_mapping=None
-):
-    """Return environment data mapping from *requirements*.
+def resolve_environment(requirements, definition_mapping, environ_mapping=None):
+    """Return environment mapping from *requirements*.
 
-    An environment data mapping should be in the form of::
+    An environment mapping should be in the form of::
 
         {
             "KEY1": "value1",
@@ -92,46 +106,42 @@ def resolve_environment_data(
         }
 
     *requirements* should be a list of string indicating the environment version
-    requested to build the environment (e.g. "app-env >= 1.0.0, < 2")
+    requested to build the environment (e.g. "package >= 1.0.0, < 2")
 
-    *definition_mapping* is a mapping regrouping all available environment
-    and application definitions available.
+    *definition_mapping* is a mapping regrouping all available definitions
+    available.
 
-    *data_mapping* can be a mapping of environment variables which would
-    be augmented by the resolved data environment.
+    *environ_mapping* can be a mapping of environment variables which would
+    be augmented by the resolved environment.
 
     """
-    _environment = resolve_environment(
-        requirements, definition_mapping, data_mapping
-    )
-    return _environment.get("data", {})
+    context = resolve_context(requirements, definition_mapping, environ_mapping)
+    return context.get("environ", {})
 
 
-def execute(command, requirements, definition_mapping, data_mapping=None):
+def execute(command, context, definition_mapping, environ_mapping=None):
     """Execute *command* within resolved environment from *requirements*.
 
     *command* should be a string representing an executable with possible
-    arguments that could be run within the resolved environment. The executable
-    could be an alias available within the resolved environment.
+    arguments that could be run within the resolved context. The executable
+    could be an command available within the resolved context.
 
     *requirements* should be a list of string indicating the environment version
     requested to build the environment (e.g. "app-env >= 1.0.0, < 2")
 
-    *definition_mapping* is a mapping regrouping all available environment
-    and application definitions available.
+    *definition_mapping* is a mapping regrouping all available definitions
+    available.
 
-    *data_mapping* can be a mapping of environment variables which would
-    be augmented by the resolved data environment.
+    *environ_mapping* can be a mapping of environment variables which would
+    be augmented by the resolved environment.
 
     """
     commands = shlex.split(command)
 
-    _environment = resolve_environment(
-        requirements, definition_mapping, data_mapping
-    )
+    context = resolve_context(requirements, definition_mapping, environ_mapping)
 
-    alias_mapping = _environment.get("alias", {})
-    if commands[0] in alias_mapping.keys():
-        commands = shlex.split(alias_mapping[commands[0]]) + commands[1:]
+    command_mapping = context.get("command", {})
+    if commands[0] in command_mapping.keys():
+        commands = shlex.split(command_mapping[commands[0]]) + commands[1:]
 
-    wiz.spawn.execute(commands, _environment.get("data", {}))
+    wiz.spawn.execute(commands, context.get("environ", {}))

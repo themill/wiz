@@ -13,7 +13,7 @@ except ImportError:
 
 import mlog
 
-import wiz.environment
+import wiz.package
 import wiz.exception
 
 
@@ -27,34 +27,29 @@ _NodeAttributes = namedtuple("_NodeAttributes", "priority, parent")
 class Resolver(object):
     """Graph resolver class."""
 
-    def __init__(self, environment_mapping):
+    def __init__(self, definition_mapping):
         """Initialise Resolver with *requirements*.
 
-        *environment_mapping* is a mapping regrouping all available environments
+        *definition_mapping* is a mapping regrouping all available definitions
         associated with their unique identifier.
 
         """
         self._logger = mlog.Logger(__name__ + ".Resolver")
 
-        # All available environments.
-        self._environment_mapping = environment_mapping
+        # All available definitions.
+        self._definition_mapping = definition_mapping
 
         # Stack of all graphs to resolve, sorted from the least important to
         # the most important.
         self._graphs_stack = deque()
 
     @property
-    def graphs(self):
-        """Return the number of requirement graphs added to the stack."""
-        return len(self._graphs_stack)
+    def definition_mapping(self):
+        """Return mapping of all available definitions."""
+        return self._definition_mapping
 
-    @property
-    def environment_mapping(self):
-        """Return mapping of all available environments."""
-        return self._environment_mapping
-
-    def compute_environments(self, requirements):
-        """Resolve requirements graphs and return list of environment versions.
+    def compute_packages(self, requirements):
+        """Resolve requirements graphs and return list of packages.
 
         *requirements* should be a list of
         class:`packaging.requirements.Requirement` instances.
@@ -86,20 +81,19 @@ class Resolver(object):
 
             else:
                 priority_mapping = self.compute_priority_mapping(graph)
-                return self.extract_ordered_environments(
+                return self.extract_ordered_packages(
                     graph, priority_mapping
                 )
 
     def divide(self, graph, priority_mapping):
         """Divide *graph* if necessary and return number of graphs created.
 
-        A *graph* must be divided when it contains at least one environment
-        version node with more than one variant available. The total number
-        of graphs created will be equal to the multiplication of each variant
-        number.
+        A *graph* must be divided when it contains at least one definition
+        version with more than one variant. The total number of graphs created
+        will be equal to the multiplication of each variant number.
 
         The nearest nodes are computed first, and the order of variants within
-        each environment version is preserved so that the graphs created are
+        each package version is preserved so that the graphs created are
         added to the stack from the most important to the least important.
 
         *graph* must be an instance of :class:`Graph`.
@@ -163,7 +157,7 @@ class Resolver(object):
         Raise :exc:`wiz.exception.GraphResolutionError` if two node requirements
         are incompatible.
 
-        Raise :exc:`wiz.exception.GraphResolutionError` if new environment
+        Raise :exc:`wiz.exception.GraphResolutionError` if new package
         versions added to the graph during the resolution process lead to
         a division of the graph.
 
@@ -199,6 +193,7 @@ class Resolver(object):
             identifier = identifiers.pop()
 
             # Identify other nodes conflicting with this node identifier.
+            # TODO: sort it per importance
             conflicted_identifiers = self.conflicted_identifiers(
                 graph, identifier
             )
@@ -248,7 +243,7 @@ class Resolver(object):
         """Return identifiers from nodes conflicting with node *identifier*.
 
         A node from the *graph* is in conflict with the node *identifier* when
-        its environment identifier is identical.
+        its definition identifier is identical.
 
         *graph* must be an instance of :class:`Graph`.
 
@@ -257,11 +252,13 @@ class Resolver(object):
         """
         node = graph.node(identifier)
 
-        # Extract environment identifier from node.
-        environment = node.environment.identifier
+        # Extract definition identifier from node.
+        definition_identifier = node.package.definition.identifier
 
-        # Get all nodes in the graph with the same environment identifier.
-        identifiers = graph.node_identifiers_from_environment(environment)
+        # Get all nodes in the graph with the same definition identifier.
+        identifiers = graph.node_identifiers_from_definition(
+            definition_identifier
+        )
 
         return filter(lambda _id: _id != identifier, identifiers)
 
@@ -273,10 +270,8 @@ class Resolver(object):
             The nodes will **NOT** be created in any graphs.
 
         """
-        environments = wiz.environment.get(
-            requirement, self.environment_mapping
-        )
-        return map(wiz.environment.generate_identifier, environments)
+        packages = wiz.package.extract(requirement, self._definition_mapping)
+        return [package.identifier for package in packages]
 
     def _remove_unreachable_nodes(self, graph, priority_mapping):
         """Remove unreachable nodes from *graph* based on *priority_mapping*.
@@ -320,11 +315,11 @@ class Resolver(object):
             ):
                 conflict = False
 
-                # Nodes are not compatible if both environment versions are not
+                # Nodes are not compatible if both package versions are not
                 # compatible with at least one of the specifier.
                 if (
-                    node1.environment.version not in requirement2.specifier and
-                    node2.environment.version not in requirement1.specifier
+                    node1.package.version not in requirement2.specifier and
+                    node2.package.version not in requirement1.specifier
                 ):
                     conflict = True
 
@@ -335,10 +330,10 @@ class Resolver(object):
                 if conflict:
                     raise wiz.exception.GraphResolutionError(
                         "A requirement conflict has been detected for "
-                        "'{environment}'\n"
+                        "'{package}'\n"
                         " - {requirement1} [from {parent1}]\n"
                         " - {requirement2} [from {parent2}]\n".format(
-                            environment=node1.environment.identifier,
+                            package=node1.package.identifier,
                             requirement1=requirement1,
                             requirement2=requirement2,
                             parent1=mapping1[requirement1],
@@ -420,10 +415,10 @@ class Resolver(object):
 
         return mapping
 
-    def extract_ordered_environments(self, graph, priority_mapping):
-        """Return sorted list of environments from *graph*.
+    def extract_ordered_packages(self, graph, priority_mapping):
+        """Return sorted list of packages from *graph*.
 
-        Best matching :class:`~wiz.definition.Environment` instances are
+        Best matching :class:`~wiz.package.Package` instances are
         extracted from each node instance and added to the list.
 
         *priority_mapping* is a mapping indicating the lowest possible priority
@@ -431,7 +426,7 @@ class Resolver(object):
         corresponding parent node identifier.
 
         """
-        environments = []
+        packages = []
 
         for identifier in sorted(
             graph.node_identifiers(),
@@ -439,17 +434,14 @@ class Resolver(object):
             reverse=True
         ):
             node = graph.node(identifier)
-            environments.append(node.environment)
+            packages.append(node.package)
 
         self._logger.debug(
-            "Sorted environments: {}".format(
-                ", ".join([
-                    wiz.environment.generate_identifier(_env)
-                    for _env in environments
-                ])
+            "Sorted packages: {}".format(
+                ", ".join([package.identifier for package in packages])
             )
         )
-        return environments
+        return packages
 
     def compute_priority_mapping(self, graph):
         """Return priority mapping for each node of *graph*.
@@ -525,7 +517,7 @@ class Graph(object):
     ROOT = "root"
 
     def __init__(
-        self, resolver, node_mapping=None, environment_mapping=None,
+        self, resolver, node_mapping=None, definition_mapping=None,
         variant_mapping=None, link_mapping=None
     ):
         """Initialise Graph.
@@ -535,8 +527,8 @@ class Graph(object):
         *node_mapping* can be an initial mapping of nodes organised node
         identifier.
 
-        *environment_mapping* can be an initial mapping of node identifier sets
-        organised per environment identifier.
+        *definition_mapping* can be an initial mapping of node identifier sets
+        organised per definition identifier.
 
         *variant_mapping* can be an initial mapping of node identifier variant
         lists organised per unique variant group identifier.
@@ -551,8 +543,8 @@ class Graph(object):
         # All nodes created per node identifier.
         self._node_mapping = node_mapping or {}
 
-        # Set of node identifiers organised per environment identifier.
-        self._environment_mapping = environment_mapping or {}
+        # Set of node identifiers organised per definition identifier.
+        self._definition_mapping = definition_mapping or {}
 
         # List of node identifier variants per hashed variant group identifier.
         self._variant_mapping = variant_mapping or {}
@@ -565,7 +557,7 @@ class Graph(object):
         return Graph(
             self._resolver,
             node_mapping=self._node_mapping.copy(),
-            environment_mapping=self._environment_mapping.copy(),
+            definition_mapping=self._definition_mapping.copy(),
             variant_mapping=self._variant_mapping.copy(),
             link_mapping=self._link_mapping.copy()
         )
@@ -578,12 +570,12 @@ class Graph(object):
         """Indicate whether the node *identifier* is in the graph."""
         return identifier in self._node_mapping.keys()
 
-    def node_identifiers_from_environment(self, environment_identifier):
-        """Return node identifiers in the graph from *environment_identifier*.
+    def node_identifiers_from_definition(self, definition_identifier):
+        """Return node identifiers in the graph from *definition_identifier*.
         """
         return filter(
             lambda _identifier: self._node_exists(_identifier),
-            self._environment_mapping[environment_identifier]
+            self._definition_mapping[definition_identifier]
         )
 
     def variant_groups(self):
@@ -623,12 +615,12 @@ class Graph(object):
         """Return conflicting node identifiers.
 
         A conflict appears when several nodes are found for a single
-        environment.
+        definition identifier.
 
         """
         identifiers = []
 
-        for _identifiers in self._environment_mapping.values():
+        for _identifiers in self._definition_mapping.values():
             if len(_identifiers) > 1:
                 identifiers += filter(
                     lambda _identifier: self._node_exists(_identifier),
@@ -678,39 +670,38 @@ class Graph(object):
         """
         self._logger.debug("Update from requirement: {}".format(requirement))
 
-        # Get best matching environments from requirement.
-        environments = wiz.environment.get(
-            requirement, self._resolver.environment_mapping
+        # Get packages from requirement.
+        packages = wiz.package.extract(
+            requirement, self._resolver.definition_mapping
         )
-        identifiers = map(wiz.environment.generate_identifier, environments)
 
-        # If more than one environments is returned, record all node identifiers
+        identifiers = [package.identifier for package in packages]
+
+        # If more than one package is returned, record all node identifiers
         # into a variant group.
-        if len(environments) > 1:
+        if len(packages) > 1:
             hashed_object = hashlib.md5("".join(identifiers))
             self._variant_mapping[hashed_object.hexdigest()] = identifiers
 
-        # Create a node for each environment version if necessary.
-        for environment, identifier in itertools.izip(
-            environments, identifiers
+        # Create a node for each package version if necessary.
+        for package, identifier in itertools.izip(
+            packages, identifiers
         ):
             if identifier not in self._node_mapping.keys():
-                self._logger.debug("Adding environment: {}".format(identifier))
-                self._node_mapping[identifier] = _Node(environment)
+                self._logger.debug("Adding package: {}".format(identifier))
+                self._node_mapping[identifier] = _Node(package)
 
-                requirements = environment.get("requirement")
-                if requirements is not None:
+                if len(package.requirements) > 0:
                     self.update_from_requirements(
-                        requirements, parent_identifier=identifier
+                        package.requirements, parent_identifier=identifier
                     )
 
             node = self._node_mapping[identifier]
 
-            # Record node identifiers per environment to identify conflicts.
-            self._environment_mapping.setdefault(environment.identifier, set())
-            self._environment_mapping[environment.identifier].add(
-                node.identifier
-            )
+            # Record node identifiers per package to identify conflicts.
+            definition_identifier = package.definition.identifier
+            self._definition_mapping.setdefault(definition_identifier, set())
+            self._definition_mapping[definition_identifier].add(node.identifier)
 
             node.add_parent(parent_identifier or self.ROOT)
 
@@ -727,10 +718,10 @@ class Graph(object):
     ):
         """Add dependency link from *parent_identifier* to *identifier*.
 
-        *identifier* is the identifier of the environment which is added to the
+        *identifier* is the identifier of the package which is added to the
         dependency graph.
 
-        *parent_identifier* is the identifier of the targeted environment which
+        *parent_identifier* is the identifier of the targeted package which
         must be linked to the new *identifier*.
 
         *requirement* should be an instance of
@@ -740,7 +731,7 @@ class Graph(object):
         link. The lesser this number, the higher is the importance of the link.
         Default is 1.
 
-        Raise :exc:`wiz.exception.IncorrectEnvironment` is *environment*
+        Raise :exc:`wiz.exception.IncorrectEnvironment` is *package*
         identifier has already be set for this *parent*.
 
         """
@@ -753,7 +744,7 @@ class Graph(object):
         self._link_mapping.setdefault(parent_identifier, {})
 
         if identifier in self._link_mapping[parent_identifier].keys():
-            raise wiz.exception.IncorrectEnvironment(
+            raise wiz.exception.IncorrectDefinition(
                 "There cannot be several dependency links to '{child}' from "
                 "'{parent}'.".format(parent=parent_identifier, child=identifier)
             )
@@ -785,27 +776,27 @@ class Graph(object):
 
 
 class _Node(object):
-    """Node encapsulating a environment version in the graph.
+    """Node encapsulating a package within the graph.
     """
 
-    def __init__(self, environment):
+    def __init__(self, package):
         """Initialise Node.
 
-        *environment* indicates a :class:`~wiz.definition.Environment`.
+        *package* indicates a :class:`~wiz.package.Package`.
 
         """
-        self._environment = environment
+        self._package = package
         self._parent_identifiers = set()
 
     @property
     def identifier(self):
         """Return identifier of the node."""
-        return wiz.environment.generate_identifier(self._environment)
+        return self._package.identifier
 
     @property
-    def environment(self):
-        """Return :class:`~wiz.definition.Environment` encapsulated."""
-        return self._environment
+    def package(self):
+        """Return :class:`~wiz.package.Package` encapsulated."""
+        return self._package
 
     @property
     def parent_identifiers(self):

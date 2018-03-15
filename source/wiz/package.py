@@ -2,77 +2,34 @@
 
 import collections
 import re
+import os
 
 import mlog
 
-import wiz.environment
-import wiz.graph
+from wiz import __version__
+import wiz.definition
 import wiz.exception
 
 
-def generate_identifier(environment, variant_name=None):
-    """Generate a unique identifier for *environment*.
-
-    *environment* must be an :class:`~wiz.definition.Environment` instance.
-
-    *variant_name* could be the identifier of a variant mapping.
-
-    """
-    if variant_name is not None:
-        variant_name = "[{}]".format(variant_name)
-
-    return "{environment}{variant}=={version}".format(
-        environment=environment.identifier,
-        version=environment.version,
-        variant=variant_name or ""
-    )
-
-
-def resolve(requirements, environment_mapping):
-    """Return resolved packages from *requirements*.
-
-    The returned :class:`~wiz.package.Package` instances list should be
-    ordered from the least important to the most important.
-
-    *requirements* should be a list of
-    class:`packaging.requirements.Requirement` instances.
-
-    *environment_mapping* is a mapping regrouping all available environments
-    associated with their unique identifier.
-
-    Raise :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
-    resolved.
-
-    """
-    logger = mlog.Logger(__name__ + ".resolve")
-    logger.info(
-        "Resolve environment: {}".format(
-            ", ".join([str(requirement) for requirement in requirements])
-        )
-    )
-    resolver = wiz.graph.Resolver(environment_mapping)
-    return resolver.compute_environments(requirements)
-
-
-def extract(requirement, environment_mapping):
+def extract(requirement, definition_mapping):
     """Extract list of :class:`Package` instances from *requirement*.
 
-    The best matching :class:`~wiz.definition.Environment` version instances
+    The best matching :class:`~wiz.definition.Definition` version instances
     corresponding to the *requirement* will be used.
 
-    If this environment contains variants, a :class:`Package` instance will be
+    If this definition contains variants, a :class:`Package` instance will be
     returned for each combined variant.
 
     *requirement* is an instance of :class:`packaging.requirements.Requirement`.
 
-    *environment_mapping* is a mapping regrouping all available environment
+    *definition_mapping* is a mapping regrouping all available definitions
     associated with their unique identifier.
 
     """
-    environment = wiz.environment.get(requirement, environment_mapping)
+    definition = wiz.definition.get(requirement, definition_mapping)
 
-    # Extract variants from environment if available.
-    variants = environment.variant
+    # Extract variants from definition if available.
+    variants = definition.variants
 
     # Extract and return the requested variant if necessary.
     if len(requirement.extras) > 0:
@@ -84,124 +41,117 @@ def extract(requirement, environment_mapping):
 
         if variant_identifier not in variant_mapping.keys():
             raise wiz.exception.RequestNotFound(
-                "The variant '{}' could not been resolved for {}.".format(
-                    variant_identifier, environment
+                "The variant '{variant}' could not been resolved for "
+                "'{definition}' [{version}].".format(
+                    variant=variant_identifier,
+                    definition=definition.identifier,
+                    version=definition.version
                 )
             )
 
-        return [Package(environment, variant_mapping[variant_identifier])]
+        return [Package(definition, variant_mapping[variant_identifier])]
 
-    # Simply return the main environment if no variants is available.
+    # Simply return the package corresponding to the main definition if no
+    # variants are available.
     elif len(variants) == 0:
-        return [Package(environment)]
+        return [Package(definition)]
 
     # Otherwise, extract and return all possible variants.
     else:
-        return map(lambda variant: Package(environment, variant), variants)
+        return map(lambda variant: Package(definition, variant), variants)
 
 
-def extract_context(packages, data_mapping=None):
-    """Return combined mapping extracted from *environments*.
+def extract_context(packages, environ_mapping=None):
+    """Return combined mapping extracted from *packages*.
 
     A context mapping should look as follow::
 
         >>> extract_context(packages)
         {
-            "alias": {
+            "command": {
                 "app": "AppExe"
                 ...
             },
-            "data": {
+            "environ": {
                 "KEY1": "value1",
                 "KEY2": "value2",
                 ...
-            }
+            },
         }
 
-    *packages* should be a list of :class:`wiz.package.Package` instances. it
-    should be ordered from the less important to the most important so that the
-    later are prioritized over the first.
+    *packages* should be a list of :class:`Package` instances. it should be
+    ordered from the less important to the most important so that the later are
+    prioritized over the first.
 
-    *data_mapping* can be a mapping of environment variables which would
-    be augmented by the resolved environment.
+    *environ_mapping* can be a mapping of environment variables which would
+    be augmented.
 
     """
     def _combine(mapping1, mapping2):
         """Return intermediate context combining both extracted results."""
-        _alias = combine_alias(mapping1, mapping2)
-        _data = combine_data(mapping1, mapping2)
-        return dict(alias=_alias, data=_data)
-
-    mapping = reduce(_combine, packages, dict(data=data_mapping or {}))
-
-    # Clean up any possible reference to the same variable key for each value
-    # (e.g. {"PATH": "/path/to/somewhere:${PATH}") and resolve any missing
-    # references from within data mapping.
-    for key, value in mapping["data"].items():
-        _value = re.sub(
-            "(\${{{0}}}:?|:?\${{{0}}})".format(key), lambda m: "", value
+        identifier = mapping2.get("identifier", "unknown")
+        _environ = combine_environ_mapping(
+            identifier, mapping1.get("environ", {}), mapping2.get("environ", {})
         )
-        _value = re.sub(
-            "\${(\w+)}",
-            lambda m: mapping["data"].get(m.group(1)) or m.group(0), _value
+        _command = combine_command_mapping(
+            identifier, mapping1.get("command", {}), mapping2.get("command", {})
         )
-        mapping["data"][key] = _value
+        return dict(command=_command, environ=_environ)
 
+    mapping = reduce(_combine, packages, dict(environ=environ_mapping or {}))
+    mapping["environ"] = sanitise_environ_mapping(mapping.get("environ", {}))
     return mapping
 
 
-def combine_data(environment1, environment2):
-    """Return combined data mapping from *environment1* and *environment2*.
+def combine_environ_mapping(package_identifier, mapping1, mapping2):
+    """Return combined environ mapping from *mapping1* and *mapping2*.
 
-    *environment1* and *environment2* must be valid :class:`Environment`
-    instances.
+    *package_identifier* must be the identifier of the combined package. It will
+    be used to indicate whether any variable is overridden in the combination
+    process.
 
-    Each variable name from both environment's "data" mappings will be
-    gathered so that a final value can be set. If a variable is only
-    contained in one of the "data" mapping, its value will be kept in the
-    combined environment.
+    *mapping1* and *mapping2* must be mappings of environment variables.
 
-    If the variable exists in both "data" mappings, the value from
-    *environment2* must reference the variable name for the value from
-    *environment1* to be included in the combined environment::
+    Each variable name from both mappings will be combined into a final value.
+    If a variable is only contained in one of the mapping, its value will be
+    kept in the combined mapping.
 
-        >>> combine_data(
-        ...     wiz.definition.Environment({"data": {"key": "value2"})
-        ...     wiz.definition.Environment({"data": {"key": "value1:${key}"}})
+    If the variable exists in both mappings, the value from *mapping2* must
+    reference the variable name for the value from *mapping1* to be included
+    in the combined mapping::
+
+        >>> combine_environ_mapping(
+        ...     "combined_package",
+        ...     {"key": "value2"},
+        ...     {"key": "value1:${key}"}
         ... )
 
         {"key": "value1:value2"}
 
-    Otherwise the value from *environment2* will override the value from
-    *environment1*::
+    Otherwise the value from *mapping2* will override the value from
+    *mapping1*::
 
-        >>> combine_data(
-        ...     wiz.definition.Environment({"data": {"key": "value2"})
-        ...     wiz.definition.Environment({"data": {"key": "value1"}})
+        >>> combine_environ_mapping(
+        ...     "combined_package",
+        ...     {"key": "value2"},
+        ...     {"key": "value1"}
         ... )
 
+        warning: The 'key' variable is being overridden in 'combined_package'.
         {"key": "value1"}
 
-    If other variables from *environment1* are referenced in the value fetched
-    from *environment2*, they will be replaced as well::
+    If other variables from *mapping1* are referenced in the value fetched
+    from *mapping2*, they will be replaced as well::
 
-        >>> combine_data(
-        ...     wiz.definition.Environment({
-        ...         "data": {
-        ...             "PLUGIN_PATH": "/path/to/settings",
-        ...             "HOME": "/usr/people/me"
-        ...        }
-        ...     }),
-        ...     wiz.definition.Environment({
-        ...         "data": {
-        ...             "PLUGIN_PATH": "${HOME}/.app:${PLUGIN_PATH}"
-        ...         }
-        ...     })
+        >>> combine_environ_mapping(
+        ...     "combined_package",
+        ...     {"PLUGIN": "/path/to/settings", "HOME": "/usr/people/me"},
+        ...     {"PLUGIN": "${HOME}/.app:${PLUGIN}"}
         ... )
 
         {
             "HOME": "/usr/people/me",
-            "PLUGIN_PATH": "/usr/people/me/.app:/path/to/settings"
+            "PLUGIN": "/usr/people/me/.app:/path/to/settings"
         }
 
     .. warning::
@@ -209,12 +159,9 @@ def combine_data(environment1, environment2):
         This process will stringify all variable values.
 
     """
-    logger = mlog.Logger(__name__ + ".combine_data")
+    logger = mlog.Logger(__name__ + ".combine_environ_mapping")
 
     mapping = {}
-
-    mapping1 = environment1.get("data", {})
-    mapping2 = environment2.get("data", {})
 
     for key in set(mapping1.keys() + mapping2.keys()):
         value1 = mapping1.get(key)
@@ -226,9 +173,9 @@ def combine_data(environment1, environment2):
         else:
             if value1 is not None and "${{{}}}".format(key) not in value2:
                 logger.warning(
-                    "The '{key}' variable is being overridden in "
-                    "environment {environment}".format(
-                        key=key, environment=environment2
+                    "The '{key}' variable is being overridden "
+                    "in '{identifier}'".format(
+                        key=key, identifier=package_identifier
                     )
                 )
 
@@ -240,29 +187,30 @@ def combine_data(environment1, environment2):
     return mapping
 
 
-def combine_alias(environment1, environment2):
-    """Return combined command mapping from *environment1* and *environment2*.
+def combine_command_mapping(package_identifier, mapping1, mapping2):
+    """Return combined command mapping from *package1* and *package2*.
 
-    *environment1* and *environment2* must be valid :class:`Environment`
-    instances.
+    *package_identifier* must be the identifier of the combined package. It will
+    be used to indicate whether any variable is overridden in the combination
+    process.
 
-    If a key exists in both "command" mappings, the value from
-    *environment2* will have priority over elements from *environment1*.::
+    *mapping1* and *mapping2* must be mappings of commands.
 
-        >>> combine_alias(
-        ...     wiz.definition.Environment({"alias": {"app": "App1.1 --run"})
-        ...     wiz.definition.Environment({"alias": {"app": "App2.1"}})
+    If the command exists in both mappings, the value from *mapping2* will have
+    priority over elements from *mapping1*::
+
+        >>> combine_command_mapping(
+        ...     "combined_package",
+        ...     {"app": "App1.1 --run"},
+        ...     {"app": "App2.1"}
         ... )
 
         {"app": "App2.1"}
 
     """
-    logger = mlog.Logger(__name__ + ".extract_alias")
+    logger = mlog.Logger(__name__ + ".combine_command_mapping")
 
     mapping = {}
-
-    mapping1 = environment1.get("alias", {})
-    mapping2 = environment2.get("alias", {})
 
     for command in set(mapping1.keys() + mapping2.keys()):
         value1 = mapping1.get(command)
@@ -270,9 +218,9 @@ def combine_alias(environment1, environment2):
 
         if value1 is not None and value2 is not None:
             logger.warning(
-                "The '{key}' alias is being overridden in "
-                "environment {environment}".format(
-                    key=command, environment=environment2
+                "The '{key}' command is being overridden "
+                "in '{identifier}'".format(
+                    key=command, identifier=package_identifier
                 )
             )
             mapping[command] = str(value2)
@@ -283,48 +231,136 @@ def combine_alias(environment1, environment2):
     return mapping
 
 
+def sanitise_environ_mapping(mapping):
+    """Return sanitised environment *mapping*.
+
+    Resolve all key references within *mapping* values and remove all
+    self-references::
+
+        >>> sanitise_environ_mapping(
+        ...     "PLUGIN": "${HOME}/.app:/path/to/somewhere:${PLUGIN}",
+        ...     "HOME": "/usr/people/me"
+        ... )
+
+        {
+            "HOME": "/usr/people/me",
+            "PLUGIN": "/usr/people/me/.app:/path/to/somewhere"
+        }
+
+    """
+    _mapping = {}
+
+    for key, value in mapping.items():
+        _value = re.sub(
+            "(\${{{0}}}:?|:?\${{{0}}})".format(key), lambda m: "", value
+        )
+        _value = re.sub(
+            "\${(\w+)}", lambda m: mapping.get(m.group(1)) or m.group(0), _value
+        )
+        _mapping[key] = _value
+
+    return _mapping
+
+
+def initiate_environ(mapping=None):
+    """Return the minimal environment mapping to augment.
+
+    The initial environment mapping contains basic variables from the external
+    environment that can be used by the resolved environment, such as
+    the *USER* or the *HOME* variables.
+
+    The other variable added are:
+
+    * DISPLAY:
+        This variable is necessary to open user interface within the current
+        X display name.
+
+    * PATH:
+        This variable is initialised with default values to have access to the
+        basic UNIX commands.
+
+    *mapping* can be a custom environment mapping which will be added to the
+    initial environment.
+
+    """
+    environ = {
+        "WIZ_VERSION": __version__,
+        "USER": os.environ.get("USER"),
+        "LOGNAME": os.environ.get("LOGNAME"),
+        "HOME": os.environ.get("HOME"),
+        "DISPLAY": os.environ.get("DISPLAY"),
+        "PATH": os.pathsep.join([
+            "/usr/local/sbin",
+            "/usr/local/bin",
+            "/usr/sbin",
+            "/usr/bin",
+            "/sbin",
+            "/bin",
+        ])
+    }
+
+    if mapping is not None:
+        environ.update(**mapping)
+
+    return environ
+
+
 class Package(collections.Mapping):
     """Package object."""
 
-    def __init__(self, environment, variant=None):
-        """Initialise Package from *environment*.
+    def __init__(self, definition, variant=None):
+        """Initialise Package from *definition*.
 
-        *environment* must be a valid :class:`wiz.definition.Environment`
+        *definition* must be a valid :class:`~wiz.definition.Definition`
         instance.
 
         *variant* could be a valid variant mapping which should have at least
         an 'identifier' keyword.
 
-        In case of conflicted elements in both mappings, the elements from the
-        *variant* will have priority over elements from *environment*.
+        .. note::
+
+            In case of conflicted elements in 'data' or 'command' elements,
+            the elements from the *variant* will have priority.
 
         """
-        self._mapping = dict()
+        mapping = definition.to_mapping()
+        self._mapping = dict(
+            (k, v) for k, v in mapping.items() if k != "variants"
+        )
+        self._mapping["requirements"] = []
+        self._requirements = definition.requirements
+        self._version = definition.version
 
-        variant_mapping = {}
+        identifier = "{definition}=={version}".format(
+            definition=definition.identifier,
+            version=definition.version,
+        )
+
+        variant_name = None
 
         if variant is not None:
-            variant_mapping = {
-                "identifier": variant.identifier,
-                "data": combine_data(environment, variant),
-                "alias": combine_alias(environment, variant),
-                "requirement": (
-                    environment.requirement + variant.requirement
-                )
-            }
+            identifier = "{definition}[{variant}]=={version}".format(
+                definition=definition.identifier,
+                variant=variant.identifier,
+                version=definition.version,
+            )
 
-        self._mapping = {
-            "identifier": generate_identifier(
-                environment, variant_name=variant_mapping.get("identifier")
-            ),
-            "environment": environment.identifier,
-            "description": environment.description,
-            "alias": variant_mapping.get("alias") or environment.alias,
-            "data": variant_mapping.get("data") or environment.data,
-            "requirement": (
-                variant_mapping.get("requirement") or environment.requirement
-            ),
-        }
+            variant_name = variant.identifier
+
+            self._mapping["environ"] = combine_environ_mapping(
+                identifier, definition.environ, variant.environ
+            )
+
+            self._mapping["command"] = combine_command_mapping(
+                identifier, definition.command, variant.command
+            )
+
+            self._mapping["requirements"] += variant.get("requirements", [])
+            self._requirements += variant.requirements
+
+        self._mapping["identifier"] = identifier
+        self._mapping["definition"] = definition
+        self._mapping["variant_name"] = variant_name
 
     @property
     def identifier(self):
@@ -332,9 +368,14 @@ class Package(collections.Mapping):
         return self.get("identifier")
 
     @property
-    def environment(self):
-        """Return environment identifier."""
-        return self.get("environment")
+    def definition(self):
+        """Return definition identifier."""
+        return self.get("definition")
+
+    @property
+    def variant_name(self):
+        """Return variant name."""
+        return self.get("variant_name")
 
     @property
     def description(self):
@@ -342,23 +383,24 @@ class Package(collections.Mapping):
         return self.get("description", "unknown")
 
     @property
-    def alias(self):
-        """Return alias mapping."""
-        return self.get("alias", {})
+    def version(self):
+        """Return version."""
+        return self._version
 
     @property
-    def data(self):
-        """Return data mapping."""
-        return self.get("data", {})
+    def command(self):
+        """Return command mapping."""
+        return self.get("command", {})
 
     @property
-    def requirement(self):
+    def environ(self):
+        """Return environ mapping."""
+        return self.get("environ", {})
+
+    @property
+    def requirements(self):
         """Return requirement list."""
-        return self.get("requirement", [])
-
-    def __str__(self):
-        """Return string representation."""
-        return "'{}'".format(self.identifier)
+        return self._requirements
 
     def __getitem__(self, key):
         """Return value for *key*."""

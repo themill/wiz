@@ -18,67 +18,107 @@ import wiz.exception
 def definitions():
     """Return list of mocked definitions."""
     return [
-        wiz.definition.Environment({
-            "identifier": "env-test1",
+        wiz.definition.Definition({
+            "identifier": "foo-package",
             "version": "0.1.0",
-            "description": "A test env for foo."
+            "description": "A test package for foo."
         }),
-        wiz.definition.Environment({
-            "identifier": "env-test1",
+        wiz.definition.Definition({
+            "identifier": "foo-package",
             "version": "1.1.0",
-            "description": "Another test env for foo."
+            "description": "Another test package for foo.",
+            "command": {
+                "foo": "Foo1.1",
+            }
         }),
-        wiz.definition.Environment({
-            "identifier": "env-test2",
+        wiz.definition.Definition({
+            "identifier": "bar-package",
             "version": "1.0.0",
-            "description": "A test env for bar.",
+            "description": "A test package for bar.",
+            "command": {
+                "bar": "Bar1.0",
+            }
         }),
-        wiz.definition.Environment({
-            "identifier": "env-test3",
+        wiz.definition.Definition({
+            "identifier": "bar-package",
+            "version": "0.9.2",
+            "description": "Another test package for bar.",
+            "command": {
+                "bar": "Bar0.9",
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "baz-package",
             "version": "0.1.1",
-            "description": "A test env for baz."
+            "description": "A test package for baz.",
+            "command": {
+                "baz": "Baz0.1",
+            }
         }),
-        wiz.definition.Environment({
-            "identifier": "env-test4",
-            "version": "0.1.1",
-            "description": "A 4th test env."
+        wiz.definition.Definition({
+            "identifier": "bim-package",
+            "version": "0.2.1",
+            "description": "A test package for bim.",
+            "command": {
+                "bim": "Bim0.2",
+            }
         }),
-        wiz.definition.Environment({
-            "identifier": "env-test4",
-            "version": "0.1.1",
-            "description": "A 4th test env."
+        wiz.definition.Definition({
+            "identifier": "bim-package",
+            "version": "0.2.1",
+            "description": "Another test package for bim.",
+            "command": {
+                "bim-test": "Bim0.2 --test",
+            }
         }),
-        wiz.definition.Environment({
-            "identifier": "env-test4",
+        wiz.definition.Definition({
+            "identifier": "bim-package",
             "version": "0.1.0",
-            "description": "A 4th test env."
-        }),
-        wiz.definition.Application({
-            "identifier": "app2",
-            "command": "app_exe",
-            "description": "A cool application.",
-            "requirement": [
-                "env-test1 >=0.1.0, <1",
-                "env-test2 >=1"
-            ]
-        }),
-        wiz.definition.Application({
-            "identifier": "app1",
-            "command": "app_exe",
-            "description": "A cooler application.",
-            "requirement": [
-                "env-test3"
-            ]
-        }),
-        wiz.definition.Application({
-            "identifier": "app3",
-            "command": "app_exe",
-            "description": "The best application.",
-            "requirement": [
-                "env-test2"
-            ]
+            "description": "Yet another test package for bim.",
+            "command": {
+                "bim": "Bim0.1",
+            }
         })
     ]
+
+
+@pytest.fixture()
+def package_definition_mapping():
+    """Return mocked package mapping."""
+    return {
+        "foo": {
+            "0.3.4": wiz.definition.Definition({
+                "identifier": "foo",
+                "version": "0.3.4",
+            }),
+            "0.3.0": wiz.definition.Definition({
+                "identifier": "foo",
+                "version": "0.3.0",
+            }),
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "foo",
+                "version": "0.2.0",
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "foo",
+                "version": "0.1.0",
+            }),
+        },
+        "bar": {
+            "0.3.0": wiz.definition.Definition({
+                "identifier": "bar",
+                "version": "0.3.0",
+            }),
+            "0.1.5": wiz.definition.Definition({
+                "identifier": "bar",
+                "version": "0.1.5",
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "bar",
+                "version": "0.1.0",
+            }),
+        },
+    }
 
 
 @pytest.fixture()
@@ -126,6 +166,12 @@ def registries(temporary_directory):
 
 
 @pytest.fixture()
+def mocked_validate(mocker):
+    """Return mocked validate function."""
+    return mocker.patch.object(wiz.definition, "validate")
+
+
+@pytest.fixture()
 def mocked_discover(mocker):
     """Return mocked discovery function."""
     return mocker.patch.object(wiz.definition, "discover")
@@ -138,34 +184,23 @@ def mocked_load(mocker):
 
 
 @pytest.fixture()
-def mocked_create(mocker):
-    """Return mocked create function."""
-    return mocker.patch.object(wiz.definition, "create")
-
-
-@pytest.fixture()
-def mocked_environment(mocker):
-    """Return mocked Environment class."""
+def mocked_definition(mocker):
+    """Return mocked Definition class."""
     return mocker.patch.object(
-        wiz.definition, "Environment", return_value="Environment"
-    )
-
-
-@pytest.fixture()
-def mocked_application(mocker):
-    """Return mocked Application class."""
-    return mocker.patch.object(
-        wiz.definition, "Application", return_value="Application"
+        wiz.definition, "Definition", return_value="DEFINITION"
     )
 
 
 @pytest.mark.parametrize("options", [
-    {}, {"max_depth": 4}
+    {},
+    {"requests": ["something", "test>1"]},
+    {"max_depth": 4}
 ], ids=[
-    "without-max-depth",
+    "without-option",
+    "with-requests",
     "with-max-depth"
 ])
-def test_fetch(mocked_discover, definitions, options):
+def test_fetch(mocked_discover, mocked_validate, definitions, options):
     """Fetch all definition within *paths*."""
     mocked_discover.return_value = definitions
     result = wiz.definition.fetch(
@@ -177,84 +212,129 @@ def test_fetch(mocked_discover, definitions, options):
         max_depth=options.get("max_depth")
     )
 
+    if options.get("requests") is not None:
+        assert mocked_validate.call_count == len(definitions)
+        for definition in definitions:
+            mocked_validate.assert_any_call(definition, options["requests"])
+    else:
+        mocked_validate.assert_not_called()
+
     assert result == {
-        "environment": {
-            "env-test1": {
+        "package": {
+            "foo-package": {
                 "0.1.0": definitions[0],
                 "1.1.0": definitions[1]
             },
-            "env-test2": {
-                "1.0.0": definitions[2]
+            "bar-package": {
+                "1.0.0": definitions[2],
+                "0.9.2": definitions[3]
             },
-            "env-test3": {
-                "0.1.1": definitions[3]
+            "baz-package": {
+                "0.1.1": definitions[4]
             },
-            "env-test4": {
-                # The 4th definition in the incoming list is overridden by the
-                # 5th one which has the same identifier and version.
-                "0.1.1": definitions[5],
-                "0.1.0": definitions[6]
+            "bim-package": {
+                # The 5th definition in the incoming list is overridden by the
+                # 6th one which has the same identifier and version.
+                "0.2.1": definitions[6],
+                "0.1.0": definitions[7]
             }
         },
-        "application": {
-            "app1": definitions[8],
-            "app2": definitions[7],
-            "app3": definitions[9]
+        "command": {
+            "foo": {
+                "1.1.0": definitions[1]
+            },
+            "bar": {
+                "1.0.0": definitions[2],
+                "0.9.2": definitions[3]
+            },
+            "baz": {
+                "0.1.1": definitions[4]
+            },
+            "bim-test": {
+                "0.2.1": definitions[6],
+            },
+            "bim": {
+                "0.2.1": definitions[5],
+                "0.1.0": definitions[7]
+            }
         }
     }
 
 
-@pytest.mark.parametrize("options", [
-    {}, {"max_depth": 4}
-], ids=[
-    "without-max-depth",
-    "with-max-depth"
-])
-def test_search(mocked_discover, definitions, options):
-    """Search a specific definition."""
+def test_validation_fail(mocked_discover, mocked_validate, definitions):
+    """Fail to fetch definition when requests leads to validation failure."""
     mocked_discover.return_value = definitions
+    mocked_validate.return_value = False
 
-    # Search application via identifier and description
-    result = wiz.definition.search(
-        ["app", "best"],
-        ["/path/to/registry-1", "/path/to/registry-2"],
-        **options
+    result = wiz.definition.fetch(
+        ["/path/to/registry-1", "/path/to/registry-2"], requests=["KABOOM"]
     )
 
-    assert result == {
-        "environment": {},
-        "application": {
-            "app3": definitions[9]
-        }
-    }
-
-    # Search environment via identifier and version
-    result = wiz.definition.search(
-        ["test1<1"],
-        ["/path/to/registry-1", "/path/to/registry-2"],
-        **options
+    mocked_discover.assert_called_once_with(
+        ["/path/to/registry-1", "/path/to/registry-2"], max_depth=None
     )
 
+    assert mocked_validate.call_count == len(definitions)
+    for definition in definitions:
+        mocked_validate.assert_any_call(definition, ["KABOOM"])
+
     assert result == {
-        "environment": {
-            "env-test1": {
-                "0.1.0": definitions[0]
-            }
-        },
-        "application": {}
+        "package": {},
+        "command": {}
     }
 
-    # Incorrect request
-    result = wiz.definition.search(
-        ["!!!"],
-        ["/path/to/registry-1", "/path/to/registry-2"],
-        **options
+
+def test_validate(definitions):
+    """Search a specific definition."""
+    assert wiz.definition.validate(definitions[0], [""]) is False
+    assert wiz.definition.validate(definitions[0], ["foo"]) is True
+    assert wiz.definition.validate(definitions[0], ["foo", "best"]) is False
+    assert wiz.definition.validate(definitions[0], ["test"]) is True
+    assert wiz.definition.validate(definitions[0], ["foo>2"]) is False
+    assert wiz.definition.validate(definitions[0], ["foo>=0.1.0"]) is True
+
+
+def test_get_definition(package_definition_mapping):
+    """Return best matching definition from requirement."""
+    requirement = Requirement("foo")
+    assert (
+        wiz.definition.get(requirement, package_definition_mapping) ==
+        package_definition_mapping["foo"]["0.3.4"]
     )
 
-    assert result == {
-        "environment": {},
-        "application": {}
-    }
+    requirement = Requirement("bar")
+    assert (
+        wiz.definition.get(requirement, package_definition_mapping) ==
+        package_definition_mapping["bar"]["0.3.0"]
+    )
+
+    requirement = Requirement("foo<0.2")
+    assert (
+        wiz.definition.get(requirement, package_definition_mapping) ==
+        package_definition_mapping["foo"]["0.1.0"]
+    )
+
+    requirement = Requirement("bar==0.1.5")
+    assert (
+        wiz.definition.get(requirement, package_definition_mapping) ==
+        package_definition_mapping["bar"]["0.1.5"]
+    )
+
+
+def test_get_definition_name_error(package_definition_mapping):
+    """Fails to get the definition name."""
+    requirement = Requirement("incorrect")
+
+    with pytest.raises(wiz.exception.RequestNotFound):
+        wiz.definition.get(requirement, package_definition_mapping)
+
+
+def test_get_definition_version_error(package_definition_mapping):
+    """Fails to get the definition version."""
+    requirement = Requirement("foo>10")
+
+    with pytest.raises(wiz.exception.RequestNotFound):
+        wiz.definition.get(requirement, package_definition_mapping)
 
 
 def test_discover(mocked_load, registries, definitions):
@@ -331,10 +411,10 @@ def test_discover_with_max_depth(mocked_load, registries, definitions):
 
 def test_discover_without_disabled(mocked_load, registries, definitions):
     """Discover and yield definitions without disabled definition."""
-    definitions[2] = wiz.definition.Environment(
+    definitions[2] = wiz.definition.Definition(
         disabled=True, **definitions[2].to_mapping()
     )
-    definitions[4] = wiz.definition.Environment(
+    definitions[4] = wiz.definition.Definition(
         disabled=True, **definitions[4].to_mapping()
     )
     mocked_load.side_effect = definitions
@@ -360,15 +440,13 @@ def test_discover_without_disabled(mocked_load, registries, definitions):
     ValueError,
     TypeError,
     wiz.exception.WizError,
-    wiz.exception.IncorrectApplication,
-    wiz.exception.IncorrectEnvironment
+    wiz.exception.IncorrectDefinition
 ], ids=[
     "io-error",
     "value-error",
     "type-error",
     "generic-wiz-error",
-    "incorrect-application",
-    "incorrect-environment",
+    "incorrect-definition",
 ])
 def test_discover_skip_error(mocked_load, registries, exception):
     """Discover and yield definitions without definition with error."""
@@ -398,259 +476,164 @@ def test_discover_error(mocked_load, registries, exception):
         list(wiz.definition.discover(registries))
 
 
-def test_load(mocked_create, temporary_file):
+def test_load(mocked_definition, temporary_file):
     """Load a definition from a path."""
     with open(temporary_file, "w") as stream:
         stream.write("{\"identifier\": \"test_definition\"}")
 
-    mocked_create.return_value = "DEFINITION"
+    mocked_definition.return_value = "DEFINITION"
     result = wiz.definition.load(temporary_file)
     assert result == "DEFINITION"
-    mocked_create.assert_called_once_with({"identifier": "test_definition"})
+    mocked_definition.assert_called_once_with(identifier="test_definition")
 
 
-def test_load_with_mapping(mocked_create, temporary_file):
+def test_load_with_mapping(mocked_definition, temporary_file):
     """Load a definition from a path and a mapping."""
     with open(temporary_file, "w") as stream:
         stream.write("{\"identifier\": \"test_definition\"}")
 
-    mocked_create.return_value = "DEFINITION"
+    mocked_definition.return_value = "DEFINITION"
     result = wiz.definition.load(temporary_file, mapping={"key": "value"})
     assert result == "DEFINITION"
-    mocked_create.assert_called_once_with(
-        {"identifier": "test_definition", "key": "value"}
+    mocked_definition.assert_called_once_with(
+        identifier="test_definition", key="value"
     )
 
 
-def test_create_environment(mocked_environment, mocked_application):
-    """Create an environment definition from *data*."""
-    data = {
-        "identifier": "test-env",
-        "version": "0.1.0",
-        "type": "environment"
-    }
-
-    definition = wiz.definition.create(data)
-    mocked_environment.assert_called_once_with(**data)
-    mocked_application.assert_not_called()
-    assert definition == "Environment"
-
-
-def test_create_application(mocked_environment, mocked_application):
-    """Create an application definition from *data*."""
-    data = {
-        "identifier": "test-app",
-        "type": "application"
-    }
-
-    definition = wiz.definition.create(data)
-    mocked_application.assert_called_once_with(**data)
-    mocked_environment.assert_not_called()
-    assert definition == "Application"
-
-
-def test_create_error(mocked_environment, mocked_application):
-    """Fail to create a definition from *data*."""
+def test_definition_mapping():
+    """Create definition and return mapping and serialized mapping."""
     data = {
         "identifier": "test",
-        "type": "incorrect"
-    }
-
-    with pytest.raises(wiz.exception.IncorrectDefinition):
-        wiz.definition.create(data)
-
-    mocked_application.assert_not_called()
-    mocked_environment.assert_not_called()
-
-
-def test_environment_definition():
-    """Create basic environment definition."""
-    data = {
-        "identifier": "test-environment",
-        "description": "This is an environment",
-        "data": {
+        "description": "This is a definition",
+        "environ": {
             "KEY1": "VALUE1"
         }
     }
 
-    environment = wiz.definition.Environment(data)
+    environment = wiz.definition.Definition(data)
 
     assert environment.to_mapping() == {
-        "identifier": "test-environment",
-        "type": "environment",
-        "description": "This is an environment",
-        "data": {
+        "identifier": "test",
+        "description": "This is a definition",
+        "environ": {
             "KEY1": "VALUE1",
         }
     }
 
     assert environment.encode() == (
         "{\n"
-        "    \"identifier\": \"test-environment\",\n"
-        "    \"type\": \"environment\",\n"
-        "    \"description\": \"This is an environment\",\n"
-        "    \"data\": {\n"
+        "    \"identifier\": \"test\",\n"
+        "    \"description\": \"This is a definition\",\n"
+        "    \"environ\": {\n"
         "        \"KEY1\": \"VALUE1\"\n"
         "    }\n"
         "}"
     )
 
-    data["type"] = "environment"
     assert len(environment) == len(data)
     assert sorted(environment) == sorted(data)
 
 
-def test_application_definition():
-    """Create basic application definition."""
-    data = {
-        "identifier": "test-application",
-        "description": "This is an application",
-        "command": "app --test",
-        "requirement": [
-            "envA >= 1.0.0",
-            "envB >= 3.4, < 4",
-        ]
-    }
+def test_minimal_definition():
+    """Create a minimal definition."""
+    data = {"identifier": "test"}
 
-    application = wiz.definition.Application(data)
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.version == "unknown"
+    assert definition.description == "unknown"
+    assert definition.environ == {}
+    assert definition.requirements == []
+    assert definition.command == {}
+    assert definition.system == {}
+    assert definition.variants == []
 
-    assert application.to_mapping() == {
-        "identifier": "test-application",
-        "type": "application",
-        "description": "This is an application",
-        "command": "app --test",
-        "requirement": [
-            "envA >= 1.0.0",
-            "envB >= 3.4, < 4"
-        ]
-    }
-
-    assert application.encode() == (
-        "{\n"
-        "    \"identifier\": \"test-application\",\n"
-        "    \"type\": \"application\",\n"
-        "    \"description\": \"This is an application\",\n"
-        "    \"command\": \"app --test\",\n"
-        "    \"requirement\": [\n"
-        "        \"envA >= 1.0.0\",\n"
-        "        \"envB >= 3.4, < 4\"\n"
-        "    ]\n"
-        "}"
-    )
-
-    data["type"] = "application"
-    assert len(application) == len(data)
-    assert sorted(application) == sorted(data)
-
-
-def test_environment():
-    """Create an environment definition."""
-    data = {"identifier": "test-environment"}
-
-    environment = wiz.definition.Environment(data)
-    assert environment.identifier == "test-environment"
-    assert environment.version == "unknown"
-    assert environment.description == "unknown"
-    assert environment.type == "environment"
-    assert environment.data == {}
-    assert environment.requirement == []
-    assert environment.alias == {}
-    assert environment.system == {}
-    assert environment.variant == []
-
-    assert environment.to_ordered_mapping() == OrderedDict([
-        ("identifier", "test-environment"),
-        ("type", "environment")
+    assert definition.to_ordered_mapping() == OrderedDict([
+        ("identifier", "test"),
     ])
 
 
-def test_environment_with_version():
-    """Create an environment definition with version."""
+def test_definition_with_version():
+    """Create a definition with version."""
     data = {
-        "identifier": "test-environment",
+        "identifier": "test",
         "version": "0.1.0",
     }
 
-    environment = wiz.definition.Environment(data)
-    assert environment.identifier == "test-environment"
-    assert environment.version == Version("0.1.0")
-    assert environment.description == "unknown"
-    assert environment.type == "environment"
-    assert environment.data == {}
-    assert environment.requirement == []
-    assert environment.alias == {}
-    assert environment.system == {}
-    assert environment.variant == []
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.version == Version("0.1.0")
+    assert definition.description == "unknown"
+    assert definition.environ == {}
+    assert definition.requirements == []
+    assert definition.command == {}
+    assert definition.system == {}
+    assert definition.variants == []
 
-    assert environment.to_ordered_mapping() == OrderedDict([
-        ("identifier", "test-environment"),
+    assert definition.to_ordered_mapping() == OrderedDict([
+        ("identifier", "test"),
         ("version", "0.1.0"),
-        ("type", "environment"),
     ])
 
 
-def test_environment_with_description():
-    """Create an environment definition with description."""
+def test_definition_with_description():
+    """Create a definition with description."""
     data = {
-        "identifier": "test-environment",
+        "identifier": "test",
         "version": "0.1.0",
-        "description": "This is an environment"
+        "description": "This is a definition"
     }
 
-    environment = wiz.definition.Environment(data)
-    assert environment.identifier == "test-environment"
-    assert environment.version == Version("0.1.0")
-    assert environment.description == "This is an environment"
-    assert environment.type == "environment"
-    assert environment.data == {}
-    assert environment.requirement == []
-    assert environment.alias == {}
-    assert environment.system == {}
-    assert environment.variant == []
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.version == Version("0.1.0")
+    assert definition.description == "This is a definition"
+    assert definition.environ == {}
+    assert definition.requirements == []
+    assert definition.command == {}
+    assert definition.system == {}
+    assert definition.variants == []
 
-    assert environment.to_ordered_mapping() == OrderedDict([
-        ("identifier", "test-environment"),
+    assert definition.to_ordered_mapping() == OrderedDict([
+        ("identifier", "test"),
         ("version", "0.1.0"),
-        ("type", "environment"),
-        ("description", "This is an environment")
+        ("description", "This is a definition")
     ])
 
 
-def test_environment_with_data():
-    """Create an environment definition with data."""
+def test_definition_with_environ():
+    """Create a definition with environment mapping."""
     data = {
-        "identifier": "test-environment",
+        "identifier": "test",
         "version": "0.1.0",
-        "description": "This is an environment",
-        "data": {
+        "description": "This is a definition",
+        "environ": {
             "KEY1": "VALUE1",
             "KEY2": "VALUE2",
             "KEY3": "PATH1:PATH2:PATH3"
         }
     }
 
-    environment = wiz.definition.Environment(data)
-    assert environment.identifier == "test-environment"
-    assert environment.version == Version("0.1.0")
-    assert environment.description == "This is an environment"
-    assert environment.type == "environment"
-    assert environment.requirement == []
-    assert environment.alias == {}
-    assert environment.system == {}
-    assert environment.variant == []
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.version == Version("0.1.0")
+    assert definition.description == "This is a definition"
+    assert definition.requirements == []
+    assert definition.command == {}
+    assert definition.system == {}
+    assert definition.variants == []
 
-    assert environment.data == {
+    assert definition.environ == {
         "KEY1": "VALUE1",
         "KEY2": "VALUE2",
         "KEY3": "PATH1:PATH2:PATH3"
     }
 
-    assert environment.to_ordered_mapping() == OrderedDict([
-        ("identifier", "test-environment"),
+    assert definition.to_ordered_mapping() == OrderedDict([
+        ("identifier", "test"),
         ("version", "0.1.0"),
-        ("type", "environment"),
-        ("description", "This is an environment"),
-        ("data", {
+        ("description", "This is a definition"),
+        ("environ", {
             "KEY1": "VALUE1",
             "KEY2": "VALUE2",
             "KEY3": "PATH1:PATH2:PATH3"
@@ -658,41 +641,39 @@ def test_environment_with_data():
     ])
 
 
-def test_environment_with_requirements():
-    """Create an environment definition with requirements."""
+def test_definition_with_requirements():
+    """Create a definition with requirements."""
     data = {
-        "identifier": "test-environment",
+        "identifier": "test",
         "version": "0.1.0",
-        "description": "This is an environment",
-        "requirement": [
+        "description": "This is a definition",
+        "requirements": [
             "envA >= 1.0.0",
             "envB >= 3.4.2, < 4",
             "envC"
         ]
     }
 
-    environment = wiz.definition.Environment(data)
-    assert environment.identifier == "test-environment"
-    assert environment.version == Version("0.1.0")
-    assert environment.description == "This is an environment"
-    assert environment.type == "environment"
-    assert environment.data == {}
-    assert environment.alias == {}
-    assert environment.system == {}
-    assert environment.variant == []
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.version == Version("0.1.0")
+    assert definition.description == "This is a definition"
+    assert definition.environ == {}
+    assert definition.command == {}
+    assert definition.system == {}
+    assert definition.variants == []
 
     for expected_requirement, requirement in itertools.izip_longest(
-        data["requirement"], environment.requirement
+        data["requirements"], definition.requirements
     ):
         assert isinstance(requirement, Requirement)
         assert str(requirement) == str(Requirement(expected_requirement))
 
-    assert environment.to_ordered_mapping() == OrderedDict([
-        ("identifier", "test-environment"),
+    assert definition.to_ordered_mapping() == OrderedDict([
+        ("identifier", "test"),
         ("version", "0.1.0"),
-        ("type", "environment"),
-        ("description", "This is an environment"),
-        ("requirement", [
+        ("description", "This is a definition"),
+        ("requirements", [
             "envA >= 1.0.0",
             "envB >= 3.4.2, < 4",
             "envC"
@@ -700,77 +681,73 @@ def test_environment_with_requirements():
     ])
 
 
-def test_environment_with_aliases():
-    """Create an environment definition with aliases."""
+def test_definition_with_command():
+    """Create a definition with command."""
     data = {
-        "identifier": "test-environment",
+        "identifier": "test",
         "version": "0.1.0",
-        "description": "This is an environment",
-        "alias": {
+        "description": "This is a definition",
+        "command": {
             "app": "App0.1",
             "appX": "App0.1 --option value"
         }
     }
 
-    environment = wiz.definition.Environment(data)
-    assert environment.identifier == "test-environment"
-    assert environment.version == Version("0.1.0")
-    assert environment.description == "This is an environment"
-    assert environment.type == "environment"
-    assert environment.data == {}
-    assert environment.requirement == []
-    assert environment.system == {}
-    assert environment.variant == []
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.version == Version("0.1.0")
+    assert definition.description == "This is a definition"
+    assert definition.environ == {}
+    assert definition.requirements == []
+    assert definition.system == {}
+    assert definition.variants == []
 
-    assert environment.alias == {
+    assert definition.command == {
         "app": "App0.1",
         "appX": "App0.1 --option value"
     }
 
-    assert environment.to_ordered_mapping() == OrderedDict([
-        ("identifier", "test-environment"),
+    assert definition.to_ordered_mapping() == OrderedDict([
+        ("identifier", "test"),
         ("version", "0.1.0"),
-        ("type", "environment"),
-        ("description", "This is an environment"),
-        ("alias", {
+        ("description", "This is a definition"),
+        ("command", {
             "app": "App0.1",
             "appX": "App0.1 --option value"
         })
     ])
 
 
-def test_environment_with_system():
-    """Create an environment definition with system constraint."""
+def test_definition_with_system():
+    """Create a definition with system constraint."""
     data = {
-        "identifier": "test-environment",
+        "identifier": "test",
         "version": "0.1.0",
-        "description": "This is an environment",
+        "description": "This is a definition",
         "system": {
             "arch": "x86_64",
             "platform": "linux"
         }
     }
 
-    environment = wiz.definition.Environment(data)
-    assert environment.identifier == "test-environment"
-    assert environment.version == Version("0.1.0")
-    assert environment.description == "This is an environment"
-    assert environment.type == "environment"
-    assert environment.data == {}
-    assert environment.alias == {}
-    assert environment.requirement == []
-    assert environment.variant == []
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.version == Version("0.1.0")
+    assert definition.description == "This is a definition"
+    assert definition.environ == {}
+    assert definition.command == {}
+    assert definition.requirements == []
+    assert definition.variants == []
 
-    assert environment.system == {
+    assert definition.system == {
         "arch": "x86_64",
         "platform": "linux"
     }
 
-    assert environment.to_ordered_mapping() == OrderedDict([
-        ("identifier", "test-environment"),
+    assert definition.to_ordered_mapping() == OrderedDict([
+        ("identifier", "test"),
         ("version", "0.1.0"),
-        ("type", "environment"),
-        ("description", "This is an environment"),
+        ("description", "This is a definition"),
         ("system", {
             "arch": "x86_64",
             "platform": "linux"
@@ -778,209 +755,141 @@ def test_environment_with_system():
     ])
 
 
-def test_environment_with_variant():
-    """Create an environment definition with variant."""
+def test_definition_with_variant():
+    """Create a definition with variant."""
     data = {
-        "identifier": "test-environment",
+        "identifier": "test",
         "version": "0.1.0",
-        "description": "This is an environment",
-        "variant": [
+        "description": "This is a definition",
+        "variants": [
             {
                 "identifier": "1.0",
-                "data": {
+                "environ": {
                     "VERSION": "1.0"
                 },
-                "requirement": [
+                "requirements": [
                     "envA >= 1.0, < 2"
                 ]
             },
             {
                 "identifier": "2.0",
-                "data": {
+                "environ": {
                     "VERSION": "2.0"
                 },
-                "alias": {
+                "command": {
                     "app": "App2.0",
                 },
-                "requirement": [
+                "requirements": [
                     "envA >= 2.0, < 3"
                 ]
             },
             {
                 "identifier": "XXX",
-                "alias": {
+                "command": {
                     "app": "AppXXX",
                 },
             }
         ]
     }
 
-    environment = wiz.definition.Environment(copy.deepcopy(data))
-    assert environment.identifier == "test-environment"
-    assert environment.version == Version("0.1.0")
-    assert environment.description == "This is an environment"
-    assert environment.type == "environment"
-    assert environment.data == {}
-    assert environment.requirement == []
-    assert environment.alias == {}
-    assert environment.system == {}
+    definition = wiz.definition.Definition(copy.deepcopy(data))
+    assert definition.identifier == "test"
+    assert definition.version == Version("0.1.0")
+    assert definition.description == "This is a definition"
+    assert definition.environ == {}
+    assert definition.requirements == []
+    assert definition.command == {}
+    assert definition.system == {}
 
     for variant_data, variant in itertools.izip_longest(
-        data["variant"], environment.variant
+        data["variants"], definition.variants
     ):
         assert variant_data["identifier"] == variant.identifier
-        assert variant_data.get("data", {}) == variant.data
-        assert variant_data.get("alias", {}) == variant.alias
+        assert variant_data.get("environ", {}) == variant.environ
+        assert variant_data.get("command", {}) == variant.command
 
         for requirement_data, requirement in itertools.izip_longest(
-            variant_data.get("requirement", []), variant.requirement
+            variant_data.get("requirements", []), variant.requirements
         ):
             assert isinstance(requirement, Requirement)
             assert str(requirement) == str(Requirement(requirement_data))
 
-    assert environment.to_ordered_mapping() == OrderedDict([
-        ("identifier", "test-environment"),
+    assert definition.to_ordered_mapping() == OrderedDict([
+        ("identifier", "test"),
         ("version", "0.1.0"),
-        ("type", "environment"),
-        ("description", "This is an environment"),
-        ("variant", [
+        ("description", "This is a definition"),
+        ("variants", [
             OrderedDict([
                 ("identifier", "1.0"),
-                ("data", {"VERSION": "1.0"}),
-                ("requirement", ["envA >= 1.0, < 2"])
+                ("environ", {"VERSION": "1.0"}),
+                ("requirements", ["envA >= 1.0, < 2"])
             ]),
             OrderedDict([
                 ("identifier", "2.0"),
-                ("alias", {"app": "App2.0"}),
-                ("data", {"VERSION": "2.0"}),
-                ("requirement", ["envA >= 2.0, < 3"])
+                ("command", {"app": "App2.0"}),
+                ("environ", {"VERSION": "2.0"}),
+                ("requirements", ["envA >= 2.0, < 3"])
             ]),
             OrderedDict([
                 ("identifier", "XXX"),
-                ("alias", {"app": "AppXXX"}),
+                ("command", {"app": "AppXXX"}),
             ])
         ])
     ])
 
 
-def test_environment_with_version_error():
-    """Fail to create an application definition with incorrect version."""
+def test_definition_with_version_error():
+    """Fail to create a definition with incorrect version."""
     data = {
-        "identifier": "test-environment",
+        "identifier": "test",
         "version": "!!!"
     }
 
-    with pytest.raises(wiz.exception.IncorrectEnvironment) as error:
-        wiz.definition.Environment(data)
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.definition.Definition(data)
 
     assert (
-        "IncorrectEnvironment: The environment 'test-environment' is "
-        "incorrect: Invalid version: '!!!'"
+        "IncorrectDefinition: The definition 'test' has an incorrect "
+        "version [!!!]"
     ) in str(error)
 
 
-def test_environment_with_requirement_error():
-    """Fail to create an environment definition with incorrect requirement."""
+def test_definition_with_requirement_error():
+    """Fail to create a definition with incorrect requirement."""
     data = {
-        "identifier": "test-environment",
-        "requirement": [
+        "identifier": "test",
+        "requirements": [
             "envA -!!!",
         ]
     }
 
-    with pytest.raises(wiz.exception.IncorrectEnvironment) as error:
-        wiz.definition.Environment(data)
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.definition.Definition(data)
 
     assert (
-        "IncorrectEnvironment: The environment 'test-environment' is "
-        "incorrect: Invalid requirement, parse error at \"'-!!!'\""
+        "IncorrectDefinition: The definition 'test' contains an incorrect "
+        "requirement [Invalid requirement, parse error at \"'-!!!'\"]"
     ) in str(error)
 
 
-def test_application():
-    """Create an application definition."""
+def test_definition_with_variant_requirement_error():
+    """Fail to create a definition with incorrect variant requirement."""
     data = {
-        "identifier": "test-application",
-        "command": "app --test",
-        "requirement": [
-            "envA >= 1.0.0",
-            "envB >= 3.4, < 4",
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "1.0",
+                "requirements": [
+                    "envA -!!!"
+                ]
+            }
         ]
     }
 
-    application = wiz.definition.Application(data)
-    assert application.identifier == "test-application"
-    assert application.description == "unknown"
-    assert application.type == "application"
-    assert application.command == "app --test"
-
-    for expected_requirement, requirement in itertools.izip_longest(
-        data["requirement"], application.requirement
-    ):
-        assert isinstance(requirement, Requirement)
-        assert str(requirement) == str(Requirement(expected_requirement))
-
-    assert application.to_ordered_mapping() == OrderedDict([
-        ("identifier", "test-application"),
-        ("type", "application"),
-        ("command", "app --test"),
-        ("requirement", [
-            "envA >= 1.0.0",
-            "envB >= 3.4, < 4"
-        ])
-    ])
-
-
-def test_application_with_description():
-    """Create an application definition with description."""
-    data = {
-        "identifier": "test-application",
-        "description": "This is an application",
-        "command": "app --test",
-        "requirement": [
-            "envA >= 1.0.0",
-            "envB >= 3.4, < 4",
-        ]
-    }
-
-    application = wiz.definition.Application(data)
-    assert application.identifier == "test-application"
-    assert application.description == "This is an application"
-    assert application.type == "application"
-    assert application.command == "app --test"
-
-    for expected_requirement, requirement in itertools.izip_longest(
-        data["requirement"], application.requirement
-    ):
-        assert isinstance(requirement, Requirement)
-        assert str(requirement) == str(Requirement(expected_requirement))
-
-    assert application.to_ordered_mapping() == OrderedDict([
-        ("identifier", "test-application"),
-        ("type", "application"),
-        ("description", "This is an application"),
-        ("command", "app --test"),
-        ("requirement", [
-            "envA >= 1.0.0",
-            "envB >= 3.4, < 4"
-        ])
-    ])
-
-
-def test_application_with_requirement_error():
-    """Fail to create an application definition with incorrect requirement."""
-    data = {
-        "identifier": "test-application",
-        "command": "app --test",
-        "requirement": [
-            "envA -!!!",
-        ]
-    }
-
-    with pytest.raises(wiz.exception.IncorrectApplication) as error:
-        wiz.definition.Application(data)
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.definition.Definition(data)
 
     assert (
-        "IncorrectApplication: The application 'test-application' is "
-        "incorrect: Invalid requirement, parse error at \"'-!!!'\""
+        "IncorrectDefinition: The definition 'test' [1.0] contains an "
+        "incorrect requirement [Invalid requirement, parse error at \"'-!!!'\"]"
     ) in str(error)

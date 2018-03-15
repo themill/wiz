@@ -5,8 +5,8 @@
 #: Separator between the normal arguments and the command to run.
 COMMAND_SEPARATOR = "--"
 
-#: Environment definition type.
-ENVIRONMENT_TYPE = "environment"
+#: Package definition type.
+PACKAGE_TYPE = "package"
 
-#: Application definition type.
-APPLICATION_TYPE = "application"
+#: Command definition type.
+COMMAND_TYPE = "command"

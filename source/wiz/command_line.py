@@ -12,9 +12,8 @@ from packaging.version import Version, InvalidVersion
 
 import wiz.registry
 import wiz.symbol
-# import wiz.definition
-import wiz.environment
-import wiz.application
+import wiz.definition
+import wiz.package
 import wiz.spawn
 import wiz.exception
 import wiz.filesystem
@@ -64,7 +63,7 @@ def construct_parser():
 
     list_parser = subparsers.add_parser(
         "list",
-        help="List available application or environment definitions.",
+        help="List available command or package definitions.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -73,13 +72,19 @@ def construct_parser():
         dest="subcommands"
     )
 
-    application_parser = list_subparsers.add_parser(
-        "application",
-        help="List all available applications.",
+    command_parser = list_subparsers.add_parser(
+        "command",
+        help="List all available commands.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    application_parser.add_argument(
+    command_parser.add_argument(
+        "--all",
+        help="Return all definition versions.",
+        action="store_true"
+    )
+
+    command_parser.add_argument(
         "-dsp", "--definition-search-paths",
         nargs="+",
         metavar="PATH",
@@ -87,25 +92,19 @@ def construct_parser():
         default=wiz.registry.get_defaults()
     )
 
-    environment_parser = list_subparsers.add_parser(
-        "environment",
-        help="List all available environments.",
+    package_parser = list_subparsers.add_parser(
+        "package",
+        help="List all available packages.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    environment_parser.add_argument(
+    package_parser.add_argument(
         "--all",
-        help="Return all environment versions.",
+        help="Return all definition versions.",
         action="store_true"
     )
 
-    environment_parser.add_argument(
-        "--with-aliases",
-        help="Return only environment defining aliases.",
-        action="store_true"
-    )
-
-    environment_parser.add_argument(
+    package_parser.add_argument(
         "-dsp", "--definition-search-paths",
         nargs="+",
         metavar="PATH",
@@ -115,19 +114,13 @@ def construct_parser():
 
     search_parser = subparsers.add_parser(
         "search",
-        help="Search environment or application definitions.",
+        help="Search definitions.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     search_parser.add_argument(
         "--all",
-        help="Return all environment versions.",
-        action="store_true"
-    )
-
-    search_parser.add_argument(
-        "--with-aliases",
-        help="Return only environment defining aliases.",
+        help="Return all definition versions.",
         action="store_true"
     )
 
@@ -136,8 +129,8 @@ def construct_parser():
         help="Set the type of definitions requested.",
         choices=[
             "all",
-            wiz.symbol.APPLICATION_TYPE,
-            wiz.symbol.ENVIRONMENT_TYPE
+            wiz.symbol.PACKAGE_TYPE,
+            wiz.symbol.COMMAND_TYPE
         ],
         default="all"
     )
@@ -153,12 +146,12 @@ def construct_parser():
     search_parser.add_argument(
         "requirements",
         nargs="+",
-        help="Environment or application requirements to search."
+        help="Package requirements to search."
     )
 
     view_subparsers = subparsers.add_parser(
         "view",
-        help="View content of an environment or application definition.",
+        help="View content of a package definition.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
@@ -177,13 +170,13 @@ def construct_parser():
 
     run_subparsers = subparsers.add_parser(
         "run",
-        help="Run command from application.",
+        help="Run command from package.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     run_subparsers.add_argument(
         "--view",
-        help="Only view the resolved environment.",
+        help="Only view the resolved context.",
         action="store_true"
     )
 
@@ -196,14 +189,14 @@ def construct_parser():
     )
 
     run_subparsers.add_argument(
-        "application", help="Application identifier to run."
+        "requirement", help="Command requirement to run."
     )
 
     use_subparsers = subparsers.add_parser(
         "use",
         help=(
-            "Spawn shell with resolved environment from requirements, or run "
-            "a command within the resolved environment if indicated after "
+            "Spawn shell with resolved context from requirements, or run "
+            "a command within the resolved context if indicated after "
             "the '--' symbol."
         ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -211,7 +204,7 @@ def construct_parser():
 
     use_subparsers.add_argument(
         "--view",
-        help="Only view the resolved environment.",
+        help="Only view the resolved context.",
         action="store_true"
     )
 
@@ -226,12 +219,12 @@ def construct_parser():
     use_subparsers.add_argument(
         "requirements",
         nargs="+",
-        help="Environment requirements required."
+        help="Package requirements required."
     )
 
     freeze_subparsers = subparsers.add_parser(
         "freeze",
-        help="Output resolved environment.",
+        help="Output resolved context.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
@@ -260,7 +253,7 @@ def construct_parser():
     freeze_subparsers.add_argument(
         "requirements",
         nargs="+",
-        help="Environment requirements required."
+        help="Package requirements required."
     )
 
     return parser
@@ -315,13 +308,13 @@ def main(arguments=None):
         _display_definition(namespace, registries)
 
     elif namespace.commands == "use":
-        _resolve_and_use_environment(namespace, registries, command_arguments)
+        _resolve_and_use_context(namespace, registries, command_arguments)
 
     elif namespace.commands == "run":
-        _run_application(namespace, registries, command_arguments)
+        _run_command(namespace, registries, command_arguments)
 
     elif namespace.commands == "freeze":
-        _freeze_and_export_resolved_environment(namespace, registries)
+        _freeze_and_export_resolved_context(namespace, registries)
 
 
 def _fetch_and_display_definitions(namespace, registries):
@@ -344,16 +337,22 @@ def _fetch_and_display_definitions(namespace, registries):
     )
     display_registries(registries)
 
-    if namespace.subcommands == "application":
-        display_applications(
-            mapping[wiz.symbol.APPLICATION_TYPE], registries
+    if namespace.subcommands == "command":
+        definition_mapping = {
+            k: mapping[wiz.symbol.PACKAGE_TYPE][v]
+            for (k, v) in mapping[wiz.symbol.COMMAND_TYPE].items()
+        }
+
+        display_definition_mapping(
+            definition_mapping, registries,
+            all_versions=namespace.all,
+            command=True
         )
 
-    elif namespace.subcommands == "environment":
-        display_environment_mapping(
-            mapping[wiz.symbol.ENVIRONMENT_TYPE], registries,
+    elif namespace.subcommands == "package":
+        display_definition_mapping(
+            mapping[wiz.symbol.PACKAGE_TYPE], registries,
             all_versions=namespace.all,
-            with_aliases=namespace.with_aliases
         )
 
 
@@ -362,11 +361,10 @@ def _search_and_display_definitions(namespace, registries):
 
     Command example::
 
-        wiz search app
-        wiz search app --all
-        wiz search app --with-aliases
-        wiz search app1>=2
-        wiz search app other
+        wiz search request
+        wiz search request --all
+        wiz search request>=2
+        wiz search request other
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
@@ -375,9 +373,9 @@ def _search_and_display_definitions(namespace, registries):
     """
     logger = mlog.Logger(__name__ + "._search_and_display_definitions")
 
-    requirements = map(Requirement, namespace.requirements)
-    mapping = wiz.definition.search(
-        requirements, registries,
+    mapping = wiz.definition.fetch(
+        registries,
+        requests=namespace.requirements,
         max_depth=namespace.definition_search_depth
     )
 
@@ -385,25 +383,29 @@ def _search_and_display_definitions(namespace, registries):
     results_found = False
 
     if (
-        namespace.type in ["application", "all"] and
-        len(mapping[wiz.symbol.APPLICATION_TYPE]) > 0
+        namespace.type in ["command", "all"] and
+        len(mapping[wiz.symbol.COMMAND_TYPE]) > 0
     ):
         results_found = True
-        display_applications(
-            mapping[wiz.symbol.APPLICATION_TYPE],
-            registries
+        definition_mapping = {
+            k: mapping[wiz.symbol.PACKAGE_TYPE][v]
+            for (k, v) in mapping[wiz.symbol.COMMAND_TYPE].items()
+        }
+
+        display_definition_mapping(
+            definition_mapping, registries,
+            all_versions=namespace.all,
+            command=True
         )
 
     if (
-        namespace.type in ["environment", "all"] and
-        len(mapping[wiz.symbol.ENVIRONMENT_TYPE]) > 0
+        namespace.type in ["package", "all"] and
+        len(mapping[wiz.symbol.PACKAGE_TYPE]) > 0
     ):
         results_found = True
-        display_environment_mapping(
-            mapping[wiz.symbol.ENVIRONMENT_TYPE],
-            registries,
+        display_definition_mapping(
+            mapping[wiz.symbol.PACKAGE_TYPE], registries,
             all_versions=namespace.all,
-            with_aliases=namespace.with_aliases
         )
 
     if not results_found:
@@ -416,7 +418,7 @@ def _display_definition(namespace, registries):
     Command example::
 
         wiz view app
-        wiz view app-env
+        wiz view package
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
@@ -428,245 +430,219 @@ def _display_definition(namespace, registries):
     mapping = wiz.fetch_definitions(
         registries, max_depth=namespace.definition_search_depth
     )
+
+    def _display(_requirement):
+        """Display definition from *requirement*."""
+        _definition = wiz.definition.get(
+            _requirement, mapping[wiz.symbol.PACKAGE_TYPE]
+        )
+        display_definition(_definition)
+        return True
+
+    requirement = Requirement(namespace.requirement)
+
     results_found = False
 
-    # Display requested application if found.
-    try:
-        application = wiz.application.get(
-            namespace.requirement, mapping[wiz.symbol.APPLICATION_TYPE]
+    # Check command mapping.
+    if requirement.name in mapping[wiz.symbol.COMMAND_TYPE]:
+        definition_requirement = Requirement(
+            mapping[wiz.symbol.COMMAND_TYPE][requirement.name]
         )
-        results_found = True
+        definition_requirement.specifier = requirement.specifier
 
-    except wiz.exception.RequestNotFound:
-        logger.debug(
-            "No application found for requirement: '{}'\n".format(
-                namespace.requirement
+        try:
+            results_found = _display(definition_requirement)
+
+        except wiz.exception.RequestNotFound:
+            logger.debug(
+                "No command found for request: '{}'\n".format(
+                    requirement
+                )
             )
-        )
 
-    else:
-        display_application(application, logger)
+    # Check package mapping.
+    if requirement.name in mapping[wiz.symbol.PACKAGE_TYPE]:
+        try:
+            results_found = _display(requirement)
 
-    # Display requested environment if found.
-    try:
-        requirement = Requirement(namespace.requirement)
-        environment = wiz.environment.get(
-            requirement, mapping[wiz.symbol.ENVIRONMENT_TYPE],
-            divide_variants=False
-        )[0]
-        results_found = True
-
-    except wiz.exception.RequestNotFound:
-        logger.debug(
-            "No environment found for requirement: '{}'\n".format(
-                namespace.requirement
+        except wiz.exception.RequestNotFound:
+            logger.debug(
+                "No package found for request: '{}'\n".format(
+                    requirement
+                )
             )
-        )
 
-    else:
-        display_environment(environment, logger)
-
-    # Otherwise, indicate that no result has been found...
+    # Otherwise, print a warning...
     if not results_found:
         logger.warning(
-            "No application nor environment could be found for "
-            "requirement: '{}'\n".format(namespace.requirement)
+            "No definition could be found for "
+            "request: '{}'\n".format(namespace.requirement)
         )
 
 
-def _resolve_and_use_environment(namespace, registries, command_arguments):
+def _resolve_and_use_context(namespace, registries, command_arguments):
     """Resolve and use environment from arguments in *namespace*.
 
     Command example::
 
-        wiz use env1>=1 env2==2.3.0 env3
-        wiz use env1>=1 env2==2.3.0 env3 -- app --option value /path/to/output
-        wiz use --view app
+        wiz use package1>=1 package2==2.3.0 package3
+        wiz use package1>=1 package2==2.3.0 package3 -- app --option value
+        wiz use --view command
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
     *registries* should be a list of available registry paths.
 
     *command_arguments* could be the command list to execute within
-    the resolved environment.
+    the resolved context.
 
     """
-    logger = mlog.Logger(__name__ + "._resolve_and_use_environment")
+    logger = mlog.Logger(__name__ + "._resolve_and_use_context")
 
     mapping = wiz.fetch_definitions(
         registries, max_depth=namespace.definition_search_depth
     )
 
-    requirements = map(Requirement, namespace.requirements)
-
     try:
-        environments = wiz.environment.resolve(
-            requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
-        )
-
-        data_mapping = wiz.environment.initiate_data()
-        environment = wiz.environment.combine(
-            environments, data_mapping=data_mapping
-        )
+        context = wiz.resolve_context(namespace.requirements, mapping)
 
         # Only view the resolved environment without spawning a shell nor
         # running any commands.
         if namespace.view:
             display_registries(registries)
-
-            display_environments(
-                environments, registries,
-                header="Resolved Environments"
-            )
-
-            display_environment_aliases(
-                environment.get("alias", {}),
-                header="Resolved Commands"
-            )
-
-            display_environment_data(environment.get("data", {}))
+            display_packages(context["packages"], registries)
+            display_command_mapping(context.get("command", {}))
+            display_environ_mapping(context.get("environ", {}))
 
         # If no commands are indicated, spawn a shell.
         elif command_arguments is None:
-            wiz.spawn.shell(environment["data"])
+            wiz.spawn.shell(context["environ"])
 
-        # Otherwise, resolve the command and run it within the resolved
-        # environment.
+        # Otherwise, resolve the command and run it within the resolved context.
         else:
-            alias_mapping = environment.get("alias", {})
-            if command_arguments[0] in alias_mapping.keys():
-                commands = shlex.split(
-                    alias_mapping[command_arguments[0]]
-                )
-                command_arguments = commands + command_arguments[1:]
+            commands = command_arguments
+            command_mapping = context.get("command", {})
 
-            wiz.spawn.execute(command_arguments, environment["data"])
+            if commands[0] in command_mapping.keys():
+                commands = (
+                    shlex.split(command_mapping[commands[0]]) + commands[1:]
+                )
+
+            wiz.spawn.execute(commands, context["environ"])
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
 
 
-def _run_application(namespace, registries, command_arguments):
+def _run_command(namespace, registries, command_arguments):
     """Run application from arguments in *namespace*.
 
     Command example::
 
-        wiz run app
-        wiz run app -- --option value /path/to/output
+        wiz run command
+        wiz run command -- --option value /path/to/output
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
     *registries* should be a list of available registry paths.
 
     *command_arguments* could be the command list to execute within
-    the resolved environment.
+    the resolved context.
 
     """
-    logger = mlog.Logger(__name__ + "._run_application")
+    logger = mlog.Logger(__name__ + "._run_command")
 
     mapping = wiz.fetch_definitions(
         registries, max_depth=namespace.definition_search_depth
     )
 
+    requirement = Requirement(namespace.requirement)
+
+    commands = [requirement.name]
+    if command_arguments is not None:
+        commands += command_arguments
+
+    definition_requirement = Requirement(
+        mapping[wiz.symbol.COMMAND_TYPE][requirement.name]
+    )
+    definition_requirement.specifier = requirement.specifier
+
     try:
-        application = wiz.application.get(
-            namespace.application, mapping[wiz.symbol.APPLICATION_TYPE]
-        )
+        context = wiz.resolve_context([str(definition_requirement)], mapping)
 
-        environments = wiz.application.resolve_environments(
-            application, mapping[wiz.symbol.ENVIRONMENT_TYPE]
-        )
-
-        data_mapping = wiz.environment.initiate_data()
-        environment = wiz.environment.combine(
-            environments, data_mapping=data_mapping
-        )
-
-        commands = wiz.application.extract_commands(
-            application, environment, arguments=command_arguments
-        )
-
-        # Only view the resolved environment without running any commands.
+        # Only view the resolved environment without spawning a shell nor
+        # running any commands.
         if namespace.view:
-            logger.info("Start command: {}".format(" ".join(commands)))
-
             display_registries(registries)
-
-            display_environments(
-                environments, registries,
-                header="Resolved Environments"
-            )
-
-            display_environment_data(environment.get("data", {}))
+            display_packages(context["packages"], registries)
+            display_command_mapping(context.get("command", {}))
+            display_environ_mapping(context.get("environ", {}))
 
         else:
-            wiz.spawn.execute(commands, environment["data"])
+            command_mapping = context.get("command", {})
+
+            if commands[0] in command_mapping.keys():
+                commands = (
+                    shlex.split(command_mapping[commands[0]]) + commands[1:]
+                )
+
+            wiz.spawn.execute(commands, context["environ"])
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
 
 
-def _freeze_and_export_resolved_environment(namespace, registries):
-    """Freeze resolved environment from arguments in *namespace*.
+def _freeze_and_export_resolved_context(namespace, registries):
+    """Freeze resolved context from arguments in *namespace*.
 
     Command example::
 
-        wiz freeze env1>=1 env2==2.3.0 env3
-        wiz freeze --format bash env1>=1 env2==2.3.0 env3
-        wiz freeze --format tcsh env1>=1 env2==2.3.0 env3
+        wiz freeze package1>=1 package2==2.3.0 package3
+        wiz freeze --format bash package1>=1 package2==2.3.0 package3
+        wiz freeze --format tcsh package1>=1 package2==2.3.0 package3
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
     *registries* should be a list of available registry paths.
 
     """
-    logger = mlog.Logger(__name__ + "._freeze_and_export_resolved_environment")
+    logger = mlog.Logger(__name__ + "._freeze_and_export_resolved_context")
 
     mapping = wiz.fetch_definitions(
         registries, max_depth=namespace.definition_search_depth
     )
 
-    requirements = map(Requirement, namespace.requirements)
-
     try:
-        environments = wiz.environment.resolve(
-            requirements, mapping[wiz.symbol.ENVIRONMENT_TYPE]
-        )
+        context = wiz.resolve_context(namespace.requirements, mapping)
 
         if namespace.format == "wiz":
-            environment_data = {
+            definition_data = {
                 "identifier": _query_identifier(logger),
                 "description": _query_description(logger),
                 "version": _query_version(logger),
-                "requirement": map(
-                    wiz.environment.generate_identifier, environments
-                ),
-                "type": wiz.symbol.ENVIRONMENT_TYPE
+                "command": context.get("command", {}),
+                "environ": context.get("environ", {})
             }
 
-            environment = wiz.definition.create(environment_data)
+            definition = wiz.definition.Definition(**definition_data)
 
             path = os.path.join(
                 os.path.abspath(namespace.output),
                 "{identifier}-{version}.json".format(
-                    identifier=environment.identifier,
-                    version=environment.version,
+                    identifier=definition.identifier,
+                    version=definition.version,
                 )
             )
 
-            wiz.filesystem.export(path, environment.encode())
+            wiz.filesystem.export(path, definition.encode())
 
         elif namespace.format in ["tcsh", "bash"]:
-            environment = wiz.environment.combine(environments)
-
             path = os.path.join(
                 os.path.abspath(namespace.output),
                 _query_identifier(logger)
             )
 
-            command = _query_command(
-                environment.get("alias", {}).values()
-            )
+            command = _query_command(context.get("command", {}).values())
 
             # Indicate information about the generation process.
             is_bash = namespace.format == "bash"
@@ -675,13 +651,11 @@ def _freeze_and_export_resolved_environment(namespace, registries):
                 "#\n"
                 "# Generated by wiz with the following environments:\n"
             )
-            for _environment in environments:
-                content += "# - {}\n".format(
-                    wiz.environment.generate_identifier(_environment)
-                )
+            for package in context.get("packages"):
+                content += "# - {}\n".format(package.identifier)
             content += "#\n"
 
-            for key, value in environment.get("data", {}).items():
+            for key, value in context.get("environ", {}).items():
                 # Do not override the PATH environment variable to prevent
                 # error when executing the script.
                 if key == "PATH":
@@ -728,43 +702,14 @@ def display_registries(paths):
     _display_table(mappings)
 
 
-def display_application(application, logger):
-    """Display *application* instance.
+def display_definition(definition):
+    """Display *definition* instance.
 
-    *application* should be a :class:`wiz.definition.Application` instance.
-
-    Example::
-
-        >>> display_application(application)
-
-        identifier: my-app
-        registry: /path/to/registry
-        description: My Application
-        command: app
-        requirement:
-            - app-env==3.0.2
-
-    """
-    logger.info("View application: {}".format(application.identifier))
-
-    print("identifier: {}".format(application.identifier))
-    print("registry: {}".format(application.get("registry")))
-    print("description: {}".format(application.description))
-    print("command: {}".format(application.command))
-    print("requirement:")
-    for requirement in application.requirement:
-        print("    - {}".format(requirement))
-    print()
-
-
-def display_environment(environment, logger):
-    """Display *environment* instance.
-
-    *environment* should be a :class:`wiz.definition.Environment` instance.
+    *definition* should be a :class:`wiz.definition.Definition` instance.
 
     Example::
 
-        >>> display_environment(environment)
+        >>> display_definition(definition)
 
         identifier: app-env
         registry: /path/to/registry
@@ -773,209 +718,190 @@ def display_environment(environment, logger):
         system:
             - os: el >= 7, < 8
             - arch: x86_64
-        alias:
+        command:
             - app: App0.1.0
             - appX: app0.1.0 --option value
-        data:
+        environ:
             - KEY1: VALUE1
             - KEY2: VALUE2
             - KEY3: VALUE3
-        requirement:
+        requirements:
             - env1>=0.1
             - env2==1.0.2
 
     """
+    logger = mlog.Logger(__name__ + ".display_definition")
     logger.info(
         "View environment: {} ({})".format(
-            environment.identifier, environment.version
+            definition.identifier, definition.version
         )
     )
 
-    print("identifier: {}".format(environment.identifier))
-    print("registry: {}".format(environment.get("registry")))
-    print("description: {}".format(environment.description))
-    print("version: {}".format(environment.version))
-    if len(environment.get("system", {})) > 0:
+    print("identifier: {}".format(definition.identifier))
+    print("registry: {}".format(definition.get("registry")))
+    print("description: {}".format(definition.description))
+    print("version: {}".format(definition.version))
+    if len(definition.system) > 0:
         print("system:")
-        for key, value in sorted(environment.get("system").items()):
+        for key, value in sorted(definition.system.items()):
             print("    - {}: {}".format(key, value))
-    if len(environment.get("alias", {})) > 0:
-        print("alias:")
-        for key, value in sorted(environment.get("alias").items()):
+    if len(definition.command) > 0:
+        print("command:")
+        for key, value in sorted(definition.command.items()):
             print("    - {}: {}".format(key, value))
-    if len(environment.get("data", {})) > 0:
-        print("data:")
-        for key, value in sorted(environment.get("data").items()):
+    if len(definition.environ) > 0:
+        print("environ:")
+        for key, value in sorted(definition.environ.items()):
             print("    - {}: {}".format(key, value))
-    if len(environment.get("requirement", [])) > 0:
-        print("requirement:")
-        for requirement in environment.get("requirement"):
+    if len(definition.requirements) > 0:
+        print("requirements:")
+        for requirement in definition.requirements:
             print("    - {}".format(requirement))
-    if len(environment.get("variant", [])) > 0:
-        print("variant:")
-        for variant in environment.get("variant"):
-            print("    - {}".format(variant.get("identifier")))
-            if len(variant.get("data", {})) > 0:
-                print("        data:")
-                for key, value in sorted(variant.get("data").items()):
+    if len(definition.variants) > 0:
+        print("variants:")
+        for variant in definition.variants:
+            print("    - {}".format(variant.identifier))
+            if len(variant.environ) > 0:
+                print("        environ:")
+                for key, value in sorted(variant.environ.items()):
                     print("            - {}: {}".format(key, value))
-            if len(variant.get("requirement", [])) > 0:
-                print("        requirement:")
-                for requirement in variant.get("requirement"):
+            if len(variant.requirements) > 0:
+                print("        requirements:")
+                for requirement in variant.requirements:
                     print("            - {}".format(requirement))
 
     print()
 
 
-def display_applications(application_mapping, registries):
-    """Display the applications contained in *application_mapping*.
+def display_definition_mapping(
+    mapping, registries, all_versions=False, command=False
+):
+    """Display definition contained in *mapping*.
 
-    *application_mapping* is a mapping regrouping all available application
+    *mapping* is a mapping regrouping all available definition versions
     associated with their unique identifier.
 
     *registries* should be a list of available registry paths.
 
+    *all_versions* indicate whether all versions from the definition must be
+    returned. If not, only the latest version of each definition identifier is
+    displayed.
+
+    *command* indicate whether the mapping identifiers represent commands.
+
     """
-    titles = ["Application", "Registry", "Description"]
+    identifiers = []
+    definitions = []
+
+    for identifier in sorted(mapping.keys()):
+        versions = sorted(mapping[identifier].keys(), reverse=True)
+
+        for index in range(len(versions)):
+            if index > 0 and not all_versions:
+                break
+
+            identifiers.append(identifier)
+            definitions.append(mapping[identifier][versions[index]])
+
+    header = "Command" if command else "Package"
+    titles = [header, "Version", "Registry", "Description"]
     rows = [
         {"size": len(title), "items": [], "title": title} for title in titles
     ]
 
-    for _, application in sorted(application_mapping.items()):
-        _identifier = application.identifier
-        rows[0]["items"].append(_identifier)
-        rows[0]["size"] = max(len(_identifier), rows[0]["size"])
-
-        registry_index = str(registries.index(application.get("registry")))
-        rows[1]["items"].append(registry_index)
-        rows[1]["size"] = max(len(registry_index), rows[1]["size"])
-
-        description = application.description
-        rows[2]["items"].append(description)
-        rows[2]["size"] = max(len(description), rows[2]["size"])
-
-    _display_table(rows)
-
-
-def display_environment_mapping(
-    environment_mapping, registries, all_versions=False, with_aliases=False,
-):
-    """Display the environments contained in *environment_mapping*.
-
-    *environment_mapping* is a mapping regrouping all available environment
-    environment associated with their unique identifier.
-
-    *registries* should be a list of available registry paths.
-
-    *all_versions* indicate whether all versions from the environments must be
-    returned. If not, only the latest version of each environment identifier is
-    displayed.
-
-    *with_aliases* indicate whether only environments with 'aliases' should be
-    displayed.
-
-    """
-    environments_to_display = []
-
-    for _, environments in sorted(environment_mapping.items()):
-        _environments = sorted(
-            environments, key=lambda _env: _env.version, reverse=True
-        )
-
-        if all_versions:
-            for environment in _environments:
-                environments_to_display.append(environment)
-        else:
-            environments_to_display.append(_environments[0])
-
-    display_environments(
-        environments_to_display, registries, with_aliases=with_aliases
-    )
-
-
-def display_environments(
-    environments, registries, header=None, with_aliases=False
-):
-    """Display *environments* instances.
-
-    *environments* should be a list of :class:`wiz.definition.Environment`
-    instances.
-
-    *registries* should be a list of available registry paths.
-
-    *header* can be the name of the table displayed ("Environment" is the
-    default value).
-
-    *with_aliases* indicate whether only environments with 'aliases' should be
-    displayed.
-
-    """
-    titles = [header or "Environment", "Version", "Registry", "Description"]
-    rows = [
-        {"size": len(title), "items": [], "title": title} for title in titles
-    ]
-
-    def _format_unit(_environment, _variant=None):
-        """Format *_mapping* from *_environment* unit with optional *_variant*.
-        """
-        if with_aliases and _environment.get("alias") is None:
-            return
-
-        _identifier = _environment.identifier
+    def _format_unit(_identifier, _definition, _variant=None):
+        """Format row unit."""
         if _variant is not None:
             _identifier += " [{}]".format(_variant)
 
         rows[0]["items"].append(_identifier)
         rows[0]["size"] = max(len(_identifier), rows[0]["size"])
 
-        _version = str(_environment.version)
+        _version = str(_definition.version)
         rows[1]["items"].append(_version)
         rows[1]["size"] = max(len(_version), rows[1]["size"])
 
-        registry_index = str(registries.index(_environment.get("registry")))
+        registry_index = str(registries.index(_definition.get("registry")))
         rows[2]["items"].append(registry_index)
         rows[2]["size"] = max(len(registry_index), rows[2]["size"])
 
-        _description = _environment.description
+        _description = _definition.description
         rows[3]["items"].append(_description)
         rows[3]["size"] = max(len(_description), rows[3]["size"])
 
-    for environment in environments:
-        if len(environment.get("variant", [])) > 0:
-            for variant in environment.get("variant"):
-                _variant = variant.get("identifier", "unknown")
-                _format_unit(environment, _variant)
+    for identifier, definition in itertools.izip_longest(
+        identifiers, definitions
+    ):
+        if len(definition.variants) > 0:
+            for variant in definition.variants:
+                _variant = variant.identifier
+                _format_unit(identifier, definition, _variant)
 
         else:
-            _format_unit(environment, environment.get("variant_name"))
+            _format_unit(identifier, definition)
 
     _display_table(rows)
 
 
-def display_environment_aliases(alias_mapping, header=None):
-    """Display aliases defined in environment.
+def display_packages(packages, registries):
+    """Display *packages*.
 
-    *alias_mapping* is a mapping of aliases in the form of::
+    *packages* should be a list of :class:`wiz.package.Package` instances.
+
+    *registries* should be a list of available registry paths.
+
+    """
+    titles = ["Package", "Version", "Registry", "Description"]
+    rows = [
+        {"size": len(title), "items": [], "title": title} for title in titles
+    ]
+
+    for package in packages:
+        _identifier = package.definition.identifier
+        if package.variant_name is not None:
+            _identifier += " [{}]".format(package.variant_name)
+
+        rows[0]["items"].append(_identifier)
+        rows[0]["size"] = max(len(_identifier), rows[0]["size"])
+
+        _version = str(package.version)
+        rows[1]["items"].append(_version)
+        rows[1]["size"] = max(len(_version), rows[1]["size"])
+
+        registry_index = str(
+            registries.index(package.definition.get("registry"))
+        )
+        rows[2]["items"].append(registry_index)
+        rows[2]["size"] = max(len(registry_index), rows[2]["size"])
+
+        _description = package.description
+        rows[3]["items"].append(_description)
+        rows[3]["size"] = max(len(_description), rows[3]["size"])
+
+    _display_table(rows)
+
+
+def display_command_mapping(mapping):
+    """Display commands contained in *mapping*.
+
+    *mapping* should be in the form of::
 
         {
             "app": "App0.1.0",
             "appX": "App0.1.0 --option value"
         }
 
-    *header* can be the name of the table displayed ("Aliases" is the
-    default value).
-
     """
-    if len(alias_mapping) == 0:
-        print("No aliases to display.")
+    if len(mapping) == 0:
+        print("No command to display.")
         return
 
-    titles = [header or "Aliases", "Value"]
+    titles = ["Command", "Value"]
     mappings = [
         {"size": len(title), "items": [], "title": title} for title in titles
     ]
 
-    for command, value in sorted(alias_mapping.items()):
+    for command, value in sorted(mapping.items()):
         mappings[0]["items"].append(command)
         mappings[0]["size"] = max(len(command), mappings[0]["size"])
 
@@ -985,10 +911,10 @@ def display_environment_aliases(alias_mapping, header=None):
     _display_table(mappings)
 
 
-def display_environment_data(data_mapping):
-    """Display data mapping defined in environment.
+def display_environ_mapping(mapping):
+    """Display environment variables contained in *mapping*.
 
-    *data_mapping* can be a mapping of environment variables in the form of::
+    *mapping* should be in the form of::
 
         {
             "KEY1": "VALUE1",
@@ -996,12 +922,12 @@ def display_environment_data(data_mapping):
         }
 
     """
-    if len(data_mapping) == 0:
+    if len(mapping) == 0:
         print("No environment variables to display.")
         return
 
     titles = ["Environment Variable", "Environment Value"]
-    mappings = [
+    rows = [
         {"size": len(title), "items": [], "title": title} for title in titles
     ]
 
@@ -1011,18 +937,18 @@ def display_environment_data(data_mapping):
             return [value]
         return str(value).split(os.pathsep)
 
-    for variable in sorted(data_mapping.keys()):
+    for variable in sorted(mapping.keys()):
         for key, _value in itertools.izip_longest(
-            [variable], _compute_value(variable, data_mapping[variable])
+            [variable], _compute_value(variable, mapping[variable])
         ):
             _key = key or ""
-            mappings[0]["items"].append(_key)
-            mappings[0]["size"] = max(len(_key), mappings[0]["size"])
+            rows[0]["items"].append(_key)
+            rows[0]["size"] = max(len(_key), rows[0]["size"])
 
-            mappings[1]["items"].append(_value)
-            mappings[1]["size"] = max(len(_value), mappings[1]["size"])
+            rows[1]["items"].append(_value)
+            rows[1]["size"] = max(len(_value), rows[1]["size"])
 
-    _display_table(mappings)
+    _display_table(rows)
 
 
 def _query_identifier(logger):
