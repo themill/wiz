@@ -4,8 +4,6 @@ import os
 import sys
 import platform
 
-import mlog
-
 import wiz.exception
 
 
@@ -15,28 +13,15 @@ def query():
     Raise :exc:`wiz.exception.UnsupportedPlatform` if platform is not supported.
 
     """
-    logger = mlog.Logger(__name__ + ".query")
-
-    mapping = None
-
     name = platform.system().lower()
     if name == "linux":
-        mapping = query_linux_mapping()
+        return query_linux_mapping()
     elif name == "darwin":
-        mapping = query_mac_mapping()
+        return query_mac_mapping()
     elif name == "windows":
-        mapping = query_windows_mapping()
+        return query_windows_mapping()
 
-    if mapping is None:
-        raise wiz.exception.UnsupportedPlatform(name)
-
-    logger.debug(
-        "System: platform={}, arch={}, os_version={}".format(
-            mapping.get("platform"),
-            mapping.get("arch"),
-            mapping.get("os_version"),
-        )
-    )
+    raise wiz.exception.UnsupportedPlatform(name)
 
 
 def query_linux_mapping():
@@ -74,5 +59,5 @@ def query_windows_mapping():
     return {
         "platform": "windows",
         "arch": architecture,
-        "os_version": "windows=={}".format( platform.win32_ver()[1])
+        "os_version": "windows=={}".format(platform.win32_ver()[1])
     }
