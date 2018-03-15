@@ -1,93 +1,78 @@
 # :coding: utf-8
 
-import abc
 import os
 import sys
 import platform
 
+import mlog
+
 import wiz.exception
 
 
-def query_platform():
-    """Return current platform.
+def query():
+    """Return system mapping.
 
     Raise :exc:`wiz.exception.UnsupportedPlatform` if platform is not supported.
 
     """
+    logger = mlog.Logger(__name__ + ".query")
+
+    mapping = None
+
     name = platform.system().lower()
     if name == "linux":
-        return LinuxPlatform()
+        mapping = query_linux_mapping()
     elif name == "darwin":
-        return MacOsPlatform()
+        mapping = query_mac_mapping()
     elif name == "windows":
-        return WindowsPlatform()
+        mapping = query_windows_mapping()
 
-    raise wiz.exception.UnsupportedPlatform(name)
+    if mapping is None:
+        raise wiz.exception.UnsupportedPlatform(name)
 
-
-class _Platform(object):
-    """Base Platform."""
-
-    @abc.abstractmethod
-    def name(self):
-        """Return platform name."""
-
-    def arch(self):
-        """Return architecture ("x86_64" or "i386")."""
-        return platform.machine()
-
-    @abc.abstractmethod
-    def os_version(self):
-        """Return identifier to operating system version."""
-
-
-class LinuxPlatform(_Platform):
-    """Linux platform."""
-
-    def name(self):
-        """Return platform name."""
-        return "linux"
-
-    def os_version(self):
-        """Return identifier to operating system version."""
-        distribution, version, _ = platform.linux_distribution(
-            full_distribution_name=False
+    logger.debug(
+        "System: platform={}, arch={}, os_version={}".format(
+            mapping.get("platform"),
+            mapping.get("arch"),
+            mapping.get("os_version"),
         )
-        return "{}=={}".format(distribution, version)
+    )
 
 
-class MacOsPlatform(_Platform):
-    """MacOS platform."""
+def query_linux_mapping():
+    """Return Linux system mapping."""
+    distribution, version, _ = platform.linux_distribution(
+        full_distribution_name=False
+    )
 
-    def name(self):
-        """Return platform name."""
-        return "mac"
-
-    def os_version(self):
-        """Return identifier to operating system version."""
-        return "{}=={}".format(self.name(), platform.mac_ver()[0])
+    return {
+        "platform": "linux",
+        "arch": platform.machine(),
+        "os_version": "{}=={}".format(distribution, version)
+    }
 
 
-class WindowsPlatform(_Platform):
-    """Windows platform."""
+def query_mac_mapping():
+    """Return mac system mapping."""
+    return {
+        "platform": "mac",
+        "arch": platform.machine(),
+        "os_version": "mac=={}".format(platform.mac_ver()[0])
+    }
 
-    def name(self):
-        """Return platform name."""
-        return "windows"
 
-    def arch(self):
-        """Return architecture ("x86_64" or "i386")."""
-        # Work around this bug: https://bugs.python.org/issue7860
-        if os.name == "nt" and sys.version_info[:2] < (2, 7):
-            arch = os.environ.get(
-                "PROCESSOR_ARCHITEW6432",
-                os.environ.get("PROCESSOR_ARCHITECTURE")
-            )
-            if arch is not None:
-                return arch
+def query_windows_mapping():
+    """Return windows system mapping."""
+    architecture = platform.machine(),
 
-        return platform.machine()
+    # Work around this bug: https://bugs.python.org/issue7860
+    if os.name == "nt" and sys.version_info[:2] < (2, 7):
+        architecture = os.environ.get(
+            "PROCESSOR_ARCHITEW6432", os.environ.get("PROCESSOR_ARCHITECTURE")
+        )
 
-    def os_version(self):
-        """Return identifier to operating system version."""
-        return "{}=={}".format(self.name(), platform.win32_ver()[1])
+    return {
+        "platform": "windows",
+        "arch": architecture,
+        "os_version": "windows=={}".format( platform.win32_ver()[1])
+    }
