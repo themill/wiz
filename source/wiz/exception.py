@@ -38,6 +38,18 @@ class WizError(Exception):
         return str(self.message.format(**self.details))
 
 
+class UnsupportedPlatform(WizError):
+    """Raise when the current platform is not supported."""
+
+    default_message = "The current platform is not supported: {platform}"
+
+    def __init__(self, platform):
+        """Initialise with *platform*."""
+        super(UnsupportedPlatform, self).__init__(
+            details={"platform": platform}
+        )
+
+
 class IncorrectDefinition(WizError):
     """Raise when a definition is incorrect."""
 
