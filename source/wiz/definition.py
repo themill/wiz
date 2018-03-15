@@ -25,8 +25,8 @@ def fetch(paths, requests=None, max_depth=None):
 
     """
     mapping = {
-        wiz.symbol.PACKAGE_TYPE: {},
-        wiz.symbol.COMMAND_TYPE: {}
+        wiz.symbol.PACKAGE_REQUEST_TYPE: {},
+        wiz.symbol.COMMAND_REQUEST_TYPE: {}
     }
 
     for definition in discover(paths, max_depth=max_depth):
@@ -37,12 +37,15 @@ def fetch(paths, requests=None, max_depth=None):
         version = str(definition.version)
 
         # Record package definition.
-        mapping[wiz.symbol.PACKAGE_TYPE].setdefault(identifier, {})
-        mapping[wiz.symbol.PACKAGE_TYPE][identifier][version] = definition
+        package_type = wiz.symbol.PACKAGE_REQUEST_TYPE
+        command_type = wiz.symbol.PACKAGE_REQUEST_TYPE
+
+        mapping[package_type].setdefault(identifier, {})
+        mapping[package_type][identifier][version] = definition
 
         # Record commands from definition.
         for command in definition.command.keys():
-            mapping[wiz.symbol.COMMAND_TYPE][command] = definition.identifier
+            mapping[command_type][command] = definition.identifier
 
     return mapping
 
@@ -108,12 +111,13 @@ def get(requirement, definition_mapping):
 
     # Sort the definition versions so that the highest one is first.
     versions = sorted(
-        definition_mapping[requirement.name].keys(), reverse=True
+        map(lambda d: d.version, definition_mapping[requirement.name].values()),
+        reverse=True
     )
 
     # Get the best matching definition.
     for version in versions:
-        _definition = definition_mapping[requirement.name][version]
+        _definition = definition_mapping[requirement.name][str(version)]
         if _definition.version in requirement.specifier:
             definition = _definition
             break

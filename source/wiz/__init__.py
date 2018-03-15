@@ -1,7 +1,6 @@
 # :coding: utf-8
 
 from _version import __version__
-import shlex
 
 from packaging.requirements import Requirement
 
@@ -82,7 +81,9 @@ def resolve_context(requirements, definition_mapping, environ_mapping=None):
     """
     requirements = map(Requirement, requirements)
 
-    resolver = wiz.graph.Resolver(definition_mapping[wiz.symbol.PACKAGE_TYPE])
+    resolver = wiz.graph.Resolver(
+        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+    )
     packages = resolver.compute_packages(requirements)
 
     _environ_mapping = wiz.package.initiate_environ(environ_mapping)
@@ -118,30 +119,3 @@ def resolve_environment(requirements, definition_mapping, environ_mapping=None):
     context = resolve_context(requirements, definition_mapping, environ_mapping)
     return context.get("environ", {})
 
-
-def execute(command, context, definition_mapping, environ_mapping=None):
-    """Execute *command* within resolved environment from *requirements*.
-
-    *command* should be a string representing an executable with possible
-    arguments that could be run within the resolved context. The executable
-    could be an command available within the resolved context.
-
-    *requirements* should be a list of string indicating the environment version
-    requested to build the environment (e.g. "app-env >= 1.0.0, < 2")
-
-    *definition_mapping* is a mapping regrouping all available definitions
-    available.
-
-    *environ_mapping* can be a mapping of environment variables which would
-    be augmented by the resolved environment.
-
-    """
-    commands = shlex.split(command)
-
-    context = resolve_context(requirements, definition_mapping, environ_mapping)
-
-    command_mapping = context.get("command", {})
-    if commands[0] in command_mapping.keys():
-        commands = shlex.split(command_mapping[commands[0]]) + commands[1:]
-
-    wiz.spawn.execute(commands, context.get("environ", {}))

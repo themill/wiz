@@ -129,8 +129,8 @@ def construct_parser():
         help="Set the type of definitions requested.",
         choices=[
             "all",
-            wiz.symbol.PACKAGE_TYPE,
-            wiz.symbol.COMMAND_TYPE
+            wiz.symbol.PACKAGE_REQUEST_TYPE,
+            wiz.symbol.COMMAND_REQUEST_TYPE
         ],
         default="all"
     )
@@ -339,8 +339,8 @@ def _fetch_and_display_definitions(namespace, registries):
 
     if namespace.subcommands == "command":
         definition_mapping = {
-            k: mapping[wiz.symbol.PACKAGE_TYPE][v]
-            for (k, v) in mapping[wiz.symbol.COMMAND_TYPE].items()
+            k: mapping[wiz.symbol.PACKAGE_REQUEST_TYPE][v]
+            for (k, v) in mapping[wiz.symbol.COMMAND_REQUEST_TYPE].items()
         }
 
         display_definition_mapping(
@@ -351,7 +351,7 @@ def _fetch_and_display_definitions(namespace, registries):
 
     elif namespace.subcommands == "package":
         display_definition_mapping(
-            mapping[wiz.symbol.PACKAGE_TYPE], registries,
+            mapping[wiz.symbol.PACKAGE_REQUEST_TYPE], registries,
             all_versions=namespace.all,
         )
 
@@ -384,12 +384,12 @@ def _search_and_display_definitions(namespace, registries):
 
     if (
         namespace.type in ["command", "all"] and
-        len(mapping[wiz.symbol.COMMAND_TYPE]) > 0
+        len(mapping[wiz.symbol.COMMAND_REQUEST_TYPE]) > 0
     ):
         results_found = True
         definition_mapping = {
-            k: mapping[wiz.symbol.PACKAGE_TYPE][v]
-            for (k, v) in mapping[wiz.symbol.COMMAND_TYPE].items()
+            k: mapping[wiz.symbol.PACKAGE_REQUEST_TYPE][v]
+            for (k, v) in mapping[wiz.symbol.COMMAND_REQUEST_TYPE].items()
         }
 
         display_definition_mapping(
@@ -400,11 +400,11 @@ def _search_and_display_definitions(namespace, registries):
 
     if (
         namespace.type in ["package", "all"] and
-        len(mapping[wiz.symbol.PACKAGE_TYPE]) > 0
+        len(mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]) > 0
     ):
         results_found = True
         display_definition_mapping(
-            mapping[wiz.symbol.PACKAGE_TYPE], registries,
+            mapping[wiz.symbol.PACKAGE_REQUEST_TYPE], registries,
             all_versions=namespace.all,
         )
 
@@ -434,7 +434,7 @@ def _display_definition(namespace, registries):
     def _display(_requirement):
         """Display definition from *requirement*."""
         _definition = wiz.definition.get(
-            _requirement, mapping[wiz.symbol.PACKAGE_TYPE]
+            _requirement, mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
         )
         display_definition(_definition)
         return True
@@ -444,9 +444,9 @@ def _display_definition(namespace, registries):
     results_found = False
 
     # Check command mapping.
-    if requirement.name in mapping[wiz.symbol.COMMAND_TYPE]:
+    if requirement.name in mapping[wiz.symbol.COMMAND_REQUEST_TYPE]:
         definition_requirement = Requirement(
-            mapping[wiz.symbol.COMMAND_TYPE][requirement.name]
+            mapping[wiz.symbol.COMMAND_REQUEST_TYPE][requirement.name]
         )
         definition_requirement.specifier = requirement.specifier
 
@@ -461,7 +461,7 @@ def _display_definition(namespace, registries):
             )
 
     # Check package mapping.
-    if requirement.name in mapping[wiz.symbol.PACKAGE_TYPE]:
+    if requirement.name in mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]:
         try:
             results_found = _display(requirement)
 
@@ -563,7 +563,7 @@ def _run_command(namespace, registries, command_arguments):
         commands += command_arguments
 
     definition_requirement = Requirement(
-        mapping[wiz.symbol.COMMAND_TYPE][requirement.name]
+        mapping[wiz.symbol.COMMAND_REQUEST_TYPE][requirement.name]
     )
     definition_requirement.specifier = requirement.specifier
 
@@ -794,14 +794,17 @@ def display_definition_mapping(
     definitions = []
 
     for identifier in sorted(mapping.keys()):
-        versions = sorted(mapping[identifier].keys(), reverse=True)
+        versions = sorted(
+            map(lambda d: d.version, mapping[identifier].values()),
+            reverse=True
+        )
 
         for index in range(len(versions)):
             if index > 0 and not all_versions:
                 break
 
             identifiers.append(identifier)
-            definitions.append(mapping[identifier][versions[index]])
+            definitions.append(mapping[identifier][str(versions[index])])
 
     header = "Command" if command else "Package"
     titles = [header, "Version", "Registry", "Description"]

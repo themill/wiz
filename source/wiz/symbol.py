@@ -5,8 +5,8 @@
 #: Separator between the normal arguments and the command to run.
 COMMAND_SEPARATOR = "--"
 
-#: Package definition type.
-PACKAGE_TYPE = "package"
+#: Package request type.
+PACKAGE_REQUEST_TYPE = "package"
 
-#: Command definition type.
-COMMAND_TYPE = "command"
+#: Command request type.
+COMMAND_REQUEST_TYPE = "command"
