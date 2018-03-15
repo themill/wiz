@@ -325,6 +325,26 @@ def test_get_definition_version_error(package_definition_mapping):
         wiz.definition.get(requirement, package_definition_mapping)
 
 
+def test_get_definition_mixed_version_error(package_definition_mapping):
+    """Fails to get definition from non-versioned and versioned definitions."""
+    requirement = Requirement("foo")
+
+    package_definition_mapping["foo"]["unknown"] = (
+        wiz.definition.Definition({"identifier": "foo"})
+    )
+
+    with pytest.raises(wiz.exception.RequestNotFound) as error:
+        wiz.definition.get(requirement, package_definition_mapping)
+
+    print error
+
+    assert (
+        "RequestNotFound: Impossible to retrieve the best matching definition "
+        "for 'foo' as non-versioned and versioned definitions have been "
+        "fetched."
+    ) in str(error)
+
+
 def test_discover(mocked_load, registries, definitions):
     """Discover and yield *definitions*."""
     mocked_load.side_effect = definitions

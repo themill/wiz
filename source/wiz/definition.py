@@ -116,11 +116,11 @@ def get(requirement, definition_mapping):
         reverse=True
     )
 
-    if None in versions and len(versions) > 1:
-        raise wiz.exception.IncorrectDefinition(
+    if "unknown" in versions and len(versions) > 1:
+        raise wiz.exception.RequestNotFound(
             "Impossible to retrieve the best matching definition for "
-            "'{identifier}' as non-versioned and versioned definitions have "
-            "been fetched."
+            "'{}' as non-versioned and versioned definitions have "
+            "been fetched.".format(identifier)
         )
 
     # Get the best matching definition.
