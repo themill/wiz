@@ -17,7 +17,7 @@ def fetch(paths, requests=None, max_depth=None):
     """Return mapping from all definitions available under *paths*.
 
     *requests* could be a list of element which can influence the definition
-    research. It can be in the form of "app-env >= 1.0.0, < 2" in order to
+    research. It can be in the form of "package >= 1.0.0, < 2" in order to
     affine the research to a particular version range.
 
     :func:`discover` available definitions under *paths*, searching recursively
@@ -56,7 +56,7 @@ def validate(definition, requests):
     *definition* should be a :class:`Definition` instance.
 
     *requests* could be a list of element which can influence the definition
-    research. It can be in the form of "app-env >= 1.0.0, < 2" in order to
+    research. It can be in the form of "package >= 1.0.0, < 2" in order to
     affine the research to a particular version range.
 
     """
