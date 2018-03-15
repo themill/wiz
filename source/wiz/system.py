@@ -1,5 +1,6 @@
 # :coding: utf-8
 
+import abc
 import os
 import sys
 import platform
@@ -24,16 +25,28 @@ def query_platform():
     raise wiz.exception.UnsupportedPlatform(name)
 
 
-class LinuxPlatform(object):
+class _Platform(object):
+    """Base Platform."""
+
+    @abc.abstractmethod
+    def name(self):
+        """Return platform name."""
+
+    def arch(self):
+        """Return architecture ("x86_64" or "i386")."""
+        return platform.machine()
+
+    @abc.abstractmethod
+    def os_version(self):
+        """Return identifier to operating system version."""
+
+
+class LinuxPlatform(_Platform):
     """Linux platform."""
 
     def name(self):
         """Return platform name."""
         return "linux"
-
-    def arch(self):
-        """Return architecture ("x86_64" or "i386")."""
-        return platform.machine()
 
     def os_version(self):
         """Return identifier to operating system version."""
@@ -43,23 +56,19 @@ class LinuxPlatform(object):
         return "{}=={}".format(distribution, version)
 
 
-class MacOsPlatform(object):
+class MacOsPlatform(_Platform):
     """MacOS platform."""
 
     def name(self):
         """Return platform name."""
         return "mac"
 
-    def arch(self):
-        """Return architecture ("x86_64" or "i386")."""
-        return platform.machine()
-
     def os_version(self):
         """Return identifier to operating system version."""
         return "{}=={}".format(self.name(), platform.mac_ver()[0])
 
 
-class WindowsPlatform(object):
+class WindowsPlatform(_Platform):
     """Windows platform."""
 
     def name(self):
