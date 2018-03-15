@@ -44,18 +44,6 @@ class IncorrectDefinition(WizError):
     default_message = "The definition is incorrect."
 
 
-class IncorrectEnvironment(IncorrectDefinition):
-    """Raise when an environment definition is incorrect."""
-
-    default_message = "The environment definition is incorrect"
-
-
-class IncorrectApplication(IncorrectDefinition):
-    """Raise when an application definition is incorrect."""
-
-    default_message = "The application definition is incorrect"
-
-
 class RequestNotFound(WizError):
     """Raise when a requirement is incorrect."""
 
