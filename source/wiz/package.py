@@ -327,8 +327,9 @@ class Package(collections.Mapping):
         self._mapping = dict(
             (k, v) for k, v in mapping.items() if k != "variants"
         )
-        self._mapping["requirements"] = []
-        self._requirements = definition.requirements
+
+        self._mapping.setdefault("requirements", [])
+        self._requirements = definition.requirements[:]
         self._version = definition.version
 
         identifier = "{definition}=={version}".format(
