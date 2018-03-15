@@ -38,7 +38,7 @@ def fetch(paths, requests=None, max_depth=None):
 
         # Record package definition.
         package_type = wiz.symbol.PACKAGE_REQUEST_TYPE
-        command_type = wiz.symbol.PACKAGE_REQUEST_TYPE
+        command_type = wiz.symbol.COMMAND_REQUEST_TYPE
 
         mapping[package_type].setdefault(identifier, {})
         mapping[package_type][identifier][version] = definition
