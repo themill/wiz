@@ -16,6 +16,24 @@ import wiz.exception
 def fetch(paths, requests=None, max_depth=None):
     """Return mapping from all definitions available under *paths*.
 
+    A definition mapping should be in the form of::
+
+        {
+            "command": {
+                "app": "my-app",
+                ...
+            },
+            "package": {
+                "my-app": {
+                    "1.1.0": <Definition(identifier="my-app", version="1.1.0")>,
+                    "1.0.0": <Definition(identifier="my-app", version="1.0.0")>,
+                    "0.1.0": <Definition(identifier="my-app", version="0.1.0")>,
+                    ...
+                },
+                ...
+            }
+        }
+
     *requests* could be a list of element which can influence the definition
     research. It can be in the form of "package >= 1.0.0, < 2" in order to
     affine the research to a particular version range.
