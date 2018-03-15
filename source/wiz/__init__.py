@@ -17,6 +17,8 @@ def fetch_definitions(paths, max_depth=None):
     Discover all available definitions under *paths*, searching recursively
     up to *max_depth*.
 
+    definition are :class:`wiz.definition.Definition` instances.
+
     A definition mapping should be in the form of::
 
         {
