@@ -1,13 +1,17 @@
 # :coding: utf-8
 
-import os
-import sys
 import platform
 
 from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
 import wiz.exception
+
+
+#: Operating System group mapping
+OS_MAPPING = {
+    "el": ["centos", "redhat"]
+}
 
 
 def query():
@@ -91,17 +95,9 @@ def query_windows():
         https://bugs.python.org/issue26513
 
     """
-    architecture = platform.machine()
-
-    # Work around this bug: https://bugs.python.org/issue7860
-    if os.name == "nt" and sys.version_info[:2] < (2, 7):
-        architecture = os.environ.get(
-            "PROCESSOR_ARCHITEW6432", os.environ.get("PROCESSOR_ARCHITECTURE")
-        )
-
     return {
         "platform": "windows",
-        "arch": architecture,
+        "arch": platform.machine(),
         "os": {
             "name": "windows",
             "version": Version(platform.win32_ver()[1])
@@ -109,20 +105,20 @@ def query_windows():
     }
 
 
-def validate(definition, platform_identifier, arch, os_mapping):
+def validate(definition, system_mapping):
     """Validate *definition* against system *mapping*.
 
     *definition* should be a :class:`wiz.definition.Definition` instances.
 
-    *platform_identifier* should be "linux", "mac" or "windows".
-
-    *arch* should be "x86_64" or "i386".
-
-    *os_mapping* should be a mapping in the form of::
+    The *system_mapping* should be in the form of::
 
         {
-            "name": "centos",
-            "version": <Version(7.3.161)>
+            "platform": "linux",
+            "arch": "x86_64",
+            "os": {
+                "name": "centos",
+                "version": <Version(7.3.161)>
+            }
         }
 
     """
@@ -134,18 +130,20 @@ def validate(definition, platform_identifier, arch, os_mapping):
         return True
 
     # Filter platform if necessary.
+    platform_identifier = system_mapping.get("platform")
     if system.get("platform", platform_identifier) != platform_identifier:
         return False
 
     # Filter architecture if necessary.
-    if system.get("arch", arch) != arch:
+    architecture = system_mapping.get("arch")
+    if system.get("arch", architecture) != architecture:
         return False
 
     # Filter operating system version if necessary.
     os_system = system.get("os")
     if os_system is not None:
         try:
-            os_requirement = Requirement(os_system)
+            requirement = Requirement(os_system)
         except InvalidRequirement:
             raise wiz.exception.IncorrectDefinition(
                 "The operating system requirement is incorrect: {}".format(
@@ -153,10 +151,22 @@ def validate(definition, platform_identifier, arch, os_mapping):
                 )
             )
 
-        if os_requirement.name != os_mapping["name"]:
+        os_mapping = system_mapping.get("os", {})
+
+        print(requirement, os_mapping)
+        print(requirement.name == os_mapping.get("name"))
+        print(os_mapping.get("name") in OS_MAPPING.get(requirement.name, []))
+        print (
+            requirement.name == os_mapping.get("name") or
+            os_mapping.get("name") in OS_MAPPING.get(requirement.name, [])
+        )
+        if not (
+            requirement.name == os_mapping.get("name") or
+            os_mapping.get("name") in OS_MAPPING.get(requirement.name, [])
+        ):
             return False
 
-        if os_mapping["version"] not in os_requirement.specifier:
+        if os_mapping.get("version") not in requirement.specifier:
             return False
 
     return True
