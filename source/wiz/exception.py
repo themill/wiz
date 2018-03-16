@@ -38,6 +38,12 @@ class WizError(Exception):
         return str(self.message.format(**self.details))
 
 
+class IncorrectSystem(WizError):
+    """Raise when the system is incorrect."""
+
+    default_message = "The current system is incorrect."
+
+
 class UnsupportedPlatform(WizError):
     """Raise when the current platform is not supported."""
 
