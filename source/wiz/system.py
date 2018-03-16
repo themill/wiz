@@ -31,11 +31,11 @@ def query():
 
     try:
         if name == "linux":
-            return query_linux_mapping()
+            return query_linux()
         elif name == "darwin":
-            return query_mac_mapping()
+            return query_mac()
         elif name == "windows":
-            return query_windows_mapping()
+            return query_windows()
 
     except InvalidVersion as error:
         raise wiz.exception.IncorrectDefinition(
@@ -47,7 +47,7 @@ def query():
     raise wiz.exception.UnsupportedPlatform(name)
 
 
-def query_linux_mapping():
+def query_linux():
     """Return Linux system mapping."""
     distribution, version, _ = platform.linux_distribution(
         full_distribution_name=False
@@ -63,21 +63,35 @@ def query_linux_mapping():
     }
 
 
-def query_mac_mapping():
+def query_mac():
     """Return mac system mapping."""
     return {
-        "platform": "mac_os",
+        "platform": "mac",
         "arch": platform.machine(),
         "os": {
-            "name": "mac_os",
+            "name": "mac",
             "version": Version(platform.mac_ver()[0])
         }
     }
 
 
-def query_windows_mapping():
-    """Return windows system mapping."""
-    architecture = platform.machine(),
+def query_windows():
+    """Return windows system mapping.
+
+    .. warning::
+
+        The Windows versions superior to 8 will not be recognised properly with
+        a Python version under 2.7.11
+
+        https://hg.python.org/cpython/raw-file/53d30ab403f1/Misc/NEWS
+
+        Also a bug as been introduced in Python 2.7.11 that prevent the
+        recognition of old Windows version
+
+        https://bugs.python.org/issue26513
+
+    """
+    architecture = platform.machine()
 
     # Work around this bug: https://bugs.python.org/issue7860
     if os.name == "nt" and sys.version_info[:2] < (2, 7):
@@ -100,7 +114,7 @@ def validate(definition, platform_identifier, arch, os_mapping):
 
     *definition* should be a :class:`wiz.definition.Definition` instances.
 
-    *platform_identifier* should be "linux", "mac_os" or "windows".
+    *platform_identifier* should be "linux", "mac" or "windows".
 
     *arch* should be "x86_64" or "i386".
 
