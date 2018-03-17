@@ -153,13 +153,6 @@ def validate(definition, system_mapping):
 
         os_mapping = system_mapping.get("os", {})
 
-        print(requirement, os_mapping)
-        print(requirement.name == os_mapping.get("name"))
-        print(os_mapping.get("name") in OS_MAPPING.get(requirement.name, []))
-        print (
-            requirement.name == os_mapping.get("name") or
-            os_mapping.get("name") in OS_MAPPING.get(requirement.name, [])
-        )
         if not (
             requirement.name == os_mapping.get("name") or
             os_mapping.get("name") in OS_MAPPING.get(requirement.name, [])
