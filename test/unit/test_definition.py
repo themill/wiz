@@ -11,6 +11,7 @@ from packaging.requirements import Requirement
 from packaging.version import Version
 
 import wiz.definition
+import wiz.system
 import wiz.exception
 
 
@@ -166,6 +167,12 @@ def registries(temporary_directory):
 
 
 @pytest.fixture()
+def mocked_system_validate(mocker):
+    """Return mocked system.validate function."""
+    return mocker.patch.object(wiz.system, "validate")
+
+
+@pytest.fixture()
 def mocked_validate(mocker):
     """Return mocked validate function."""
     return mocker.patch.object(wiz.definition, "validate")
@@ -246,6 +253,26 @@ def test_fetch(mocked_discover, mocked_validate, definitions, options):
             "bim-test": "bim-package",
             "bim": "bim-package"
         }
+    }
+
+
+def test_fetch_system(mocked_discover, definitions, mocked_system_validate):
+    """Fetch all definition within *paths* filtered by system mappings."""
+    mocked_discover.return_value = definitions
+    mocked_system_validate.return_value = False
+
+    result = wiz.definition.fetch(
+        ["/path/to/registry-1", "/path/to/registry-2"],
+        system_mapping="SOME_MAPPING"
+    )
+
+    mocked_discover.assert_called_once_with(
+        ["/path/to/registry-1", "/path/to/registry-2"], max_depth=None
+    )
+
+    assert result == {
+        "package": {},
+        "command": {}
     }
 
 
