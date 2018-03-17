@@ -539,7 +539,7 @@ def _resolve_and_use_context(
     )
 
     try:
-        context = wiz.resolve_context(namespace.requirements, mapping)
+        context = wiz.resolve_package_context(namespace.requirements, mapping)
 
         # Only view the resolved environment without spawning a shell nor
         # running any commands.
@@ -555,15 +555,11 @@ def _resolve_and_use_context(
 
         # Otherwise, resolve the command and run it within the resolved context.
         else:
-            commands = command_arguments
-            command_mapping = context.get("command", {})
+            resolved_command = wiz.resolve_command(
+                command_arguments, context.get("command", {})
+            )
 
-            if commands[0] in command_mapping.keys():
-                commands = (
-                    shlex.split(command_mapping[commands[0]]) + commands[1:]
-                )
-
-            wiz.spawn.execute(commands, context["environ"])
+            wiz.spawn.execute(resolved_command, context["environ"])
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
@@ -596,19 +592,10 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
         max_depth=namespace.definition_search_depth
     )
 
-    requirement = Requirement(namespace.requirement)
-
-    commands = [requirement.name]
-    if command_arguments is not None:
-        commands += command_arguments
-
-    definition_requirement = Requirement(
-        mapping[wiz.symbol.COMMAND_REQUEST_TYPE][requirement.name]
-    )
-    definition_requirement.specifier = requirement.specifier
-
     try:
-        context = wiz.resolve_context([str(definition_requirement)], mapping)
+        context = wiz.resolve_command_context(
+            namespace.requirement, mapping, arguments=command_arguments
+        )
 
         # Only view the resolved environment without spawning a shell nor
         # running any commands.
@@ -619,14 +606,7 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
             display_environ_mapping(context.get("environ", {}))
 
         else:
-            command_mapping = context.get("command", {})
-
-            if commands[0] in command_mapping.keys():
-                commands = (
-                    shlex.split(command_mapping[commands[0]]) + commands[1:]
-                )
-
-            wiz.spawn.execute(commands, context["environ"])
+            wiz.spawn.execute(context["resolved_command"], context["environ"])
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
@@ -658,7 +638,7 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
     )
 
     try:
-        context = wiz.resolve_context(namespace.requirements, mapping)
+        context = wiz.resolve_package_context(namespace.requirements, mapping)
 
         if namespace.format == "wiz":
             definition_data = {
