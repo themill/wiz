@@ -289,6 +289,10 @@ def main(arguments=None):
     # Set verbosity level.
     mlog.root.handlers["stderr"].filterer.filterers[0].min = namespace.verbosity
 
+    # Identify system mapping.
+    system_mapping = wiz.system.query()
+    logger.debug("System: {}".format(system_mapping))
+
     # Fetch all registries.
     registries = wiz.registry.fetch(
         namespace.definition_search_paths,
@@ -299,25 +303,35 @@ def main(arguments=None):
 
     # Process requested operation.
     if namespace.commands == "list":
-        _fetch_and_display_definitions(namespace, registries)
+        _fetch_and_display_definitions(namespace, registries, system_mapping)
 
     elif namespace.commands == "search":
-        _search_and_display_definitions(namespace, registries)
+        _search_and_display_definitions(
+            namespace, registries, system_mapping
+        )
 
     elif namespace.commands == "view":
-        _display_definition(namespace, registries)
+        _display_definition(
+            namespace, registries, system_mapping
+        )
 
     elif namespace.commands == "use":
-        _resolve_and_use_context(namespace, registries, command_arguments)
+        _resolve_and_use_context(
+            namespace, registries, command_arguments, system_mapping
+        )
 
     elif namespace.commands == "run":
-        _run_command(namespace, registries, command_arguments)
+        _run_command(
+            namespace, registries, command_arguments, system_mapping
+        )
 
     elif namespace.commands == "freeze":
-        _freeze_and_export_resolved_context(namespace, registries)
+        _freeze_and_export_resolved_context(
+            namespace, registries, system_mapping
+        )
 
 
-def _fetch_and_display_definitions(namespace, registries):
+def _fetch_and_display_definitions(namespace, registries, system_mapping):
     """Fetch and display definitions from arguments in *namespace*.
 
     Command example::
@@ -331,9 +345,14 @@ def _fetch_and_display_definitions(namespace, registries):
 
     *registries* should be a list of available registry paths.
 
+    *system_mapping* should be a mapping of the current system, usually
+    retrieved via :func:`wiz.system.query`.
+
     """
     mapping = wiz.fetch_definitions(
-        registries, max_depth=namespace.definition_search_depth
+        registries,
+        system_mapping=system_mapping,
+        max_depth=namespace.definition_search_depth
     )
     display_registries(registries)
 
@@ -356,7 +375,7 @@ def _fetch_and_display_definitions(namespace, registries):
         )
 
 
-def _search_and_display_definitions(namespace, registries):
+def _search_and_display_definitions(namespace, registries, system_mapping):
     """Search and display definitions from arguments in *namespace*.
 
     Command example::
@@ -370,12 +389,16 @@ def _search_and_display_definitions(namespace, registries):
 
     *registries* should be a list of available registry paths.
 
+    *system_mapping* should be a mapping of the current system, usually
+    retrieved via :func:`wiz.system.query`.
+
     """
     logger = mlog.Logger(__name__ + "._search_and_display_definitions")
 
     mapping = wiz.definition.fetch(
         registries,
         requests=namespace.requirements,
+        system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
     )
 
@@ -412,7 +435,7 @@ def _search_and_display_definitions(namespace, registries):
         logger.warning("No results found.\n")
 
 
-def _display_definition(namespace, registries):
+def _display_definition(namespace, registries, system_mapping):
     """Display definition from arguments in *namespace*.
 
     Command example::
@@ -424,11 +447,16 @@ def _display_definition(namespace, registries):
 
     *registries* should be a list of available registry paths.
 
+    *system_mapping* should be a mapping of the current system, usually
+    retrieved via :func:`wiz.system.query`.
+
     """
     logger = mlog.Logger(__name__ + "._display_definition")
 
     mapping = wiz.fetch_definitions(
-        registries, max_depth=namespace.definition_search_depth
+        registries,
+        system_mapping=system_mapping,
+        max_depth=namespace.definition_search_depth
     )
 
     def _display(_requirement):
@@ -480,7 +508,9 @@ def _display_definition(namespace, registries):
         )
 
 
-def _resolve_and_use_context(namespace, registries, command_arguments):
+def _resolve_and_use_context(
+    namespace, registries, command_arguments, system_mapping
+):
     """Resolve and use environment from arguments in *namespace*.
 
     Command example::
@@ -496,11 +526,16 @@ def _resolve_and_use_context(namespace, registries, command_arguments):
     *command_arguments* could be the command list to execute within
     the resolved context.
 
+    *system_mapping* should be a mapping of the current system, usually
+    retrieved via :func:`wiz.system.query`.
+
     """
     logger = mlog.Logger(__name__ + "._resolve_and_use_context")
 
     mapping = wiz.fetch_definitions(
-        registries, max_depth=namespace.definition_search_depth
+        registries,
+        system_mapping=system_mapping,
+        max_depth=namespace.definition_search_depth
     )
 
     try:
@@ -534,7 +569,7 @@ def _resolve_and_use_context(namespace, registries, command_arguments):
         logger.error(str(error), traceback=True)
 
 
-def _run_command(namespace, registries, command_arguments):
+def _run_command(namespace, registries, command_arguments, system_mapping):
     """Run application from arguments in *namespace*.
 
     Command example::
@@ -549,11 +584,16 @@ def _run_command(namespace, registries, command_arguments):
     *command_arguments* could be the command list to execute within
     the resolved context.
 
+    *system_mapping* should be a mapping of the current system, usually
+    retrieved via :func:`wiz.system.query`.
+
     """
     logger = mlog.Logger(__name__ + "._run_command")
 
     mapping = wiz.fetch_definitions(
-        registries, max_depth=namespace.definition_search_depth
+        registries,
+        system_mapping=system_mapping,
+        max_depth=namespace.definition_search_depth
     )
 
     requirement = Requirement(namespace.requirement)
@@ -592,7 +632,7 @@ def _run_command(namespace, registries, command_arguments):
         logger.error(str(error), traceback=True)
 
 
-def _freeze_and_export_resolved_context(namespace, registries):
+def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
     """Freeze resolved context from arguments in *namespace*.
 
     Command example::
@@ -605,11 +645,16 @@ def _freeze_and_export_resolved_context(namespace, registries):
 
     *registries* should be a list of available registry paths.
 
+    *system_mapping* should be a mapping of the current system, usually
+    retrieved via :func:`wiz.system.query`.
+
     """
     logger = mlog.Logger(__name__ + "._freeze_and_export_resolved_context")
 
     mapping = wiz.fetch_definitions(
-        registries, max_depth=namespace.definition_search_depth
+        registries,
+        system_mapping=system_mapping,
+        max_depth=namespace.definition_search_depth
     )
 
     try:

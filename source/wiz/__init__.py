@@ -9,9 +9,10 @@ import wiz.package
 import wiz.graph
 import wiz.symbol
 import wiz.spawn
+import wiz.system
 
 
-def fetch_definitions(paths, max_depth=None):
+def fetch_definitions(paths, max_depth=None, system_mapping=None):
     """Return mapping from all definitions available under *paths*.
 
     Discover all available definitions under *paths*, searching recursively
@@ -37,8 +38,16 @@ def fetch_definitions(paths, max_depth=None):
             }
         }
 
+    *system_mapping* could be a mapping of the current system. By default, the
+    current system mapping will be :func:`queried <wiz.system.query>`.
+
     """
-    return wiz.definition.fetch(paths, max_depth=max_depth)
+    if system_mapping is None:
+        system_mapping = wiz.system.query()
+
+    return wiz.definition.fetch(
+        paths, system_mapping=system_mapping, max_depth=max_depth
+    )
 
 
 def resolve_context(requirements, definition_mapping, environ_mapping=None):
@@ -116,4 +125,3 @@ def resolve_environment(requirements, definition_mapping, environ_mapping=None):
     """
     context = resolve_context(requirements, definition_mapping, environ_mapping)
     return context.get("environ", {})
-

@@ -11,9 +11,10 @@ from packaging.version import Version, InvalidVersion
 
 import wiz.symbol
 import wiz.exception
+import wiz.system
 
 
-def fetch(paths, requests=None, max_depth=None):
+def fetch(paths, requests=None, system_mapping=None, max_depth=None):
     """Return mapping from all definitions available under *paths*.
 
     A definition mapping should be in the form of::
@@ -38,6 +39,9 @@ def fetch(paths, requests=None, max_depth=None):
     research. It can be in the form of "package >= 1.0.0, < 2" in order to
     affine the research to a particular version range.
 
+    *system_mapping* could be a mapping of the current system, usually
+    retrieved via :func:`wiz.system.query`.
+
     :func:`discover` available definitions under *paths*, searching recursively
     up to *max_depth*.
 
@@ -49,6 +53,12 @@ def fetch(paths, requests=None, max_depth=None):
 
     for definition in discover(paths, max_depth=max_depth):
         if requests is not None and not validate(definition, requests):
+            continue
+
+        if (
+            system_mapping is not None and
+            not wiz.system.validate(definition, system_mapping)
+        ):
             continue
 
         identifier = definition.identifier
