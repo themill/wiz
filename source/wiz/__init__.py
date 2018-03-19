@@ -76,6 +76,11 @@ def query_definition(
         return wiz.definition.get(requirement, definition_mapping[request_type])
 
     elif request_type == wiz.symbol.COMMAND_REQUEST_TYPE:
+        if requirement.name not in definition_mapping[request_type].keys():
+            raise wiz.exception.RequestNotFound(
+                "No command named '{}' can be found.".format(requirement.name)
+            )
+
         _requirement = Requirement(
             definition_mapping[request_type][requirement.name]
         )
