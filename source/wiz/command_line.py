@@ -144,9 +144,9 @@ def construct_parser():
     )
 
     search_parser.add_argument(
-        "requirements",
+        "requests",
         nargs="+",
-        help="Package requirements to search."
+        help="Package requested."
     )
 
     view_subparsers = subparsers.add_parser(
@@ -164,8 +164,8 @@ def construct_parser():
     )
 
     view_subparsers.add_argument(
-        "requirement",
-        help="Environment or Application identifier required."
+        "request",
+        help="Package identifier required."
     )
 
     run_subparsers = subparsers.add_parser(
@@ -189,13 +189,13 @@ def construct_parser():
     )
 
     run_subparsers.add_argument(
-        "requirement", help="Command requirement to run."
+        "request", help="Command requested to run."
     )
 
     use_subparsers = subparsers.add_parser(
         "use",
         help=(
-            "Spawn shell with resolved context from requirements, or run "
+            "Spawn shell with resolved context from requested packages, or run "
             "a command within the resolved context if indicated after "
             "the '--' symbol."
         ),
@@ -217,9 +217,9 @@ def construct_parser():
     )
 
     use_subparsers.add_argument(
-        "requirements",
+        "requests",
         nargs="+",
-        help="Package requirements required."
+        help="Package identifiers required."
     )
 
     freeze_subparsers = subparsers.add_parser(
@@ -251,9 +251,9 @@ def construct_parser():
     )
 
     freeze_subparsers.add_argument(
-        "requirements",
+        "requests",
         nargs="+",
-        help="Package requirements required."
+        help="Package identifiers required."
     )
 
     return parser
@@ -397,7 +397,7 @@ def _search_and_display_definitions(namespace, registries, system_mapping):
 
     mapping = wiz.definition.fetch(
         registries,
-        requests=namespace.requirements,
+        requests=namespace.requests,
         system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
     )
@@ -467,7 +467,7 @@ def _display_definition(namespace, registries, system_mapping):
         display_definition(_definition)
         return True
 
-    requirement = Requirement(namespace.requirement)
+    requirement = Requirement(namespace.request)
 
     results_found = False
 
@@ -483,9 +483,7 @@ def _display_definition(namespace, registries, system_mapping):
 
         except wiz.exception.RequestNotFound:
             logger.debug(
-                "No command found for request: '{}'\n".format(
-                    requirement
-                )
+                "No command found for request: '{}'\n".format(requirement)
             )
 
     # Check package mapping.
@@ -495,16 +493,14 @@ def _display_definition(namespace, registries, system_mapping):
 
         except wiz.exception.RequestNotFound:
             logger.debug(
-                "No package found for request: '{}'\n".format(
-                    requirement
-                )
+                "No package found for request: '{}'\n".format(requirement)
             )
 
     # Otherwise, print a warning...
     if not results_found:
         logger.warning(
             "No definition could be found for "
-            "request: '{}'\n".format(namespace.requirement)
+            "request: '{}'\n".format(namespace.request)
         )
 
 
@@ -539,7 +535,7 @@ def _resolve_and_use_context(
     )
 
     try:
-        context = wiz.resolve_package_context(namespace.requirements, mapping)
+        context = wiz.resolve_package_context(namespace.requests, mapping)
 
         # Only view the resolved environment without spawning a shell nor
         # running any commands.
@@ -596,7 +592,7 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
 
     try:
         context = wiz.resolve_command_context(
-            namespace.requirement, mapping, arguments=command_arguments
+            namespace.request, mapping, arguments=command_arguments
         )
 
         # Only view the resolved environment without spawning a shell nor
@@ -643,7 +639,7 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
     )
 
     try:
-        context = wiz.resolve_package_context(namespace.requirements, mapping)
+        context = wiz.resolve_package_context(namespace.requests, mapping)
 
         if namespace.format == "wiz":
             definition_data = {
