@@ -559,7 +559,9 @@ def _resolve_and_use_context(
                 command_arguments, context.get("command", {})
             )
 
-            wiz.spawn.execute(resolved_command, context["environ"])
+            wiz.spawn.execute(
+                shlex.split(resolved_command), context["environ"]
+            )
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
@@ -606,7 +608,10 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
             display_environ_mapping(context.get("environ", {}))
 
         else:
-            wiz.spawn.execute(context["resolved_command"], context["environ"])
+            wiz.spawn.execute(
+                shlex.split(context["resolved_command"]),
+                context["environ"]
+            )
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
