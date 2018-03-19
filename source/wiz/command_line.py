@@ -339,7 +339,7 @@ def _fetch_and_display_definitions(namespace, registries, system_mapping):
         wiz list command
         wiz list package
         wiz list package --all
-        wiz list package --with-aliases
+        wiz list command --all
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
