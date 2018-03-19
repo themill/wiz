@@ -168,6 +168,8 @@ def get(requirement, definition_mapping):
 def export(path, mapping):
     """Export *mapping* as definition to *path*.
 
+    Return exported definition file path.
+
     *path* should be a valid directory to save the exported definition.
 
     *mapping* should be in the form of::
@@ -209,6 +211,7 @@ def export(path, mapping):
 
     file_path = os.path.join(os.path.abspath(path), file_name)
     wiz.filesystem.export(file_path, _definition.encode())
+    return file_path
 
 
 def discover(paths, max_depth=None):
