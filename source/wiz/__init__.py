@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import shlex
+import os
 
 from packaging.requirements import Requirement
 
@@ -11,6 +12,7 @@ import wiz.graph
 import wiz.symbol
 import wiz.spawn
 import wiz.system
+import wiz.filesystem
 import wiz.exception
 
 
@@ -61,7 +63,7 @@ def query_definition(
     build the context (e.g. ["package >= 1.0.0, < 2"])
 
     *definition_mapping* is a mapping regrouping all available definitions
-    available.
+    available. It could be fetched with :func:`fetch_definitions`.
 
     *request_type* should indicate the type of the request. It should be
     "command" or "package". Default is "package".
@@ -125,7 +127,7 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
     requested to build the context (e.g. ["package >= 1.0.0, < 2"])
 
     *definition_mapping* is a mapping regrouping all available definitions
-    available.
+    available. It could be fetched with :func:`fetch_definitions`.
 
     *environ_mapping* can be a mapping of environment variables which would
     be augmented by the resolved environment.
@@ -179,7 +181,7 @@ def resolve_command_context(request, definition_mapping, arguments=None):
     build the context (e.g. ["app >= 1.0.0, < 2"]).
 
     *definition_mapping* is a mapping regrouping all available definitions
-    available.
+    available. It could be fetched with :func:`fetch_definitions`.
 
     *arguments* could be a list of all arguments which constitute the resolved
     command (e.g. ["--option", "value", "/path/to/script"]).
@@ -234,3 +236,189 @@ def resolve_command(command, command_mapping):
         )
 
     return " ".join(commands)
+
+
+def export_definition(
+    path, identifier, description, version=None, command_mapping=None,
+    environ_mapping=None, packages=None,
+):
+    """Export a context as a definition in *path*.
+
+    It could be used as follow::
+
+        >>> definition_mapping = wiz.fetch_definitions("/path/to/registry")
+        >>> context = wiz.resolve_package_context(
+        ...     ["my-package >=1, <2"], definition_mapping
+        ... )
+        >>> wiz.export_definition(
+        ...    "/path/to/output", "new-definition",
+        ...    "Exported definition from 'my-package'.",
+        ...    command_mapping=context.get("command"),
+        ...    environ_mapping=context.get("environ")
+        ... )
+
+        "/path/to/output/new-definition.json"
+
+    *path* should be a valid directory to save the exported definition.
+
+    *identifier* should be a unique identifier for the exported definition.
+
+    *description* should be a short description for the exported definition.
+
+    *version* could be a valid version string for the exported definition. If
+    unspecified the definition will be un-versioned.
+
+    *command_mapping* could be a mapping of commands available in the exported
+    definition. Each command key should be unique in a registry. The mapping
+    should be in the form of::
+
+        {
+            "app": "AppExe",
+            "appX": "AppExe --mode X"
+        }
+
+    *environ_mapping* could be a mapping of all environment variable that will
+    be set by the exported definition. It should be in the form of::
+
+        {
+            "KEY1": "value1",
+            "KEY2": "value2",
+        }
+
+    *packages* could be a list of :class:`wiz.package.Package` instances
+    requested by the exported definition.
+
+    Raises :exc:`wiz.exception.IncorrectDefinition` if the definition can not
+    be created from incoming data.
+
+    Raises :exc:`OSError` if the definition can not be exported in *path*.
+
+    """
+    definition_data = {
+        "identifier": identifier,
+        "description": description,
+    }
+
+    if version is not None:
+        definition_data["version"] = version
+
+    if command_mapping is not None:
+        definition_data["command"] = command_mapping
+
+    if environ_mapping is not None:
+        definition_data["environ"] = environ_mapping
+
+    if packages is not None:
+        definition_data["requirements"] = [
+            _package.identifier for _package in packages
+        ]
+
+    return wiz.definition.export(path, definition_data)
+
+
+def export_bash_wrapper(
+    path, identifier, command=None, environ_mapping=None, packages=None,
+):
+    """Export context as :term:`Bash` wrapper in *path*.
+
+    Return the path to the bash wrapper created.
+
+    *path* should be a valid directory to save the exported wrapper.
+
+    *identifier* should define the name of the exported wrapper.
+
+    *command* could define a command to run within the exported wrapper.
+
+    *environ_mapping* could be a mapping of all environment variable that will
+    be set by the exported definition. It should be in the form of::
+
+        {
+            "KEY1": "value1",
+            "KEY2": "value2",
+        }
+
+    *packages* could indicate a list of :class:`wiz.package.Package` instances
+    which helped creating the context.
+
+    Raises :exc:`OSError` if the wrapper can not be exported in *path*.
+
+    """
+    file_path = os.path.join(os.path.abspath(path), identifier)
+
+    content = "#!/bin/bash\n"
+
+    # Indicate information about the generation process.
+    if packages is not None:
+        content += "#\n# Generated by wiz with the following environments:\n"
+        for _package in packages:
+            content += "# - {}\n".format(_package.identifier)
+        content += "#\n"
+
+    for key, value in environ_mapping.items():
+        # Do not override the PATH environment variable to prevent
+        # error when executing the script.
+        if key == "PATH":
+            value += ":${PATH}"
+
+        content += "export {0}=\"{1}\"\n".format(key, value)
+
+    if command:
+        content += command + " $@"
+
+    wiz.filesystem.export(file_path, content)
+    return file_path
+
+
+def export_csh_wrapper(
+    path, identifier, command=None, environ_mapping=None, packages=None,
+):
+    """Export context as :term:`CSH` wrapper in *path*.
+
+    Return the path to the bash wrapper created.
+
+    *path* should be a valid directory to save the exported wrapper.
+
+    *identifier* should define the name of the exported wrapper.
+
+    *command* could define a command to run within the exported wrapper.
+
+    *environ_mapping* could be a mapping of all environment variable that will
+    be set by the exported definition. It should be in the form of::
+
+        {
+            "KEY1": "value1",
+            "KEY2": "value2",
+        }
+
+    *packages* could indicate a list of :class:`wiz.package.Package` instances
+    which helped creating the context.
+
+    Raises :exc:`OSError` if the wrapper can not be exported in *path*.
+
+    """
+    file_path = os.path.join(os.path.abspath(path), identifier)
+
+    content = "#!/bin/tcsh -f\n"
+
+    # Indicate information about the generation process.
+    if packages is not None:
+        content += "#\n# Generated by wiz with the following environments:\n"
+        for _package in packages:
+            content += "# - {}\n".format(_package.identifier)
+        content += "#\n"
+
+    for key, value in environ_mapping.items():
+        # Do not override the PATH environment variable to prevent
+        # error when executing the script.
+        if key == "PATH":
+            value += ":${PATH}"
+
+        content += "setenv {0} \"{1}\"\n".format(key, value)
+
+    if command:
+        content += command + " $argv:q"
+
+    wiz.filesystem.export(file_path, content)
+    return file_path
+
+
