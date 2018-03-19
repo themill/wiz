@@ -10,6 +10,7 @@ from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
 import wiz.symbol
+import wiz.filesystem
 import wiz.exception
 import wiz.system
 
@@ -162,6 +163,52 @@ def get(requirement, definition_mapping):
         raise wiz.exception.RequestNotFound(requirement)
 
     return definition
+
+
+def export(path, mapping):
+    """Export *mapping* as definition to *path*.
+
+    *path* should be a valid directory to save the exported definition.
+
+    *mapping* should be in the form of::
+
+        {
+            "identifier": "my-package",
+            "description": "This is my package",
+            "version": "0.1.0",
+            "command": {
+                "app": "AppExe",
+                "appX": "AppExe --mode X"
+            },
+            "environ": {
+                "KEY1": "value1",
+                "KEY2": "value2"
+            },
+            "requirements": [
+                "package1 >=1, <2",
+                "package2"
+            ]
+        }
+
+    If no version is specified, the exported definition will be un-versioned.
+
+    The identifier must be unique in the registry so that it could be
+    :func:`queried <get>`
+
+    The command identifier must also be unique in the registry.
+
+    """
+    # Create definition from data.
+    _definition = wiz.definition.Definition(**mapping)
+
+    file_name = "{}.json".format(_definition.identifier)
+    if _definition.version != "unknown":
+        file_name = "{}-{}.json".format(
+            _definition.identifier, _definition.version
+        )
+
+    file_path = os.path.join(os.path.abspath(path), file_name)
+    wiz.filesystem.export(file_path, _definition.encode())
 
 
 def discover(paths, max_depth=None):
