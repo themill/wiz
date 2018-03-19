@@ -336,10 +336,10 @@ def _fetch_and_display_definitions(namespace, registries, system_mapping):
 
     Command example::
 
-        wiz list application
-        wiz list environment
-        wiz list environment --all
-        wiz list environment --with-aliases
+        wiz list command
+        wiz list package
+        wiz list package --all
+        wiz list package --with-aliases
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
@@ -507,7 +507,7 @@ def _display_definition(namespace, registries, system_mapping):
 def _resolve_and_use_context(
     namespace, registries, command_arguments, system_mapping
 ):
-    """Resolve and use environment from arguments in *namespace*.
+    """Resolve and use context from arguments in *namespace*.
 
     Command example::
 
@@ -537,7 +537,7 @@ def _resolve_and_use_context(
     try:
         context = wiz.resolve_package_context(namespace.requests, mapping)
 
-        # Only view the resolved environment without spawning a shell nor
+        # Only view the resolved context without spawning a shell nor
         # running any commands.
         if namespace.view:
             display_registries(registries)
@@ -595,7 +595,7 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
             namespace.request, mapping, arguments=command_arguments
         )
 
-        # Only view the resolved environment without spawning a shell nor
+        # Only view the resolved context without spawning a shell nor
         # running any commands.
         if namespace.view:
             display_registries(registries)
@@ -739,7 +739,7 @@ def display_definition(definition):
 
         identifier: app-env
         registry: /path/to/registry
-        description: My Application Environment
+        description: My Application Package
         version: 0.1.0
         system:
             - os: el >= 7, < 8
@@ -758,7 +758,7 @@ def display_definition(definition):
     """
     logger = mlog.Logger(__name__ + ".display_definition")
     logger.info(
-        "View environment: {} ({})".format(
+        "View definition: {} ({})".format(
             definition.identifier, definition.version
         )
     )
@@ -982,7 +982,7 @@ def display_environ_mapping(mapping):
 
 
 def _query_identifier(logger):
-    """Query an identifier for a resolved environment."""
+    """Query an identifier for a resolved context."""
     while True:
         print("Indicate an identifier:", end=" ")
         identifier = wiz.filesystem.sanitise_value(raw_input().strip())
@@ -996,7 +996,7 @@ def _query_identifier(logger):
 
 
 def _query_description(logger):
-    """Query an description for a resolved environment."""
+    """Query an description for a resolved context."""
     while True:
         print("Indicate a description:", end=" ")
         description = raw_input().strip()
@@ -1011,7 +1011,7 @@ def _query_description(logger):
 
 
 def _query_version(logger, default="0.1.0"):
-    """Query a version for a resolved environment."""
+    """Query a version for a resolved context."""
     while True:
         print("Indicate a version [{}]:".format(default), end=" ")
         version = raw_input() or default
