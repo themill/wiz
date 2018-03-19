@@ -459,12 +459,19 @@ def _display_definition(namespace, registries, system_mapping):
         max_depth=namespace.definition_search_depth
     )
 
+    # Track origins to prevent the display of a definition twice.
+    _origins = set()
+
     def _display(_requirement):
         """Display definition from *requirement*."""
         _definition = wiz.definition.get(
             _requirement, mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
         )
-        display_definition(_definition)
+
+        if _definition.get("origin") not in _origins:
+            display_definition(_definition)
+
+        _origins.add(_definition.get("origin"))
         return True
 
     requirement = Requirement(namespace.request)
