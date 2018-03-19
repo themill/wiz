@@ -23,7 +23,7 @@ def construct_parser():
     """Return argument parser."""
     parser = argparse.ArgumentParser(
         prog="wiz",
-        description="Environment manager.",
+        description="Package manager.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
