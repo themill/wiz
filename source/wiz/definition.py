@@ -203,7 +203,10 @@ def discover(paths, max_depth=None):
 
                 try:
                     definition = load(
-                        definition_path, mapping={"registry": path}
+                        definition_path, mapping={
+                            "registry": path,
+                            "origin": definition_path,
+                        }
                     )
 
                     if definition.get("disabled", False):

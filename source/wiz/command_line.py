@@ -765,6 +765,7 @@ def display_definition(definition):
 
     print("identifier: {}".format(definition.identifier))
     print("registry: {}".format(definition.get("registry")))
+    print("origin: {}".format(definition.get("origin")))
     print("description: {}".format(definition.description))
     print("version: {}".format(definition.version))
     if len(definition.system) > 0:
