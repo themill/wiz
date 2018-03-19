@@ -14,9 +14,9 @@ import wiz.exception
 
 
 @pytest.fixture()
-def mocked_definition_getter(mocker):
+def mocked_definition_query(mocker):
     """Return mocked definition getter."""
-    return mocker.patch.object(wiz.definition, "get")
+    return mocker.patch.object(wiz.definition, "query")
 
 
 @pytest.fixture()
@@ -25,7 +25,7 @@ def mocked_package(mocker):
     return mocker.patch.object(wiz.package, "Package", return_value="PACKAGE")
 
 
-def test_extract_without_variant(mocked_definition_getter, mocked_package):
+def test_extract_without_variant(mocked_definition_query, mocked_package):
     """Extract one Package from definition."""
     definition = wiz.definition.Definition({
         "identifier": "test",
@@ -36,17 +36,17 @@ def test_extract_without_variant(mocked_definition_getter, mocked_package):
         }
     })
 
-    mocked_definition_getter.return_value = definition
+    mocked_definition_query.return_value = definition
 
     requirement = Requirement("test")
     result = wiz.package.extract(requirement, {})
-    mocked_definition_getter.assert_called_once_with(requirement, {})
+    mocked_definition_query.assert_called_once_with(requirement, {})
 
     mocked_package.assert_called_once_with(definition)
     assert result == ["PACKAGE"]
 
 
-def test_extract_with_all_variants(mocked_definition_getter, mocked_package):
+def test_extract_with_all_variants(mocked_definition_query, mocked_package):
     """Extract all variant Packages from definition."""
     definition = wiz.definition.Definition({
         "identifier": "test",
@@ -67,11 +67,11 @@ def test_extract_with_all_variants(mocked_definition_getter, mocked_package):
         ]
     })
 
-    mocked_definition_getter.return_value = definition
+    mocked_definition_query.return_value = definition
 
     requirement = Requirement("test")
     result = wiz.package.extract(requirement, {})
-    mocked_definition_getter.assert_called_once_with(requirement, {})
+    mocked_definition_query.assert_called_once_with(requirement, {})
 
     assert mocked_package.call_count == 3
     mocked_package.assert_any_call(definition, {
@@ -91,7 +91,7 @@ def test_extract_with_all_variants(mocked_definition_getter, mocked_package):
 
 
 def test_extract_with_one_requested_variant(
-    mocked_definition_getter, mocked_package
+    mocked_definition_query, mocked_package
 ):
     """Extract one requested variant Package from definition."""
     definition = wiz.definition.Definition({
@@ -113,11 +113,11 @@ def test_extract_with_one_requested_variant(
         ]
     })
 
-    mocked_definition_getter.return_value = definition
+    mocked_definition_query.return_value = definition
 
     requirement = Requirement("test[Variant2]")
     result = wiz.package.extract(requirement, {})
-    mocked_definition_getter.assert_called_once_with(requirement, {})
+    mocked_definition_query.assert_called_once_with(requirement, {})
 
     mocked_package.assert_called_once_with(definition, {
         "identifier": "Variant2",
@@ -127,7 +127,7 @@ def test_extract_with_one_requested_variant(
     assert result == ["PACKAGE"]
 
 
-def test_extract_error(mocked_definition_getter, mocked_package):
+def test_extract_error(mocked_definition_query, mocked_package):
     """Fail to extract Package from definition."""
     definition = wiz.definition.Definition({
         "identifier": "test",
@@ -138,14 +138,14 @@ def test_extract_error(mocked_definition_getter, mocked_package):
         }
     })
 
-    mocked_definition_getter.return_value = definition
+    mocked_definition_query.return_value = definition
 
     requirement = Requirement("env1[Incorrect]")
 
     with pytest.raises(wiz.exception.RequestNotFound) as error:
         wiz.package.extract(requirement, {})
 
-    mocked_definition_getter.assert_called_once_with(requirement, {})
+    mocked_definition_query.assert_called_once_with(requirement, {})
     mocked_package.assert_not_called()
 
     assert (

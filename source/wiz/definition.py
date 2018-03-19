@@ -121,8 +121,8 @@ def validate(definition, requests):
     return compatible
 
 
-def get(requirement, definition_mapping):
-    """Get best matching definition version from *requirement*.
+def query(requirement, definition_mapping):
+    """Return best matching definition version from *requirement*.
 
     *requirement* is an instance of :class:`packaging.requirements.Requirement`.
 
@@ -195,7 +195,7 @@ def export(path, mapping):
     If no version is specified, the exported definition will be un-versioned.
 
     The identifier must be unique in the registry so that it could be
-    :func:`queried <get>`
+    :func:`queried <query>`.
 
     The command identifier must also be unique in the registry.
 

@@ -26,7 +26,7 @@ def extract(requirement, definition_mapping):
     associated with their unique identifier.
 
     """
-    definition = wiz.definition.get(requirement, definition_mapping)
+    definition = wiz.definition.query(requirement, definition_mapping)
 
     # Extract variants from definition if available.
     variants = definition.variants

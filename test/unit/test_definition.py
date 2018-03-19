@@ -313,47 +313,48 @@ def test_get_definition(package_definition_mapping):
     """Return best matching definition from requirement."""
     requirement = Requirement("foo")
     assert (
-        wiz.definition.get(requirement, package_definition_mapping) ==
+        wiz.definition.query(requirement, package_definition_mapping) ==
         package_definition_mapping["foo"]["0.3.4"]
     )
 
     requirement = Requirement("bar")
     assert (
-        wiz.definition.get(requirement, package_definition_mapping) ==
+        wiz.definition.query(requirement, package_definition_mapping) ==
         package_definition_mapping["bar"]["0.3.0"]
     )
 
     requirement = Requirement("foo<0.2")
     assert (
-        wiz.definition.get(requirement, package_definition_mapping) ==
+        wiz.definition.query(requirement, package_definition_mapping) ==
         package_definition_mapping["foo"]["0.1.0"]
     )
 
     requirement = Requirement("bar==0.1.5")
     assert (
-        wiz.definition.get(requirement, package_definition_mapping) ==
+        wiz.definition.query(requirement, package_definition_mapping) ==
         package_definition_mapping["bar"]["0.1.5"]
     )
 
 
 def test_get_definition_name_error(package_definition_mapping):
-    """Fails to get the definition name."""
+    """Fails to query the definition name."""
     requirement = Requirement("incorrect")
 
     with pytest.raises(wiz.exception.RequestNotFound):
-        wiz.definition.get(requirement, package_definition_mapping)
+        wiz.definition.query(requirement, package_definition_mapping)
 
 
 def test_get_definition_version_error(package_definition_mapping):
-    """Fails to get the definition version."""
+    """Fails to query the definition version."""
     requirement = Requirement("foo>10")
 
     with pytest.raises(wiz.exception.RequestNotFound):
-        wiz.definition.get(requirement, package_definition_mapping)
+        wiz.definition.query(requirement, package_definition_mapping)
 
 
 def test_get_definition_mixed_version_error(package_definition_mapping):
-    """Fails to get definition from non-versioned and versioned definitions."""
+    """Fails to query definition from non-versioned and versioned definitions.
+    """
     requirement = Requirement("foo")
 
     package_definition_mapping["foo"]["unknown"] = (
@@ -361,7 +362,7 @@ def test_get_definition_mixed_version_error(package_definition_mapping):
     )
 
     with pytest.raises(wiz.exception.RequestNotFound) as error:
-        wiz.definition.get(requirement, package_definition_mapping)
+        wiz.definition.query(requirement, package_definition_mapping)
 
     print error
 

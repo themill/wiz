@@ -75,7 +75,9 @@ def query_definition(
     requirement = Requirement(request)
 
     if request_type == wiz.symbol.PACKAGE_REQUEST_TYPE:
-        return wiz.definition.get(requirement, definition_mapping[request_type])
+        return wiz.definition.query(
+            requirement, definition_mapping[request_type]
+        )
 
     elif request_type == wiz.symbol.COMMAND_REQUEST_TYPE:
         if requirement.name not in definition_mapping[request_type].keys():
@@ -87,7 +89,7 @@ def query_definition(
             definition_mapping[request_type][requirement.name]
         )
         _requirement.specifier = requirement.specifier
-        return wiz.definition.get(
+        return wiz.definition.query(
             _requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
         )
 
