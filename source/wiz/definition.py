@@ -145,7 +145,7 @@ def get(requirement, definition_mapping):
         reverse=True
     )
 
-    if "unknown" in versions and len(versions) > 1:
+    if wiz.symbol.UNKNOWN_VALUE in versions and len(versions) > 1:
         raise wiz.exception.RequestNotFound(
             "Impossible to retrieve the best matching definition for "
             "'{}' as non-versioned and versioned definitions have "
@@ -204,7 +204,7 @@ def export(path, mapping):
     _definition = wiz.definition.Definition(**mapping)
 
     file_name = "{}.json".format(_definition.identifier)
-    if _definition.version != "unknown":
+    if _definition.version != wiz.symbol.UNKNOWN_VALUE:
         file_name = "{}-{}.json".format(
             _definition.identifier, _definition.version
         )
@@ -389,12 +389,12 @@ class Definition(_DefinitionBase):
     @property
     def version(self):
         """Return version."""
-        return self._version or "unknown"
+        return self._version or wiz.symbol.UNKNOWN_VALUE
 
     @property
     def description(self):
         """Return description."""
-        return self.get("description", "unknown")
+        return self.get("description", wiz.symbol.UNKNOWN_VALUE)
 
     @property
     def environ(self):
