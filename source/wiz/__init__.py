@@ -11,6 +11,7 @@ import wiz.graph
 import wiz.symbol
 import wiz.spawn
 import wiz.system
+import wiz.exception
 
 
 def fetch_definitions(paths, max_depth=None, system_mapping=None):
@@ -49,6 +50,44 @@ def fetch_definitions(paths, max_depth=None, system_mapping=None):
     return wiz.definition.fetch(
         paths, system_mapping=system_mapping, max_depth=max_depth
     )
+
+
+def query_definition(
+    request, definition_mapping, request_type=wiz.symbol.PACKAGE_REQUEST_TYPE
+):
+    """Return :class:`~wiz.definition.Definition` instance from *request*.
+
+    *request* should be a string indicating the package version requested to
+    build the context (e.g. ["package >= 1.0.0, < 2"])
+
+    *definition_mapping* is a mapping regrouping all available definitions
+    available.
+
+    *request_type* should indicate the type of the request. It should be
+    "command" or "package". Default is "package".
+
+    Raises :exc:`wiz.exception.RequestNotFound` is the corresponding definition
+    cannot be found.
+
+    """
+    requirement = Requirement(request)
+
+    if request_type == wiz.symbol.PACKAGE_REQUEST_TYPE:
+        return wiz.definition.get(requirement, definition_mapping[request_type])
+
+    elif request_type == wiz.symbol.COMMAND_REQUEST_TYPE:
+        _requirement = Requirement(
+            definition_mapping[request_type][requirement.name]
+        )
+        _requirement.specifier = requirement.specifier
+        return wiz.definition.get(
+            _requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+        )
+
+    else:
+        raise wiz.exception.RequestNotFound(
+            "The request type is incorrect [{}]".format(request_type)
+        )
 
 
 def resolve_package_context(requests, definition_mapping, environ_mapping=None):

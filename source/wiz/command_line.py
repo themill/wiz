@@ -7,7 +7,6 @@ import itertools
 import shlex
 
 import mlog
-from packaging.requirements import Requirement
 from packaging.version import Version, InvalidVersion
 
 import wiz.registry
@@ -459,49 +458,34 @@ def _display_definition(namespace, registries, system_mapping):
         max_depth=namespace.definition_search_depth
     )
 
+    results_found = False
+
+    request_types = [
+        wiz.symbol.COMMAND_REQUEST_TYPE,
+        wiz.symbol.PACKAGE_REQUEST_TYPE
+    ]
+
     # Track origins to prevent the display of a definition twice.
     _origins = set()
 
-    def _display(_requirement):
-        """Display definition from *requirement*."""
-        _definition = wiz.definition.get(
-            _requirement, mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
-        )
-
-        if _definition.get("origin") not in _origins:
-            display_definition(_definition)
-
-        _origins.add(_definition.get("origin"))
-        return True
-
-    requirement = Requirement(namespace.request)
-
-    results_found = False
-
-    # Check command mapping.
-    if requirement.name in mapping[wiz.symbol.COMMAND_REQUEST_TYPE]:
-        definition_requirement = Requirement(
-            mapping[wiz.symbol.COMMAND_REQUEST_TYPE][requirement.name]
-        )
-        definition_requirement.specifier = requirement.specifier
-
+    for request_type in request_types:
         try:
-            results_found = _display(definition_requirement)
+            definition = wiz.query_definition(
+                namespace.request, mapping, request_type=request_type
+            )
+            results_found = False
 
-        except wiz.exception.RequestNotFound:
+        except wiz.exception.RequestNotFound as exception:
             logger.debug(
-                "No command found for request: '{}'\n".format(requirement)
+                "Impossible to query definition for {} request "
+                "type: {}\n".format(request_type, exception)
             )
 
-    # Check package mapping.
-    if requirement.name in mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]:
-        try:
-            results_found = _display(requirement)
+        else:
+            if definition.get("origin") not in _origins:
+                display_definition(definition)
 
-        except wiz.exception.RequestNotFound:
-            logger.debug(
-                "No package found for request: '{}'\n".format(requirement)
-            )
+            _origins.add(definition.get("origin"))
 
     # Otherwise, print a warning...
     if not results_found:
