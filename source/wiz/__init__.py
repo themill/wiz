@@ -162,7 +162,7 @@ def resolve_command_context(request, definition_mapping, arguments=None):
     It should be in the form of::
 
         {
-            "resolved_command": "appExe --option value /path/to/script",
+            "resolved_command": "AppExe --option value /path/to/script",
             "command": {
                 "app": "AppExe"
                 ...
