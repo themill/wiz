@@ -164,6 +164,12 @@ def construct_parser():
     )
 
     view_subparsers.add_argument(
+        "--json",
+        help="Display definition in JSON.",
+        action="store_true"
+    )
+
+    view_subparsers.add_argument(
         "request",
         help="Package identifier required."
     )
@@ -441,7 +447,7 @@ def _display_definition(namespace, registries, system_mapping):
     Command example::
 
         wiz view app
-        wiz view package
+        wiz view package --json
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
@@ -484,7 +490,10 @@ def _display_definition(namespace, registries, system_mapping):
 
         else:
             if definition.get("origin") not in _origins:
-                display_definition(definition)
+                if namespace.json:
+                    print(definition.encode())
+                else:
+                    display_definition(definition)
 
             _origins.add(definition.get("origin"))
 
