@@ -389,34 +389,22 @@ def test_discover(mocked_load, registries, definitions):
     r2 = registries[1]
 
     path = os.path.join(r1, "defA.json")
-    mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "origin": path}
-    )
+    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
-    mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "origin": path}
-    )
+    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
 
     path = os.path.join(r1, "level1", "level2", "level3", "defF.json")
-    mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "origin": path}
-    )
+    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
 
     path = os.path.join(r1, "level1", "level2", "level3", "defE.json")
-    mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "origin": path}
-    )
+    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
 
     path = os.path.join(r2, "defH.json")
-    mocked_load.assert_any_call(
-        path, mapping={"registry": r2, "origin": path}
-    )
+    mocked_load.assert_any_call(path, mapping={"registry": r2, "origin": path})
 
     path = os.path.join(r2, "defI.json")
-    mocked_load.assert_any_call(
-        path, mapping={"registry": r2, "origin": path}
-    )
+    mocked_load.assert_any_call(path, mapping={"registry": r2, "origin": path})
 
     assert discovered == definitions[:6]
 
@@ -437,24 +425,16 @@ def test_discover_with_max_depth(mocked_load, registries, definitions):
     r2 = registries[1]
 
     path = os.path.join(r1, "defA.json")
-    mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "origin": path}
-    )
+    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
-    mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "origin": path}
-    )
+    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
 
     path = os.path.join(r2, "defH.json")
-    mocked_load.assert_any_call(
-        path, mapping={"registry": r2, "origin": path}
-    )
+    mocked_load.assert_any_call(path, mapping={"registry": r2, "origin": path})
 
     path = os.path.join(r2, "defI.json")
-    mocked_load.assert_any_call(
-        path, mapping={"registry": r2, "origin": path}
-    )
+    mocked_load.assert_any_call(path, mapping={"registry": r2, "origin": path})
 
     assert discovered == definitions[:4]
 
