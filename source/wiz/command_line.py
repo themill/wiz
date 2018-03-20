@@ -5,6 +5,7 @@ import argparse
 import os
 import itertools
 import shlex
+import collections
 
 import mlog
 from packaging.version import Version, InvalidVersion
@@ -473,7 +474,7 @@ def _display_definition(namespace, registries, system_mapping):
             definition = wiz.query_definition(
                 namespace.request, mapping, request_type=request_type
             )
-            results_found = False
+            results_found = True
 
         except wiz.exception.RequestNotFound as exception:
             logger.debug(
@@ -698,28 +699,6 @@ def display_definition(definition):
 
     *definition* should be a :class:`wiz.definition.Definition` instance.
 
-    Example::
-
-        >>> display_definition(definition)
-
-        identifier: app-env
-        registry: /path/to/registry
-        description: My Application Package
-        version: 0.1.0
-        system:
-            - os: el >= 7, < 8
-            - arch: x86_64
-        command:
-            - app: App0.1.0
-            - appX: app0.1.0 --option value
-        environ:
-            - KEY1: VALUE1
-            - KEY2: VALUE2
-            - KEY3: VALUE3
-        requirements:
-            - env1>=0.1
-            - env2==1.0.2
-
     """
     logger = mlog.Logger(__name__ + ".display_definition")
     logger.info(
@@ -728,40 +707,25 @@ def display_definition(definition):
         )
     )
 
-    print("identifier: {}".format(definition.identifier))
-    print("registry: {}".format(definition.get("registry")))
-    print("origin: {}".format(definition.get("origin")))
-    print("description: {}".format(definition.description))
-    print("version: {}".format(definition.version))
-    if len(definition.system) > 0:
-        print("system:")
-        for key, value in sorted(definition.system.items()):
-            print("    - {}: {}".format(key, value))
-    if len(definition.command) > 0:
-        print("command:")
-        for key, value in sorted(definition.command.items()):
-            print("    - {}: {}".format(key, value))
-    if len(definition.environ) > 0:
-        print("environ:")
-        for key, value in sorted(definition.environ.items()):
-            print("    - {}: {}".format(key, value))
-    if len(definition.requirements) > 0:
-        print("requirements:")
-        for requirement in definition.requirements:
-            print("    - {}".format(requirement))
-    if len(definition.variants) > 0:
-        print("variants:")
-        for variant in definition.variants:
-            print("    - {}".format(variant.identifier))
-            if len(variant.environ) > 0:
-                print("        environ:")
-                for key, value in sorted(variant.environ.items()):
-                    print("            - {}: {}".format(key, value))
-            if len(variant.requirements) > 0:
-                print("        requirements:")
-                for requirement in variant.requirements:
-                    print("            - {}".format(requirement))
+    def _display(item, level=0):
+        """Display *mapping*"""
+        indent = " "*level
+        if isinstance(item, collections.OrderedDict) or isinstance(item, dict):
+            for key, value in item.items():
+                if isinstance(value, basestring) or isinstance(value, int):
+                    print("{}{}: {}".format(indent, key, value))
+                else:
+                    print("{}{}:".format(indent, key))
+                    _display(value, level=level + 4)
 
+        elif isinstance(item, list) or isinstance(item, tuple):
+            for _item in item:
+                _display(_item, level=level + 4)
+
+        else:
+            print("{}{}".format(indent, item))
+
+    _display(definition.to_ordered_mapping())
     print()
 
 
