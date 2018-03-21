@@ -490,9 +490,9 @@ class Resolver(object):
                 last_priority = priority_mapping[child_identifier].priority
 
                 # If there is a currently recorded priority from the source and
-                # this is lesser than the priority of the node found, update the
-                # current priority from the root level in the mapping.
-                if last_priority is None or last_priority < priority:
+                # this is superior than the priority of the node found, update
+                # the current priority with the new one.
+                if last_priority is None or last_priority > priority:
                     priority_mapping[child_identifier] = _NodeAttributes(
                         priority, identifier
                     )
