@@ -1,6 +1,6 @@
 # :coding: utf-8
 
-import platform
+import platform as _platform
 
 from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
@@ -14,7 +14,7 @@ OS_MAPPING = {
 }
 
 
-def query():
+def query(platform=None, architecture=None, os_name=None, os_version=None):
     """Return system mapping.
 
     The mapping should be in the form of::
@@ -28,18 +28,32 @@ def query():
             }
         }
 
+    *platform* could indicate a platform identifier which would override the
+    platform identifier queried.
+
+    *architecture* could indicate an architecture identifier which would
+    override the architecture identifier queried.
+
+    *os_name* could indicate an operating system identifier which would override
+    the operating system identifier queried.
+
+    *os_version* could indicate an operating system version which would override
+    the operating system version queried.
+
     Raise :exc:`wiz.exception.UnsupportedPlatform` if platform is not supported.
 
     """
-    name = platform.system().lower()
+    name = _platform.system().lower()
 
     try:
         if name == "linux":
-            return query_linux()
+            mapping = query_linux()
         elif name == "darwin":
-            return query_mac()
+            mapping = query_mac()
         elif name == "windows":
-            return query_windows()
+            mapping = query_windows()
+        else:
+            raise wiz.exception.UnsupportedPlatform(name)
 
     except InvalidVersion as error:
         raise wiz.exception.IncorrectDefinition(
@@ -48,18 +62,30 @@ def query():
             )
         )
 
-    raise wiz.exception.UnsupportedPlatform(name)
+    if platform is not None:
+        mapping["platform"] = platform
+
+    if architecture is not None:
+        mapping["arch"] = architecture
+
+    if os_name is not None:
+        mapping["os"]["name"] = os_name
+
+    if os_version is not None:
+        mapping["os"]["version"] = os_version
+
+    return mapping
 
 
 def query_linux():
     """Return Linux system mapping."""
-    distribution, version, _ = platform.linux_distribution(
+    distribution, version, _ = _platform.linux_distribution(
         full_distribution_name=False
     )
 
     return {
         "platform": "linux",
-        "arch": platform.machine(),
+        "arch": _platform.machine(),
         "os": {
             "name": distribution,
             "version": Version(version)
@@ -71,10 +97,10 @@ def query_mac():
     """Return mac system mapping."""
     return {
         "platform": "mac",
-        "arch": platform.machine(),
+        "arch": _platform.machine(),
         "os": {
             "name": "mac",
-            "version": Version(platform.mac_ver()[0])
+            "version": Version(_platform.mac_ver()[0])
         }
     }
 
@@ -97,10 +123,10 @@ def query_windows():
     """
     return {
         "platform": "windows",
-        "arch": platform.machine(),
+        "arch": _platform.machine(),
         "os": {
             "name": "windows",
-            "version": Version(platform.win32_ver()[1])
+            "version": Version(_platform.win32_ver()[1])
         }
     }
 

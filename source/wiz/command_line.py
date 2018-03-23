@@ -56,6 +56,30 @@ def construct_parser():
         type=int
     )
 
+    parser.add_argument(
+        "--platform",
+        help="Override the detected platform.",
+        metavar="PLATFORM",
+    )
+
+    parser.add_argument(
+        "--arch",
+        help="Override the detected architecture.",
+        metavar="ARCH",
+    )
+
+    parser.add_argument(
+        "--os-name",
+        help="Override the detected operating system name.",
+        metavar="OS_NAME",
+    )
+
+    parser.add_argument(
+        "--os-version",
+        help="Override the detected operating system version.",
+        metavar="OS_VERSION",
+    )
+
     subparsers = parser.add_subparsers(
         title="Commands",
         dest="commands"
@@ -296,7 +320,12 @@ def main(arguments=None):
     mlog.root.handlers["stderr"].filterer.filterers[0].min = namespace.verbosity
 
     # Identify system mapping.
-    system_mapping = wiz.system.query()
+    system_mapping = wiz.system.query(
+        platform=namespace.platform,
+        architecture=namespace.arch,
+        os_name=namespace.os_name,
+        os_version=namespace.os_version,
+    )
     logger.debug("System: {}".format(system_mapping))
 
     # Fetch all registries.
