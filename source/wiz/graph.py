@@ -17,13 +17,6 @@ import wiz.package
 import wiz.exception
 
 
-#: Weighted link associating nodes in the requirement graph.
-_Link = namedtuple("_Link", "requirement, weight")
-
-#: Element with palatable properties access used to create the priority mapping.
-_NodeAttributes = namedtuple("_NodeAttributes", "priority, parent")
-
-
 class Resolver(object):
     """Graph resolver class."""
 
@@ -64,7 +57,7 @@ class Resolver(object):
         while len(self._graphs_stack) != 0:
             graph = self._graphs_stack.pop()
 
-            priority_mapping = self.compute_priority_mapping(graph)
+            priority_mapping = compute_priority_mapping(graph)
 
             # Check if the graph must be divided.
             if self.divide(graph, priority_mapping) > 0:
@@ -80,10 +73,8 @@ class Resolver(object):
                 self._logger.debug("Failed to resolve graph: {}".format(error))
 
             else:
-                priority_mapping = self.compute_priority_mapping(graph)
-                return self.extract_ordered_packages(
-                    graph, priority_mapping
-                )
+                priority_mapping = compute_priority_mapping(graph)
+                return extract_ordered_packages(graph, priority_mapping)
 
     def divide(self, graph, priority_mapping):
         """Divide *graph* if necessary and return number of graphs created.
@@ -170,46 +161,42 @@ class Resolver(object):
         self._logger.debug("Conflicts: {}".format(", ".join(identifiers)))
 
         while True:
-            priority_mapping = self.compute_priority_mapping(graph)
+            priority_mapping = compute_priority_mapping(graph)
 
             # Update graph and conflict identifiers list to remove all
             # unreachable nodes.
-            self._remove_unreachable_nodes(graph, priority_mapping)
-            identifiers = filter(
-                lambda _id: priority_mapping.get(_id), identifiers
-            )
+            remove_unreachable_nodes(graph, priority_mapping)
+            identifiers = sorted_identifiers(identifiers, priority_mapping)
 
             # If no identifiers are left in the queue, exit the loop. The graph
             # is officially resolved. Hooray.
             if len(identifiers) == 0:
                 return
 
-            # Sort identifiers per distance from the root level.
-            identifiers = sorted(
-                identifiers, key=lambda _id: priority_mapping[_id].priority,
-            )
-
             # Pick up the nearest node.
             identifier = identifiers.pop()
 
             # Identify other nodes conflicting with this node identifier.
             # TODO: sort it per importance
-            conflicted_identifiers = self.conflicted_identifiers(
-                graph, identifier
+            conflicted_identifiers = extract_conflicted_identifiers(
+                graph, identifier, priority_mapping
             )
 
             # Ensure that all requirements from parent links are compatibles.
-            self.validate_node_requirements(
+            validate_node_requirements(
                 graph, identifier, conflicted_identifiers
             )
 
             # Compute valid node identifier from combined requirements.
-            requirement = self.combined_requirement(
+            requirement = combined_requirement(
                 graph, [identifier] + conflicted_identifiers, priority_mapping
             )
 
             # Query identifiers from combined requirement.
-            _identifiers = self.identifiers_from_requirement(requirement)
+            packages = wiz.package.extract(
+                requirement, self._definition_mapping
+            )
+            _identifiers = [package.identifier for package in packages]
 
             if identifier not in _identifiers:
                 self._logger.debug("Remove '{}'".format(identifier))
@@ -233,281 +220,309 @@ class Resolver(object):
 
                     # Check if the graph must be divided. If this is the case,
                     # the current graph cannot be resolved.
-                    priority_mapping = self.compute_priority_mapping(graph)
+                    priority_mapping = compute_priority_mapping(graph)
                     if self.divide(graph, priority_mapping) > 0:
                         raise wiz.exception.GraphResolutionError(
                             "The current graph has been divided."
                         )
 
-    def conflicted_identifiers(self, graph, identifier):
-        """Return identifiers from nodes conflicting with node *identifier*.
 
-        A node from the *graph* is in conflict with the node *identifier* when
-        its definition identifier is identical.
+def compute_priority_mapping(graph):
+    """Return priority mapping for each node of *graph*.
 
-        *graph* must be an instance of :class:`Graph`.
+    The mapping indicates the lowest possible priority of each node
+    identifier from the root level of the graph with its corresponding
+    parent node identifier.
 
-        *identifiers* must be valid node identifiers.
+    The priority is defined by the sum of the weights from each node to the
+    root level.
 
-        """
-        node = graph.node(identifier)
+    *graph* must be an instance of :class:`Graph`.
 
-        # Extract definition identifier from node.
-        definition_identifier = node.package.definition.identifier
+    This is using `Dijkstra's shortest path algorithm
+    <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>`_.
 
-        # Get all nodes in the graph with the same definition identifier.
-        identifiers = graph.node_identifiers_from_definition(
-            definition_identifier
-        )
+    .. note::
 
-        return filter(lambda _id: _id != identifier, identifiers)
+        When a node is being visited twice, the path with the smallest
+        priority is being kept.
 
-    def identifiers_from_requirement(self, requirement):
-        """Return list of nodes identifiers requested from *requirement*
+    """
+    logger = mlog.Logger(__name__ + ".compute_priority_mapping")
+    logger.debug("Compute priority mapping...")
 
-        .. note::
+    # Initiate mapping
+    priority_mapping = {
+        node_identifier: NodeAttribute(None, None) for node_identifier
+        in graph.node_identifiers()
+    }
 
-            The nodes will **NOT** be created in any graphs.
+    priority_mapping[graph.ROOT] = NodeAttribute(0, graph.ROOT)
 
-        """
-        packages = wiz.package.extract(requirement, self._definition_mapping)
-        return [package.identifier for package in packages]
+    queue = _PriorityQueue()
+    queue[graph.ROOT] = 0
 
-    def _remove_unreachable_nodes(self, graph, priority_mapping):
-        """Remove unreachable nodes from *graph* based on *priority_mapping*.
+    while not queue.empty():
+        identifier = queue.pop_smallest()
+        current_priority = priority_mapping[identifier].priority
 
-        If a node within the *graph* does not have a priority, it means that it
-        cannot be reached from the root level. It will then be lazily removed
-        from the graph (the links are preserved to save on computing time).
+        for child_identifier in graph.outcoming(identifier):
+            priority = current_priority + graph.link_weight(
+                child_identifier, identifier
+            )
 
-        *graph* must be an instance of :class:`Graph`.
+            # The last recorded priority of this node from the source
+            last_priority = priority_mapping[child_identifier].priority
 
-        *priority_mapping* is a mapping indicating the lowest possible priority
-        of each node identifier from the root level of the graph with its
-        corresponding parent node identifier.
+            # If there is a currently recorded priority from the source and
+            # this is superior than the priority of the node found, update
+            # the current priority with the new one.
+            if last_priority is None or last_priority > priority:
+                priority_mapping[child_identifier] = NodeAttribute(
+                    priority, identifier
+                )
+                queue[child_identifier] = priority
 
-        """
-        for identifier in graph.node_identifiers():
-            if priority_mapping[identifier].priority is None:
-                self._logger.debug("Remove '{}'".format(identifier))
-                graph.remove_node(identifier)
-
-    def validate_node_requirements(self, graph, identifier, identifiers):
-        """Validate node *identifier* against other *identifiers* in *graph*.
-
-        *graph* must be an instance of :class:`Graph`.
-
-        *identifier* and *identifiers* must be valid node identifiers.
-
-        Raise :exc:`wiz.exception.GraphResolutionError` if two node requirements
-        are incompatible.
-
-        """
-        node1 = graph.node(identifier)
-        mapping1 = self.compute_requirement_mapping(graph, identifier)
-
-        for identifier2 in identifiers:
-            node2 = graph.node(identifier2)
-            mapping2 = self.compute_requirement_mapping(graph, identifier2)
-
-            for requirement1, requirement2 in itertools.combinations(
-                mapping1.keys() + mapping2.keys(), 2
-            ):
-                conflict = False
-
-                # Nodes are not compatible if both package versions are not
-                # compatible with at least one of the specifier.
-                if (
-                    node1.package.version not in requirement2.specifier and
-                    node2.package.version not in requirement1.specifier
-                ):
-                    conflict = True
-
-                # Nodes are not compatible if different variants were requested.
-                elif requirement1.extras != requirement2.extras:
-                    conflict = True
-
-                if conflict:
-                    raise wiz.exception.GraphResolutionError(
-                        "A requirement conflict has been detected for "
-                        "'{package}'\n"
-                        " - {requirement1} [from {parent1}]\n"
-                        " - {requirement2} [from {parent2}]\n".format(
-                            package=node1.package.identifier,
-                            requirement1=requirement1,
-                            requirement2=requirement2,
-                            parent1=mapping1[requirement1],
-                            parent2=mapping2[requirement2],
-                        )
-                    )
-
-                self._logger.debug(
-                    "'{requirement1}' and '{requirement2}' are "
-                    "compatibles".format(
-                        requirement1=requirement1,
-                        requirement2=requirement2
+                logger.debug(
+                    "Priority {priority} set to '{node}' from '{parent}'"
+                    .format(
+                        priority=priority,
+                        node=child_identifier,
+                        parent=identifier
                     )
                 )
 
-    def combined_requirement(self, graph, identifiers, priority_mapping):
-        """Return combined requirement from node *identifiers* in *graph*.
+    return priority_mapping
 
-        *graph* must be an instance of :class:`Graph`.
 
-        *identifiers* must be valid node identifiers.
+def remove_unreachable_nodes(graph, priority_mapping):
+    """Remove unreachable nodes from *graph* based on *priority_mapping*.
 
-        *priority_mapping* is a mapping indicating the lowest possible priority
-        of each node identifier from the root level of the graph with its
-        corresponding parent node identifier.
+    If a node within the *graph* does not have a priority, it means that it
+    cannot be reached from the root level. It will then be lazily removed
+    from the graph (the links are preserved to save on computing time).
 
-        Raise :exc:`wiz.exception.GraphResolutionError` if requirements cannot
-        be combined.
+    *graph* must be an instance of :class:`Graph`.
 
-        """
-        requirement = None
+    *priority_mapping* is a mapping indicating the lowest possible priority
+    of each node identifier from the root level of the graph with its
+    corresponding parent node identifier.
 
-        for identifier in identifiers:
-            _requirement = graph.link_requirement(
-                identifier, priority_mapping[identifier].parent
-            )
+    """
+    logger = mlog.Logger(__name__ + ".remove_unreachable_nodes")
 
-            if requirement is None:
-                requirement = copy.copy(_requirement)
+    for identifier in graph.node_identifiers():
+        if priority_mapping[identifier].priority is None:
+            logger.debug("Remove '{}'".format(identifier))
+            graph.remove_node(identifier)
 
-            elif requirement.name != _requirement.name:
-                raise wiz.exception.GraphResolutionError(
-                    "Impossible to combine requirements with different names "
-                    "['{}' and '{}'].".format(
-                        requirement.name, _requirement.name
-                    )
-                )
 
-            else:
-                requirement.specifier &= _requirement.specifier
+def sorted_identifiers(identifiers, priority_mapping):
+    """Return sorted *identifiers* based on *priority_mapping*.
 
-        return requirement
+    If a node identifier does not have a priority, it means that it cannot be
+    reached from the root level. It will then not be included in the list
+    returned.
 
-    def compute_requirement_mapping(self, graph, identifier):
-        """Return mapping regrouping all requirements for node *identifier*.
+    *priority_mapping* is a mapping indicating the lowest possible priority
+    of each node identifier from the root level of the graph with its
+    corresponding parent node identifier.
 
-        The mapping associates each requirement name with a parent *identifier*.
+    """
+    empty = NodeAttribute(None, None)
+    _identifiers = filter(
+        lambda _id: priority_mapping.get(_id, empty).priority, identifiers
+    )
+    return sorted(_identifiers, key=lambda _id: priority_mapping[_id].priority)
 
-        *graph* must be an instance of :class:`Graph`.
 
-        *identifier* and *identifiers* must be valid node identifiers.
+def extract_conflicted_identifiers(graph, identifier, priority_mapping):
+    """Return identifiers from *graph* nodes conflicting with node *identifier*.
 
-        """
-        node = graph.node(identifier)
+    A node from the *graph* is in conflict with the node *identifier* when
+    its definition identifier is identical.
 
-        # Filter out non existing nodes from incoming.
-        incoming_identifiers = filter(
-            lambda _id: graph.node(_id) is not None or _id == Graph.ROOT,
-            node.parent_identifiers
-        )
+    Sort the conflicted nodes based on *priority_mapping*.
 
-        mapping = {}
+    *graph* must be an instance of :class:`Graph`.
 
-        for incoming_identifier in incoming_identifiers:
-            requirement = graph.link_requirement(
-                identifier, incoming_identifier
-            )
-            mapping[requirement] = incoming_identifier
+    *identifiers* must be valid node identifiers.
 
-        return mapping
+    *priority_mapping* is a mapping indicating the lowest possible priority
+    of each node identifier from the root level of the graph with its
+    corresponding parent node identifier.
 
-    def extract_ordered_packages(self, graph, priority_mapping):
-        """Return sorted list of packages from *graph*.
+    """
+    node = graph.node(identifier)
 
-        Best matching :class:`~wiz.package.Package` instances are
-        extracted from each node instance and added to the list.
+    # Extract definition identifier from node.
+    definition_identifier = node.package.definition.identifier
 
-        *priority_mapping* is a mapping indicating the lowest possible priority
-        of each node identifier from the root level of the graph with its
-        corresponding parent node identifier.
+    # Get all nodes in the graph with the same definition identifier.
+    identifiers = graph.node_identifiers_from_definition(
+        definition_identifier
+    )
 
-        """
-        packages = []
+    return filter(lambda _id: _id != identifier, identifiers)
 
-        for identifier in sorted(
-            graph.node_identifiers(),
-            key=lambda _identifier: priority_mapping[_identifier],
-            reverse=True
+
+def validate_node_requirements(graph, identifier, identifiers):
+    """Validate node *identifier* against other *identifiers* in *graph*.
+
+    *graph* must be an instance of :class:`Graph`.
+
+    *identifier* and *identifiers* must be valid node identifiers.
+
+    Raise :exc:`wiz.exception.GraphResolutionError` if two node requirements
+    are incompatible.
+
+    """
+    logger = mlog.Logger(__name__ + ".validate_node_requirements")
+
+    node1 = graph.node(identifier)
+    mapping1 = compute_requirement_mapping(graph, identifier)
+
+    for identifier2 in identifiers:
+        node2 = graph.node(identifier2)
+        mapping2 = compute_requirement_mapping(graph, identifier2)
+
+        for requirement1, requirement2 in itertools.combinations(
+            mapping1.keys() + mapping2.keys(), 2
         ):
-            node = graph.node(identifier)
-            packages.append(node.package)
+            conflict = False
 
-        self._logger.debug(
-            "Sorted packages: {}".format(
-                ", ".join([package.identifier for package in packages])
-            )
-        )
-        return packages
+            # Nodes are not compatible if both package versions are not
+            # compatible with at least one of the specifier.
+            if (
+                node1.package.version not in requirement2.specifier and
+                node2.package.version not in requirement1.specifier
+            ):
+                conflict = True
 
-    def compute_priority_mapping(self, graph):
-        """Return priority mapping for each node of *graph*.
+            # Nodes are not compatible if different variants were requested.
+            elif requirement1.extras != requirement2.extras:
+                conflict = True
 
-        The mapping indicates the lowest possible priority of each node
-        identifier from the root level of the graph with its corresponding
-        parent node identifier.
-
-        The priority is defined by the sum of the weights from each node to the
-        root level.
-
-        *graph* must be an instance of :class:`Graph`.
-
-        This is using `Dijkstra's shortest path algorithm
-        <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>`_.
-
-        .. note::
-
-            When a node is being visited twice, the path with the smallest
-            priority is being kept.
-
-        """
-        self._logger.debug("Compute priority mapping...")
-
-        # Initiate mapping
-        priority_mapping = {
-            node_identifier: _NodeAttributes(None, None) for node_identifier
-            in graph.node_identifiers()
-        }
-
-        priority_mapping[graph.ROOT] = _NodeAttributes(0, graph.ROOT)
-
-        queue = _PriorityQueue()
-        queue[graph.ROOT] = 0
-
-        while not queue.empty():
-            identifier = queue.pop_smallest()
-            current_priority = priority_mapping[identifier].priority
-
-            for child_identifier in graph.outcoming(identifier):
-                priority = current_priority + graph.link_weight(
-                    child_identifier, identifier
+            if conflict:
+                raise wiz.exception.GraphResolutionError(
+                    "A requirement conflict has been detected for "
+                    "'{package}'\n"
+                    " - {requirement1} [from {parent1}]\n"
+                    " - {requirement2} [from {parent2}]\n".format(
+                        package=node1.package.identifier,
+                        requirement1=requirement1,
+                        requirement2=requirement2,
+                        parent1=mapping1[requirement1],
+                        parent2=mapping2[requirement2],
+                    )
                 )
 
-                # The last recorded priority of this node from the source
-                last_priority = priority_mapping[child_identifier].priority
+            logger.debug(
+                "'{requirement1}' and '{requirement2}' are "
+                "compatibles".format(
+                    requirement1=requirement1,
+                    requirement2=requirement2
+                )
+            )
 
-                # If there is a currently recorded priority from the source and
-                # this is superior than the priority of the node found, update
-                # the current priority with the new one.
-                if last_priority is None or last_priority > priority:
-                    priority_mapping[child_identifier] = _NodeAttributes(
-                        priority, identifier
-                    )
-                    queue[child_identifier] = priority
 
-                    self._logger.debug(
-                        "Priority {priority} set to '{node}' from '{parent}'"
-                        .format(
-                            priority=priority,
-                            node=child_identifier,
-                            parent=identifier
-                        )
-                    )
+def combined_requirement(graph, identifiers, priority_mapping):
+    """Return combined requirement from node *identifiers* in *graph*.
 
-        return priority_mapping
+    *graph* must be an instance of :class:`Graph`.
+
+    *identifiers* must be valid node identifiers.
+
+    *priority_mapping* is a mapping indicating the lowest possible priority
+    of each node identifier from the root level of the graph with its
+    corresponding parent node identifier.
+
+    Raise :exc:`wiz.exception.GraphResolutionError` if requirements cannot
+    be combined.
+
+    """
+    requirement = None
+
+    for identifier in identifiers:
+        _requirement = graph.link_requirement(
+            identifier, priority_mapping[identifier].parent
+        )
+
+        if requirement is None:
+            requirement = copy.copy(_requirement)
+
+        elif requirement.name != _requirement.name:
+            raise wiz.exception.GraphResolutionError(
+                "Impossible to combine requirements with different names "
+                "['{}' and '{}'].".format(
+                    requirement.name, _requirement.name
+                )
+            )
+
+        else:
+            requirement.specifier &= _requirement.specifier
+
+    return requirement
+
+
+def compute_requirement_mapping(graph, identifier):
+    """Return mapping regrouping all requirements for node *identifier*.
+
+    The mapping associates each requirement name with a parent *identifier*.
+
+    *graph* must be an instance of :class:`Graph`.
+
+    *identifier* and *identifiers* must be valid node identifiers.
+
+    """
+    node = graph.node(identifier)
+
+    # Filter out non existing nodes from incoming.
+    incoming_identifiers = filter(
+        lambda _id: graph.node(_id) is not None or _id == Graph.ROOT,
+        node.parent_identifiers
+    )
+
+    mapping = {}
+
+    for incoming_identifier in incoming_identifiers:
+        requirement = graph.link_requirement(
+            identifier, incoming_identifier
+        )
+        mapping[requirement] = incoming_identifier
+
+    return mapping
+
+
+def extract_ordered_packages(graph, priority_mapping):
+    """Return sorted list of packages from *graph*.
+
+    Best matching :class:`~wiz.package.Package` instances are
+    extracted from each node instance and added to the list.
+
+    *priority_mapping* is a mapping indicating the lowest possible priority
+    of each node identifier from the root level of the graph with its
+    corresponding parent node identifier.
+
+    """
+    logger = mlog.Logger(__name__ + ".extract_ordered_packages")
+
+    packages = []
+
+    for identifier in sorted(
+        graph.node_identifiers(),
+        key=lambda _identifier: priority_mapping[_identifier],
+        reverse=True
+    ):
+        node = graph.node(identifier)
+        packages.append(node.package)
+
+    logger.debug(
+        "Sorted packages: {}".format(
+            ", ".join([package.identifier for package in packages])
+        )
+    )
+    return packages
 
 
 class Graph(object):
@@ -689,7 +704,7 @@ class Graph(object):
         ):
             if identifier not in self._node_mapping.keys():
                 self._logger.debug("Adding package: {}".format(identifier))
-                self._node_mapping[identifier] = _Node(package)
+                self._node_mapping[identifier] = Node(package)
 
                 if len(package.requirements) > 0:
                     self.update_from_requirements(
@@ -749,7 +764,7 @@ class Graph(object):
                 "'{parent}'.".format(parent=parent_identifier, child=identifier)
             )
 
-        link = _Link(requirement, weight)
+        link = Link(requirement, weight)
         self._link_mapping[parent_identifier][identifier] = link
 
     def remove_node(self, identifier):
@@ -775,7 +790,15 @@ class Graph(object):
         self._variant_mapping = {}
 
 
-class _Node(object):
+#: Weighted link associating nodes in the requirement graph.
+Link = namedtuple("Link", "requirement, weight")
+
+
+#: Attribute with palatable properties access used to create priority mapping.
+NodeAttribute = namedtuple("NodeAttribute", "priority, parent")
+
+
+class Node(object):
     """Node encapsulating a package within the graph.
     """
 
