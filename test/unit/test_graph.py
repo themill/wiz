@@ -43,6 +43,14 @@ def mocked_package_extract(mocker):
     return mocker.patch.object(wiz.package, "extract")
 
 
+def test_resolver():
+    """Create a resolver."""
+    definition_mapping = {"defA": ["nodeA"], "defB": ["nodeB"]}
+    resolver = wiz.graph.Resolver(definition_mapping)
+    assert resolver.definition_mapping == definition_mapping
+    assert id(resolver.definition_mapping) == id(definition_mapping)
+
+
 @pytest.mark.parametrize("mapping, expected", [
     (
         {"root": []},
