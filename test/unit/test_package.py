@@ -201,8 +201,8 @@ def test_extract_context_with_empty_package(
     assert wiz.package.extract_context(packages) == {
         "command": {"APP": "APP_EXE"}, "environ": {"CLEAN_KEY": "CLEAN_VALUE"}
     }
-    mocked_combine_environ.assert_called_once_with("test==unknown", {}, {})
-    mocked_combine_command.assert_called_once_with("test==unknown", {}, {})
+    mocked_combine_environ.assert_called_once_with("test", {}, {})
+    mocked_combine_command.assert_called_once_with("test", {}, {})
     mocked_sanitise_environ.assert_called_once_with({"KEY": "VALUE"})
 
 
@@ -221,10 +221,10 @@ def test_extract_context_with_one_package(
         "command": {"APP": "APP_EXE"}, "environ": {"CLEAN_KEY": "CLEAN_VALUE"}
     }
     mocked_combine_environ.assert_called_once_with(
-        "test==unknown", {}, {"key1": "value1"}
+        "test", {}, {"key1": "value1"}
     )
     mocked_combine_command.assert_called_once_with(
-        "test==unknown", {}, {"app": "App"}
+        "test", {}, {"app": "App"}
     )
     mocked_sanitise_environ.assert_called_once_with({"KEY": "VALUE"})
 
@@ -274,7 +274,7 @@ def test_extract_context_with_five_package(
         "test1==0.1.0", {}, {"key1": "value1"}
     )
     mocked_combine_environ.assert_any_call(
-        "test2==unknown", {"KEY": "VALUE"}, {"key2": "value2"}
+        "test2", {"KEY": "VALUE"}, {"key2": "value2"}
     )
     mocked_combine_environ.assert_any_call(
         "test3==3.1.2", {"KEY": "VALUE"}, {"key3": "value3"}
@@ -291,7 +291,7 @@ def test_extract_context_with_five_package(
         "test1==0.1.0", {}, {}
     )
     mocked_combine_command.assert_any_call(
-        "test2==unknown", {"APP": "APP_EXE"}, {"app1": "App1"}
+        "test2", {"APP": "APP_EXE"}, {"app1": "App1"}
     )
     mocked_combine_command.assert_any_call(
         "test3==3.1.2", {"APP": "APP_EXE"}, {"app2": "App2"}
@@ -441,8 +441,10 @@ def test_minimal_package_without_variant():
     definition = wiz.definition.Definition({"identifier": "test"})
 
     package = wiz.package.Package(definition)
-    assert package.identifier == "test==unknown"
+    assert package.identifier == "test"
     assert package.definition == definition
+    assert package.version == "unknown"
+    assert package.variant_name is None
     assert package.description == "unknown"
     assert package.command == {}
     assert package.environ == {}
@@ -474,6 +476,8 @@ def test_full_package_without_variant():
 
     package = wiz.package.Package(definition)
     assert package.identifier == "test==0.3.4"
+    assert package.version == Version("0.3.4")
+    assert package.variant_name is None
     assert package.description == "Test definition"
     assert package.command == {"app1": "App1", "app2": "App2"}
     assert package.environ == {"KEY1": "VALUE1", "KEY2": "VALUE2"}
@@ -519,6 +523,7 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
     )
     assert package.identifier == "test[Variant1]==0.1.0"
     assert package.version == Version("0.1.0")
+    assert package.variant_name == "Variant1"
     assert package.description == "This is a definition"
     assert package.command == {"APP": "APP_EXE"}
     assert package.environ == {"KEY": "VALUE"}
@@ -550,7 +555,6 @@ def test_initiate_data(monkeypatch):
     monkeypatch.setenv("DISPLAY", "localhost:0.0")
 
     assert wiz.package.initiate_environ() == {
-        "WIZ_VERSION": __version__,
         "USER": "someone",
         "LOGNAME": "someone",
         "HOME": "/path/to/somewhere",
@@ -579,7 +583,6 @@ def test_initiate_data_with_initial_data(monkeypatch):
             "KEY": "VALUE"
         }
     ) == {
-        "WIZ_VERSION": __version__,
         "USER": "someone",
         "LOGNAME": "someone-else",
         "HOME": "/path/to/somewhere",

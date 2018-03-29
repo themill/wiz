@@ -8,6 +8,7 @@ import mlog
 
 from wiz import __version__
 import wiz.definition
+import wiz.symbol
 import wiz.exception
 
 
@@ -89,7 +90,7 @@ def extract_context(packages, environ_mapping=None):
     """
     def _combine(mapping1, mapping2):
         """Return intermediate context combining both extracted results."""
-        identifier = mapping2.get("identifier", "unknown")
+        identifier = mapping2.get("identifier")
         _environ = combine_environ_mapping(
             identifier, mapping1.get("environ", {}), mapping2.get("environ", {})
         )
@@ -284,7 +285,6 @@ def initiate_environ(mapping=None):
 
     """
     environ = {
-        "WIZ_VERSION": __version__,
         "USER": os.environ.get("USER"),
         "LOGNAME": os.environ.get("LOGNAME"),
         "HOME": os.environ.get("HOME"),
@@ -331,20 +331,11 @@ class Package(collections.Mapping):
         self._requirements = definition.requirements[:]
         self._version = definition.version
 
-        identifier = "{definition}=={version}".format(
-            definition=definition.identifier,
-            version=definition.version,
-        )
+        identifier = self._generate_identifier(definition, variant)
 
         variant_name = None
 
         if variant is not None:
-            identifier = "{definition}[{variant}]=={version}".format(
-                definition=definition.identifier,
-                variant=variant.identifier,
-                version=definition.version,
-            )
-
             variant_name = variant.identifier
 
             self._mapping["environ"] = combine_environ_mapping(
@@ -364,6 +355,22 @@ class Package(collections.Mapping):
         self._mapping["definition"] = definition
         self._mapping["variant_name"] = variant_name
 
+    def _generate_identifier(self, definition, variant):
+        """Generate package identifier from *definition* and *variant*
+
+        The identifier should be usable to query the package from definition
+
+        """
+        identifier = definition.identifier
+
+        if variant is not None:
+            identifier += "[{}]".format(variant.identifier)
+
+        if definition.version != wiz.symbol.UNKNOWN_VALUE:
+            identifier += "=={}".format(definition.version)
+
+        return identifier
+
     @property
     def identifier(self):
         """Return identifier."""
@@ -382,7 +389,7 @@ class Package(collections.Mapping):
     @property
     def description(self):
         """Return name."""
-        return self.get("description", "unknown")
+        return self.get("description", wiz.symbol.UNKNOWN_VALUE)
 
     @property
     def version(self):
