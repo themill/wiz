@@ -99,6 +99,42 @@ def query_definition(
         )
 
 
+def query_current_context(definition_mapping):
+    """Return current context mapping from a wiz resolved environment.
+
+    The packages identifiers has been encoded into a :envvar:`WIZ_PACKAGES`
+    environment variable that can be used to retrieve the context from which the
+    current environment was resolved.
+
+    *definition_mapping* is a mapping regrouping all available definitions
+    available. It could be fetched with :func:`fetch_definitions`.
+
+    .. warning::
+
+        For an optimal result, the same definition mapping used for the current
+        environment resolution should be used. If some packages are missing,
+        a :exc:`~wiz.exception.WizError` exception will be raised.
+
+    :exc:`~wiz.exception.RequestNotFound` is raised if the
+    :envvar:`WIZ_PACKAGES` is not found.
+
+    """
+    encoded_packages = os.environ.get("WIZ_PACKAGES")
+    if encoded_packages is None:
+        raise wiz.exception.RequestNotFound(
+            "Impossible to retrieve the current context as the 'WIZ_PACKAGES' "
+            "environment variable is not set. Are you sure you are currently "
+            "in a resolved context?"
+        )
+
+    packages = wiz.package.decode(encoded_packages, definition_mapping)
+
+    _environ_mapping = wiz.package.initiate_environ(environ_mapping)
+    return wiz.package.extract_context(
+        packages, environ_mapping=_environ_mapping
+    )
+
+
 def resolve_package_context(requests, definition_mapping, environ_mapping=None):
     """Return package context mapping from *requests*.
 
@@ -151,7 +187,7 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
 
     # Augment environment with wiz signature
     context["environ"]["WIZ_VERSION"] = __version__
-    context["environ"]["WIZ_PACKAGES"] = __version__
+    context["environ"]["WIZ_PACKAGES"] = wiz.package.encode(packages)
     return context
 
 
