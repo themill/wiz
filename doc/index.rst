@@ -4,7 +4,7 @@
 Wiz
 ###
 
-Fetch and create run-time environments.
+Package management system.
 
 .. toctree::
     :maxdepth: 1

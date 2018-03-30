@@ -50,7 +50,7 @@ TEST_REQUIRES = [
 setup(
     name="wiz",
     version=VERSION,
-    description="Fetch and create run-time environments.",
+    description="Package management system.",
     long_description=open(README_PATH).read(),
     url="http://gitlab/rnd/wiz",
     keywords="",
