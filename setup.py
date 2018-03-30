@@ -28,7 +28,7 @@ INSTALL_REQUIRES = [
 ]
 
 DOC_REQUIRES = [
-    "sphinx >= 1.6.7, < 1.7",
+    "sphinx >= 1.6, < 1.7",
     "sphinx_rtd_theme >= 0.1.6, < 1",
     "lowdown >= 0.1.0, < 2",
 
