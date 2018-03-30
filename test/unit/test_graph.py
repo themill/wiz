@@ -216,16 +216,9 @@ def test_trim_unreachable_from_graph(
     mocked_graph_remove_node.assert_any_call("D")
 
 
-def test_sorted_nodes(mocker):
+def test_sorted_from_priority():
     """Sort node based on priority mapping."""
-    nodes = [
-        mocker.Mock(identifier="F"),
-        mocker.Mock(identifier="E"),
-        mocker.Mock(identifier="D"),
-        mocker.Mock(identifier="C"),
-        mocker.Mock(identifier="B"),
-        mocker.Mock(identifier="A")
-    ]
+    identifiers = ["F", "E", "D", "C", "B", "A"]
 
     priority_mapping = {
         "root": wiz.graph._NodeAttribute(0, "root"),
@@ -237,41 +230,34 @@ def test_sorted_nodes(mocker):
         "F": wiz.graph._NodeAttribute(4, "A"),
     }
 
-    result = wiz.graph.sorted_nodes(nodes, priority_mapping)
-    assert result == [nodes[5], nodes[3], nodes[1], nodes[0]]
+    result = wiz.graph.sorted_from_priority(identifiers, priority_mapping)
+    assert result == ["A", "C", "E", "F"]
 
 
-def test_filter_conflicted_node(mocker):
-    """Filter conflicted nodes for a specific node."""
-    packages = [
-        mocker.Mock(definition_identifier="defA"),
-        mocker.Mock(definition_identifier="defA"),
-        mocker.Mock(definition_identifier="defA"),
-        mocker.Mock(definition_identifier="defB"),
-        mocker.Mock(definition_identifier="defB"),
-        mocker.Mock(definition_identifier="defB")
-    ]
+def test_extract_conflicted_nodes(mocker, mocked_graph):
+    """Extract conflicted nodes for a specific node."""
+    node_mapping = {
+        "A": mocker.Mock(identifier="A", definition="defB"),
+        "B": mocker.Mock(identifier="B", definition="defB"),
+        "C": mocker.Mock(identifier="C", definition="defB"),
+        "D": mocker.Mock(identifier="D", definition="defA"),
+        "E": mocker.Mock(identifier="E", definition="defA"),
+        "F": mocker.Mock(identifier="F", definition="defA")
+    }
 
-    nodes = [
-        mocker.Mock(identifier="F", package=packages[0]),
-        mocker.Mock(identifier="E", package=packages[1]),
-        mocker.Mock(identifier="D", package=packages[2]),
-        mocker.Mock(identifier="C", package=packages[3]),
-        mocker.Mock(identifier="B", package=packages[4]),
-        mocker.Mock(identifier="A", package=packages[5])
-    ]
+    mocked_graph.node = lambda _id: node_mapping[_id]
 
-    assert wiz.graph.filter_conflicted_node(nodes[0], nodes) == [
-        nodes[1], nodes[2]
-    ]
+    assert wiz.graph.extract_conflicted_nodes(
+        mocked_graph, node_mapping["F"], sorted(node_mapping.keys())
+    ) == [node_mapping["D"], node_mapping["E"]]
 
-    assert wiz.graph.filter_conflicted_node(nodes[1], nodes) == [
-        nodes[0], nodes[2]
-    ]
+    assert wiz.graph.extract_conflicted_nodes(
+        mocked_graph, node_mapping["E"], sorted(node_mapping.keys())
+    ) == [node_mapping["D"], node_mapping["F"]]
 
-    assert wiz.graph.filter_conflicted_node(nodes[3], nodes) == [
-        nodes[4], nodes[5]
-    ]
+    assert wiz.graph.extract_conflicted_nodes(
+        mocked_graph, node_mapping["C"], sorted(node_mapping.keys())
+    ) == [node_mapping["A"], node_mapping["B"]]
 
 
 @pytest.mark.parametrize("mapping, conflict_mappings, error", [
@@ -677,7 +663,7 @@ def test_graph_requirement_weight():
     (
         {"defA": ["nodeA1", "nodeA2"], "defB": ["nodeB"]},
         {"nodeA1": "_nodeA1", "nodeA2": "_nodeA2", "nodeB": "_nodeB"},
-        ["_nodeA1", "_nodeA2"]
+        ["nodeA1", "nodeA2"]
     ),
     (
         {"defA": ["nodeA1", "nodeA2"], "defB": ["nodeB"]},

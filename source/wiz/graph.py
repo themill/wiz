@@ -165,34 +165,33 @@ class Resolver(object):
             self._logger.debug("No conflicts in the graph.")
             return
 
-        self._logger.debug(
-            "Conflicts: {}".format(", ".join([n.identifier for n in conflicts]))
-        )
+        self._logger.debug("Conflicts: {}".format(", ".join(conflicts)))
 
         while True:
             priority_mapping = compute_priority_mapping(graph)
 
             # Update graph and conflicts to remove all unreachable nodes.
             trim_unreachable_from_graph(graph, priority_mapping)
-            conflicts = sorted_nodes(conflicts, priority_mapping)
+            conflicts = sorted_from_priority(conflicts, priority_mapping)
 
             # If no nodes are left in the queue, exit the loop. The graph
             # is officially resolved. Hooray!
             if len(conflicts) == 0:
                 return
 
-            # Pick up the nearest node.
-            node = conflicts.pop()
+            # Pick up the nearest conflicted node identifier.
+            identifier = conflicts.pop()
+            node = graph.node(identifier)
 
             # Identify nodes conflicting with this node.
-            local_conflicts = filter_conflicted_node(node, conflicts)
+            conflicted_nodes = extract_conflicted_nodes(graph, node, conflicts)
 
             # Ensure that all requirements from parent links are compatibles.
-            validate_requirements(graph, node, local_conflicts)
+            validate_requirements(graph, node, conflicted_nodes)
 
             # Compute valid node identifier from combined requirements.
             requirement = combined_requirements(
-                graph, [node] + local_conflicts, priority_mapping
+                graph, [node] + conflicted_nodes, priority_mapping
             )
 
             # Query packages from combined requirement.
@@ -202,22 +201,20 @@ class Resolver(object):
 
             identifiers = [package.identifier for package in packages]
 
-            if node.identifier not in identifiers:
-                self._logger.debug("Remove '{}'".format(node.identifier))
-                graph.remove_node(node.identifier)
+            if identifier not in identifiers:
+                self._logger.debug("Remove '{}'".format(identifier))
+                graph.remove_node(identifier)
 
                 # If some of the newly extracted packages are not in the list
                 # of conflicted nodes, that means that the requirement should
                 # be added to the graph.
-                new_identifiers = set(extracted_nodes).difference(
-                    set([_node.identifier for _node in local_conflicts])
+                new_identifiers = set(identifiers).difference(
+                    set([_node.identifier for _node in conflicted_nodes])
                 )
 
                 if len(new_identifiers) > 0:
                     self._logger.debug(
-                        "Add to graph: ".format(
-                            ", ".join([n.identifier for n in _nodes])
-                        )
+                        "Add to graph: ".format(", ".join(new_identifiers))
                     )
                     graph.update_from_requirement(requirement)
 
@@ -323,14 +320,14 @@ def trim_unreachable_from_graph(graph, priority_mapping):
             graph.remove_node(node.identifier)
 
 
-def sorted_nodes(nodes, priority_mapping):
-    """Return sorted *nodes* based on *priority_mapping*.
+def sorted_from_priority(identifiers, priority_mapping):
+    """Return sorted node *identifiers* based on *priority_mapping*.
 
     If a node identifier does not have a priority, it means that it cannot be
     reached from the root level. It will then not be included in the list
     returned.
 
-    *nodes* should be a list of :class:`Node` instances.
+    *identifiers* should be valid node identifiers.
 
     *priority_mapping* is a mapping indicating the lowest possible priority
     of each node identifier from the root level of the graph with its
@@ -338,29 +335,28 @@ def sorted_nodes(nodes, priority_mapping):
 
     """
     empty = _NodeAttribute(None, None)
-    _nodes = filter(
-        lambda n: priority_mapping.get(n.identifier, empty).priority, nodes
+    _identifiers = filter(
+        lambda _id: priority_mapping.get(_id, empty).priority, identifiers
     )
-    return sorted(_nodes, key=lambda n: priority_mapping[n.identifier].priority)
+    return sorted(_identifiers, key=lambda _id: priority_mapping[_id].priority)
 
 
-def filter_conflicted_node(node, nodes):
-    """Return all *nodes* conflicting with *node*.
+def extract_conflicted_nodes(graph, node, identifiers):
+    """Return all nodes from *identifiers* conflicting with *node*.
 
     A node from the *graph* is in conflict with the node *identifier* when
     its definition identifier is identical.
 
     *node* should be a :class:`Node` instance.
 
-    *nodes* should be a list of :class:`Node` instances.
+    *identifiers* should be a list valid node identifiers.
 
     """
-    # Extract definition identifier from node.
-    definition_identifier = node.package.definition_identifier
+    nodes = (graph.node(_id) for _id in identifiers)
 
     return [
         _node for _node in nodes
-        if _node.package.definition_identifier == definition_identifier
+        if _node.definition == node.definition
         and _node.identifier != node.identifier
     ]
 
@@ -619,24 +615,24 @@ class Graph(object):
         return self._link_mapping[parent_identifier][identifier].requirement
 
     def conflicts(self):
-        """Return conflicting :class:`Node` instances.
+        """Return conflicting nodes identifiers instances.
 
         A conflict appears when several nodes are found for a single
         definition identifier.
 
         """
-        conflicted_nodes = []
+        conflicted = []
 
         for identifiers in self._definition_mapping.values():
-            nodes = [
-                self.node(identifier) for identifier in identifiers
+            _identifiers = [
+                identifier for identifier in identifiers
                 if self.exists(identifier)
             ]
 
-            if len(nodes) > 1:
-                conflicted_nodes += nodes
+            if len(_identifiers) > 1:
+                conflicted += _identifiers
 
-        return conflicted_nodes
+        return conflicted
 
     def update_from_requirements(self, requirements, parent_identifier=None):
         """Recursively update graph from *requirements*.
