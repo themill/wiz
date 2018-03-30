@@ -356,11 +356,11 @@ def filter_conflicted_node(node, nodes):
 
     """
     # Extract definition identifier from node.
-    definition_identifier = node.package.definition.identifier
+    definition_identifier = node.package.definition_identifier
 
     return [
         _node for _node in nodes
-        if _node.package.definition.identifier == definition_identifier
+        if _node.package.definition_identifier == definition_identifier
         and _node.identifier != node.identifier
     ]
 
@@ -715,7 +715,7 @@ class Graph(object):
         self._node_mapping[package.identifier] = Node(package)
 
         # Record node identifiers per package to identify conflicts.
-        definition_identifier = package.definition.identifier
+        definition_identifier = package.definition_identifier
         self._definition_mapping.setdefault(definition_identifier, set())
         self._definition_mapping[definition_identifier].add(package.identifier)
 
@@ -803,7 +803,7 @@ class Node(object):
     @property
     def definition(self):
         """Return identifier of the node."""
-        return self._package.definition.identifier
+        return self._package.definition_identifier
 
     @property
     def identifier(self):

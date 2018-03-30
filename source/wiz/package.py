@@ -8,6 +8,7 @@ import mlog
 
 from wiz import __version__
 import wiz.definition
+import wiz.mixin
 import wiz.symbol
 import wiz.exception
 
@@ -305,7 +306,24 @@ def initiate_environ(mapping=None):
     return environ
 
 
-class Package(collections.Mapping):
+def _generate_identifier(definition, variant):
+    """Generate package identifier from *definition* and *variant*
+
+    The identifier should be usable to query the package from definition
+
+    """
+    identifier = definition.identifier
+
+    if variant is not None:
+        identifier += "[{}]".format(variant.identifier)
+
+    if definition.version != wiz.symbol.UNKNOWN_VALUE:
+        identifier += "=={}".format(definition.version)
+
+    return identifier
+
+
+class Package(wiz.mixin.MappingMixin):
     """Package object."""
 
     def __init__(self, definition, variant=None):
@@ -323,63 +341,39 @@ class Package(collections.Mapping):
             the elements from the *variant* will have priority.
 
         """
-        mapping = definition.to_mapping()
-        self._mapping = dict(
-            (k, v) for k, v in mapping.items() if k != "variants"
+        definition_data = definition.to_mapping()
+        mapping = dict(
+            (k, v) for k, v in definition_data.items() if k != "variants"
         )
 
-        self._requirements = definition.requirements[:]
-        self._version = definition.version
-
-        identifier = self._generate_identifier(definition, variant)
-
-        variant_name = None
+        mapping["identifier"] = _generate_identifier(definition, variant)
+        mapping["definition_identifier"] = definition.identifier
+        mapping["variant_name"] = None
 
         if variant is not None:
-            variant_name = variant.identifier
+            mapping["variant_name"] = variant.identifier
 
-            self._mapping["environ"] = combine_environ_mapping(
-                identifier, definition.environ, variant.environ
+            mapping["environ"] = combine_environ_mapping(
+                mapping["identifier"], definition.environ, variant.environ
             )
 
-            self._mapping["command"] = combine_command_mapping(
-                identifier, definition.command, variant.command
+            mapping["command"] = combine_command_mapping(
+                mapping["identifier"], definition.command, variant.command
             )
 
             if len(variant.get("requirements", [])) > 0:
-                self._mapping.setdefault("requirements", [])
-                self._mapping["requirements"] += variant.get("requirements", [])
-                self._requirements += variant.requirements
+                mapping["requirements"] = (
+                    # To prevent mutating the the original requirement list.
+                    definition_data.get("requirements", [])[:]
+                    + variant["requirements"]
+                )
 
-        self._mapping["identifier"] = identifier
-        self._mapping["definition"] = definition
-        self._mapping["variant_name"] = variant_name
-
-    def _generate_identifier(self, definition, variant):
-        """Generate package identifier from *definition* and *variant*
-
-        The identifier should be usable to query the package from definition
-
-        """
-        identifier = definition.identifier
-
-        if variant is not None:
-            identifier += "[{}]".format(variant.identifier)
-
-        if definition.version != wiz.symbol.UNKNOWN_VALUE:
-            identifier += "=={}".format(definition.version)
-
-        return identifier
+        super(Package, self).__init__(mapping)
 
     @property
-    def identifier(self):
-        """Return identifier."""
-        return self.get("identifier")
-
-    @property
-    def definition(self):
+    def definition_identifier(self):
         """Return definition identifier."""
-        return self.get("definition")
+        return self.get("definition_identifier")
 
     @property
     def variant_name(self):
@@ -387,39 +381,18 @@ class Package(collections.Mapping):
         return self.get("variant_name")
 
     @property
-    def description(self):
-        """Return name."""
-        return self.get("description", wiz.symbol.UNKNOWN_VALUE)
-
-    @property
-    def version(self):
-        """Return version."""
-        return self._version
-
-    @property
-    def command(self):
-        """Return command mapping."""
-        return self.get("command", {})
-
-    @property
-    def environ(self):
-        """Return environ mapping."""
-        return self.get("environ", {})
-
-    @property
-    def requirements(self):
-        """Return requirement list."""
-        return self._requirements
-
-    def __getitem__(self, key):
-        """Return value for *key*."""
-        return self._mapping[key]
-
-    def __iter__(self):
-        """Iterate over all keys."""
-        for key in self._mapping:
-            yield key
-
-    def __len__(self):
-        """Return count of keys."""
-        return len(self._mapping)
+    def _ordered_identifiers(self):
+        """Return ordered identifiers"""
+        return [
+            "identifier",
+            "definition_identifier",
+            "variant_name",
+            "version",
+            "description",
+            "registry",
+            "origin",
+            "system",
+            "command",
+            "environ",
+            "requirements"
+        ]

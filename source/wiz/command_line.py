@@ -854,7 +854,7 @@ def display_packages(packages, registries):
     ]
 
     for package in packages:
-        _identifier = package.definition.identifier
+        _identifier = package.definition_identifier
         if package.variant_name is not None:
             _identifier += " [{}]".format(package.variant_name)
 
@@ -866,7 +866,7 @@ def display_packages(packages, registries):
         rows[1]["size"] = max(len(_version), rows[1]["size"])
 
         registry_index = str(
-            registries.index(package.definition.get("registry"))
+            registries.index(package.get("registry"))
         )
         rows[2]["items"].append(registry_index)
         rows[2]["size"] = max(len(registry_index), rows[2]["size"])

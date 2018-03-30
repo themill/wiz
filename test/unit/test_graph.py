@@ -243,16 +243,13 @@ def test_sorted_nodes(mocker):
 
 def test_filter_conflicted_node(mocker):
     """Filter conflicted nodes for a specific node."""
-    definition1 = mocker.Mock(identifier="defA")
-    definition2 = mocker.Mock(identifier="defB")
-
     packages = [
-        mocker.Mock(definition=definition1),
-        mocker.Mock(definition=definition1),
-        mocker.Mock(definition=definition1),
-        mocker.Mock(definition=definition2),
-        mocker.Mock(definition=definition2),
-        mocker.Mock(definition=definition2)
+        mocker.Mock(definition_identifier="defA"),
+        mocker.Mock(definition_identifier="defA"),
+        mocker.Mock(definition_identifier="defA"),
+        mocker.Mock(definition_identifier="defB"),
+        mocker.Mock(definition_identifier="defB"),
+        mocker.Mock(definition_identifier="defB")
     ]
 
     nodes = [
@@ -425,7 +422,7 @@ def test_combined_requirements(mocker, mocked_graph):
         mocked_graph, nodes, priority_mapping
     )
 
-    assert str(requirement) == "A<2,==1.2.3,>=1"
+    assert str(requirement) == "A >=1, ==1.2.3, <2"
 
     assert mocked_graph.link_requirement.call_count == 3
     mocked_graph.link_requirement.assert_any_call("A==3", "B")
@@ -906,7 +903,7 @@ def test_graph_create_node_from_package(mocker):
     package = mocker.Mock(
         identifier="A==0.1.0",
         requirements=[],
-        definition=mocker.Mock(identifier="defA")
+        definition_identifier="defA"
     )
 
     graph = wiz.graph.Graph(None)
@@ -928,7 +925,7 @@ def test_graph_create_node_from_package_recursive(mocker):
     package = mocker.Mock(
         identifier="A==0.1.0",
         requirements=requirements,
-        definition=mocker.Mock(identifier="defA")
+        definition_identifier="defA"
     )
 
     graph = wiz.graph.Graph(None)
@@ -1014,7 +1011,7 @@ def test_node(mocker):
     """Create and use node."""
     package = mocker.Mock(
         identifier="A==0.1.0",
-        definition=mocker.Mock(identifier="defA")
+        definition_identifier="defA"
     )
 
     node = wiz.graph.Node(package)

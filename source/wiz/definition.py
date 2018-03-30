@@ -10,9 +10,26 @@ from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
 import wiz.symbol
+import wiz.mixin
 import wiz.filesystem
 import wiz.exception
 import wiz.system
+
+
+def _display_requirement(requirement):
+    """Replace the string conversion for *requirement* to increase readability.
+    """
+    content = requirement.name
+
+    if len(requirement.specifier) > 0:
+        content += " " + ", ".join(sorted([
+            str(specifier) for specifier in requirement.specifier
+        ], reverse=True))
+
+    return content
+
+
+Requirement.__str__ = _display_requirement
 
 
 def fetch(paths, requests=None, system_mapping=None, max_depth=None):
@@ -303,45 +320,7 @@ def load(path, mapping=None):
         return Definition(**definition_data)
 
 
-class _DefinitionBase(collections.Mapping):
-    """Base Definition object."""
-
-    def __init__(self, *args, **kwargs):
-        """Initialise base definition."""
-        self._mapping = dict(*args, **kwargs)
-
-    def to_mapping(self):
-        """Return ordered definition data."""
-        return self._mapping.copy()
-
-    @abc.abstractmethod
-    def to_ordered_mapping(self):
-        """Return ordered definition data."""
-
-    def encode(self):
-        """Return serialized definition data."""
-        return json.dumps(
-            self.to_ordered_mapping(),
-            indent=4,
-            separators=(",", ": "),
-            ensure_ascii=False
-        )
-
-    def __getitem__(self, key):
-        """Return value for *key*."""
-        return self._mapping[key]
-
-    def __iter__(self):
-        """Iterate over all keys."""
-        for key in self._mapping:
-            yield key
-
-    def __len__(self):
-        """Return count of keys."""
-        return len(self._mapping)
-
-
-class Definition(_DefinitionBase):
+class Definition(wiz.mixin.MappingMixin):
     """Definition object."""
 
     def __init__(self, *args, **kwargs):
@@ -349,12 +328,20 @@ class Definition(_DefinitionBase):
         mapping = dict(*args, **kwargs)
 
         try:
-            self._version = None
-            if "version" in mapping.keys():
-                self._version = Version(mapping["version"])
+            if (
+                "version" in mapping.keys() and
+                not isinstance(mapping["version"], Version)
+            ):
+                mapping["version"] = Version(mapping["version"])
 
-            requirements = mapping.get("requirements", [])
-            self._requirements = map(Requirement, requirements)
+            if (
+                "requirements" in mapping.keys() and
+                not isinstance(mapping["requirements"], Requirement)
+            ):
+                mapping["requirements"] = [
+                    Requirement(requirement) for requirement
+                    in mapping["requirements"]
+                ]
 
         except InvalidVersion:
             raise wiz.exception.IncorrectDefinition(
@@ -374,153 +361,67 @@ class Definition(_DefinitionBase):
                 )
             )
 
+        if "variants" in mapping.keys():
+            mapping["variants"] = [
+                _Variant(
+                    variant, definition_identifier=mapping.get("identifier")
+                ) for variant in mapping["variants"]
+            ]
+
         super(Definition, self).__init__(mapping)
-
-        variants = mapping.get("variants", [])
-        self._variants = map(
-            lambda variant: _Variant(variant, self), variants
-        )
-
-    @property
-    def identifier(self):
-        """Return identifier."""
-        return self.get("identifier")
-
-    @property
-    def version(self):
-        """Return version."""
-        return self._version or wiz.symbol.UNKNOWN_VALUE
-
-    @property
-    def description(self):
-        """Return description."""
-        return self.get("description", wiz.symbol.UNKNOWN_VALUE)
-
-    @property
-    def environ(self):
-        """Return environ mapping."""
-        return self.get("environ", {})
-
-    @property
-    def command(self):
-        """Return command mapping."""
-        return self.get("command", {})
-
-    @property
-    def system(self):
-        """Return system constraint mapping."""
-        return self.get("system", {})
-
-    @property
-    def requirements(self):
-        """Return requirement list."""
-        return self._requirements
 
     @property
     def variants(self):
         """Return variant list."""
-        return self._variants
+        return self.get("variants", [])
 
-    def to_ordered_mapping(self):
-        """Return ordered definition data."""
-        mapping = self.to_mapping()
-
-        content = collections.OrderedDict()
-        content["identifier"] = mapping.pop("identifier")
-
-        if mapping.get("version") is not None:
-            content["version"] = mapping.pop("version")
-
-        if mapping.get("description") is not None:
-            content["description"] = mapping.pop("description")
-
-        if len(mapping.get("system", {})) > 0:
-            content["system"] = mapping.pop("system")
-
-        if len(mapping.get("command", {})) > 0:
-            content["command"] = mapping.pop("command")
-
-        if len(mapping.get("environ", {})) > 0:
-            content["environ"] = mapping.pop("environ")
-
-        if len(mapping.get("requirements", [])) > 0:
-            content["requirements"] = mapping.pop("requirements")
-
-        if len(mapping.get("variants", [])) > 0:
-            content["variants"] = [
-                variant.to_ordered_mapping() for variant in self.variants
-            ]
-            mapping.pop("variants")
-
-        content.update(mapping)
-        return content
+    @property
+    def _ordered_identifiers(self):
+        """Return ordered identifiers"""
+        return [
+            "identifier",
+            "version",
+            "description",
+            "registry",
+            "origin",
+            "system",
+            "command",
+            "environ",
+            "requirements",
+            "variants"
+        ]
 
 
-class _Variant(_DefinitionBase):
-    """Environment Variant Definition."""
+class _Variant(wiz.mixin.MappingMixin):
+    """Variant Definition object."""
 
-    def __init__(self, variant, definition):
+    def __init__(self, variant, definition_identifier):
         """Initialise variant definition."""
-        mapping = dict(variant)
-        self._definition = definition
-
         try:
-            requirements = mapping.get("requirements", [])
-            self._requirements = map(Requirement, requirements)
+            if "requirements" in variant.keys():
+                variant["requirements"] = [
+                    Requirement(requirement) for requirement
+                    in variant["requirements"]
+                ]
 
         except InvalidRequirement as exception:
             raise wiz.exception.IncorrectDefinition(
                 "The definition '{identifier}' [{variant}] contains an "
                 "incorrect requirement [{error}]".format(
-                    identifier=definition.identifier,
-                    variant=mapping.get("identifier"),
+                    identifier=definition_identifier,
+                    variant=variant.get("identifier"),
                     error=exception
                 )
             )
 
-        self._requirements = map(Requirement, mapping.get("requirements", []))
-        super(_Variant, self).__init__(mapping)
+        super(_Variant, self).__init__(variant)
 
     @property
-    def identifier(self):
-        """Return identifier."""
-        return self.get("identifier")
-
-    @property
-    def definition(self):
-        """Return corresponding definition."""
-        return self._definition
-
-    @property
-    def environ(self):
-        """Return environ mapping."""
-        return self.get("environ", {})
-
-    @property
-    def command(self):
-        """Return command mapping."""
-        return self.get("command", {})
-
-    @property
-    def requirements(self):
-        """Return requirement list."""
-        return self._requirements
-
-    def to_ordered_mapping(self):
-        """Return ordered definition data."""
-        mapping = self.to_mapping()
-
-        content = collections.OrderedDict()
-        content["identifier"] = mapping.pop("identifier")
-
-        if len(mapping.get("command", {})) > 0:
-            content["command"] = mapping.pop("command")
-
-        if len(mapping.get("environ", {})) > 0:
-            content["environ"] = mapping.pop("environ")
-
-        if len(mapping.get("requirements", [])) > 0:
-            content["requirements"] = mapping.pop("requirements")
-
-        content.update(mapping)
-        return content
+    def _ordered_identifiers(self):
+        """Return ordered identifiers"""
+        return [
+            "identifier",
+            "command",
+            "environ",
+            "requirements"
+        ]

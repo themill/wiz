@@ -151,6 +151,7 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
 
     # Augment environment with wiz signature
     context["environ"]["WIZ_VERSION"] = __version__
+    context["environ"]["WIZ_PACKAGES"] = __version__
     return context
 
 

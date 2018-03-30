@@ -442,7 +442,7 @@ def test_minimal_package_without_variant():
 
     package = wiz.package.Package(definition)
     assert package.identifier == "test"
-    assert package.definition == definition
+    assert package.definition_identifier == "test"
     assert package.version == "unknown"
     assert package.variant_name is None
     assert package.description == "unknown"
@@ -451,7 +451,9 @@ def test_minimal_package_without_variant():
     assert package.requirements == []
 
     assert len(package) == 3
-    assert sorted(package) == ["definition", "identifier", "variant_name"]
+    assert sorted(package) == [
+        "definition_identifier", "identifier", "variant_name"
+    ]
 
 
 def test_full_package_without_variant():
@@ -483,10 +485,10 @@ def test_full_package_without_variant():
     assert package.environ == {"KEY1": "VALUE1", "KEY2": "VALUE2"}
 
     for requirement_data, requirement in itertools.izip_longest(
-        definition.get("requirements"), package.requirements
+        definition.requirements, package.requirements
     ):
         assert isinstance(requirement, Requirement)
-        assert str(requirement) == str(Requirement(requirement_data))
+        assert str(requirement) == str(requirement_data)
 
 
 def test_package_with_variant(mocked_combine_environ, mocked_combine_command):

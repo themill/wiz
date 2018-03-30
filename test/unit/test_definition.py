@@ -704,8 +704,8 @@ def test_definition_with_requirements():
         ("version", "0.1.0"),
         ("description", "This is a definition"),
         ("requirements", [
-            "envA >= 1.0.0",
-            "envB >= 3.4.2, < 4",
+            "envA >=1.0.0",
+            "envB >=3.4.2, <4",
             "envC"
         ])
     ])
@@ -852,13 +852,13 @@ def test_definition_with_variant():
             OrderedDict([
                 ("identifier", "1.0"),
                 ("environ", {"VERSION": "1.0"}),
-                ("requirements", ["envA >= 1.0, < 2"])
+                ("requirements", ["envA >=1.0, <2"])
             ]),
             OrderedDict([
                 ("identifier", "2.0"),
                 ("command", {"app": "App2.0"}),
                 ("environ", {"VERSION": "2.0"}),
-                ("requirements", ["envA >= 2.0, < 3"])
+                ("requirements", ["envA >=2.0, <3"])
             ]),
             OrderedDict([
                 ("identifier", "XXX"),
@@ -918,6 +918,8 @@ def test_definition_with_variant_requirement_error():
 
     with pytest.raises(wiz.exception.IncorrectDefinition) as error:
         wiz.definition.Definition(data)
+
+    print str(error)
 
     assert (
         "IncorrectDefinition: The definition 'test' [1.0] contains an "
