@@ -11,7 +11,7 @@ from packaging.requirements import Requirement
 
 from wiz import __version__
 import wiz.definition
-import wiz.mixin
+import wiz.mapping
 import wiz.symbol
 import wiz.exception
 
@@ -360,7 +360,7 @@ def _generate_identifier(definition, variant):
     return identifier
 
 
-class Package(wiz.mixin.MappingMixin):
+class Package(wiz.mapping.Mapping):
     """Package object."""
 
     def __init__(self, definition, variant=None):

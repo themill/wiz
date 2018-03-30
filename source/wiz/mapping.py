@@ -8,12 +8,12 @@ import wiz.symbol
 import wiz.exception
 
 
-class MappingMixin(collections.Mapping):
+class Mapping(collections.Mapping):
     """Immutable mapping mixin object."""
 
     def __init__(self, *args, **kwargs):
         """Initialise mapping."""
-        super(MappingMixin, self).__init__()
+        super(Mapping, self).__init__()
         self._mapping = dict(*args, **kwargs)
 
     @property
@@ -82,7 +82,7 @@ class MappingMixin(collections.Mapping):
             elif isinstance(element, dict) and len(element) > 0:
                 return {_id: _extract(item) for _id, item in element.items()}
 
-            elif isinstance(element, MappingMixin):
+            elif isinstance(element, Mapping):
                 return element.to_ordered_mapping()
 
             else:

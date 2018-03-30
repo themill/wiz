@@ -10,7 +10,7 @@ from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
 import wiz.symbol
-import wiz.mixin
+import wiz.mapping
 import wiz.filesystem
 import wiz.exception
 import wiz.system
@@ -320,7 +320,7 @@ def load(path, mapping=None):
         return Definition(**definition_data)
 
 
-class Definition(wiz.mixin.MappingMixin):
+class Definition(wiz.mapping.Mapping):
     """Definition object."""
 
     def __init__(self, *args, **kwargs):
@@ -392,7 +392,7 @@ class Definition(wiz.mixin.MappingMixin):
         ]
 
 
-class _Variant(wiz.mixin.MappingMixin):
+class _Variant(wiz.mapping.Mapping):
     """Variant Definition object."""
 
     def __init__(self, variant, definition_identifier):
