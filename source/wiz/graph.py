@@ -798,7 +798,7 @@ class Node(object):
 
     @property
     def definition(self):
-        """Return identifier of the node."""
+        """Return definition identifier of the node."""
         return self._package.definition_identifier
 
     @property

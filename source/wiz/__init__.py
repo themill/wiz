@@ -414,7 +414,7 @@ def export_bash_wrapper(
 def export_csh_wrapper(
     path, identifier, command=None, environ_mapping=None, packages=None,
 ):
-    """Export context as :term:`CSH` wrapper in *path*.
+    """Export context as :term:`C-Shell` wrapper in *path*.
 
     Return the path to the bash wrapper created.
 

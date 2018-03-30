@@ -4,26 +4,32 @@ Glossary
 
 .. glossary::
 
-    JavaScript
-        A Programming language specified in the ECMAScript language
-        specification.
+    Base64
+        A group of similar binary-to-text encoding schemes that represent binary
+        data in an ASCII string format by translating it into a radix-64
+        representation.
 
-        .. seealso:: http://www.w3schools.com/js
+        .. seealso:: https://en.wikipedia.org/wiki/Base64
+
+    Bash
+        :term:`Unix Shell` first released in 1989. It is available as the
+        default login shell for most Linux distribution and Apple macOS.
+        A version is available on Windows 10.
+
+        .. seealso:: https://en.wikipedia.org/wiki/C_shell
+
+    C-Shell
+        :term:`Unix Shell` created in the late 1970s. It is available on most
+        Linux distributions and Apple macOS, though it is usually considered as
+        `unfit for development
+        <http://www.faqs.org/faqs/unix-faq/shell/csh-whynot/>`_.
+
+        .. seealso:: https://en.wikipedia.org/wiki/C_shell
 
     JSON
         JavaScript Object Notation is a lightweight data-interchange format.
 
         .. seealso:: http://www.json.org/
-
-    Node.js
-        A :term:`JavaScript` runtime built on Chrome's V8 JavasScript engine.
-
-        .. seealso:: https://nodejs.org/
-
-    NPM
-        Package manager for :term:`Node.js`.
-
-        .. seealso:: https://www.npmjs.com
 
     Pip
         A recommended tool for installing :term:`Python` packages.
@@ -36,15 +42,11 @@ Glossary
 
         .. seealso:: https://www.python.org/
 
-    Registry
-        The registry is a collection of :term:`JSON` files containing
-        information about packages.
+    Unix Shell
+        Command line interpreter providing a user interaction to use traditional
+        Unix-like commands (such as `ls`, `cd`, `awk`, etc.) or execute scripts.
 
-    Rez
-        An integrated package configuration, build and deployment system for
-        software.
-
-        .. seealso:: https://github.com/nerdvegas/rez
+        .. seealso:: https://en.wikipedia.org/wiki/Unix_shell
 
     Virtualenv
         A tool to create isolated Python environments.
