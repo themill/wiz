@@ -9,8 +9,8 @@ Release Notes
     .. change:: changed
         :tags: deployment
 
-        Remove package script as the tool will be installed as a library within
-        a python context instead.
+        Remove :file:`package.py` script as the tool will be installed as a
+        library within a python context instead.
 
 .. release:: 0.1.0
     :date: 2018-03-30
