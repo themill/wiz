@@ -6,6 +6,7 @@ import os
 import itertools
 import shlex
 import collections
+import datetime
 
 import mlog
 from packaging.version import Version, InvalidVersion
@@ -380,9 +381,11 @@ def main(arguments=None):
     if namespace.record is not None:
         history = wiz.history.get(encoded=True)
         path = os.path.join(
-            os.path.abspath(namespace.record), "wiz_history.dump"
+            os.path.abspath(namespace.record),
+            "wiz-{}.dump".format(datetime.datetime.now().isoformat())
         )
         wiz.filesystem.export(path, history)
+        logger.info("History recorded and exported in '{}'".format(path))
 
 
 def _fetch_and_display_definitions(namespace, registries, system_mapping):
