@@ -17,6 +17,7 @@ import wiz.package
 import wiz.spawn
 import wiz.exception
 import wiz.filesystem
+import wiz.history
 
 
 def construct_parser():
@@ -321,6 +322,10 @@ def main(arguments=None):
     # Process arguments.
     parser = construct_parser()
     namespace = parser.parse_args(arguments)
+
+    if namespace.dump is not None:
+        command = "wiz {}".format(" ".join(arguments))
+        wiz.history.start_recording(command=command)
 
     # Set verbosity level.
     mlog.root.handlers["stderr"].filterer.filterers[0].min = namespace.verbosity
