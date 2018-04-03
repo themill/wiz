@@ -63,15 +63,14 @@ class Mapping(collections.Mapping):
 
         return self._mapping.copy()
 
-    def to_ordered_dict(self):
-        """Return ordered definition data.
+    def to_ordered_dict(self, serialize_content=False):
+        """Return corresponding ordered dictionary.
 
-        .. warning::
-
-            All elements are serialized in the process.
+        *serialize_content* indicates whether all mapping values should be
+        serialized.
 
         """
-        mapping = self.to_dict()
+        mapping = self.to_dict(serialize_content=serialize_content)
         content = collections.OrderedDict()
 
         def _extract(element, _identifier=None):
@@ -87,10 +86,12 @@ class Mapping(collections.Mapping):
                 return {_id: _extract(item) for _id, item in element.items()}
 
             elif isinstance(element, Mapping):
-                return element.to_ordered_dict()
+                return element.to_ordered_dict(
+                    serialize_content=serialize_content
+                )
 
             else:
-                return str(element)
+                return element
 
         for identifier in self._ordered_identifiers:
             if identifier not in mapping.keys():
@@ -128,20 +129,19 @@ class Mapping(collections.Mapping):
         return len(self._mapping)
 
 
-def serialize(mapping):
-    """Return serialized version of *mapping*.
+def serialize(element):
+    """Return serialized version of *element*.
 
-    *mapping* should be a dictionary object.
+    *element* can be a of any types (:class:`Mapping`, dict, list, ...)
 
     """
-    _mapping = {}
+    if isinstance(element, list):
+        return [serialize(item) for item in element]
 
-    for key, value in mapping.items():
-        if isinstance(value, dict):
-            _mapping[key] = serialize(value)
-        elif isinstance(value, Mapping):
-            _mapping[key] = value.to_dict(serialize_content=True)
-        else:
-            _mapping[key] = str(value)
+    elif isinstance(element, dict):
+        return {_id: serialize(item) for _id, item in element.items()}
 
-    return _mapping
+    elif isinstance(element, Mapping):
+        return element.to_dict(serialize_content=True)
+
+    return str(element)
