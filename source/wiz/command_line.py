@@ -82,8 +82,8 @@ def construct_parser():
     )
 
     parser.add_argument(
-        "--dump",
-        help="Dump resolution context process for debugging.",
+        "--record",
+        help="Record resolution context process for debugging.",
         metavar="PATH"
     )
 
@@ -323,7 +323,7 @@ def main(arguments=None):
     parser = construct_parser()
     namespace = parser.parse_args(arguments)
 
-    if namespace.dump is not None:
+    if namespace.record is not None:
         command = "wiz {}".format(" ".join(arguments))
         wiz.history.start_recording(command=command)
 
