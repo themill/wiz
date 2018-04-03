@@ -51,7 +51,7 @@ class Mapping(collections.Mapping):
         """Return requirement list."""
         return self.get("requirements", [])
 
-    def to_mapping(self, serialize_content=False):
+    def to_dict(self, serialize_content=False):
         """Return corresponding dictionary.
 
         *serialize_content* indicates whether all mapping values should be
@@ -63,11 +63,7 @@ class Mapping(collections.Mapping):
 
         return self._mapping.copy()
 
-    @abc.abstractmethod
-    def _ordered_identifiers(self):
-        """Return ordered identifiers"""
-
-    def to_ordered_mapping(self):
+    def to_ordered_dict(self):
         """Return ordered definition data.
 
         .. warning::
@@ -75,7 +71,7 @@ class Mapping(collections.Mapping):
             All elements are serialized in the process.
 
         """
-        mapping = self.to_mapping()
+        mapping = self.to_dict()
         content = collections.OrderedDict()
 
         def _extract(element, _identifier=None):
@@ -91,7 +87,7 @@ class Mapping(collections.Mapping):
                 return {_id: _extract(item) for _id, item in element.items()}
 
             elif isinstance(element, Mapping):
-                return element.to_ordered_mapping()
+                return element.to_ordered_dict()
 
             else:
                 return str(element)
@@ -105,10 +101,14 @@ class Mapping(collections.Mapping):
         content.update(mapping)
         return content
 
+    @abc.abstractmethod
+    def _ordered_identifiers(self):
+        """Return ordered identifiers"""
+
     def encode(self):
         """Return serialized definition data."""
         return json.dumps(
-            self.to_ordered_mapping(),
+            self.to_ordered_dict(),
             indent=4,
             separators=(",", ": "),
             ensure_ascii=False
@@ -140,7 +140,7 @@ def serialize(mapping):
         if isinstance(value, dict):
             _mapping[key] = serialize(value)
         elif isinstance(value, Mapping):
-            _mapping[key] = value.to_mapping(serialize_content=True)
+            _mapping[key] = value.to_dict(serialize_content=True)
         else:
             _mapping[key] = str(value)
 

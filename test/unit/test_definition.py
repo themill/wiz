@@ -442,10 +442,10 @@ def test_discover_with_max_depth(mocked_load, registries, definitions):
 def test_discover_without_disabled(mocked_load, registries, definitions):
     """Discover and yield definitions without disabled definition."""
     definitions[2] = wiz.definition.Definition(
-        disabled=True, **definitions[2].to_mapping()
+        disabled=True, **definitions[2].to_dict()
     )
     definitions[4] = wiz.definition.Definition(
-        disabled=True, **definitions[4].to_mapping()
+        disabled=True, **definitions[4].to_dict()
     )
     mocked_load.side_effect = definitions
 
@@ -542,7 +542,7 @@ def test_definition_mapping():
 
     environment = wiz.definition.Definition(data)
 
-    assert environment.to_mapping() == {
+    assert environment.to_dict() == {
         "identifier": "test",
         "description": "This is a definition",
         "environ": {
@@ -578,7 +578,7 @@ def test_minimal_definition():
     assert definition.system == {}
     assert definition.variants == []
 
-    assert definition.to_ordered_mapping() == OrderedDict([
+    assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
     ])
 
@@ -600,7 +600,7 @@ def test_definition_with_version():
     assert definition.system == {}
     assert definition.variants == []
 
-    assert definition.to_ordered_mapping() == OrderedDict([
+    assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
         ("version", "0.1.0"),
     ])
@@ -624,7 +624,7 @@ def test_definition_with_description():
     assert definition.system == {}
     assert definition.variants == []
 
-    assert definition.to_ordered_mapping() == OrderedDict([
+    assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
         ("version", "0.1.0"),
         ("description", "This is a definition")
@@ -659,7 +659,7 @@ def test_definition_with_environ():
         "KEY3": "PATH1:PATH2:PATH3"
     }
 
-    assert definition.to_ordered_mapping() == OrderedDict([
+    assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
         ("version", "0.1.0"),
         ("description", "This is a definition"),
@@ -699,7 +699,7 @@ def test_definition_with_requirements():
         assert isinstance(requirement, Requirement)
         assert str(requirement) == str(Requirement(expected_requirement))
 
-    assert definition.to_ordered_mapping() == OrderedDict([
+    assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
         ("version", "0.1.0"),
         ("description", "This is a definition"),
@@ -737,7 +737,7 @@ def test_definition_with_command():
         "appX": "App0.1 --option value"
     }
 
-    assert definition.to_ordered_mapping() == OrderedDict([
+    assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
         ("version", "0.1.0"),
         ("description", "This is a definition"),
@@ -774,7 +774,7 @@ def test_definition_with_system():
         "platform": "linux"
     }
 
-    assert definition.to_ordered_mapping() == OrderedDict([
+    assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
         ("version", "0.1.0"),
         ("description", "This is a definition"),
@@ -844,7 +844,7 @@ def test_definition_with_variant():
             assert isinstance(requirement, Requirement)
             assert str(requirement) == str(Requirement(requirement_data))
 
-    assert definition.to_ordered_mapping() == OrderedDict([
+    assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
         ("version", "0.1.0"),
         ("description", "This is a definition"),

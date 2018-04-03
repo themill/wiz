@@ -378,7 +378,7 @@ class Package(wiz.mapping.Mapping):
             the elements from the *variant* will have priority.
 
         """
-        definition_data = definition.to_mapping()
+        definition_data = definition.to_dict()
         mapping = dict(
             (k, v) for k, v in definition_data.items() if k != "variants"
         )

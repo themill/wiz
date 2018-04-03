@@ -782,7 +782,7 @@ def display_definition(definition):
         else:
             print("{}{}".format(indent, item))
 
-    _display(definition.to_ordered_mapping())
+    _display(definition.to_ordered_dict())
     print()
 
 
