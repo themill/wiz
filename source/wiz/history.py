@@ -9,13 +9,18 @@ import datetime
 _IS_HISTORY_RECORDED = False
 
 #: Mapping containing the entire context resolution history report.
-HISTORY = {
+_HISTORY = {
     "user": os.environ.get("USER"),
     "hostname": platform.node(),
     "time": datetime.datetime.now().isoformat(),
     "command": None,
     "actions": []
 }
+
+
+def get():
+    """Return mapping of recorded history."""
+    return _HISTORY
 
 
 def start_recording(command=None):
@@ -28,8 +33,8 @@ def start_recording(command=None):
     _IS_HISTORY_RECORDED = True
 
     if command is not None:
-        global HISTORY
-        HISTORY["command"] = command
+        global _HISTORY
+        _HISTORY["command"] = command
 
 
 def stop_recording():
@@ -55,8 +60,8 @@ def _record_action(action_identifier, **kwargs):
     action = {"identifier": action_identifier}
     action.update(**kwargs)
 
-    global HISTORY
-    HISTORY["actions"].append(action)
+    global _HISTORY
+    _HISTORY["actions"].append(action)
 
 
 def record_system_identification(mapping):
