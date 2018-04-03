@@ -13,3 +13,36 @@ PACKAGE_REQUEST_TYPE = "package"
 
 #: Command request type.
 COMMAND_REQUEST_TYPE = "command"
+
+#: History action for system identification.
+SYSTEM_IDENTIFICATION_ACTION = "IDENTIFY_SYSTEM"
+
+#: History action for definitions collection.
+DEFINITIONS_COLLECTION_ACTION = "FETCH_DEFINITIONS"
+
+#: History action for requirement graph creation.
+GRAPH_CREATION_ACTION = "CREATE_GRAPH"
+
+#: History action for computation of graph priority mapping.
+GRAPH_PRIORITY_COMPUTATION_ACTION = "CREATE_PRIORITY_MAPPING"
+
+#: History action for node creation within requirement graph.
+GRAPH_NODE_CREATION_ACTION = "CREATE_NODE"
+
+#: History action for node removal within requirement graph.
+GRAPH_NODE_REMOVAL_ACTION = "REMOVE_NODE"
+
+#: History action for link creation within requirement graph.
+GRAPH_LINK_CREATION_ACTION = "CREATE_LINK"
+
+#: History action for variant group removal within requirement graph.
+GRAPH_VARIANTS_REMOVAL_ACTION = "REMOVE_VARIANTS"
+
+#: History action for conflicts identification within requirement graph.
+GRAPH_CONFLICTS_IDENTIFICATION_ACTION = "IDENTIFY_CONFLICTS"
+
+#: History action for variant groups identification within requirement graph.
+GRAPH_VARIANTS_IDENTIFICATION_ACTION = "IDENTIFY_VARIANTS"
+
+#: History action for package extraction from requirement graph.
+GRAPH_PACKAGES_EXTRACTION_ACTION = "EXTRACT_PACKAGES"

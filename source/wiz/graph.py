@@ -16,6 +16,7 @@ import mlog
 
 import wiz.package
 import wiz.exception
+import wiz.symbol
 import wiz.history
 
 
@@ -108,7 +109,10 @@ class Resolver(object):
             self._logger.debug("No alternative graphs created.")
             return 0
 
-        wiz.history.record_variants_identification(graph, variant_groups)
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_VARIANTS_IDENTIFICATION_ACTION,
+            graph=graph, variants=variant_groups
+        )
 
         # Order the variant groups per priority to compute those nearest to the
         # top-level first. Each node from a variant group should have the same
@@ -171,7 +175,10 @@ class Resolver(object):
 
         self._logger.debug("Conflicts: {}".format(", ".join(conflicts)))
 
-        wiz.history.record_conflicts_identification(graph, conflicts)
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_CONFLICTS_IDENTIFICATION_ACTION,
+            graph=graph, conflicted_nodes=conflicts
+        )
 
         while True:
             priority_mapping = compute_priority_mapping(graph)
@@ -301,7 +308,10 @@ def compute_priority_mapping(graph):
                     )
                 )
 
-    wiz.history.record_priority_computation(graph, priority_mapping)
+    wiz.history.record_action(
+        wiz.symbol.GRAPH_PRIORITY_COMPUTATION_ACTION,
+        graph=graph, priority_mapping=priority_mapping
+    )
 
     return priority_mapping
 
@@ -530,7 +540,10 @@ def extract_ordered_packages(graph, priority_mapping):
         )
     )
 
-    wiz.history.record_package_extraction(graph, packages)
+    wiz.history.record_action(
+        wiz.symbol.GRAPH_PACKAGES_EXTRACTION_ACTION,
+        graph=graph, packages=packages
+    )
 
     return packages
 
@@ -579,12 +592,21 @@ class Graph(object):
         self._link_mapping = link_mapping or {}
 
         # Record the graph creation to the history if necessary.
-        wiz.history.record_graph_creation(self)
+        wiz.history.record_action(wiz.symbol.GRAPH_CREATION_ACTION, graph=self)
 
     @property
     def identifier(self):
         """Return unique graph identifier."""
         return self._identifier
+
+    def to_dict(self):
+        """Return corresponding dictionary."""
+        return {
+            "node": {_id: n.to_dict() for _id, n in self._node_mapping.items()},
+            "definition": self._definition_mapping.copy(),
+            "link": self._link_mapping.copy(),
+            "variants": self._variant_mapping.values()
+        }
 
     def copy(self):
         """Return a copy of the graph."""
@@ -735,8 +757,9 @@ class Graph(object):
         self._definition_mapping.setdefault(definition_identifier, set())
         self._definition_mapping[definition_identifier].add(package.identifier)
 
-        wiz.history.record_node_creation(
-            self, self._node_mapping[package.identifier].identifier
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_NODE_CREATION_ACTION,
+            graph=self, node=self._node_mapping[package.identifier].identifier
         )
 
         if len(package.requirements) > 0:
@@ -785,8 +808,12 @@ class Graph(object):
         self._link_mapping[parent_identifier][identifier] = link
 
         # Record link creation to history if necessary.
-        wiz.history.record_link_creation(
-            self, parent_identifier, identifier, weight
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_LINK_CREATION_ACTION,
+            graph=self,
+            parent=parent_identifier,
+            child=identifier,
+            weight=weight
         )
 
     def remove_node(self, identifier):
@@ -799,7 +826,11 @@ class Graph(object):
 
         """
         del self._node_mapping[identifier]
-        wiz.history.record_node_removal(self, identifier)
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_NODE_REMOVAL_ACTION,
+            graph=self, node=identifier
+        )
 
     def reset_variants(self):
         """Reset list of variant node identifiers .
@@ -811,7 +842,10 @@ class Graph(object):
 
         """
         self._variant_mapping = {}
-        wiz.history.record_variants_removal(self)
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_VARIANTS_REMOVAL_ACTION, graph=self
+        )
 
 
 class Node(object):
@@ -850,6 +884,13 @@ class Node(object):
     def add_parent(self, identifier):
         """Add *identifier* as a parent to the node."""
         self._parent_identifiers.add(identifier)
+
+    def to_dict(self):
+        """Return corresponding dictionary."""
+        return {
+            "package": self._package.to_dict(serialized_content=True),
+            "parents": list(self._parent_identifiers)
+        }
 
 
 class _PriorityQueue(dict):
