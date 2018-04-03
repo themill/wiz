@@ -601,10 +601,28 @@ class Graph(object):
 
     def to_dict(self):
         """Return corresponding dictionary."""
+        # Serialize all links.
+        link_mapping = {
+            parent_id: {
+                child_id: {
+                    "requirement": str(link.requirement),
+                    "weight": link.weight
+                }
+                for child_id, link in children.items()
+            }
+            for parent_id, children in self._link_mapping.items()
+        }
+
         return {
-            "node": {_id: n.to_dict() for _id, n in self._node_mapping.items()},
-            "definition": self._definition_mapping.copy(),
-            "link": self._link_mapping.copy(),
+            "node": {
+                _id: node.to_dict() for _id, node
+                in self._node_mapping.items()
+            },
+            "definition": {
+                _id: list(node_ids) for _id, node_ids
+                in self._definition_mapping.items()
+            },
+            "link": link_mapping,
             "variants": self._variant_mapping.values()
         }
 
@@ -888,7 +906,7 @@ class Node(object):
     def to_dict(self):
         """Return corresponding dictionary."""
         return {
-            "package": self._package.to_dict(serialized_content=True),
+            "package": self._package.to_dict(serialize_content=True),
             "parents": list(self._parent_identifiers)
         }
 
