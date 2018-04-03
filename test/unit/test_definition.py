@@ -583,7 +583,14 @@ def test_minimal_definition():
     ])
 
 
-def test_definition_with_version():
+@pytest.mark.parametrize("options, expected_version", [
+    ({}, Version("0.1.0")),
+    ({"serialize_content": True}, "0.1.0")
+], ids=[
+    "non-serialized",
+    "serialized",
+])
+def test_definition_with_version(options, expected_version):
     """Create a definition with version."""
     data = {
         "identifier": "test",
@@ -600,9 +607,9 @@ def test_definition_with_version():
     assert definition.system == {}
     assert definition.variants == []
 
-    assert definition.to_ordered_dict() == OrderedDict([
+    assert definition.to_ordered_dict(**options) == OrderedDict([
         ("identifier", "test"),
-        ("version", "0.1.0"),
+        ("version", expected_version),
     ])
 
 
@@ -610,13 +617,12 @@ def test_definition_with_description():
     """Create a definition with description."""
     data = {
         "identifier": "test",
-        "version": "0.1.0",
         "description": "This is a definition"
     }
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
-    assert definition.version == Version("0.1.0")
+    assert definition.version == "unknown"
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -626,7 +632,6 @@ def test_definition_with_description():
 
     assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
-        ("version", "0.1.0"),
         ("description", "This is a definition")
     ])
 
@@ -635,7 +640,6 @@ def test_definition_with_environ():
     """Create a definition with environment mapping."""
     data = {
         "identifier": "test",
-        "version": "0.1.0",
         "description": "This is a definition",
         "environ": {
             "KEY1": "VALUE1",
@@ -646,7 +650,7 @@ def test_definition_with_environ():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
-    assert definition.version == Version("0.1.0")
+    assert definition.version == "unknown"
     assert definition.description == "This is a definition"
     assert definition.requirements == []
     assert definition.command == {}
@@ -661,7 +665,6 @@ def test_definition_with_environ():
 
     assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
-        ("version", "0.1.0"),
         ("description", "This is a definition"),
         ("environ", {
             "KEY1": "VALUE1",
@@ -675,7 +678,6 @@ def test_definition_with_requirements():
     """Create a definition with requirements."""
     data = {
         "identifier": "test",
-        "version": "0.1.0",
         "description": "This is a definition",
         "requirements": [
             "envA >= 1.0.0",
@@ -686,7 +688,7 @@ def test_definition_with_requirements():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
-    assert definition.version == Version("0.1.0")
+    assert definition.version == "unknown"
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.command == {}
@@ -699,9 +701,8 @@ def test_definition_with_requirements():
         assert isinstance(requirement, Requirement)
         assert str(requirement) == str(Requirement(expected_requirement))
 
-    assert definition.to_ordered_dict() == OrderedDict([
+    assert definition.to_ordered_dict(serialize_content=True) == OrderedDict([
         ("identifier", "test"),
-        ("version", "0.1.0"),
         ("description", "This is a definition"),
         ("requirements", [
             "envA >=1.0.0",
@@ -710,12 +711,14 @@ def test_definition_with_requirements():
         ])
     ])
 
+    for requirement in definition.to_ordered_dict()["requirements"]:
+        assert isinstance(requirement, Requirement)
+
 
 def test_definition_with_command():
     """Create a definition with command."""
     data = {
         "identifier": "test",
-        "version": "0.1.0",
         "description": "This is a definition",
         "command": {
             "app": "App0.1",
@@ -725,7 +728,7 @@ def test_definition_with_command():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
-    assert definition.version == Version("0.1.0")
+    assert definition.version == "unknown"
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -739,7 +742,6 @@ def test_definition_with_command():
 
     assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
-        ("version", "0.1.0"),
         ("description", "This is a definition"),
         ("command", {
             "app": "App0.1",
@@ -752,7 +754,6 @@ def test_definition_with_system():
     """Create a definition with system constraint."""
     data = {
         "identifier": "test",
-        "version": "0.1.0",
         "description": "This is a definition",
         "system": {
             "arch": "x86_64",
@@ -762,7 +763,7 @@ def test_definition_with_system():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
-    assert definition.version == Version("0.1.0")
+    assert definition.version == "unknown"
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.command == {}
@@ -776,7 +777,6 @@ def test_definition_with_system():
 
     assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
-        ("version", "0.1.0"),
         ("description", "This is a definition"),
         ("system", {
             "arch": "x86_64",
@@ -789,7 +789,6 @@ def test_definition_with_variant():
     """Create a definition with variant."""
     data = {
         "identifier": "test",
-        "version": "0.1.0",
         "description": "This is a definition",
         "variants": [
             {
@@ -824,7 +823,7 @@ def test_definition_with_variant():
 
     definition = wiz.definition.Definition(copy.deepcopy(data))
     assert definition.identifier == "test"
-    assert definition.version == Version("0.1.0")
+    assert definition.version == "unknown"
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -844,9 +843,8 @@ def test_definition_with_variant():
             assert isinstance(requirement, Requirement)
             assert str(requirement) == str(Requirement(requirement_data))
 
-    assert definition.to_ordered_dict() == OrderedDict([
+    assert definition.to_ordered_dict(serialize_content=True) == OrderedDict([
         ("identifier", "test"),
-        ("version", "0.1.0"),
         ("description", "This is a definition"),
         ("variants", [
             OrderedDict([
@@ -866,6 +864,10 @@ def test_definition_with_variant():
             ])
         ])
     ])
+
+    for variant in definition.to_ordered_dict()["variants"]:
+        for requirement in variant.get("requirements", []):
+            assert isinstance(requirement, Requirement)
 
 
 def test_definition_with_version_error():
