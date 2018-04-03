@@ -72,7 +72,7 @@ def record_action(action_identifier, **kwargs):
 
     mapping = {}
 
-    for key, value in kwargs.item():
+    for key, value in kwargs.items():
         if isinstance(value, wiz.graph.Graph):
             mapping[key] = value.to_dict()
         else:
