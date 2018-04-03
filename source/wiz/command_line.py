@@ -80,6 +80,12 @@ def construct_parser():
         metavar="OS_VERSION",
     )
 
+    parser.add_argument(
+        "--dump",
+        help="Dump resolution context process for debugging.",
+        metavar="PATH"
+    )
+
     subparsers = parser.add_subparsers(
         title="Commands",
         dest="commands"
