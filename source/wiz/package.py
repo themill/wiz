@@ -13,6 +13,7 @@ from wiz import __version__
 import wiz.definition
 import wiz.mapping
 import wiz.symbol
+import wiz.history
 import wiz.exception
 
 
@@ -105,6 +106,11 @@ def extract_context(packages, environ_mapping=None):
 
     mapping = reduce(_combine, packages, dict(environ=environ_mapping or {}))
     mapping["environ"] = sanitise_environ_mapping(mapping.get("environ", {}))
+
+    wiz.history.record_action(
+        wiz.symbol.CONTEXT_EXTRACTION_ACTION,
+        packages=packages, initial=environ_mapping
+    )
     return mapping
 
 

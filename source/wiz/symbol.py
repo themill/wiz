@@ -46,3 +46,6 @@ GRAPH_VARIANTS_IDENTIFICATION_ACTION = "IDENTIFY_VARIANTS"
 
 #: History action for package extraction from requirement graph.
 GRAPH_PACKAGES_EXTRACTION_ACTION = "EXTRACT_PACKAGES"
+
+#: History action for context extraction packages list.
+CONTEXT_EXTRACTION_ACTION = "EXTRACT_CONTEXT"
