@@ -108,6 +108,8 @@ class Resolver(object):
             self._logger.debug("No alternative graphs created.")
             return 0
 
+        wiz.history.record_variants_identification(graph, variant_groups)
+
         # Order the variant groups per priority to compute those nearest to the
         # top-level first. Each node from a variant group should have the same
         # priority, so we can sort the group list by using the first identifier

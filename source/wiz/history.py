@@ -171,7 +171,7 @@ def record_conflicts_identification(graph, node_identifiers):
 
     *graph* must be an instance of :class:`wiz.graph.Graph`.
 
-    *node_identifiers* should be a list of identifiers for nodes in the graph.
+    *node_identifiers* should be a identifier list of nodes in the graph.
 
     .. warning::
 
@@ -183,6 +183,27 @@ def record_conflicts_identification(graph, node_identifiers):
         "IDENTIFY_CONFLICTS",
         graph=graph,
         node_identifiers=node_identifiers,
+    )
+
+
+def record_variants_identification(graph, variant_groups):
+    """Record the identification of variant nodes in *graph* to the history.
+
+    *graph* must be an instance of :class:`wiz.graph.Graph`.
+
+    *variant_groups* should be a list of variants identifier node lists for
+    nodes in the graph.
+
+    .. warning::
+
+        This operation will not be recorded if the history is not being
+        :func:`recorded <start_recording>`.
+
+    """
+    _record_action(
+        "IDENTIFY_VARIANTS",
+        graph=graph,
+        variant_groups=variant_groups,
     )
 
 
