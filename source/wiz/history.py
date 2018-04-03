@@ -1,6 +1,8 @@
 # :coding: utf-8
 
+import os
 import platform
+import datetime
 
 
 #: Indicate whether the history should be recorded.
@@ -8,7 +10,9 @@ _IS_HISTORY_RECORDED = False
 
 #: Mapping containing the entire context resolution history report.
 HISTORY = {
+    "user": os.environ.get("USER"),
     "hostname": platform.node(),
+    "time": datetime.datetime.now().isoformat(),
     "command": None,
     "actions": []
 }
