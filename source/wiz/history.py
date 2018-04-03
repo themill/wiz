@@ -45,7 +45,7 @@ def _record_action(action_identifier, **kwargs):
 
     .. warning::
 
-        This operation will not be recorded if the history is not being
+        This operation will be discarded if the history is not being
         :func:`recorded <start_recording>`.
 
     """
@@ -59,6 +59,29 @@ def _record_action(action_identifier, **kwargs):
     HISTORY["actions"].append(action)
 
 
+def record_definitions_fetched(registries, max_depth, definition_mapping):
+    """Record *definition_mapping* fetched from *registries* to the history.
+
+    *registries* should be the path to each registry visited.
+
+    *max_depth* could be the maximum level of research within registry folders.
+
+    *definition_mapping* is a mapping regrouping all available definitions.
+
+    .. warning::
+
+        This operation will be discarded if the history is not being
+        :func:`recorded <start_recording>`.
+
+    """
+    _record_action(
+        "FETCH_DEFINITIONS",
+        registries=registries,
+        max_depth=max_depth,
+        definition_mapping=definition_mapping
+    )
+
+
 def record_graph_creation(graph):
     """Record the creation of a new *graph* to the history.
 
@@ -66,7 +89,7 @@ def record_graph_creation(graph):
 
     .. warning::
 
-        This operation will not be recorded if the history is not being
+        This operation will be discarded if the history is not being
         :func:`recorded <start_recording>`.
 
     """
@@ -84,7 +107,7 @@ def record_priority_computation(graph, priority_mapping):
 
     .. warning::
 
-        This operation will not be recorded if the history is not being
+        This operation will be discarded if the history is not being
         :func:`recorded <start_recording>`.
 
     """
@@ -104,7 +127,7 @@ def record_node_creation(graph, node_identifier):
 
     .. warning::
 
-        This operation will not be recorded if the history is not being
+        This operation will be discarded if the history is not being
         :func:`recorded <start_recording>`.
 
     """
@@ -120,7 +143,7 @@ def record_node_removal(graph, node_identifier):
 
     .. warning::
 
-        This operation will not be recorded if the history is not being
+        This operation will be discarded if the history is not being
         :func:`recorded <start_recording>`.
 
     """
@@ -134,7 +157,7 @@ def record_variants_removal(graph):
 
     .. warning::
 
-        This operation will not be recorded if the history is not being
+        This operation will be discarded if the history is not being
         :func:`recorded <start_recording>`.
 
     """
@@ -153,7 +176,7 @@ def record_link_creation(graph, parent_identifier, child_identifier, weight):
 
     .. warning::
 
-        This operation will not be recorded if the history is not being
+        This operation will be discarded if the history is not being
         :func:`recorded <start_recording>`.
 
     """
@@ -175,7 +198,7 @@ def record_conflicts_identification(graph, node_identifiers):
 
     .. warning::
 
-        This operation will not be recorded if the history is not being
+        This operation will be discarded if the history is not being
         :func:`recorded <start_recording>`.
 
     """
@@ -196,7 +219,7 @@ def record_variants_identification(graph, variant_groups):
 
     .. warning::
 
-        This operation will not be recorded if the history is not being
+        This operation will be discarded if the history is not being
         :func:`recorded <start_recording>`.
 
     """
@@ -216,7 +239,7 @@ def record_package_extraction(graph, packages):
 
     .. warning::
 
-        This operation will not be recorded if the history is not being
+        This operation will be discarded if the history is not being
         :func:`recorded <start_recording>`.
 
     """
