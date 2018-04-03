@@ -51,8 +51,16 @@ class Mapping(collections.Mapping):
         """Return requirement list."""
         return self.get("requirements", [])
 
-    def to_mapping(self):
-        """Return ordered definition data."""
+    def to_mapping(self, serialize_content=False):
+        """Return corresponding dictionary.
+
+        *serialize_content* indicates whether all mapping values should be
+        serialized.
+
+        """
+        if serialize_content:
+            return serialize(self._mapping.copy())
+
         return self._mapping.copy()
 
     @abc.abstractmethod
@@ -118,3 +126,22 @@ class Mapping(collections.Mapping):
     def __len__(self):
         """Return count of keys."""
         return len(self._mapping)
+
+
+def serialize(mapping):
+    """Return serialized version of *mapping*.
+
+    *mapping* should be a dictionary object.
+
+    """
+    _mapping = {}
+
+    for key, value in mapping.items():
+        if isinstance(value, dict):
+            _mapping[key] = serialize(value)
+        elif isinstance(value, Mapping):
+            _mapping[key] = value.to_mapping(serialize_content=True)
+        else:
+            _mapping[key] = str(value)
+
+    return _mapping
