@@ -59,14 +59,40 @@ def _record_action(action_identifier, **kwargs):
     HISTORY["actions"].append(action)
 
 
-def record_definitions_fetched(registries, max_depth, definition_mapping):
+def record_system_identification(mapping):
+    """Record system *mapping* identification.
+
+    *mapping* should be in the form of::
+
+        {
+            "platform": "linux",
+            "arch": "x86_64",
+            "os": {
+                "name": "centos",
+                "version": "7.3.161"
+            }
+        }
+
+    .. warning::
+
+        This operation will be discarded if the history is not being
+        :func:`recorded <start_recording>`.
+
+    """
+    _record_action(
+        "IDENTIFY_SYSTEM",
+        system=mapping,
+    )
+
+
+def record_definitions_retrieval(paths, max_depth, mapping):
     """Record *definition_mapping* fetched from *registries* to the history.
 
-    *registries* should be the path to each registry visited.
+    *paths* should be the path to each registry visited.
 
     *max_depth* could be the maximum level of research within registry folders.
 
-    *definition_mapping* is a mapping regrouping all available definitions.
+    *mapping* should be a mapping regrouping all available definitions.
 
     .. warning::
 
@@ -76,9 +102,9 @@ def record_definitions_fetched(registries, max_depth, definition_mapping):
     """
     _record_action(
         "FETCH_DEFINITIONS",
-        registries=registries,
+        registries=paths,
         max_depth=max_depth,
-        definition_mapping=definition_mapping
+        definition_mapping=mapping
     )
 
 

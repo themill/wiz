@@ -94,7 +94,7 @@ def fetch(paths, requests=None, system_mapping=None, max_depth=None):
         for command in definition.command.keys():
             mapping[command_type][command] = definition.identifier
 
-    wiz.history.record_definitions_fetched(paths, max_depth, mapping)
+    wiz.history.record_definitions_retrieval(paths, max_depth, mapping)
 
     return mapping
 
