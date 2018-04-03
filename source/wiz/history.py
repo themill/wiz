@@ -3,6 +3,11 @@
 import os
 import platform
 import datetime
+import base64
+import json
+
+import wiz.definition
+import wiz.mapping
 
 
 #: Indicate whether the history should be recorded.
@@ -18,8 +23,15 @@ _HISTORY = {
 }
 
 
-def get():
-    """Return mapping of recorded history."""
+def get(encoded=False):
+    """Return mapping of recorded history.
+
+    *encoded* indicate whether the history should be encoded in :term:`Base64`
+    before being returned.
+
+    """
+    if encoded:
+        return base64.b64encode(json.dumps(_HISTORY))
     return _HISTORY
 
 
@@ -109,7 +121,7 @@ def record_definitions_retrieval(paths, max_depth, mapping):
         "FETCH_DEFINITIONS",
         registries=paths,
         max_depth=max_depth,
-        definition_mapping=mapping
+        definition_mapping=wiz.mapping.serialize(mapping)
     )
 
 
