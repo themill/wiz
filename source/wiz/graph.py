@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import copy
+import uuid
 import hashlib
 import itertools
 from collections import deque
@@ -15,6 +16,7 @@ import mlog
 
 import wiz.package
 import wiz.exception
+import wiz.history
 
 
 #: Weighted link associating nodes in the requirement graph.
@@ -167,6 +169,8 @@ class Resolver(object):
 
         self._logger.debug("Conflicts: {}".format(", ".join(conflicts)))
 
+        wiz.history.record_conflicts_identification(graph, conflicts)
+
         while True:
             priority_mapping = compute_priority_mapping(graph)
 
@@ -294,6 +298,8 @@ def compute_priority_mapping(graph):
                         parent=identifier
                     )
                 )
+
+    wiz.history.record_priority_computation(graph, priority_mapping)
 
     return priority_mapping
 
@@ -521,6 +527,9 @@ def extract_ordered_packages(graph, priority_mapping):
             ", ".join([package.identifier for package in packages])
         )
     )
+
+    wiz.history.record_package_extraction(graph, packages)
+
     return packages
 
 
@@ -553,6 +562,7 @@ class Graph(object):
         """
         self._logger = mlog.Logger(__name__ + ".Graph")
         self._resolver = resolver
+        self._identifier = uuid.uuid4().hex
 
         # All nodes created per node identifier.
         self._node_mapping = node_mapping or {}
@@ -565,6 +575,14 @@ class Graph(object):
 
         # Record the weight of each link in the graph.
         self._link_mapping = link_mapping or {}
+
+        # Record the graph creation to the history if necessary.
+        wiz.history.record_graph_creation(self)
+
+    @property
+    def identifier(self):
+        """Return unique graph identifier."""
+        return self._identifier
 
     def copy(self):
         """Return a copy of the graph."""
@@ -678,8 +696,8 @@ class Graph(object):
             requirement, self._resolver.definition_mapping
         )
 
-        # If more than one package is returned, record all node identifiers
-        # into a variant group.
+        # If more than one package is returned, start_recording all node
+        # identifiers into a variant group.
         if len(packages) > 1:
             identifiers = [package.identifier for package in packages]
             hashed_object = hashlib.md5("".join(sorted(identifiers)))
@@ -714,6 +732,10 @@ class Graph(object):
         definition_identifier = package.definition_identifier
         self._definition_mapping.setdefault(definition_identifier, set())
         self._definition_mapping[definition_identifier].add(package.identifier)
+
+        wiz.history.record_node_creation(
+            self, self._node_mapping[package.identifier].identifier
+        )
 
         if len(package.requirements) > 0:
             self.update_from_requirements(
@@ -760,6 +782,11 @@ class Graph(object):
         link = _Link(requirement, weight)
         self._link_mapping[parent_identifier][identifier] = link
 
+        # Record link creation to history if necessary.
+        wiz.history.record_link_creation(
+            self, parent_identifier, identifier, weight
+        )
+
     def remove_node(self, identifier):
         """Remove node from the graph.
 
@@ -770,6 +797,7 @@ class Graph(object):
 
         """
         del self._node_mapping[identifier]
+        wiz.history.record_node_removal(self, identifier)
 
     def reset_variants(self):
         """Reset list of variant node identifiers .
@@ -781,6 +809,7 @@ class Graph(object):
 
         """
         self._variant_mapping = {}
+        wiz.history.record_variants_removal(self)
 
 
 class Node(object):
