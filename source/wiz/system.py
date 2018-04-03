@@ -6,6 +6,7 @@ from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
 import wiz.exception
+import wiz.symbol
 import wiz.history
 
 
@@ -75,7 +76,9 @@ def query(platform=None, architecture=None, os_name=None, os_version=None):
     if os_version is not None:
         mapping["os"]["version"] = os_version
 
-    wiz.history.record_system_identification(mapping)
+    wiz.history.record_action(
+        wiz.symbol.SYSTEM_IDENTIFICATION_ACTION, system=mapping
+    )
 
     return mapping
 
