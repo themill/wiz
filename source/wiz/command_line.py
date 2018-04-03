@@ -376,6 +376,14 @@ def main(arguments=None):
             namespace, registries, system_mapping
         )
 
+    # Export the history if requested.
+    if namespace.record is not None:
+        history = wiz.history.get(encoded=True)
+        path = os.path.join(
+            os.path.abspath(namespace.record), "wiz_history.dump"
+        )
+        wiz.filesystem.export(path, history)
+
 
 def _fetch_and_display_definitions(namespace, registries, system_mapping):
     """Fetch and display definitions from arguments in *namespace*.
