@@ -109,7 +109,7 @@ def extract_context(packages, environ_mapping=None):
 
     wiz.history.record_action(
         wiz.symbol.CONTEXT_EXTRACTION_ACTION,
-        packages=packages, initial=environ_mapping
+        packages=packages, initial=environ_mapping, context=mapping
     )
     return mapping
 
