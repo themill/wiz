@@ -4,6 +4,7 @@ import os
 import platform
 import datetime
 import json
+import time
 
 from wiz import __version__
 import wiz.definition
@@ -19,6 +20,7 @@ _HISTORY = {
     "user": os.environ.get("USER"),
     "hostname": platform.node(),
     "timestamp": datetime.datetime.now().isoformat(),
+    "timezone": (time.tzname[0], time.timezone / 3600),
     "version": __version__,
     "command": None,
     "actions": []
