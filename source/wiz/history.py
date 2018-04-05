@@ -5,6 +5,7 @@ import platform
 import datetime
 import json
 
+from wiz import __version__
 import wiz.definition
 import wiz.graph
 import wiz.mapping
@@ -18,6 +19,7 @@ _HISTORY = {
     "user": os.environ.get("USER"),
     "hostname": platform.node(),
     "timestamp": datetime.datetime.now().isoformat(),
+    "version": __version__,
     "command": None,
     "actions": []
 }
