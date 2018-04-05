@@ -379,12 +379,12 @@ def main(arguments=None):
 
     # Export the history if requested.
     if namespace.record is not None:
-        history = wiz.history.get(encoded=True)
+        history = wiz.history.get(serialized=True)
         path = os.path.join(
             os.path.abspath(namespace.record),
             "wiz-{}.dump".format(datetime.datetime.now().isoformat())
         )
-        wiz.filesystem.export(path, history)
+        wiz.filesystem.export(path, history, compressed=True)
         logger.info("History recorded and exported in '{}'".format(path))
 
 

@@ -3,7 +3,6 @@
 import os
 import platform
 import datetime
-import base64
 import json
 
 import wiz.definition
@@ -18,21 +17,21 @@ _IS_HISTORY_RECORDED = False
 _HISTORY = {
     "user": os.environ.get("USER"),
     "hostname": platform.node(),
-    "time": datetime.datetime.now().isoformat(),
+    "timestamp": datetime.datetime.now().isoformat(),
     "command": None,
     "actions": []
 }
 
 
-def get(encoded=False):
+def get(serialized=False):
     """Return mapping of recorded history.
 
-    *encoded* indicate whether the history should be encoded in :term:`Base64`
-    before being returned.
+    *serialized* indicate whether the returned history should be serialized as
+    a :term:`JSON` string.
 
     """
-    if encoded:
-        return base64.b64encode(json.dumps(_HISTORY))
+    if serialized:
+        return json.dumps(_HISTORY)
     return _HISTORY
 
 

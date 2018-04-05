@@ -5,6 +5,7 @@ import errno
 import io
 import unicodedata
 import re
+import gzip
 
 try:
     to_unicode = unicode
@@ -12,12 +13,17 @@ except NameError:
     to_unicode = str
 
 
-def export(path, content):
+def export(path, content, compressed=False):
     """Create file from *content* in *path*."""
     ensure_directory(os.path.dirname(path))
 
-    with io.open(path, "w", encoding="utf8") as outfile:
-        outfile.write(to_unicode(content))
+    if compressed:
+        with gzip.open(path, "wb") as outfile:
+            outfile.write(content)
+
+    else:
+        with io.open(path, "w", encoding="utf8") as outfile:
+            outfile.write(to_unicode(content))
 
 
 def ensure_directory(path):
