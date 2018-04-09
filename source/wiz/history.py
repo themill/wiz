@@ -17,11 +17,11 @@ _IS_HISTORY_RECORDED = False
 
 #: Mapping containing the entire context resolution history report.
 _HISTORY = {
+    "version": __version__,
     "user": os.environ.get("USER"),
     "hostname": platform.node(),
     "timestamp": datetime.datetime.now().isoformat(),
-    "timezone": (time.tzname[0], time.timezone / 3600),
-    "version": __version__,
+    "timezone": time.tzname[1],
     "command": None,
     "actions": []
 }
