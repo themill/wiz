@@ -614,6 +614,7 @@ class Graph(object):
         }
 
         return {
+            "identifier": self.identifier,
             "node": {
                 _id: node.to_dict() for _id, node
                 in self._node_mapping.items()
