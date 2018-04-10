@@ -624,8 +624,8 @@ def test_graph_link_weight():
         None,
         link_mapping={
             "A": {
-                "B": wiz.graph._Link(Requirement("A"), 3),
-                "C": wiz.graph._Link(Requirement("A>2"), 2)
+                "B": {"requirement": Requirement("A"), "weight": 3},
+                "C": {"requirement": Requirement("A>2"), "weight": 2}
             }
         }
     )
@@ -644,8 +644,8 @@ def test_graph_requirement_weight():
         None,
         link_mapping={
             "A": {
-                "B": wiz.graph._Link(requirements[0], 3),
-                "C": wiz.graph._Link(requirements[1], 2)
+                "B": {"requirement": requirements[0], "weight": 3},
+                "C": {"requirement": requirements[1], "weight": 2}
             }
         }
     )
@@ -944,7 +944,10 @@ def test_graph_create_link(options):
 
     assert graph._link_mapping == {
         "parent": {
-            "child": wiz.graph._Link(requirement, options.get("weight", 1))
+            "child": {
+                "requirement": requirement,
+                "weight": options.get("weight", 1)
+            }
         }
     }
 
@@ -954,7 +957,9 @@ def test_graph_create_link_error():
     requirement = Requirement("A")
 
     graph = wiz.graph.Graph(
-        None, link_mapping={"parent": {"child": wiz.graph._Link(requirement, 1)}}
+        None, link_mapping={
+            "parent": {"child": {"requirement": requirement, "weight": 1}}
+        }
     )
 
     with pytest.raises(wiz.exception.IncorrectDefinition):

@@ -6,6 +6,8 @@ import datetime
 import json
 import time
 
+from packaging.requirements import Requirement
+
 from wiz import __version__
 import wiz.definition
 import wiz.graph
@@ -34,8 +36,15 @@ def get(serialized=False):
     a :term:`JSON` string.
 
     """
+    def _default(obj):
+        """Return serialized *obj*."""
+        if isinstance(obj, Requirement):
+            return str(obj)
+
+        raise TypeError("{} is not JSON serializable.".format(obj))
+
     if serialized:
-        return json.dumps(_HISTORY)
+        return json.dumps(_HISTORY, default=_default)
     return _HISTORY
 
 

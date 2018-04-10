@@ -5,7 +5,6 @@ import uuid
 import hashlib
 import itertools
 from collections import deque
-from collections import namedtuple
 from heapq import heapify, heappush, heappop
 try:
     from queue import Queue
@@ -18,10 +17,6 @@ import wiz.package
 import wiz.exception
 import wiz.symbol
 import wiz.history
-
-
-#: Weighted link associating nodes in the requirement graph.
-_Link = namedtuple("_Link", "requirement, weight")
 
 
 class Resolver(object):
@@ -600,18 +595,6 @@ class Graph(object):
 
     def to_dict(self):
         """Return corresponding dictionary."""
-        # Serialize all links.
-        link_mapping = {
-            parent_id: {
-                child_id: {
-                    "requirement": str(link.requirement),
-                    "weight": link.weight
-                }
-                for child_id, link in children.items()
-            }
-            for parent_id, children in self._link_mapping.items()
-        }
-
         return {
             "identifier": self.identifier,
             "node": {
@@ -622,7 +605,7 @@ class Graph(object):
                 _id: list(node_ids) for _id, node_ids
                 in self._definition_mapping.items()
             },
-            "link": link_mapping,
+            "link": self._link_mapping.copy(),
             "variants": self._variant_mapping.values()
         }
 
@@ -663,7 +646,7 @@ class Graph(object):
     def link_weight(self, identifier, parent_identifier):
         """Return weight from link between *parent_identifier* and *identifier*.
         """
-        return self._link_mapping[parent_identifier][identifier].weight
+        return self._link_mapping[parent_identifier][identifier]["weight"]
 
     def link_requirement(self, identifier, parent_identifier):
         """Return requirement from link between *parent_identifier* and
@@ -672,7 +655,7 @@ class Graph(object):
         This should be a :class:`packaging.requirements.Requirement` instance.
 
         """
-        return self._link_mapping[parent_identifier][identifier].requirement
+        return self._link_mapping[parent_identifier][identifier]["requirement"]
 
     def conflicts(self):
         """Return conflicting nodes identifiers instances.
@@ -822,7 +805,7 @@ class Graph(object):
                 "'{parent}'.".format(parent=parent_identifier, child=identifier)
             )
 
-        link = _Link(requirement, weight)
+        link = {"requirement": requirement, "weight": weight}
         self._link_mapping[parent_identifier][identifier] = link
 
         # Record link creation to history if necessary.
