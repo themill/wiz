@@ -832,7 +832,8 @@ class Graph(object):
             graph=self,
             parent=parent_identifier,
             child=identifier,
-            weight=weight
+            weight=weight,
+            requirement=requirement
         )
 
     def remove_node(self, identifier):
