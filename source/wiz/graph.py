@@ -23,9 +23,6 @@ import wiz.history
 #: Weighted link associating nodes in the requirement graph.
 _Link = namedtuple("_Link", "requirement, weight")
 
-#: Attribute with palatable properties access used to create priority mapping.
-_NodeAttribute = namedtuple("_NodeAttribute", "priority, parent")
-
 
 class Resolver(object):
     """Graph resolver class."""
@@ -120,7 +117,7 @@ class Resolver(object):
         # of each group as a key reference.
         sorted_variant_groups = sorted(
             variant_groups,
-            key=lambda _group: priority_mapping[_group[0]].priority,
+            key=lambda _group: priority_mapping[_group[0]].get("priority"),
         )
 
         graph_list = [graph.copy()]
@@ -270,17 +267,18 @@ def compute_priority_mapping(graph):
 
     # Initiate mapping
     priority_mapping = {
-        node.identifier: _NodeAttribute(None, None) for node in graph.nodes()
+        node.identifier: {"priority": None, "parent": None}
+        for node in graph.nodes()
     }
 
-    priority_mapping[graph.ROOT] = _NodeAttribute(0, graph.ROOT)
+    priority_mapping[graph.ROOT] = {"priority": 0, "parent": graph.ROOT}
 
     queue = _PriorityQueue()
     queue[graph.ROOT] = 0
 
     while not queue.empty():
         identifier = queue.pop_smallest()
-        current_priority = priority_mapping[identifier].priority
+        current_priority = priority_mapping[identifier]["priority"]
 
         for child_identifier in graph.outcoming(identifier):
             priority = current_priority + graph.link_weight(
@@ -288,15 +286,15 @@ def compute_priority_mapping(graph):
             )
 
             # The last recorded priority of this node from the source
-            last_priority = priority_mapping[child_identifier].priority
+            last_priority = priority_mapping[child_identifier]["priority"]
 
             # If there is a currently recorded priority from the source and
             # this is superior than the priority of the node found, update
             # the current priority with the new one.
             if last_priority is None or last_priority > priority:
-                priority_mapping[child_identifier] = _NodeAttribute(
-                    priority, identifier
-                )
+                priority_mapping[child_identifier] = {
+                    "priority": priority, "parent": identifier
+                }
                 queue[child_identifier] = priority
 
                 logger.debug(
@@ -333,7 +331,7 @@ def trim_unreachable_from_graph(graph, priority_mapping):
     logger = mlog.Logger(__name__ + ".trim_unreachable_from_graph")
 
     for node in graph.nodes():
-        if priority_mapping[node.identifier].priority is None:
+        if priority_mapping[node.identifier].get("priority") is None:
             logger.debug("Remove '{}'".format(node.identifier))
             graph.remove_node(node.identifier)
 
@@ -352,11 +350,12 @@ def sorted_from_priority(identifiers, priority_mapping):
     corresponding parent node identifier.
 
     """
-    empty = _NodeAttribute(None, None)
     _identifiers = filter(
-        lambda _id: priority_mapping.get(_id, empty).priority, identifiers
+        lambda _id: priority_mapping.get(_id, {}).get("priority"), identifiers
     )
-    return sorted(_identifiers, key=lambda _id: priority_mapping[_id].priority)
+    return sorted(
+        _identifiers, key=lambda _id: priority_mapping[_id]["priority"]
+    )
 
 
 def extract_conflicted_nodes(graph, node, identifiers):
@@ -492,7 +491,7 @@ def combined_requirements(graph, nodes, priority_mapping):
 
     for node in nodes:
         _requirement = graph.link_requirement(
-            node.identifier, priority_mapping[node.identifier].parent
+            node.identifier, priority_mapping[node.identifier]["parent"]
         )
 
         if requirement is None:
@@ -529,7 +528,7 @@ def extract_ordered_packages(graph, priority_mapping):
 
     for node in sorted(
         graph.nodes(),
-        key=lambda n: priority_mapping[n.identifier],
+        key=lambda n: priority_mapping[n.identifier].items(),
         reverse=True
     ):
         packages.append(node.package)

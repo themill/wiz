@@ -54,55 +54,55 @@ def test_resolver():
 @pytest.mark.parametrize("mapping, expected", [
     (
         {"root": []},
-        {"root": wiz.graph._NodeAttribute(0, "root")}
+        {"root": {"priority": 0, "parent": "root"}}
     ),
     (
         {"root": ["A"], "A": []},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"}
         }
     ),
     (
         {"root": ["A", "B"], "A": [], "B": []},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"}
         }
     ),
     (
         {"root": ["A", "B", "C"], "A": [], "B": [], "C": []},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root"),
-            "C": wiz.graph._NodeAttribute(3, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"},
+            "C": {"priority": 3, "parent": "root"}
         }
     ),
     (
         {"root": ["A"], "A": ["B"], "B": []},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "A")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "A"}
         }
     ),
     (
         {"root": ["A"], "A": ["B"], "B": ["C"], "C": []},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "A"),
-            "C": wiz.graph._NodeAttribute(3, "B")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "A"},
+            "C": {"priority": 3, "parent": "B"}
         }
     ),
     (
         {"root": ["A", "B"], "A": ["B"], "B": ["A"]},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"}
         }
     ),
     (
@@ -117,14 +117,14 @@ def test_resolver():
             "G": []
         },
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root"),
-            "C": wiz.graph._NodeAttribute(2, "A"),
-            "D": wiz.graph._NodeAttribute(3, "A"),
-            "E": wiz.graph._NodeAttribute(4, "D"),
-            "F": wiz.graph._NodeAttribute(4, "B"),
-            "G": wiz.graph._NodeAttribute(5, "B"),
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"},
+            "C": {"priority": 2, "parent": "A"},
+            "D": {"priority": 3, "parent": "A"},
+            "E": {"priority": 4, "parent": "D"},
+            "F": {"priority": 4, "parent": "B"},
+            "G": {"priority": 5, "parent": "B"},
         }
     ),
     (
@@ -138,13 +138,13 @@ def test_resolver():
             "F": []
         },
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(None, None),
-            "C": wiz.graph._NodeAttribute(2, "A"),
-            "D": wiz.graph._NodeAttribute(None, None),
-            "E": wiz.graph._NodeAttribute(3, "A"),
-            "F": wiz.graph._NodeAttribute(4, "A"),
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": None, "parent": None},
+            "C": {"priority": 2, "parent": "A"},
+            "D": {"priority": None, "parent": None},
+            "E": {"priority": 3, "parent": "A"},
+            "F": {"priority": 4, "parent": "A"},
         }
 
     ),
@@ -160,14 +160,14 @@ def test_resolver():
             "G": ["B"],
         },
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root"),
-            "C": wiz.graph._NodeAttribute(2, "A"),
-            "D": wiz.graph._NodeAttribute(3, "A"),
-            "E": wiz.graph._NodeAttribute(4, "D"),
-            "F": wiz.graph._NodeAttribute(3, "root"),
-            "G": wiz.graph._NodeAttribute(3, "C"),
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"},
+            "C": {"priority": 2, "parent": "A"},
+            "D": {"priority": 3, "parent": "A"},
+            "E": {"priority": 4, "parent": "D"},
+            "F": {"priority": 3, "parent": "root"},
+            "G": {"priority": 3, "parent": "C"},
         }
     )
 ], ids=[
@@ -200,13 +200,13 @@ def test_trim_unreachable_from_graph(
     mocked_graph.nodes.return_value = nodes
 
     priority_mapping = {
-        "root": wiz.graph._NodeAttribute(0, "root"),
-        "A": wiz.graph._NodeAttribute(1, "root"),
-        "B": wiz.graph._NodeAttribute(None, None),
-        "C": wiz.graph._NodeAttribute(2, "A"),
-        "D": wiz.graph._NodeAttribute(None, None),
-        "E": wiz.graph._NodeAttribute(3, "A"),
-        "F": wiz.graph._NodeAttribute(4, "A"),
+        "root": {"priority": 0, "parent": "root"},
+        "A": {"priority": 1, "parent": "root"},
+        "B": {"priority": None, "parent": None},
+        "C": {"priority": 2, "parent": "A"},
+        "D": {"priority": None, "parent": None},
+        "E": {"priority": 3, "parent": "A"},
+        "F": {"priority": 4, "parent": "A"},
     }
 
     wiz.graph.trim_unreachable_from_graph(mocked_graph, priority_mapping)
@@ -221,13 +221,13 @@ def test_sorted_from_priority():
     identifiers = ["F", "E", "D", "C", "B", "A"]
 
     priority_mapping = {
-        "root": wiz.graph._NodeAttribute(0, "root"),
-        "A": wiz.graph._NodeAttribute(1, "root"),
-        "B": wiz.graph._NodeAttribute(None, None),
-        "C": wiz.graph._NodeAttribute(2, "A"),
-        "D": wiz.graph._NodeAttribute(None, None),
-        "E": wiz.graph._NodeAttribute(3, "A"),
-        "F": wiz.graph._NodeAttribute(4, "A"),
+        "root": {"priority": 0, "parent": "root"},
+        "A": {"priority": 1, "parent": "root"},
+        "B": {"priority": None, "parent": None},
+        "C": {"priority": 2, "parent": "A"},
+        "D": {"priority": None, "parent": None},
+        "E": {"priority": 3, "parent": "A"},
+        "F": {"priority": 4, "parent": "A"},
     }
 
     result = wiz.graph.sorted_from_priority(identifiers, priority_mapping)
@@ -397,9 +397,9 @@ def test_combined_requirements(mocker, mocked_graph):
     ]
 
     priority_mapping = {
-        "A==3": wiz.graph._NodeAttribute(1, "B"),
-        "A==1.9": wiz.graph._NodeAttribute(2, "C"),
-        "A==1.2.3": wiz.graph._NodeAttribute(3, "D"),
+        "A==3": {"priority": 1, "parent": "B"},
+        "A==1.9": {"priority": 2, "parent": "C"},
+        "A==1.2.3": {"priority": 3, "parent": "D"},
     }
 
     mocked_graph.link_requirement.side_effect = requirements
@@ -431,9 +431,9 @@ def test_combined_requirements_error(mocker, mocked_graph):
     ]
 
     priority_mapping = {
-        "A==3": wiz.graph._NodeAttribute(1, "B"),
-        "Z==1.9": wiz.graph._NodeAttribute(2, "C"),
-        "A==1.2.3": wiz.graph._NodeAttribute(3, "D"),
+        "A==3": {"priority": 1, "parent": "B"},
+        "Z==1.9": {"priority": 2, "parent": "C"},
+        "A==1.2.3": {"priority": 3, "parent": "D"},
     }
 
     mocked_graph.link_requirement.side_effect = requirements
@@ -451,47 +451,47 @@ def test_combined_requirements_error(mocker, mocked_graph):
 @pytest.mark.parametrize("identifiers, priority_mapping, expected", [
     (
         [],
-        {"root": wiz.graph._NodeAttribute(0, "root")},
+        {"root": {"priority": 0, "parent": "root"}},
         []
     ),
     (
         ["A"],
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"}
         },
         ["A"]
     ),
     (
         ["A", "B"],
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"}
         },
         ["B", "A"],
     ),
     (
         ["A", "B", "C"],
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root"),
-            "C": wiz.graph._NodeAttribute(3, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"},
+            "C": {"priority": 3, "parent": "root"}
         },
         ["C", "B", "A"]
     ),
     (
         ["A", "B", "C", "D", "E", "F", "G"],
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root"),
-            "C": wiz.graph._NodeAttribute(2, "A"),
-            "D": wiz.graph._NodeAttribute(3, "A"),
-            "E": wiz.graph._NodeAttribute(4, "D"),
-            "F": wiz.graph._NodeAttribute(4, "B"),
-            "G": wiz.graph._NodeAttribute(5, "B"),
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"},
+            "C": {"priority": 2, "parent": "A"},
+            "D": {"priority": 3, "parent": "A"},
+            "E": {"priority": 4, "parent": "D"},
+            "F": {"priority": 4, "parent": "B"},
+            "G": {"priority": 5, "parent": "B"},
         },
         ["G", "E", "F", "D", "B", "C", "A"]
     ),
