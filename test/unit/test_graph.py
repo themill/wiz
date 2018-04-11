@@ -10,6 +10,21 @@ import wiz.exception
 
 
 @pytest.fixture()
+def mocked_queue(mocker):
+    """Return mocked Queue constructor."""
+    instance = mocker.Mock()
+    try:
+        import queue
+        mocker.patch("queue.Queue", return_value=instance)
+
+    except ImportError:
+        import Queue
+        mocker.patch("Queue.Queue", return_value=instance)
+
+    return instance
+
+
+@pytest.fixture()
 def mocked_graph(mocker):
     """Return mocked Graph."""
     graph = mocker.patch.object(wiz.graph, "Graph")
@@ -686,53 +701,36 @@ def test_graph_conflicts(definition_mapping, node_mapping, expected):
     assert graph.conflicts() == expected
 
 
-def test_graph_update_from_requirements(mocker):
+def test_graph_update_from_requirements(mocker, mocked_queue):
     """Update graph from requirements."""
     graph = wiz.graph.Graph(None)
-    graph.update_from_requirement = mocker.Mock()
+    graph._update_from_requirement = mocker.Mock()
 
     requirements = [
         Requirement("A"),
         Requirement("B>=2,<3"),
         Requirement("C==1.2.3")
+    ]
+
+    mocked_queue.empty.side_effect = [False, False, False, True]
+    mocked_queue.get.side_effect = [
+        {"requirement": requirements[0], "weight": 1},
+        {"requirement": requirements[1], "weight": 2},
+        {"requirement": requirements[2], "weight": 3},
     ]
 
     graph.update_from_requirements(requirements)
 
-    assert graph.update_from_requirement.call_count == 3
-    graph.update_from_requirement.assert_any_call(
-        requirements[0], parent_identifier=None, weight=1
+    assert mocked_queue.put.call_count == 3
+    assert graph._update_from_requirement.call_count == 3
+    graph._update_from_requirement.assert_any_call(
+        requirements[0], mocked_queue, parent_identifier=None, weight=1
     )
-    graph.update_from_requirement.assert_any_call(
-        requirements[1], parent_identifier=None, weight=2
+    graph._update_from_requirement.assert_any_call(
+        requirements[1], mocked_queue, parent_identifier=None, weight=2
     )
-    graph.update_from_requirement.assert_any_call(
-        requirements[2], parent_identifier=None, weight=3
-    )
-
-
-def test_graph_update_from_requirements_with_parent(mocker):
-    """Update graph from requirements with parent identifier."""
-    graph = wiz.graph.Graph(None)
-    graph.update_from_requirement = mocker.Mock()
-
-    requirements = [
-        Requirement("A"),
-        Requirement("B>=2,<3"),
-        Requirement("C==1.2.3")
-    ]
-
-    graph.update_from_requirements(requirements, parent_identifier="D")
-
-    assert graph.update_from_requirement.call_count == 3
-    graph.update_from_requirement.assert_any_call(
-        requirements[0], parent_identifier="D", weight=1
-    )
-    graph.update_from_requirement.assert_any_call(
-        requirements[1], parent_identifier="D", weight=2
-    )
-    graph.update_from_requirement.assert_any_call(
-        requirements[2], parent_identifier="D", weight=3
+    graph._update_from_requirement.assert_any_call(
+        requirements[2], mocked_queue, parent_identifier=None, weight=3
     )
 
 
@@ -748,7 +746,7 @@ def test_graph_update_from_requirements_with_parent(mocker):
     "with-parent-and-weight",
 ])
 def test_graph_update_from_requirement_existing(
-    mocker, mocked_resolver, mocked_package_extract, options
+    mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
 ):
     """Update graph from requirement."""
     package = mocker.Mock(identifier="A==0.1.0")
@@ -763,7 +761,7 @@ def test_graph_update_from_requirement_existing(
     graph.node = mocker.Mock(return_value=node)
     graph.exists = mocker.Mock(return_value=True)
 
-    graph.update_from_requirement(requirement, **options)
+    graph._update_from_requirement(requirement, mocked_queue, **options)
 
     graph._create_node_from_package.assert_not_called()
     graph._create_link.assert_called_once_with(
@@ -778,6 +776,8 @@ def test_graph_update_from_requirement_existing(
         options.get("parent_identifier", "root")
     )
 
+    mocked_queue.put.assert_not_called()
+
 
 @pytest.mark.parametrize("options", [
     {},
@@ -791,10 +791,10 @@ def test_graph_update_from_requirement_existing(
     "with-parent-and-weight",
 ])
 def test_graph_update_from_requirement_non_existing(
-    mocker, mocked_resolver, mocked_package_extract, options
+    mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
 ):
     """Update graph from requirement."""
-    package = mocker.Mock(identifier="A==0.1.0")
+    package = mocker.Mock(identifier="A==0.1.0", requirements=[])
     node = mocker.Mock(identifier="_A==0.1.0")
     requirement = Requirement("A")
 
@@ -806,7 +806,7 @@ def test_graph_update_from_requirement_non_existing(
     graph.node = mocker.Mock(return_value=node)
     graph.exists = mocker.Mock(return_value=False)
 
-    graph.update_from_requirement(requirement, **options)
+    graph._update_from_requirement(requirement, mocked_queue, **options)
 
     graph._create_node_from_package.assert_called_once_with(package)
     graph._create_link.assert_called_once_with(
@@ -821,6 +821,62 @@ def test_graph_update_from_requirement_non_existing(
         options.get("parent_identifier", "root")
     )
 
+    mocked_queue.put.assert_not_called()
+
+
+@pytest.mark.parametrize("options", [
+    {},
+    {"parent_identifier": "foo"},
+    {"weight": 5},
+    {"parent_identifier": "bar", "weight": 42}
+], ids=[
+    "simple",
+    "with-parent",
+    "with-weight",
+    "with-parent-and-weight",
+])
+def test_graph_update_from_requirement_non_existing_with_requirements(
+    mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
+):
+    """Update graph from requirement."""
+    package = mocker.Mock(identifier="A==0.1.0", requirements=["B", "C", "D"])
+    node = mocker.Mock(identifier="_A==0.1.0")
+    requirement = Requirement("A")
+
+    mocked_package_extract.return_value = [package]
+
+    graph = wiz.graph.Graph(mocked_resolver)
+    graph._create_link = mocker.Mock()
+    graph._create_node_from_package = mocker.Mock()
+    graph.node = mocker.Mock(return_value=node)
+    graph.exists = mocker.Mock(return_value=False)
+
+    graph._update_from_requirement(requirement, mocked_queue, **options)
+
+    graph._create_node_from_package.assert_called_once_with(package)
+    graph._create_link.assert_called_once_with(
+        "_A==0.1.0",
+        options.get("parent_identifier", "root"),
+        requirement,
+        weight=options.get("weight", 1)
+    )
+
+    graph.node.assert_called_once_with("A==0.1.0")
+    node.add_parent.assert_called_once_with(
+        options.get("parent_identifier", "root")
+    )
+
+    assert mocked_queue.put.call_count == 3
+    mocked_queue.put.assert_any_call({
+        "requirement": "B", "parent_identifier": "A==0.1.0", "weight": 1
+    })
+    mocked_queue.put.assert_any_call({
+        "requirement": "C", "parent_identifier": "A==0.1.0", "weight": 2
+    })
+    mocked_queue.put.assert_any_call({
+        "requirement": "D", "parent_identifier": "A==0.1.0", "weight": 3
+    })
+
 
 @pytest.mark.parametrize("options", [
     {},
@@ -834,13 +890,13 @@ def test_graph_update_from_requirement_non_existing(
     "with-parent-and-weight",
 ])
 def test_graph_update_from_requirement_multi_packages(
-    mocker, mocked_resolver, mocked_package_extract, options
+    mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
 ):
     """Update graph from requirement."""
     packages = [
-        mocker.Mock(identifier="A[variant1]==0.1.0"),
-        mocker.Mock(identifier="A[variant2]==0.1.0"),
-        mocker.Mock(identifier="A[variant3]==0.1.0")
+        mocker.Mock(identifier="A[variant1]==0.1.0", requirements=[]),
+        mocker.Mock(identifier="A[variant2]==0.1.0", requirements=[]),
+        mocker.Mock(identifier="A[variant3]==0.1.0", requirements=[])
     ]
 
     nodes = [
@@ -859,7 +915,7 @@ def test_graph_update_from_requirement_multi_packages(
     graph.node = mocker.Mock(side_effect=nodes)
     graph.exists = mocker.Mock(return_value=False)
 
-    graph.update_from_requirement(requirement, **options)
+    graph._update_from_requirement(requirement, mocked_queue, **options)
 
     assert graph._create_node_from_package.call_count == 3
     for package in packages:
@@ -883,6 +939,8 @@ def test_graph_update_from_requirement_multi_packages(
             options.get("parent_identifier", "root")
         )
 
+    mocked_queue.put.assert_not_called()
+
 
 def test_graph_create_node_from_package(mocker):
     """Create node in graph from package."""
@@ -893,39 +951,11 @@ def test_graph_create_node_from_package(mocker):
     )
 
     graph = wiz.graph.Graph(None)
-    graph.update_from_requirements = mocker.Mock()
-
     graph._create_node_from_package(package)
 
     assert graph._definition_mapping == {"defA": {"A==0.1.0"}}
     assert graph._node_mapping.keys() == ["A==0.1.0"]
     assert isinstance(graph._node_mapping["A==0.1.0"], wiz.graph.Node)
-
-    graph.update_from_requirements.assert_not_called()
-
-
-def test_graph_create_node_from_package_recursive(mocker):
-    """Create node in graph from package with recursive requirements."""
-    requirements = [Requirement("B==1"), Requirement("C<2")]
-
-    package = mocker.Mock(
-        identifier="A==0.1.0",
-        requirements=requirements,
-        definition_identifier="defA"
-    )
-
-    graph = wiz.graph.Graph(None)
-    graph.update_from_requirements = mocker.Mock()
-
-    graph._create_node_from_package(package)
-
-    assert graph._definition_mapping == {"defA": {"A==0.1.0"}}
-    assert graph._node_mapping.keys() == ["A==0.1.0"]
-    assert isinstance(graph._node_mapping["A==0.1.0"], wiz.graph.Node)
-
-    graph.update_from_requirements.assert_called_once_with(
-        requirements, parent_identifier="A==0.1.0"
-    )
 
 
 @pytest.mark.parametrize("options", [

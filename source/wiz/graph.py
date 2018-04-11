@@ -7,9 +7,9 @@ import itertools
 from collections import deque
 from heapq import heapify, heappush, heappop
 try:
-    from queue import Queue
+    import queue as _queue
 except ImportError:
-    from Queue import Queue
+    import Queue as _queue
 
 import mlog
 
@@ -219,9 +219,9 @@ class Resolver(object):
 
                 if len(new_identifiers) > 0:
                     self._logger.debug(
-                        "Add to graph: ".format(", ".join(new_identifiers))
+                        "Add to graph: {}".format(", ".join(new_identifiers))
                     )
-                    graph.update_from_requirement(requirement)
+                    graph.update_from_requirements([requirement])
 
                     # Update conflict list if necessary.
                     conflicts = list(set(conflicts + graph.conflicts()))
@@ -677,37 +677,40 @@ class Graph(object):
 
         return conflicted
 
-    def update_from_requirements(self, requirements, parent_identifier=None):
+    def update_from_requirements(self, requirements):
         """Recursively update graph from *requirements*.
 
         *requirements* should be a list of
         :class:`packaging.requirements.Requirement` instances ordered from the
         ost important to the least important.
 
-        *parent_identifier* can indicate the identifier of a parent node.
-
         """
-        # A weight is defined for each requirement based on the order. The
-        # first node has a weight of 1 which indicates that it is the most
-        # important node.
-        weight = 1
+        queue = _queue.Queue()
 
-        for requirement in requirements:
-            self.update_from_requirement(
-                requirement,
-                parent_identifier=parent_identifier,
-                weight=weight
+        for index, requirement in enumerate(requirements):
+            queue.put({"requirement": requirement, "weight": index + 1})
+
+        while not queue.empty():
+            data = queue.get()
+
+            self._update_from_requirement(
+                data.get("requirement"), queue,
+                parent_identifier=data.get("parent_identifier"),
+                weight=data.get("weight")
             )
 
-            weight += 1
-
-    def update_from_requirement(
-        self, requirement, parent_identifier=None, weight=1,
+    def _update_from_requirement(
+        self, requirement, queue, parent_identifier=None, weight=1
     ):
-        """Recursively update graph from *requirement*.
+        """Update graph from *requirement* and return updated *queue*.
 
         *requirement* should be an instance of
         :class:`packaging.requirements.Requirement`.
+
+        *queue* should be a :class:`Queue` instance that will be updated with
+        all dependent requirements data.
+
+        *parent_identifier* can indicate the identifier of a parent node.
 
         *weight* is a number which indicate the importance of the dependency
         link from the node to its parent. The lesser this number, the higher is
@@ -732,6 +735,13 @@ class Graph(object):
         for package in packages:
             if not self.exists(package.identifier):
                 self._create_node_from_package(package)
+
+                for index, _requirement in enumerate(package.requirements):
+                    queue.put({
+                        "requirement": _requirement,
+                        "parent_identifier": package.identifier,
+                        "weight": index + 1
+                    })
 
             node = self.node(package.identifier)
             node.add_parent(parent_identifier or self.ROOT)
@@ -762,12 +772,6 @@ class Graph(object):
             wiz.symbol.GRAPH_NODE_CREATION_ACTION,
             graph=self, node=self._node_mapping[package.identifier].identifier
         )
-
-        if len(package.requirements) > 0:
-            self.update_from_requirements(
-                package.requirements,
-                parent_identifier=package.identifier
-            )
 
     def _create_link(
         self, identifier, parent_identifier, requirement, weight=1
