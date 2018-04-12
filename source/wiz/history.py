@@ -9,9 +9,6 @@ import time
 from packaging.requirements import Requirement
 
 from wiz import __version__
-import wiz.definition
-import wiz.graph
-import wiz.mapping
 
 
 #: Indicate whether the history should be recorded.
@@ -36,15 +33,8 @@ def get(serialized=False):
     a :term:`JSON` string.
 
     """
-    def _default(obj):
-        """Return serialized *obj*."""
-        if isinstance(obj, Requirement):
-            return str(obj)
-
-        raise TypeError("{} is not JSON serializable.".format(obj))
-
     if serialized:
-        return json.dumps(_HISTORY, default=_default)
+        return json.dumps(_HISTORY, default=_json_default)
     return _HISTORY
 
 
@@ -82,16 +72,28 @@ def record_action(action_identifier, **kwargs):
     if not _IS_HISTORY_RECORDED:
         return
 
-    mapping = {}
-
-    for key, value in kwargs.items():
-        if isinstance(value, wiz.graph.Graph):
-            mapping[key] = value.to_dict()
-        else:
-            mapping[key] = wiz.mapping.serialize(value)
-
     action = {"identifier": action_identifier}
-    action.update(**mapping)
+    action.update(**kwargs)
+
+    _action = json.dumps(action, default=_json_default)
 
     global _HISTORY
-    _HISTORY["actions"].append(action)
+    _HISTORY["actions"].append(_action)
+
+
+def _json_default(_object):
+    """Override :func:`JSONEncoder.default` to serialize all objects."""
+    import wiz.mapping
+    import wiz.graph
+    import wiz.exception
+
+    if isinstance(_object, wiz.graph.Graph):
+        return _object.to_dict()
+
+    elif isinstance(_object, wiz.mapping.Mapping):
+        return _object.to_dict(serialize_content=True)
+
+    elif isinstance(_object, Requirement) or isinstance(_object, Exception):
+        return str(_object)
+
+    raise TypeError("{} is not JSON serializable.".format(obj))

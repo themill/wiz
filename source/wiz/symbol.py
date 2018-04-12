@@ -49,3 +49,6 @@ GRAPH_PACKAGES_EXTRACTION_ACTION = "EXTRACT_PACKAGES"
 
 #: History action for context extraction packages list.
 CONTEXT_EXTRACTION_ACTION = "EXTRACT_CONTEXT"
+
+#: History action for exception raised.
+EXCEPTION_RAISE_ACTION = "RAISE_EXCEPTION"
