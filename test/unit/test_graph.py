@@ -261,17 +261,18 @@ def test_extract_conflicted_nodes(mocker, mocked_graph):
     }
 
     mocked_graph.node = lambda _id: node_mapping[_id]
+    mocked_graph.conflicts.return_value = sorted(node_mapping.keys())
 
     assert wiz.graph.extract_conflicted_nodes(
-        mocked_graph, node_mapping["F"], sorted(node_mapping.keys())
+        mocked_graph, node_mapping["F"]
     ) == [node_mapping["D"], node_mapping["E"]]
 
     assert wiz.graph.extract_conflicted_nodes(
-        mocked_graph, node_mapping["E"], sorted(node_mapping.keys())
+        mocked_graph, node_mapping["E"]
     ) == [node_mapping["D"], node_mapping["F"]]
 
     assert wiz.graph.extract_conflicted_nodes(
-        mocked_graph, node_mapping["C"], sorted(node_mapping.keys())
+        mocked_graph, node_mapping["C"]
     ) == [node_mapping["A"], node_mapping["B"]]
 
 

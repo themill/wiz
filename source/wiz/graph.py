@@ -189,7 +189,7 @@ class Resolver(object):
             node = graph.node(identifier)
 
             # Identify nodes conflicting with this node.
-            conflicted_nodes = extract_conflicted_nodes(graph, node, conflicts)
+            conflicted_nodes = extract_conflicted_nodes(graph, node)
 
             # Ensure that all requirements from parent links are compatibles.
             validate_requirements(graph, node, conflicted_nodes)
@@ -353,18 +353,18 @@ def sorted_from_priority(identifiers, priority_mapping):
     )
 
 
-def extract_conflicted_nodes(graph, node, identifiers):
-    """Return all nodes from *identifiers* conflicting with *node*.
+def extract_conflicted_nodes(graph, node):
+    """Return all nodes from *graph* conflicting with *node*.
 
     A node from the *graph* is in conflict with the node *identifier* when
     its definition identifier is identical.
 
+    *graph* must be an instance of :class:`Graph`.
+
     *node* should be a :class:`Node` instance.
 
-    *identifiers* should be a list valid node identifiers.
-
     """
-    nodes = (graph.node(_id) for _id in identifiers)
+    nodes = (graph.node(_id) for _id in graph.conflicts())
 
     return [
         _node for _node in nodes
