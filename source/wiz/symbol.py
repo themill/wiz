@@ -35,14 +35,11 @@ GRAPH_NODE_REMOVAL_ACTION = "REMOVE_NODE"
 #: History action for link creation within requirement graph.
 GRAPH_LINK_CREATION_ACTION = "CREATE_LINK"
 
-#: History action for variant group removal within requirement graph.
-GRAPH_VARIANTS_REMOVAL_ACTION = "REMOVE_VARIANTS"
-
 #: History action for conflicts identification within requirement graph.
 GRAPH_CONFLICTS_IDENTIFICATION_ACTION = "IDENTIFY_CONFLICTS"
 
-#: History action for variant groups identification within requirement graph.
-GRAPH_VARIANTS_IDENTIFICATION_ACTION = "IDENTIFY_VARIANTS"
+#: History action for requirement graph division.
+GRAPH_DIVISION_ACTION = "DIVIDE_GRAPH"
 
 #: History action for package extraction from requirement graph.
 GRAPH_PACKAGES_EXTRACTION_ACTION = "EXTRACT_PACKAGES"

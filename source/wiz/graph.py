@@ -51,6 +51,11 @@ class Resolver(object):
 
         """
         graph = Graph(self)
+
+        # Record the graph creation to the history if necessary.
+        wiz.history.record_action(wiz.symbol.GRAPH_CREATION_ACTION, graph=graph)
+
+        # Update the graph.
         graph.update_from_requirements(requirements)
 
         # Initialise stack.
@@ -101,11 +106,6 @@ class Resolver(object):
             self._logger.debug("No alternative graphs created.")
             return 0
 
-        wiz.history.record_action(
-            wiz.symbol.GRAPH_VARIANTS_IDENTIFICATION_ACTION,
-            graph=graph, variants=variant_groups
-        )
-
         # Order the variant groups per priority to compute those nearest to the
         # top-level first. Each node from a variant group should have the same
         # priority, so we can sort the group list by using the first identifier
@@ -131,7 +131,7 @@ class Resolver(object):
 
                     # Remove all other variant from the variant graph.
                     for _identifier in other_identifiers:
-                        copied_graph.remove_node(_identifier)
+                        copied_graph.remove_node(_identifier, record=False)
 
                     new_graph_list.append(copied_graph)
 
@@ -142,6 +142,12 @@ class Resolver(object):
         for _graph in reversed(graph_list):
             _graph.reset_variants()
             self._graphs_stack.append(_graph)
+
+            # Record the graph creation to the history if necessary.
+            wiz.history.record_action(
+                wiz.symbol.GRAPH_DIVISION_ACTION,
+                origin=graph.identifier, graph=_graph
+            )
 
         number = len(graph_list)
         self._logger.debug("graph divided into {} new graphs.".format(number))
@@ -585,9 +591,6 @@ class Graph(object):
         # Record the weight of each link in the graph.
         self._link_mapping = link_mapping or {}
 
-        # Record the graph creation to the history if necessary.
-        wiz.history.record_action(wiz.symbol.GRAPH_CREATION_ACTION, graph=self)
-
     @property
     def identifier(self):
         """Return unique graph identifier."""
@@ -822,8 +825,13 @@ class Graph(object):
             requirement=requirement
         )
 
-    def remove_node(self, identifier):
+    def remove_node(self, identifier, record=True):
         """Remove node from the graph.
+
+        *record* can indicate whether the node removal action should be recorded
+        to the history. Usually this flag should only be turned off during the
+        graph division process as the graph themselves are not recorded before
+        the removal process.
 
         .. warning::
 
@@ -833,10 +841,11 @@ class Graph(object):
         """
         del self._node_mapping[identifier]
 
-        wiz.history.record_action(
-            wiz.symbol.GRAPH_NODE_REMOVAL_ACTION,
-            graph=self, node=identifier
-        )
+        if record:
+            wiz.history.record_action(
+                wiz.symbol.GRAPH_NODE_REMOVAL_ACTION,
+                graph=self, node=identifier
+            )
 
     def reset_variants(self):
         """Reset list of variant node identifiers .
@@ -848,10 +857,6 @@ class Graph(object):
 
         """
         self._variant_mapping = {}
-
-        wiz.history.record_action(
-            wiz.symbol.GRAPH_VARIANTS_REMOVAL_ACTION, graph=self
-        )
 
 
 class Node(object):
