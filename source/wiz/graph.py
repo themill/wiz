@@ -145,8 +145,7 @@ class Resolver(object):
 
             # Record the graph creation to the history if necessary.
             wiz.history.record_action(
-                wiz.symbol.GRAPH_DIVISION_ACTION,
-                origin=graph.identifier, graph=_graph
+                wiz.symbol.GRAPH_DIVISION_ACTION, origin=graph, graph=_graph
             )
 
         number = len(graph_list)
