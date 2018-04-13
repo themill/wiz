@@ -5,9 +5,6 @@ import traceback
 
 import packaging.requirements
 
-import wiz.history
-import wiz.symbol
-
 
 class WizError(Exception):
     """Base class for Wiz specific errors."""
@@ -35,13 +32,6 @@ class WizError(Exception):
             self.details[key] = value
 
         self.traceback = traceback.format_exc()
-
-        wiz.history.record_action(
-            wiz.symbol.EXCEPTION_RAISE_ACTION,
-            type=self.__class__.__name__,
-            exception=self,
-            traceback=self.traceback
-        )
 
     def __str__(self):
         """Return human readable representation."""

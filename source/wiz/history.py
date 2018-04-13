@@ -5,11 +5,12 @@ import platform
 import datetime
 import json
 import time
+import traceback
 
 from packaging.requirements import Requirement
 
 from wiz import __version__
-
+import wiz.symbol
 
 #: Indicate whether the history should be recorded.
 _IS_HISTORY_RECORDED = False
@@ -75,17 +76,19 @@ def record_action(action_identifier, **kwargs):
     action = {"identifier": action_identifier}
     action.update(**kwargs)
 
-    _action = json.dumps(action, default=_json_default)
+    if action_identifier == wiz.symbol.EXCEPTION_RAISE_ACTION:
+        action["traceback"] = traceback.format_exc().splitlines()
 
     global _HISTORY
-    _HISTORY["actions"].append(_action)
+    _HISTORY["actions"].append(
+        json.dumps(action, default=_json_default)
+    )
 
 
 def _json_default(_object):
     """Override :func:`JSONEncoder.default` to serialize all objects."""
     import wiz.mapping
     import wiz.graph
-    import wiz.exception
 
     if isinstance(_object, wiz.graph.Graph):
         return _object.to_dict()
@@ -93,7 +96,8 @@ def _json_default(_object):
     elif isinstance(_object, wiz.mapping.Mapping):
         return _object.to_dict(serialize_content=True)
 
-    elif isinstance(_object, Requirement) or isinstance(_object, Exception):
+    elif isinstance(_object, Requirement):
         return str(_object)
 
     raise TypeError("{} is not JSON serializable.".format(obj))
+

@@ -614,6 +614,10 @@ def _resolve_and_use_context(
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
 
+        wiz.history.record_action(
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+        )
+
 
 def _run_command(namespace, registries, command_arguments, system_mapping):
     """Run application from arguments in *namespace*.
@@ -663,6 +667,10 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
+
+        wiz.history.record_action(
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+        )
 
 
 def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
@@ -725,6 +733,10 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
+
+        wiz.history.record_action(
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+        )
 
     except KeyboardInterrupt:
         logger.warning("Aborted.")
