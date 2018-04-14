@@ -28,7 +28,7 @@ _HISTORY = {
 
 
 def get(serialized=False):
-    """Return mapping of recorded history.
+    """Return recorded history mapping.
 
     *serialized* indicate whether the returned history should be serialized as
     a :term:`JSON` string.
@@ -40,9 +40,13 @@ def get(serialized=False):
 
 
 def start_recording(command=None):
-    """Start recording the context resolution actions.
+    """Start recording the execution history.
 
-    *command* can indicate the command which is being run via the command line.
+    This command will add information about the execution context to the history
+    mapping (username, hostname, time, timezone) and activate the recording
+    of actions via the :func:`record_action` function.
+
+    *command* can indicate the command line which is being executed.
 
     """
     global _IS_HISTORY_RECORDED
@@ -59,15 +63,19 @@ def start_recording(command=None):
 
 
 def stop_recording():
-    """Stop recording the context resolution actions."""
+    """Stop recording the history."""
     global _IS_HISTORY_RECORDED
     _IS_HISTORY_RECORDED = False
 
 
-def record_action(action_identifier, **kwargs):
-    """Add an action to the global history mapping.
+def record_action(identifier, **kwargs):
+    """Add an action to the history.
 
-    *action_identifier* should be the identifier of an action.
+    The action is identified by its unique *identifier* and every relevant
+    arguments which will be serialized to provide an accurate snapshot of the
+    execution context.
+
+    *identifier* should be the identifier of the action.
 
     .. warning::
 
@@ -78,7 +86,7 @@ def record_action(action_identifier, **kwargs):
     if not _IS_HISTORY_RECORDED:
         return
 
-    action = {"identifier": action_identifier}
+    action = {"identifier": identifier}
     action.update(**kwargs)
 
     if action_identifier == wiz.symbol.EXCEPTION_RAISE_ACTION:
