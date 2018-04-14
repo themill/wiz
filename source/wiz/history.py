@@ -99,5 +99,5 @@ def _json_default(_object):
     elif isinstance(_object, Requirement):
         return str(_object)
 
-    raise TypeError("{} is not JSON serializable.".format(obj))
+    raise TypeError("{} is not JSON serializable.".format(_object))
 
