@@ -100,4 +100,3 @@ def _json_default(_object):
         return str(_object)
 
     raise TypeError("{} is not JSON serializable.".format(_object))
-
