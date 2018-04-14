@@ -59,7 +59,7 @@ class Mapping(collections.Mapping):
 
         """
         if serialize_content:
-            return serialize(self._mapping.copy())
+            return _serialize(self._mapping.copy())
 
         return self._mapping.copy()
 
@@ -129,17 +129,17 @@ class Mapping(collections.Mapping):
         return len(self._mapping)
 
 
-def serialize(element):
+def _serialize(element):
     """Return serialized version of *element*.
 
     *element* can be a of any types (:class:`Mapping`, dict, list, ...)
 
     """
     if isinstance(element, list):
-        return [serialize(item) for item in element]
+        return [_serialize(item) for item in element]
 
     elif isinstance(element, dict):
-        return {_id: serialize(item) for _id, item in element.items()}
+        return {_id: _serialize(item) for _id, item in element.items()}
 
     elif isinstance(element, Mapping):
         return element.to_dict(serialize_content=True)
