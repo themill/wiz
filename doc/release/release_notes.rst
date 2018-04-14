@@ -4,6 +4,38 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+        :tags: debug
+
+        Added :mod:`wiz.history` to let the user record a compressed file
+        with all necessary information about the API calls executed and the
+        context in which it was executed (wiz version, username, hostname, time,
+        timezone,...).
+
+        :func:`wiz.history.record_action` is called within precise functions
+        with a clear action identifier and relevant arguments to record all
+        major steps of the graph resolution process (including errors).
+
+    .. change:: new
+        :tags: debug
+
+        Added :option:`--record <wiz --record>` to record and save a dump file
+        with :mod:`recorded history <wiz.history>`.
+
+    .. change:: changed
+        :tags: debug
+
+        Changed :meth:`wiz.graph.Resolver.compute_packages` to traverse package
+        requirement in `Breadth First Mode`_ in order to include packages with
+        highest priority first in the graph. This allow for better error message
+        (the package with higher priority fails before a less important one),
+        and a more logical order for actions recorded in :mod:`recorded history
+        <wiz.history>`.
+
+        .. _Breadth First Mode: https://en.wikipedia.org/wiki/Breadth-first_search
+
 .. release:: 0.2.0
     :date: 2018-03-30
 
