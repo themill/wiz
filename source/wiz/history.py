@@ -18,10 +18,10 @@ _IS_HISTORY_RECORDED = False
 #: Mapping containing the entire context resolution history report.
 _HISTORY = {
     "version": __version__,
-    "user": os.environ.get("USER"),
-    "hostname": platform.node(),
-    "timestamp": datetime.datetime.now().isoformat(),
-    "timezone": time.tzname[1],
+    "user": None,
+    "hostname": None,
+    "timestamp": None,
+    "timezone": None,
     "command": None,
     "actions": []
 }
@@ -48,8 +48,13 @@ def start_recording(command=None):
     global _IS_HISTORY_RECORDED
     _IS_HISTORY_RECORDED = True
 
+    global _HISTORY
+    _HISTORY["user"] = os.environ.get("USER")
+    _HISTORY["hostname"] = platform.node()
+    _HISTORY["command"] = datetime.datetime.now().isoformat()
+    _HISTORY["timezone"] = time.tzname[1]
+
     if command is not None:
-        global _HISTORY
         _HISTORY["command"] = command
 
 
