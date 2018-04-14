@@ -19,20 +19,20 @@ Release Notes
         major steps of the graph resolution process (including errors).
 
     .. change:: new
-        :tags: debug
+        :tags: command-line, debug
 
-        Added :option:`--record <wiz --record>` to record and save a dump file
-        with :mod:`recorded history <wiz.history>`.
+        Added :option:`--record <wiz --record>` command line option to export a
+        dump file with :mod:`recorded history <wiz.history>`.
 
     .. change:: changed
         :tags: debug
 
         Changed :meth:`wiz.graph.Resolver.compute_packages` to traverse package
-        requirement in `Breadth First Mode`_ in order to include packages with
+        requirements in `Breadth First Mode`_ in order to include packages with
         highest priority first in the graph. This allow for better error message
-        (the package with higher priority fails before a less important one),
-        and a more logical order for actions recorded in :mod:`recorded history
-        <wiz.history>`.
+        (incorrect package with higher priority will fail before a less
+        important one), and a more logical order for actions recorded in
+        :mod:`recorded history <wiz.history>`.
 
         .. _Breadth First Mode: https://en.wikipedia.org/wiki/Breadth-first_search
 
