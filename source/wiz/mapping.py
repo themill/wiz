@@ -51,23 +51,26 @@ class Mapping(collections.Mapping):
         """Return requirement list."""
         return self.get("requirements", [])
 
-    def to_mapping(self):
-        """Return ordered definition data."""
-        return self._mapping.copy()
+    def to_dict(self, serialize_content=False):
+        """Return corresponding dictionary.
 
-    @abc.abstractmethod
-    def _ordered_identifiers(self):
-        """Return ordered identifiers"""
-
-    def to_ordered_mapping(self):
-        """Return ordered definition data.
-
-        .. warning::
-
-            All elements are serialized in the process.
+        *serialize_content* indicates whether all mapping values should be
+        serialized.
 
         """
-        mapping = self.to_mapping()
+        if serialize_content:
+            return _serialize(self._mapping.copy())
+
+        return self._mapping.copy()
+
+    def to_ordered_dict(self, serialize_content=False):
+        """Return corresponding ordered dictionary.
+
+        *serialize_content* indicates whether all mapping values should be
+        serialized.
+
+        """
+        mapping = self.to_dict(serialize_content=serialize_content)
         content = collections.OrderedDict()
 
         def _extract(element, _identifier=None):
@@ -83,10 +86,12 @@ class Mapping(collections.Mapping):
                 return {_id: _extract(item) for _id, item in element.items()}
 
             elif isinstance(element, Mapping):
-                return element.to_ordered_mapping()
+                return element.to_ordered_dict(
+                    serialize_content=serialize_content
+                )
 
             else:
-                return str(element)
+                return element
 
         for identifier in self._ordered_identifiers:
             if identifier not in mapping.keys():
@@ -97,10 +102,14 @@ class Mapping(collections.Mapping):
         content.update(mapping)
         return content
 
+    @abc.abstractmethod
+    def _ordered_identifiers(self):
+        """Return ordered identifiers"""
+
     def encode(self):
         """Return serialized definition data."""
         return json.dumps(
-            self.to_ordered_mapping(),
+            self.to_ordered_dict(),
             indent=4,
             separators=(",", ": "),
             ensure_ascii=False
@@ -118,3 +127,21 @@ class Mapping(collections.Mapping):
     def __len__(self):
         """Return count of keys."""
         return len(self._mapping)
+
+
+def _serialize(element):
+    """Return serialized version of *element*.
+
+    *element* can be a of any types (:class:`Mapping`, dict, list, ...)
+
+    """
+    if isinstance(element, list):
+        return [_serialize(item) for item in element]
+
+    elif isinstance(element, dict):
+        return {_id: _serialize(item) for _id, item in element.items()}
+
+    elif isinstance(element, Mapping):
+        return element.to_dict(serialize_content=True)
+
+    return str(element)

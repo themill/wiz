@@ -14,6 +14,7 @@ import wiz.mapping
 import wiz.filesystem
 import wiz.exception
 import wiz.system
+import wiz.history
 
 
 def _display_requirement(requirement):
@@ -92,6 +93,11 @@ def fetch(paths, requests=None, system_mapping=None, max_depth=None):
         # Record commands from definition.
         for command in definition.command.keys():
             mapping[command_type][command] = definition.identifier
+
+    wiz.history.record_action(
+        wiz.symbol.DEFINITIONS_COLLECTION_ACTION,
+        registries=paths, max_depth=max_depth, definition_mapping=mapping
+    )
 
     return mapping
 

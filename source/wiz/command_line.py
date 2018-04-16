@@ -6,6 +6,7 @@ import os
 import itertools
 import shlex
 import collections
+import datetime
 
 import mlog
 from packaging.version import Version, InvalidVersion
@@ -17,6 +18,7 @@ import wiz.package
 import wiz.spawn
 import wiz.exception
 import wiz.filesystem
+import wiz.history
 
 
 def construct_parser():
@@ -78,6 +80,12 @@ def construct_parser():
         "--os-version",
         help="Override the detected operating system version.",
         metavar="OS_VERSION",
+    )
+
+    parser.add_argument(
+        "--record",
+        help="Record resolution context process for debugging.",
+        metavar="PATH"
     )
 
     subparsers = parser.add_subparsers(
@@ -316,6 +324,10 @@ def main(arguments=None):
     parser = construct_parser()
     namespace = parser.parse_args(arguments)
 
+    if namespace.record is not None:
+        command = "wiz {}".format(" ".join(arguments))
+        wiz.history.start_recording(command=command)
+
     # Set verbosity level.
     mlog.root.handlers["stderr"].filterer.filterers[0].min = namespace.verbosity
 
@@ -364,6 +376,16 @@ def main(arguments=None):
         _freeze_and_export_resolved_context(
             namespace, registries, system_mapping
         )
+
+    # Export the history if requested.
+    if namespace.record is not None:
+        history = wiz.history.get(serialized=True)
+        path = os.path.join(
+            os.path.abspath(namespace.record),
+            "wiz-{}.dump".format(datetime.datetime.now().isoformat())
+        )
+        wiz.filesystem.export(path, history, compressed=True)
+        logger.info("History recorded and exported in '{}'".format(path))
 
 
 def _fetch_and_display_definitions(namespace, registries, system_mapping):
@@ -592,6 +614,10 @@ def _resolve_and_use_context(
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
 
+        wiz.history.record_action(
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+        )
+
 
 def _run_command(namespace, registries, command_arguments, system_mapping):
     """Run application from arguments in *namespace*.
@@ -641,6 +667,10 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
+
+        wiz.history.record_action(
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+        )
 
 
 def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
@@ -704,6 +734,10 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
 
+        wiz.history.record_action(
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+        )
+
     except KeyboardInterrupt:
         logger.warning("Aborted.")
 
@@ -763,7 +797,7 @@ def display_definition(definition):
         else:
             print("{}{}".format(indent, item))
 
-    _display(definition.to_ordered_mapping())
+    _display(definition.to_ordered_dict())
     print()
 
 

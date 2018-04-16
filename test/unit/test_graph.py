@@ -10,6 +10,21 @@ import wiz.exception
 
 
 @pytest.fixture()
+def mocked_queue(mocker):
+    """Return mocked Queue constructor."""
+    instance = mocker.Mock()
+    try:
+        import queue
+        mocker.patch("queue.Queue", return_value=instance)
+
+    except ImportError:
+        import Queue
+        mocker.patch("Queue.Queue", return_value=instance)
+
+    return instance
+
+
+@pytest.fixture()
 def mocked_graph(mocker):
     """Return mocked Graph."""
     graph = mocker.patch.object(wiz.graph, "Graph")
@@ -54,55 +69,55 @@ def test_resolver():
 @pytest.mark.parametrize("mapping, expected", [
     (
         {"root": []},
-        {"root": wiz.graph._NodeAttribute(0, "root")}
+        {"root": {"priority": 0, "parent": "root"}}
     ),
     (
         {"root": ["A"], "A": []},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"}
         }
     ),
     (
         {"root": ["A", "B"], "A": [], "B": []},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"}
         }
     ),
     (
         {"root": ["A", "B", "C"], "A": [], "B": [], "C": []},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root"),
-            "C": wiz.graph._NodeAttribute(3, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"},
+            "C": {"priority": 3, "parent": "root"}
         }
     ),
     (
         {"root": ["A"], "A": ["B"], "B": []},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "A")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "A"}
         }
     ),
     (
         {"root": ["A"], "A": ["B"], "B": ["C"], "C": []},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "A"),
-            "C": wiz.graph._NodeAttribute(3, "B")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "A"},
+            "C": {"priority": 3, "parent": "B"}
         }
     ),
     (
         {"root": ["A", "B"], "A": ["B"], "B": ["A"]},
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"}
         }
     ),
     (
@@ -117,14 +132,14 @@ def test_resolver():
             "G": []
         },
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root"),
-            "C": wiz.graph._NodeAttribute(2, "A"),
-            "D": wiz.graph._NodeAttribute(3, "A"),
-            "E": wiz.graph._NodeAttribute(4, "D"),
-            "F": wiz.graph._NodeAttribute(4, "B"),
-            "G": wiz.graph._NodeAttribute(5, "B"),
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"},
+            "C": {"priority": 2, "parent": "A"},
+            "D": {"priority": 3, "parent": "A"},
+            "E": {"priority": 4, "parent": "D"},
+            "F": {"priority": 4, "parent": "B"},
+            "G": {"priority": 5, "parent": "B"},
         }
     ),
     (
@@ -138,13 +153,13 @@ def test_resolver():
             "F": []
         },
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(None, None),
-            "C": wiz.graph._NodeAttribute(2, "A"),
-            "D": wiz.graph._NodeAttribute(None, None),
-            "E": wiz.graph._NodeAttribute(3, "A"),
-            "F": wiz.graph._NodeAttribute(4, "A"),
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": None, "parent": None},
+            "C": {"priority": 2, "parent": "A"},
+            "D": {"priority": None, "parent": None},
+            "E": {"priority": 3, "parent": "A"},
+            "F": {"priority": 4, "parent": "A"},
         }
 
     ),
@@ -160,14 +175,14 @@ def test_resolver():
             "G": ["B"],
         },
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root"),
-            "C": wiz.graph._NodeAttribute(2, "A"),
-            "D": wiz.graph._NodeAttribute(3, "A"),
-            "E": wiz.graph._NodeAttribute(4, "D"),
-            "F": wiz.graph._NodeAttribute(3, "root"),
-            "G": wiz.graph._NodeAttribute(3, "C"),
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"},
+            "C": {"priority": 2, "parent": "A"},
+            "D": {"priority": 3, "parent": "A"},
+            "E": {"priority": 4, "parent": "D"},
+            "F": {"priority": 3, "parent": "root"},
+            "G": {"priority": 3, "parent": "C"},
         }
     )
 ], ids=[
@@ -200,13 +215,13 @@ def test_trim_unreachable_from_graph(
     mocked_graph.nodes.return_value = nodes
 
     priority_mapping = {
-        "root": wiz.graph._NodeAttribute(0, "root"),
-        "A": wiz.graph._NodeAttribute(1, "root"),
-        "B": wiz.graph._NodeAttribute(None, None),
-        "C": wiz.graph._NodeAttribute(2, "A"),
-        "D": wiz.graph._NodeAttribute(None, None),
-        "E": wiz.graph._NodeAttribute(3, "A"),
-        "F": wiz.graph._NodeAttribute(4, "A"),
+        "root": {"priority": 0, "parent": "root"},
+        "A": {"priority": 1, "parent": "root"},
+        "B": {"priority": None, "parent": None},
+        "C": {"priority": 2, "parent": "A"},
+        "D": {"priority": None, "parent": None},
+        "E": {"priority": 3, "parent": "A"},
+        "F": {"priority": 4, "parent": "A"},
     }
 
     wiz.graph.trim_unreachable_from_graph(mocked_graph, priority_mapping)
@@ -221,13 +236,13 @@ def test_sorted_from_priority():
     identifiers = ["F", "E", "D", "C", "B", "A"]
 
     priority_mapping = {
-        "root": wiz.graph._NodeAttribute(0, "root"),
-        "A": wiz.graph._NodeAttribute(1, "root"),
-        "B": wiz.graph._NodeAttribute(None, None),
-        "C": wiz.graph._NodeAttribute(2, "A"),
-        "D": wiz.graph._NodeAttribute(None, None),
-        "E": wiz.graph._NodeAttribute(3, "A"),
-        "F": wiz.graph._NodeAttribute(4, "A"),
+        "root": {"priority": 0, "parent": "root"},
+        "A": {"priority": 1, "parent": "root"},
+        "B": {"priority": None, "parent": None},
+        "C": {"priority": 2, "parent": "A"},
+        "D": {"priority": None, "parent": None},
+        "E": {"priority": 3, "parent": "A"},
+        "F": {"priority": 4, "parent": "A"},
     }
 
     result = wiz.graph.sorted_from_priority(identifiers, priority_mapping)
@@ -246,17 +261,18 @@ def test_extract_conflicted_nodes(mocker, mocked_graph):
     }
 
     mocked_graph.node = lambda _id: node_mapping[_id]
+    mocked_graph.conflicts.return_value = sorted(node_mapping.keys())
 
     assert wiz.graph.extract_conflicted_nodes(
-        mocked_graph, node_mapping["F"], sorted(node_mapping.keys())
+        mocked_graph, node_mapping["F"]
     ) == [node_mapping["D"], node_mapping["E"]]
 
     assert wiz.graph.extract_conflicted_nodes(
-        mocked_graph, node_mapping["E"], sorted(node_mapping.keys())
+        mocked_graph, node_mapping["E"]
     ) == [node_mapping["D"], node_mapping["F"]]
 
     assert wiz.graph.extract_conflicted_nodes(
-        mocked_graph, node_mapping["C"], sorted(node_mapping.keys())
+        mocked_graph, node_mapping["C"]
     ) == [node_mapping["A"], node_mapping["B"]]
 
 
@@ -397,9 +413,9 @@ def test_combined_requirements(mocker, mocked_graph):
     ]
 
     priority_mapping = {
-        "A==3": wiz.graph._NodeAttribute(1, "B"),
-        "A==1.9": wiz.graph._NodeAttribute(2, "C"),
-        "A==1.2.3": wiz.graph._NodeAttribute(3, "D"),
+        "A==3": {"priority": 1, "parent": "B"},
+        "A==1.9": {"priority": 2, "parent": "C"},
+        "A==1.2.3": {"priority": 3, "parent": "D"},
     }
 
     mocked_graph.link_requirement.side_effect = requirements
@@ -431,9 +447,9 @@ def test_combined_requirements_error(mocker, mocked_graph):
     ]
 
     priority_mapping = {
-        "A==3": wiz.graph._NodeAttribute(1, "B"),
-        "Z==1.9": wiz.graph._NodeAttribute(2, "C"),
-        "A==1.2.3": wiz.graph._NodeAttribute(3, "D"),
+        "A==3": {"priority": 1, "parent": "B"},
+        "Z==1.9": {"priority": 2, "parent": "C"},
+        "A==1.2.3": {"priority": 3, "parent": "D"},
     }
 
     mocked_graph.link_requirement.side_effect = requirements
@@ -451,47 +467,47 @@ def test_combined_requirements_error(mocker, mocked_graph):
 @pytest.mark.parametrize("identifiers, priority_mapping, expected", [
     (
         [],
-        {"root": wiz.graph._NodeAttribute(0, "root")},
+        {"root": {"priority": 0, "parent": "root"}},
         []
     ),
     (
         ["A"],
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"}
         },
         ["A"]
     ),
     (
         ["A", "B"],
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"}
         },
         ["B", "A"],
     ),
     (
         ["A", "B", "C"],
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root"),
-            "C": wiz.graph._NodeAttribute(3, "root")
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"},
+            "C": {"priority": 3, "parent": "root"}
         },
         ["C", "B", "A"]
     ),
     (
         ["A", "B", "C", "D", "E", "F", "G"],
         {
-            "root": wiz.graph._NodeAttribute(0, "root"),
-            "A": wiz.graph._NodeAttribute(1, "root"),
-            "B": wiz.graph._NodeAttribute(2, "root"),
-            "C": wiz.graph._NodeAttribute(2, "A"),
-            "D": wiz.graph._NodeAttribute(3, "A"),
-            "E": wiz.graph._NodeAttribute(4, "D"),
-            "F": wiz.graph._NodeAttribute(4, "B"),
-            "G": wiz.graph._NodeAttribute(5, "B"),
+            "root": {"priority": 0, "parent": "root"},
+            "A": {"priority": 1, "parent": "root"},
+            "B": {"priority": 2, "parent": "root"},
+            "C": {"priority": 2, "parent": "A"},
+            "D": {"priority": 3, "parent": "A"},
+            "E": {"priority": 4, "parent": "D"},
+            "F": {"priority": 4, "parent": "B"},
+            "G": {"priority": 5, "parent": "B"},
         },
         ["G", "E", "F", "D", "B", "C", "A"]
     ),
@@ -624,8 +640,8 @@ def test_graph_link_weight():
         None,
         link_mapping={
             "A": {
-                "B": wiz.graph._Link(Requirement("A"), 3),
-                "C": wiz.graph._Link(Requirement("A>2"), 2)
+                "B": {"requirement": Requirement("A"), "weight": 3},
+                "C": {"requirement": Requirement("A>2"), "weight": 2}
             }
         }
     )
@@ -644,8 +660,8 @@ def test_graph_requirement_weight():
         None,
         link_mapping={
             "A": {
-                "B": wiz.graph._Link(requirements[0], 3),
-                "C": wiz.graph._Link(requirements[1], 2)
+                "B": {"requirement": requirements[0], "weight": 3},
+                "C": {"requirement": requirements[1], "weight": 2}
             }
         }
     )
@@ -686,53 +702,36 @@ def test_graph_conflicts(definition_mapping, node_mapping, expected):
     assert graph.conflicts() == expected
 
 
-def test_graph_update_from_requirements(mocker):
+def test_graph_update_from_requirements(mocker, mocked_queue):
     """Update graph from requirements."""
     graph = wiz.graph.Graph(None)
-    graph.update_from_requirement = mocker.Mock()
+    graph._update_from_requirement = mocker.Mock()
 
     requirements = [
         Requirement("A"),
         Requirement("B>=2,<3"),
         Requirement("C==1.2.3")
+    ]
+
+    mocked_queue.empty.side_effect = [False, False, False, True]
+    mocked_queue.get.side_effect = [
+        {"requirement": requirements[0], "weight": 1},
+        {"requirement": requirements[1], "weight": 2},
+        {"requirement": requirements[2], "weight": 3},
     ]
 
     graph.update_from_requirements(requirements)
 
-    assert graph.update_from_requirement.call_count == 3
-    graph.update_from_requirement.assert_any_call(
-        requirements[0], parent_identifier=None, weight=1
+    assert mocked_queue.put.call_count == 3
+    assert graph._update_from_requirement.call_count == 3
+    graph._update_from_requirement.assert_any_call(
+        requirements[0], mocked_queue, parent_identifier=None, weight=1
     )
-    graph.update_from_requirement.assert_any_call(
-        requirements[1], parent_identifier=None, weight=2
+    graph._update_from_requirement.assert_any_call(
+        requirements[1], mocked_queue, parent_identifier=None, weight=2
     )
-    graph.update_from_requirement.assert_any_call(
-        requirements[2], parent_identifier=None, weight=3
-    )
-
-
-def test_graph_update_from_requirements_with_parent(mocker):
-    """Update graph from requirements with parent identifier."""
-    graph = wiz.graph.Graph(None)
-    graph.update_from_requirement = mocker.Mock()
-
-    requirements = [
-        Requirement("A"),
-        Requirement("B>=2,<3"),
-        Requirement("C==1.2.3")
-    ]
-
-    graph.update_from_requirements(requirements, parent_identifier="D")
-
-    assert graph.update_from_requirement.call_count == 3
-    graph.update_from_requirement.assert_any_call(
-        requirements[0], parent_identifier="D", weight=1
-    )
-    graph.update_from_requirement.assert_any_call(
-        requirements[1], parent_identifier="D", weight=2
-    )
-    graph.update_from_requirement.assert_any_call(
-        requirements[2], parent_identifier="D", weight=3
+    graph._update_from_requirement.assert_any_call(
+        requirements[2], mocked_queue, parent_identifier=None, weight=3
     )
 
 
@@ -748,7 +747,7 @@ def test_graph_update_from_requirements_with_parent(mocker):
     "with-parent-and-weight",
 ])
 def test_graph_update_from_requirement_existing(
-    mocker, mocked_resolver, mocked_package_extract, options
+    mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
 ):
     """Update graph from requirement."""
     package = mocker.Mock(identifier="A==0.1.0")
@@ -763,7 +762,7 @@ def test_graph_update_from_requirement_existing(
     graph.node = mocker.Mock(return_value=node)
     graph.exists = mocker.Mock(return_value=True)
 
-    graph.update_from_requirement(requirement, **options)
+    graph._update_from_requirement(requirement, mocked_queue, **options)
 
     graph._create_node_from_package.assert_not_called()
     graph._create_link.assert_called_once_with(
@@ -778,6 +777,8 @@ def test_graph_update_from_requirement_existing(
         options.get("parent_identifier", "root")
     )
 
+    mocked_queue.put.assert_not_called()
+
 
 @pytest.mark.parametrize("options", [
     {},
@@ -791,10 +792,10 @@ def test_graph_update_from_requirement_existing(
     "with-parent-and-weight",
 ])
 def test_graph_update_from_requirement_non_existing(
-    mocker, mocked_resolver, mocked_package_extract, options
+    mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
 ):
     """Update graph from requirement."""
-    package = mocker.Mock(identifier="A==0.1.0")
+    package = mocker.Mock(identifier="A==0.1.0", requirements=[])
     node = mocker.Mock(identifier="_A==0.1.0")
     requirement = Requirement("A")
 
@@ -806,7 +807,7 @@ def test_graph_update_from_requirement_non_existing(
     graph.node = mocker.Mock(return_value=node)
     graph.exists = mocker.Mock(return_value=False)
 
-    graph.update_from_requirement(requirement, **options)
+    graph._update_from_requirement(requirement, mocked_queue, **options)
 
     graph._create_node_from_package.assert_called_once_with(package)
     graph._create_link.assert_called_once_with(
@@ -821,6 +822,62 @@ def test_graph_update_from_requirement_non_existing(
         options.get("parent_identifier", "root")
     )
 
+    mocked_queue.put.assert_not_called()
+
+
+@pytest.mark.parametrize("options", [
+    {},
+    {"parent_identifier": "foo"},
+    {"weight": 5},
+    {"parent_identifier": "bar", "weight": 42}
+], ids=[
+    "simple",
+    "with-parent",
+    "with-weight",
+    "with-parent-and-weight",
+])
+def test_graph_update_from_requirement_non_existing_with_requirements(
+    mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
+):
+    """Update graph from requirement."""
+    package = mocker.Mock(identifier="A==0.1.0", requirements=["B", "C", "D"])
+    node = mocker.Mock(identifier="_A==0.1.0")
+    requirement = Requirement("A")
+
+    mocked_package_extract.return_value = [package]
+
+    graph = wiz.graph.Graph(mocked_resolver)
+    graph._create_link = mocker.Mock()
+    graph._create_node_from_package = mocker.Mock()
+    graph.node = mocker.Mock(return_value=node)
+    graph.exists = mocker.Mock(return_value=False)
+
+    graph._update_from_requirement(requirement, mocked_queue, **options)
+
+    graph._create_node_from_package.assert_called_once_with(package)
+    graph._create_link.assert_called_once_with(
+        "_A==0.1.0",
+        options.get("parent_identifier", "root"),
+        requirement,
+        weight=options.get("weight", 1)
+    )
+
+    graph.node.assert_called_once_with("A==0.1.0")
+    node.add_parent.assert_called_once_with(
+        options.get("parent_identifier", "root")
+    )
+
+    assert mocked_queue.put.call_count == 3
+    mocked_queue.put.assert_any_call({
+        "requirement": "B", "parent_identifier": "A==0.1.0", "weight": 1
+    })
+    mocked_queue.put.assert_any_call({
+        "requirement": "C", "parent_identifier": "A==0.1.0", "weight": 2
+    })
+    mocked_queue.put.assert_any_call({
+        "requirement": "D", "parent_identifier": "A==0.1.0", "weight": 3
+    })
+
 
 @pytest.mark.parametrize("options", [
     {},
@@ -834,13 +891,13 @@ def test_graph_update_from_requirement_non_existing(
     "with-parent-and-weight",
 ])
 def test_graph_update_from_requirement_multi_packages(
-    mocker, mocked_resolver, mocked_package_extract, options
+    mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
 ):
     """Update graph from requirement."""
     packages = [
-        mocker.Mock(identifier="A[variant1]==0.1.0"),
-        mocker.Mock(identifier="A[variant2]==0.1.0"),
-        mocker.Mock(identifier="A[variant3]==0.1.0")
+        mocker.Mock(identifier="A[variant1]==0.1.0", requirements=[]),
+        mocker.Mock(identifier="A[variant2]==0.1.0", requirements=[]),
+        mocker.Mock(identifier="A[variant3]==0.1.0", requirements=[])
     ]
 
     nodes = [
@@ -859,7 +916,7 @@ def test_graph_update_from_requirement_multi_packages(
     graph.node = mocker.Mock(side_effect=nodes)
     graph.exists = mocker.Mock(return_value=False)
 
-    graph.update_from_requirement(requirement, **options)
+    graph._update_from_requirement(requirement, mocked_queue, **options)
 
     assert graph._create_node_from_package.call_count == 3
     for package in packages:
@@ -883,6 +940,8 @@ def test_graph_update_from_requirement_multi_packages(
             options.get("parent_identifier", "root")
         )
 
+    mocked_queue.put.assert_not_called()
+
 
 def test_graph_create_node_from_package(mocker):
     """Create node in graph from package."""
@@ -893,39 +952,11 @@ def test_graph_create_node_from_package(mocker):
     )
 
     graph = wiz.graph.Graph(None)
-    graph.update_from_requirements = mocker.Mock()
-
     graph._create_node_from_package(package)
 
     assert graph._definition_mapping == {"defA": {"A==0.1.0"}}
     assert graph._node_mapping.keys() == ["A==0.1.0"]
     assert isinstance(graph._node_mapping["A==0.1.0"], wiz.graph.Node)
-
-    graph.update_from_requirements.assert_not_called()
-
-
-def test_graph_create_node_from_package_recursive(mocker):
-    """Create node in graph from package with recursive requirements."""
-    requirements = [Requirement("B==1"), Requirement("C<2")]
-
-    package = mocker.Mock(
-        identifier="A==0.1.0",
-        requirements=requirements,
-        definition_identifier="defA"
-    )
-
-    graph = wiz.graph.Graph(None)
-    graph.update_from_requirements = mocker.Mock()
-
-    graph._create_node_from_package(package)
-
-    assert graph._definition_mapping == {"defA": {"A==0.1.0"}}
-    assert graph._node_mapping.keys() == ["A==0.1.0"]
-    assert isinstance(graph._node_mapping["A==0.1.0"], wiz.graph.Node)
-
-    graph.update_from_requirements.assert_called_once_with(
-        requirements, parent_identifier="A==0.1.0"
-    )
 
 
 @pytest.mark.parametrize("options", [
@@ -944,7 +975,10 @@ def test_graph_create_link(options):
 
     assert graph._link_mapping == {
         "parent": {
-            "child": wiz.graph._Link(requirement, options.get("weight", 1))
+            "child": {
+                "requirement": requirement,
+                "weight": options.get("weight", 1)
+            }
         }
     }
 
@@ -954,7 +988,9 @@ def test_graph_create_link_error():
     requirement = Requirement("A")
 
     graph = wiz.graph.Graph(
-        None, link_mapping={"parent": {"child": wiz.graph._Link(requirement, 1)}}
+        None, link_mapping={
+            "parent": {"child": {"requirement": requirement, "weight": 1}}
+        }
     )
 
     with pytest.raises(wiz.exception.IncorrectDefinition):
