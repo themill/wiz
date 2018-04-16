@@ -8,6 +8,7 @@ import time
 import traceback
 
 from packaging.requirements import Requirement
+from packaging.version import Version
 
 from wiz import __version__
 import wiz.symbol
@@ -89,7 +90,7 @@ def record_action(identifier, **kwargs):
     action = {"identifier": identifier}
     action.update(**kwargs)
 
-    if action_identifier == wiz.symbol.EXCEPTION_RAISE_ACTION:
+    if identifier == wiz.symbol.EXCEPTION_RAISE_ACTION:
         action["traceback"] = traceback.format_exc().splitlines()
 
     global _HISTORY
@@ -109,7 +110,7 @@ def _json_default(_object):
     elif isinstance(_object, wiz.mapping.Mapping):
         return _object.to_dict(serialize_content=True)
 
-    elif isinstance(_object, Requirement):
+    elif isinstance(_object, Requirement) or isinstance(_object, Version):
         return str(_object)
 
     raise TypeError("{} is not JSON serializable.".format(_object))
