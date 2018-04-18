@@ -72,4 +72,4 @@ global one), it might be beneficial to create a custom :term:`C-Shell` wrapper:
 .. code-block:: csh
 
     #!/bin/tcsh -f
-    wiz -dsp ~/primary-registry ~/secondary-registry $argv
+    wiz -dsp {PATH_TO}/primary-registry,{PATH_TO}/secondary-registry $argv
