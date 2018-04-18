@@ -4,6 +4,15 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: command-line
+
+        Moved :option:`--definition-search-paths <wiz --definition-search-paths>`,
+        to the top level parser so that registries could be modified for every
+        sub-commands.
+
 .. release:: 0.4.0
     :date: 2018-04-17
 
