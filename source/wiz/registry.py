@@ -29,10 +29,10 @@ def get_defaults():
 def fetch(paths, include_local=True, include_working_directory=True):
     """Fetch all registries from *paths*.
 
-    *include_local* indicate whether the local registry should be included.
+    *include_local* indicates whether the local registry should be included.
 
-    *include_local* indicate whether the current working directory should be
-     parsed to discover a registry.
+    *include_working_directory* indicates whether the current working directory
+    should be parsed to discover a registry.
 
     """
     registries = []
@@ -51,7 +51,6 @@ def fetch(paths, include_local=True, include_working_directory=True):
     if registry_path and include_local:
         registries.append(registry_path)
 
-    registries.reverse()
     return registries
 
 
