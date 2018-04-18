@@ -4,7 +4,8 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 0.5.0
+    :date: 2018-04-17
 
     .. change:: changed
         :tags: command-line
