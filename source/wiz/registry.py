@@ -16,7 +16,12 @@ def get_local():
 def get_defaults():
     """Return the default registries."""
     return [
-        os.path.join(os.sep, "mill3d", "server", "apps", "WIZ", "registry"),
+        os.path.join(
+            os.sep, "mill3d", "server", "apps", "WIZ", "registry", "primary"
+        ),
+        os.path.join(
+            os.sep, "mill3d", "server", "apps", "WIZ", "registry", "secondary"
+        ),
         os.path.join(os.sep, "jobs", "ads", ".wiz", "registry")
     ]
 

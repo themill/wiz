@@ -4,6 +4,16 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: registry
+
+        Changed :func:`wiz.registry.get_defaults` to return two global registry
+        folders instead of one: The "primary" registry would store all vanilla
+        package definitions and the "secondary" one would store all package
+        combinations that need to be available globally.
+
 .. release:: 0.3.0
     :date: 2018-04-16
 
