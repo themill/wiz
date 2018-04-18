@@ -57,9 +57,9 @@ def fetch(paths, include_local=True, include_working_directory=True):
 def discover(path):
     """Return registry from *path* if available under the folder structure.
 
-    The registry path should be a ".registry" folder within *path*.
+    The registry path should be a :file:`.wiz/registry` folder within *path*.
 
-    Return the registry path discovered, or None if the register is not found
+    Return the registry path discovered, or None if the folder is not found
     or not accessible.
 
     .. note::
