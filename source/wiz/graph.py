@@ -215,6 +215,21 @@ class Resolver(object):
                 self._logger.debug("Remove '{}'".format(identifier))
                 graph.remove_node(identifier)
 
+                # Update the link if necessary.
+                for parent_identifier in node.parent_identifiers:
+                    if not graph.exists(parent_identifier):
+                        continue
+
+                    weight = graph.link_weight(identifier, parent_identifier)
+
+                    for _identifier in identifiers:
+                        graph.create_link(
+                            _identifier,
+                            parent_identifier,
+                            requirement,
+                            weight=weight
+                        )
+
                 # If some of the newly extracted packages are not in the list
                 # of conflicted nodes, that means that the requirement should
                 # be added to the graph.
