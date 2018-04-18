@@ -4,6 +4,20 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: resolver
+
+        When a node was removed from the graph due to requirement conflict which
+        prioritize another version of the same package identifier, the link was
+        not re-assigned to the correct node. This could lead to incorrect
+        priority mapping computation which would alter the package order
+        resolution.
+
+        Changed :meth:`wiz.graph.Resolver.resolve_conflicts` to update the link
+        when a conflicted node is removed.
+
 .. release:: 0.6.0
     :date: 2018-04-18
 
