@@ -749,7 +749,7 @@ class Graph(object):
             node.add_parent(parent_identifier or self.ROOT)
 
             # Create link with requirement and weight.
-            self._create_link(
+            self.create_link(
                 node.identifier,
                 parent_identifier or self.ROOT,
                 requirement,
@@ -775,7 +775,7 @@ class Graph(object):
             graph=self, node=self._node_mapping[package.identifier].identifier
         )
 
-    def _create_link(
+    def create_link(
         self, identifier, parent_identifier, requirement, weight=1
     ):
         """Add dependency link from *parent_identifier* to *identifier*.
