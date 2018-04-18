@@ -14,7 +14,16 @@ results.
 For instance, the order would be:
 
 Global registry:
-  Contains all generic package definitions (e.g. maya, houdini, nuke, etc.).
+  Contains all generic package definitions.
+
+  * primary
+    Contains all generic package definitions. If commands are included, they
+    are in vanilla configuration (no plugins).
+
+  * secondary
+    Contains package definitions for default configurations (e.g. maya,
+    houdini, nuke, etc). Commands specified here include all the packages
+    that should be run by default.
 
 Site registry:
   Contains site-specific package definitions (e.g. houdini hsite, site specific
@@ -26,4 +35,3 @@ Project registry:
 
 Personal registry:
   Contains personal package definitions for development purposes.
-
