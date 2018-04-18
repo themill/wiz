@@ -54,8 +54,17 @@ def construct_parser():
 
     parser.add_argument(
         "-dsd", "--definition-search-depth",
+        metavar="NUMBER",
         help="Maximum depth to recursively search for definitions.",
         type=int
+    )
+
+    parser.add_argument(
+        "-dsp", "--definition-search-paths",
+        type=lambda paths: paths.split(","),
+        metavar="PATHS",
+        help="Search paths for package definitions.",
+        default=wiz.registry.get_defaults()
     )
 
     parser.add_argument(
@@ -116,14 +125,6 @@ def construct_parser():
         action="store_true"
     )
 
-    command_parser.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
-    )
-
     package_parser = list_subparsers.add_parser(
         "package",
         help="List all available packages.",
@@ -134,14 +135,6 @@ def construct_parser():
         "--all",
         help="Return all definition versions.",
         action="store_true"
-    )
-
-    package_parser.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
     )
 
     search_parser = subparsers.add_parser(
@@ -168,14 +161,6 @@ def construct_parser():
     )
 
     search_parser.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
-    )
-
-    search_parser.add_argument(
         "requests",
         nargs="+",
         help="Package requested."
@@ -185,14 +170,6 @@ def construct_parser():
         "view",
         help="View content of a package definition.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    view_subparsers.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
     )
 
     view_subparsers.add_argument(
@@ -219,14 +196,6 @@ def construct_parser():
     )
 
     run_subparsers.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
-    )
-
-    run_subparsers.add_argument(
         "request", help="Command requested to run."
     )
 
@@ -244,14 +213,6 @@ def construct_parser():
         "--view",
         help="Only view the resolved context.",
         action="store_true"
-    )
-
-    use_subparsers.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
     )
 
     use_subparsers.add_argument(
@@ -278,14 +239,6 @@ def construct_parser():
         help="Indicate the output format.",
         choices=["wiz", "tcsh", "bash"],
         default="wiz"
-    )
-
-    freeze_subparsers.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
     )
 
     freeze_subparsers.add_argument(
