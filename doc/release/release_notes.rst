@@ -4,6 +4,15 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: registry
+
+        Changed :func:`wiz.registry.fetch` to return the registry folders is the
+        correct order so that package definitions from the secondary registry h
+        ave priority order package definitions from the primary registry.
+
 .. release:: 0.5.0
     :date: 2018-04-17
 
