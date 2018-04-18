@@ -64,7 +64,8 @@ def discover(path):
 
     .. note::
 
-        No registry will be fetched if *path* is not under `/jobs/ads`.
+        No registry folder will be fetched if *path* is not under
+        :file:`/jobs/ads`.
 
     """
     path = os.path.abspath(path)
