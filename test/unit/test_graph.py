@@ -757,7 +757,7 @@ def test_graph_update_from_requirement_existing(
     mocked_package_extract.return_value = [package]
 
     graph = wiz.graph.Graph(mocked_resolver)
-    graph.create_link = mocker.Mock()
+    graph._create_link = mocker.Mock()
     graph._create_node_from_package = mocker.Mock()
     graph.node = mocker.Mock(return_value=node)
     graph.exists = mocker.Mock(return_value=True)
@@ -765,7 +765,7 @@ def test_graph_update_from_requirement_existing(
     graph._update_from_requirement(requirement, mocked_queue, **options)
 
     graph._create_node_from_package.assert_not_called()
-    graph.create_link.assert_called_once_with(
+    graph._create_link.assert_called_once_with(
         "_A==0.1.0",
         options.get("parent_identifier", "root"),
         requirement,
@@ -802,7 +802,7 @@ def test_graph_update_from_requirement_non_existing(
     mocked_package_extract.return_value = [package]
 
     graph = wiz.graph.Graph(mocked_resolver)
-    graph.create_link = mocker.Mock()
+    graph._create_link = mocker.Mock()
     graph._create_node_from_package = mocker.Mock()
     graph.node = mocker.Mock(return_value=node)
     graph.exists = mocker.Mock(return_value=False)
@@ -810,7 +810,7 @@ def test_graph_update_from_requirement_non_existing(
     graph._update_from_requirement(requirement, mocked_queue, **options)
 
     graph._create_node_from_package.assert_called_once_with(package)
-    graph.create_link.assert_called_once_with(
+    graph._create_link.assert_called_once_with(
         "_A==0.1.0",
         options.get("parent_identifier", "root"),
         requirement,
@@ -847,7 +847,7 @@ def test_graph_update_from_requirement_non_existing_with_requirements(
     mocked_package_extract.return_value = [package]
 
     graph = wiz.graph.Graph(mocked_resolver)
-    graph.create_link = mocker.Mock()
+    graph._create_link = mocker.Mock()
     graph._create_node_from_package = mocker.Mock()
     graph.node = mocker.Mock(return_value=node)
     graph.exists = mocker.Mock(return_value=False)
@@ -855,7 +855,7 @@ def test_graph_update_from_requirement_non_existing_with_requirements(
     graph._update_from_requirement(requirement, mocked_queue, **options)
 
     graph._create_node_from_package.assert_called_once_with(package)
-    graph.create_link.assert_called_once_with(
+    graph._create_link.assert_called_once_with(
         "_A==0.1.0",
         options.get("parent_identifier", "root"),
         requirement,
@@ -911,7 +911,7 @@ def test_graph_update_from_requirement_multi_packages(
     mocked_package_extract.return_value = packages
 
     graph = wiz.graph.Graph(mocked_resolver)
-    graph.create_link = mocker.Mock()
+    graph._create_link = mocker.Mock()
     graph._create_node_from_package = mocker.Mock()
     graph.node = mocker.Mock(side_effect=nodes)
     graph.exists = mocker.Mock(return_value=False)
@@ -922,9 +922,9 @@ def test_graph_update_from_requirement_multi_packages(
     for package in packages:
         graph._create_node_from_package.assert_any_call(package)
 
-    assert graph.create_link.call_count == 3
+    assert graph._create_link.call_count == 3
     for node in nodes:
-        graph.create_link.assert_any_call(
+        graph._create_link.assert_any_call(
             node.identifier,
             options.get("parent_identifier", "root"),
             requirement,
@@ -971,7 +971,7 @@ def test_graph_create_link(options):
     requirement = Requirement("A")
 
     graph = wiz.graph.Graph(None)
-    graph.create_link("child", "parent", requirement, **options)
+    graph._create_link("child", "parent", requirement, **options)
 
     assert graph._link_mapping == {
         "parent": {
@@ -994,7 +994,7 @@ def test_graph_create_link_error():
     )
 
     with pytest.raises(wiz.exception.IncorrectDefinition):
-        graph.create_link("child", "parent", Requirement("A"))
+        graph._create_link("child", "parent", Requirement("A"))
 
 
 def test_graph_remove_node():

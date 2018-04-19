@@ -200,40 +200,29 @@ class Resolver(object):
             validate_requirements(graph, node, conflicted_nodes)
 
             # Compute valid node identifier from combined requirements.
-            requirement = combined_requirements(
+            combined_requirement = combined_requirements(
                 graph, [node] + conflicted_nodes, priority_mapping
             )
 
             # Query packages from combined requirement.
-            packages = wiz.package.extract(
-                requirement, self._definition_mapping
+            valid_packages = wiz.package.extract(
+                combined_requirement, self._definition_mapping
             )
 
-            identifiers = [package.identifier for package in packages]
+            valid_identifiers = [
+                package.identifier for package in valid_packages
+            ]
 
-            if identifier not in identifiers:
+            if identifier not in valid_identifiers:
+                graph.remove_node_and_update_links(
+                    node, valid_identifiers, combined_requirement,
+                )
                 self._logger.debug("Remove '{}'".format(identifier))
-                graph.remove_node(identifier)
-
-                # Update the link if necessary.
-                for parent_identifier in node.parent_identifiers:
-                    if not graph.exists(parent_identifier):
-                        continue
-
-                    weight = graph.link_weight(identifier, parent_identifier)
-
-                    for _identifier in identifiers:
-                        graph.create_link(
-                            _identifier,
-                            parent_identifier,
-                            requirement,
-                            weight=weight
-                        )
 
                 # If some of the newly extracted packages are not in the list
                 # of conflicted nodes, that means that the requirement should
                 # be added to the graph.
-                new_identifiers = set(identifiers).difference(
+                new_identifiers = set(valid_identifiers).difference(
                     set([_node.identifier for _node in conflicted_nodes])
                 )
 
@@ -241,7 +230,7 @@ class Resolver(object):
                     self._logger.debug(
                         "Add to graph: {}".format(", ".join(new_identifiers))
                     )
-                    graph.update_from_requirements([requirement])
+                    graph.update_from_requirements([combined_requirement])
 
                     # Update conflict list if necessary.
                     conflicts = list(set(conflicts + graph.conflicts()))
@@ -764,7 +753,7 @@ class Graph(object):
             node.add_parent(parent_identifier or self.ROOT)
 
             # Create link with requirement and weight.
-            self.create_link(
+            self._create_link(
                 node.identifier,
                 parent_identifier or self.ROOT,
                 requirement,
@@ -790,7 +779,7 @@ class Graph(object):
             graph=self, node=self._node_mapping[package.identifier].identifier
         )
 
-    def create_link(
+    def _create_link(
         self, identifier, parent_identifier, requirement, weight=1
     ):
         """Add dependency link from *parent_identifier* to *identifier*.
@@ -838,6 +827,22 @@ class Graph(object):
             weight=weight,
             requirement=requirement
         )
+
+    def remove_node_and_update_links(self, node, identifiers, requirement):
+        # Remove the node after relinking all parents to the valid identifiers.
+        for identifier in identifiers:
+            _node = self.node(identifier)
+            if _node is None:
+                continue
+
+            _node.parent_identifiers.update(node.parent_identifiers)
+
+            for parent_identifier in node.parent_identifiers:
+                link = self._link_mapping[parent_identifier][node.identifier]
+                link["requirement"] = requirement
+                self._link_mapping[parent_identifier][identifier] = link
+
+        self.remove_node(node.identifier)
 
     def remove_node(self, identifier, record=True):
         """Remove node from the graph.
