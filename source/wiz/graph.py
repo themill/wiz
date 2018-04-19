@@ -215,6 +215,21 @@ class Resolver(object):
                 self._logger.debug("Remove '{}'".format(identifier))
                 graph.remove_node(identifier)
 
+                # Update the link if necessary.
+                for parent_identifier in node.parent_identifiers:
+                    if not graph.exists(parent_identifier):
+                        continue
+
+                    weight = graph.link_weight(identifier, parent_identifier)
+
+                    for _identifier in identifiers:
+                        graph.create_link(
+                            _identifier,
+                            parent_identifier,
+                            requirement,
+                            weight=weight
+                        )
+
                 # If some of the newly extracted packages are not in the list
                 # of conflicted nodes, that means that the requirement should
                 # be added to the graph.
@@ -749,7 +764,7 @@ class Graph(object):
             node.add_parent(parent_identifier or self.ROOT)
 
             # Create link with requirement and weight.
-            self._create_link(
+            self.create_link(
                 node.identifier,
                 parent_identifier or self.ROOT,
                 requirement,
@@ -775,7 +790,7 @@ class Graph(object):
             graph=self, node=self._node_mapping[package.identifier].identifier
         )
 
-    def _create_link(
+    def create_link(
         self, identifier, parent_identifier, requirement, weight=1
     ):
         """Add dependency link from *parent_identifier* to *identifier*.
