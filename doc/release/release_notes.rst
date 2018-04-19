@@ -4,7 +4,8 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 0.7.0
+    :date: 2018-04-18
 
     .. change:: fixed
         :tags: resolver
