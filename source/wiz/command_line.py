@@ -6,6 +6,7 @@ import os
 import itertools
 import shlex
 import collections
+import datetime
 
 import mlog
 from packaging.version import Version, InvalidVersion
@@ -17,6 +18,7 @@ import wiz.package
 import wiz.spawn
 import wiz.exception
 import wiz.filesystem
+import wiz.history
 
 
 def construct_parser():
@@ -52,8 +54,17 @@ def construct_parser():
 
     parser.add_argument(
         "-dsd", "--definition-search-depth",
+        metavar="NUMBER",
         help="Maximum depth to recursively search for definitions.",
         type=int
+    )
+
+    parser.add_argument(
+        "-dsp", "--definition-search-paths",
+        type=lambda paths: paths.split(","),
+        metavar="PATHS",
+        help="Search paths for package definitions.",
+        default=wiz.registry.get_defaults()
     )
 
     parser.add_argument(
@@ -78,6 +89,12 @@ def construct_parser():
         "--os-version",
         help="Override the detected operating system version.",
         metavar="OS_VERSION",
+    )
+
+    parser.add_argument(
+        "--record",
+        help="Record resolution context process for debugging.",
+        metavar="PATH"
     )
 
     subparsers = parser.add_subparsers(
@@ -108,14 +125,6 @@ def construct_parser():
         action="store_true"
     )
 
-    command_parser.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
-    )
-
     package_parser = list_subparsers.add_parser(
         "package",
         help="List all available packages.",
@@ -126,14 +135,6 @@ def construct_parser():
         "--all",
         help="Return all definition versions.",
         action="store_true"
-    )
-
-    package_parser.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
     )
 
     search_parser = subparsers.add_parser(
@@ -160,14 +161,6 @@ def construct_parser():
     )
 
     search_parser.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
-    )
-
-    search_parser.add_argument(
         "requests",
         nargs="+",
         help="Package requested."
@@ -177,14 +170,6 @@ def construct_parser():
         "view",
         help="View content of a package definition.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    view_subparsers.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
     )
 
     view_subparsers.add_argument(
@@ -211,14 +196,6 @@ def construct_parser():
     )
 
     run_subparsers.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
-    )
-
-    run_subparsers.add_argument(
         "request", help="Command requested to run."
     )
 
@@ -236,14 +213,6 @@ def construct_parser():
         "--view",
         help="Only view the resolved context.",
         action="store_true"
-    )
-
-    use_subparsers.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
     )
 
     use_subparsers.add_argument(
@@ -270,14 +239,6 @@ def construct_parser():
         help="Indicate the output format.",
         choices=["wiz", "tcsh", "bash"],
         default="wiz"
-    )
-
-    freeze_subparsers.add_argument(
-        "-dsp", "--definition-search-paths",
-        nargs="+",
-        metavar="PATH",
-        help="Search paths for definitions.",
-        default=wiz.registry.get_defaults()
     )
 
     freeze_subparsers.add_argument(
@@ -315,6 +276,10 @@ def main(arguments=None):
     # Process arguments.
     parser = construct_parser()
     namespace = parser.parse_args(arguments)
+
+    if namespace.record is not None:
+        command = "wiz {}".format(" ".join(arguments))
+        wiz.history.start_recording(command=command)
 
     # Set verbosity level.
     mlog.root.handlers["stderr"].filterer.filterers[0].min = namespace.verbosity
@@ -364,6 +329,16 @@ def main(arguments=None):
         _freeze_and_export_resolved_context(
             namespace, registries, system_mapping
         )
+
+    # Export the history if requested.
+    if namespace.record is not None:
+        history = wiz.history.get(serialized=True)
+        path = os.path.join(
+            os.path.abspath(namespace.record),
+            "wiz-{}.dump".format(datetime.datetime.now().isoformat())
+        )
+        wiz.filesystem.export(path, history, compressed=True)
+        logger.info("History recorded and exported in '{}'".format(path))
 
 
 def _fetch_and_display_definitions(namespace, registries, system_mapping):
@@ -592,6 +567,10 @@ def _resolve_and_use_context(
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
 
+        wiz.history.record_action(
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+        )
+
 
 def _run_command(namespace, registries, command_arguments, system_mapping):
     """Run application from arguments in *namespace*.
@@ -641,6 +620,10 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
+
+        wiz.history.record_action(
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+        )
 
 
 def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
@@ -704,6 +687,10 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
 
+        wiz.history.record_action(
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+        )
+
     except KeyboardInterrupt:
         logger.warning("Aborted.")
 
@@ -763,7 +750,7 @@ def display_definition(definition):
         else:
             print("{}{}".format(indent, item))
 
-    _display(definition.to_ordered_mapping())
+    _display(definition.to_ordered_dict())
     print()
 
 

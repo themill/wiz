@@ -462,5 +462,3 @@ def export_csh_wrapper(
 
     wiz.filesystem.export(file_path, content)
     return file_path
-
-

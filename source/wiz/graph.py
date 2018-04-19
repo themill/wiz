@@ -1,27 +1,22 @@
 # :coding: utf-8
 
 import copy
+import uuid
 import hashlib
 import itertools
 from collections import deque
-from collections import namedtuple
 from heapq import heapify, heappush, heappop
 try:
-    from queue import Queue
+    import queue as _queue
 except ImportError:
-    from Queue import Queue
+    import Queue as _queue
 
 import mlog
 
 import wiz.package
 import wiz.exception
-
-
-#: Weighted link associating nodes in the requirement graph.
-_Link = namedtuple("_Link", "requirement, weight")
-
-#: Attribute with palatable properties access used to create priority mapping.
-_NodeAttribute = namedtuple("_NodeAttribute", "priority, parent")
+import wiz.symbol
+import wiz.history
 
 
 class Resolver(object):
@@ -56,6 +51,11 @@ class Resolver(object):
 
         """
         graph = Graph(self)
+
+        # Record the graph creation to the history if necessary.
+        wiz.history.record_action(wiz.symbol.GRAPH_CREATION_ACTION, graph=graph)
+
+        # Update the graph.
         graph.update_from_requirements(requirements)
 
         # Initialise stack.
@@ -112,7 +112,7 @@ class Resolver(object):
         # of each group as a key reference.
         sorted_variant_groups = sorted(
             variant_groups,
-            key=lambda _group: priority_mapping[_group[0]].priority,
+            key=lambda _group: priority_mapping[_group[0]].get("priority"),
         )
 
         graph_list = [graph.copy()]
@@ -131,7 +131,7 @@ class Resolver(object):
 
                     # Remove all other variant from the variant graph.
                     for _identifier in other_identifiers:
-                        copied_graph.remove_node(_identifier)
+                        copied_graph.remove_node(_identifier, record=False)
 
                     new_graph_list.append(copied_graph)
 
@@ -142,6 +142,11 @@ class Resolver(object):
         for _graph in reversed(graph_list):
             _graph.reset_variants()
             self._graphs_stack.append(_graph)
+
+            # Record the graph creation to the history if necessary.
+            wiz.history.record_action(
+                wiz.symbol.GRAPH_DIVISION_ACTION, origin=graph, graph=_graph
+            )
 
         number = len(graph_list)
         self._logger.debug("graph divided into {} new graphs.".format(number))
@@ -167,6 +172,11 @@ class Resolver(object):
 
         self._logger.debug("Conflicts: {}".format(", ".join(conflicts)))
 
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_CONFLICTS_IDENTIFICATION_ACTION,
+            graph=graph, conflicted_nodes=conflicts
+        )
+
         while True:
             priority_mapping = compute_priority_mapping(graph)
 
@@ -184,7 +194,7 @@ class Resolver(object):
             node = graph.node(identifier)
 
             # Identify nodes conflicting with this node.
-            conflicted_nodes = extract_conflicted_nodes(graph, node, conflicts)
+            conflicted_nodes = extract_conflicted_nodes(graph, node)
 
             # Ensure that all requirements from parent links are compatibles.
             validate_requirements(graph, node, conflicted_nodes)
@@ -205,6 +215,21 @@ class Resolver(object):
                 self._logger.debug("Remove '{}'".format(identifier))
                 graph.remove_node(identifier)
 
+                # Update the link if necessary.
+                for parent_identifier in node.parent_identifiers:
+                    if not graph.exists(parent_identifier):
+                        continue
+
+                    weight = graph.link_weight(identifier, parent_identifier)
+
+                    for _identifier in identifiers:
+                        graph.create_link(
+                            _identifier,
+                            parent_identifier,
+                            requirement,
+                            weight=weight
+                        )
+
                 # If some of the newly extracted packages are not in the list
                 # of conflicted nodes, that means that the requirement should
                 # be added to the graph.
@@ -214,9 +239,9 @@ class Resolver(object):
 
                 if len(new_identifiers) > 0:
                     self._logger.debug(
-                        "Add to graph: ".format(", ".join(new_identifiers))
+                        "Add to graph: {}".format(", ".join(new_identifiers))
                     )
-                    graph.update_from_requirement(requirement)
+                    graph.update_from_requirements([requirement])
 
                     # Update conflict list if necessary.
                     conflicts = list(set(conflicts + graph.conflicts()))
@@ -257,17 +282,18 @@ def compute_priority_mapping(graph):
 
     # Initiate mapping
     priority_mapping = {
-        node.identifier: _NodeAttribute(None, None) for node in graph.nodes()
+        node.identifier: {"priority": None, "parent": None}
+        for node in graph.nodes()
     }
 
-    priority_mapping[graph.ROOT] = _NodeAttribute(0, graph.ROOT)
+    priority_mapping[graph.ROOT] = {"priority": 0, "parent": graph.ROOT}
 
     queue = _PriorityQueue()
     queue[graph.ROOT] = 0
 
     while not queue.empty():
         identifier = queue.pop_smallest()
-        current_priority = priority_mapping[identifier].priority
+        current_priority = priority_mapping[identifier]["priority"]
 
         for child_identifier in graph.outcoming(identifier):
             priority = current_priority + graph.link_weight(
@@ -275,15 +301,15 @@ def compute_priority_mapping(graph):
             )
 
             # The last recorded priority of this node from the source
-            last_priority = priority_mapping[child_identifier].priority
+            last_priority = priority_mapping[child_identifier]["priority"]
 
             # If there is a currently recorded priority from the source and
             # this is superior than the priority of the node found, update
             # the current priority with the new one.
             if last_priority is None or last_priority > priority:
-                priority_mapping[child_identifier] = _NodeAttribute(
-                    priority, identifier
-                )
+                priority_mapping[child_identifier] = {
+                    "priority": priority, "parent": identifier
+                }
                 queue[child_identifier] = priority
 
                 logger.debug(
@@ -294,6 +320,11 @@ def compute_priority_mapping(graph):
                         parent=identifier
                     )
                 )
+
+    wiz.history.record_action(
+        wiz.symbol.GRAPH_PRIORITY_COMPUTATION_ACTION,
+        graph=graph, priority_mapping=priority_mapping
+    )
 
     return priority_mapping
 
@@ -315,7 +346,7 @@ def trim_unreachable_from_graph(graph, priority_mapping):
     logger = mlog.Logger(__name__ + ".trim_unreachable_from_graph")
 
     for node in graph.nodes():
-        if priority_mapping[node.identifier].priority is None:
+        if priority_mapping[node.identifier].get("priority") is None:
             logger.debug("Remove '{}'".format(node.identifier))
             graph.remove_node(node.identifier)
 
@@ -334,25 +365,26 @@ def sorted_from_priority(identifiers, priority_mapping):
     corresponding parent node identifier.
 
     """
-    empty = _NodeAttribute(None, None)
     _identifiers = filter(
-        lambda _id: priority_mapping.get(_id, empty).priority, identifiers
+        lambda _id: priority_mapping.get(_id, {}).get("priority"), identifiers
     )
-    return sorted(_identifiers, key=lambda _id: priority_mapping[_id].priority)
+    return sorted(
+        _identifiers, key=lambda _id: priority_mapping[_id]["priority"]
+    )
 
 
-def extract_conflicted_nodes(graph, node, identifiers):
-    """Return all nodes from *identifiers* conflicting with *node*.
+def extract_conflicted_nodes(graph, node):
+    """Return all nodes from *graph* conflicting with *node*.
 
     A node from the *graph* is in conflict with the node *identifier* when
     its definition identifier is identical.
 
+    *graph* must be an instance of :class:`Graph`.
+
     *node* should be a :class:`Node` instance.
 
-    *identifiers* should be a list valid node identifiers.
-
     """
-    nodes = (graph.node(_id) for _id in identifiers)
+    nodes = (graph.node(_id) for _id in graph.conflicts())
 
     return [
         _node for _node in nodes
@@ -474,7 +506,7 @@ def combined_requirements(graph, nodes, priority_mapping):
 
     for node in nodes:
         _requirement = graph.link_requirement(
-            node.identifier, priority_mapping[node.identifier].parent
+            node.identifier, priority_mapping[node.identifier]["parent"]
         )
 
         if requirement is None:
@@ -511,7 +543,7 @@ def extract_ordered_packages(graph, priority_mapping):
 
     for node in sorted(
         graph.nodes(),
-        key=lambda n: priority_mapping[n.identifier],
+        key=lambda n: priority_mapping[n.identifier].items(),
         reverse=True
     ):
         packages.append(node.package)
@@ -521,6 +553,12 @@ def extract_ordered_packages(graph, priority_mapping):
             ", ".join([package.identifier for package in packages])
         )
     )
+
+    wiz.history.record_action(
+        wiz.symbol.GRAPH_PACKAGES_EXTRACTION_ACTION,
+        graph=graph, packages=packages
+    )
+
     return packages
 
 
@@ -553,6 +591,7 @@ class Graph(object):
         """
         self._logger = mlog.Logger(__name__ + ".Graph")
         self._resolver = resolver
+        self._identifier = uuid.uuid4().hex
 
         # All nodes created per node identifier.
         self._node_mapping = node_mapping or {}
@@ -565,6 +604,27 @@ class Graph(object):
 
         # Record the weight of each link in the graph.
         self._link_mapping = link_mapping or {}
+
+    @property
+    def identifier(self):
+        """Return unique graph identifier."""
+        return self._identifier
+
+    def to_dict(self):
+        """Return corresponding dictionary."""
+        return {
+            "identifier": self.identifier,
+            "node": {
+                _id: node.to_dict() for _id, node
+                in self._node_mapping.items()
+            },
+            "definition": {
+                _id: list(node_ids) for _id, node_ids
+                in self._definition_mapping.items()
+            },
+            "link": self._link_mapping.copy(),
+            "variants": self._variant_mapping.values()
+        }
 
     def copy(self):
         """Return a copy of the graph."""
@@ -603,7 +663,7 @@ class Graph(object):
     def link_weight(self, identifier, parent_identifier):
         """Return weight from link between *parent_identifier* and *identifier*.
         """
-        return self._link_mapping[parent_identifier][identifier].weight
+        return self._link_mapping[parent_identifier][identifier]["weight"]
 
     def link_requirement(self, identifier, parent_identifier):
         """Return requirement from link between *parent_identifier* and
@@ -612,7 +672,7 @@ class Graph(object):
         This should be a :class:`packaging.requirements.Requirement` instance.
 
         """
-        return self._link_mapping[parent_identifier][identifier].requirement
+        return self._link_mapping[parent_identifier][identifier]["requirement"]
 
     def conflicts(self):
         """Return conflicting nodes identifiers instances.
@@ -634,37 +694,40 @@ class Graph(object):
 
         return conflicted
 
-    def update_from_requirements(self, requirements, parent_identifier=None):
+    def update_from_requirements(self, requirements):
         """Recursively update graph from *requirements*.
 
         *requirements* should be a list of
         :class:`packaging.requirements.Requirement` instances ordered from the
         ost important to the least important.
 
-        *parent_identifier* can indicate the identifier of a parent node.
-
         """
-        # A weight is defined for each requirement based on the order. The
-        # first node has a weight of 1 which indicates that it is the most
-        # important node.
-        weight = 1
+        queue = _queue.Queue()
 
-        for requirement in requirements:
-            self.update_from_requirement(
-                requirement,
-                parent_identifier=parent_identifier,
-                weight=weight
+        for index, requirement in enumerate(requirements):
+            queue.put({"requirement": requirement, "weight": index + 1})
+
+        while not queue.empty():
+            data = queue.get()
+
+            self._update_from_requirement(
+                data.get("requirement"), queue,
+                parent_identifier=data.get("parent_identifier"),
+                weight=data.get("weight")
             )
 
-            weight += 1
-
-    def update_from_requirement(
-        self, requirement, parent_identifier=None, weight=1,
+    def _update_from_requirement(
+        self, requirement, queue, parent_identifier=None, weight=1
     ):
-        """Recursively update graph from *requirement*.
+        """Update graph from *requirement* and return updated *queue*.
 
         *requirement* should be an instance of
         :class:`packaging.requirements.Requirement`.
+
+        *queue* should be a :class:`Queue` instance that will be updated with
+        all dependent requirements data.
+
+        *parent_identifier* can indicate the identifier of a parent node.
 
         *weight* is a number which indicate the importance of the dependency
         link from the node to its parent. The lesser this number, the higher is
@@ -678,8 +741,8 @@ class Graph(object):
             requirement, self._resolver.definition_mapping
         )
 
-        # If more than one package is returned, record all node identifiers
-        # into a variant group.
+        # If more than one package is returned, start_recording all node
+        # identifiers into a variant group.
         if len(packages) > 1:
             identifiers = [package.identifier for package in packages]
             hashed_object = hashlib.md5("".join(sorted(identifiers)))
@@ -690,11 +753,18 @@ class Graph(object):
             if not self.exists(package.identifier):
                 self._create_node_from_package(package)
 
+                for index, _requirement in enumerate(package.requirements):
+                    queue.put({
+                        "requirement": _requirement,
+                        "parent_identifier": package.identifier,
+                        "weight": index + 1
+                    })
+
             node = self.node(package.identifier)
             node.add_parent(parent_identifier or self.ROOT)
 
             # Create link with requirement and weight.
-            self._create_link(
+            self.create_link(
                 node.identifier,
                 parent_identifier or self.ROOT,
                 requirement,
@@ -715,13 +785,12 @@ class Graph(object):
         self._definition_mapping.setdefault(definition_identifier, set())
         self._definition_mapping[definition_identifier].add(package.identifier)
 
-        if len(package.requirements) > 0:
-            self.update_from_requirements(
-                package.requirements,
-                parent_identifier=package.identifier
-            )
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_NODE_CREATION_ACTION,
+            graph=self, node=self._node_mapping[package.identifier].identifier
+        )
 
-    def _create_link(
+    def create_link(
         self, identifier, parent_identifier, requirement, weight=1
     ):
         """Add dependency link from *parent_identifier* to *identifier*.
@@ -757,11 +826,26 @@ class Graph(object):
                 "'{parent}'.".format(parent=parent_identifier, child=identifier)
             )
 
-        link = _Link(requirement, weight)
+        link = {"requirement": requirement, "weight": weight}
         self._link_mapping[parent_identifier][identifier] = link
 
-    def remove_node(self, identifier):
+        # Record link creation to history if necessary.
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_LINK_CREATION_ACTION,
+            graph=self,
+            parent=parent_identifier,
+            child=identifier,
+            weight=weight,
+            requirement=requirement
+        )
+
+    def remove_node(self, identifier, record=True):
         """Remove node from the graph.
+
+        *record* can indicate whether the node removal action should be recorded
+        to the history. Usually this flag should only be turned off during the
+        graph division process as the graph themselves are not recorded before
+        the removal process.
 
         .. warning::
 
@@ -770,6 +854,12 @@ class Graph(object):
 
         """
         del self._node_mapping[identifier]
+
+        if record:
+            wiz.history.record_action(
+                wiz.symbol.GRAPH_NODE_REMOVAL_ACTION,
+                graph=self, node=identifier
+            )
 
     def reset_variants(self):
         """Reset list of variant node identifiers .
@@ -819,6 +909,13 @@ class Node(object):
     def add_parent(self, identifier):
         """Add *identifier* as a parent to the node."""
         self._parent_identifiers.add(identifier)
+
+    def to_dict(self):
+        """Return corresponding dictionary."""
+        return {
+            "package": self._package.to_dict(serialize_content=True),
+            "parents": list(self._parent_identifiers)
+        }
 
 
 class _PriorityQueue(dict):

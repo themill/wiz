@@ -4,13 +4,6 @@ Glossary
 
 .. glossary::
 
-    Base64
-        A group of similar binary-to-text encoding schemes that represent binary
-        data in an ASCII string format by translating it into a radix-64
-        representation.
-
-        .. seealso:: https://en.wikipedia.org/wiki/Base64
-
     Bash
         :term:`Unix Shell` first released in 1989. It is available as the
         default login shell for most Linux distribution and Apple macOS.
