@@ -1,14 +1,11 @@
 .. _tutorial/tools:
 
+*****
 Tools
-=====
-
-JobMan
-------
-
+*****
 
 Wiz Explorer
-------------
+============
 
 The Wiz Explorer has been developed to ease debugging.
 Since the graph created to resolve into environments can become rather large,

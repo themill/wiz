@@ -1,12 +1,13 @@
 .. _registry:
 
+********
 Registry
-========
+********
 
 .. _registry/introduction:
 
 Introducing Registries
-----------------------
+======================
 
 All available package definitions are in one or several registries. If a package
 definition is found in several registries, the latest one is picked, which would
@@ -59,7 +60,7 @@ displayed in the output like this.
 .. _registry/setup:
 
 Setting up for Development
---------------------------
+==========================
 
 To set up a wiz registry for testing, create a :file:`~/.wiz/registry` directory
 in your user directory.
