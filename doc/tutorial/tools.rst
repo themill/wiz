@@ -1,8 +1,4 @@
-.. _tutorial/tools:
-
-*****
-Tools
-*****
+.. _tutorial/tools/wiz_explorer:
 
 Wiz Explorer
 ============

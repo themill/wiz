@@ -4,6 +4,8 @@
 Package Definitions
 *******************
 
+.. _definition/package:
+
 Introducing package definitions
 ===============================
 
@@ -237,8 +239,8 @@ returned. However, a variant can also be requested individually::
 
 .. _definition/commands:
 
-Commands
-========
+Introducing Commands
+====================
 By including command aliases mapping within package definitions, it is possible
 to simplify the user experience within the resolved context:
 

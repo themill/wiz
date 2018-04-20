@@ -24,6 +24,11 @@ Glossary
 
         .. seealso:: http://www.json.org/
 
+    Maya
+        A digital content creator provided by Autodesk.
+
+        .. seealso:: https://www.autodesk.co.uk/products/maya/overview
+
     Pip
         A recommended tool for installing :term:`Python` packages.
 
