@@ -4,6 +4,17 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+        :tags: documentation
+
+        Added :ref:`tutorial` section to documentation, including a guide for
+        :ref:`tutorial/project`, as well as some introduction into
+        :ref:`registry` and :ref:`definition`.
+        Additonal :ref:`guidelines` and :ref:`tools` sections have been added to
+        provide help for developers.
+
 .. release:: 0.7.0
     :date: 2018-04-18
 
