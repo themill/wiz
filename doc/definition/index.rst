@@ -96,7 +96,9 @@ range of version is required.
         "version": "0.1.0"
     }
 
-The same version specifiers defined in PEP 440 for Python should be used::
+The same version specifiers defined in
+`PEP 440 <https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_
+for Python should be used::
 
     >>> wiz use "app-package >=0.1.0, <2"
 
@@ -131,8 +133,9 @@ definition to a particular:
 * Architecture (e.g. x86_64, i386)
 * Operating System (e.g. CentOS 7.3, CentOS 6.5, MacOS, Windows)
 
-The version specifiers defined in PEP 440 should be used to identify the
-operating system version.
+The version specifiers defined in
+`PEP 440 <https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_
+should be used to identify the operating system version.
 
 If no system keyword is provided, the definition could be fetched and loaded
 from any platform.
@@ -156,8 +159,9 @@ other package definitions and thereby eases the creation of reliable context.
 
 By default, the latest versions of definitions will be fetched, but specific
 versions can be required.
-It is possible to use the same version specifiers defined in PEP 440 for Python
-in order to ease the dependency requirement:
+It is possible to use the same version specifiers defined in
+`PEP 440 <https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_
+for Python in order to ease the dependency requirement:
 
 .. code-block:: json
 

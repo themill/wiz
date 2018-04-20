@@ -291,7 +291,9 @@ the ``mill-maya`` configuration::
 
     >>> wiz run maya
 
-To specify a version PEP 440 for Python can be used::
+To specify a version
+`PEP 440 <https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_
+for Python can be used::
 
     >>> wiz run maya==2016
 
