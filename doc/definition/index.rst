@@ -62,7 +62,7 @@ Environment
 
 The optional ``environ`` keyword defines the environment mapping.
 
-The environment resolution combines all `environment variable mappings` from
+The resolved environment combines all `environment variable mappings` from
 the ordered definitions to create the final environment mapping.
 
 In order to combine two environment mapping, each variable value can be
