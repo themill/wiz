@@ -1,8 +1,8 @@
 .. _registry:
 
-********
-Registry
-********
+****************
+Using Registries
+****************
 
 .. _registry/introduction:
 
@@ -17,16 +17,15 @@ results.
 For instance, the order would be:
 
 Global registry:
-  Contains all generic package definitions. It is made available under
-  :file:`/mill3d/server/` and is part of the weekly sync to be identical on all
-  sites.
+  It is made available under :file:`/mill3d/server/` and is part of the weekly
+  sync to be identical on all sites.
 
-  * primary
+  * Primary
 
     Contains all generic package definitions. If commands are included, they
     are in vanilla configuration (no plugins).
 
-  * secondary
+  * Secondary
 
     Contains package definitions for default configurations (e.g. maya,
     houdini, nuke, etc). Commands specified here include all the packages

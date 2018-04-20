@@ -1,13 +1,24 @@
+.. _guidelines:
+
+**********
+Guidelines
+**********
+
+.. _guidelines/package_definitions:
+
+Package Definitions
+===================
+
 This is a list of things to do or avoid when creating package definitions.
 
 Internal Environment Variables
-==============================
+------------------------------
 
 Avoid setting environment variables in the same package definition they are
 used in.
 
 .. code-block:: json
-    :icon: ../image/prefer.png
+    :icon: image/prefer.png
 
     {
         "environ": {
@@ -17,7 +28,7 @@ used in.
     }
 
 .. code-block:: json
-    :icon: ../image/avoid.png
+    :icon: image/avoid.png
 
     {
         "environ": {
@@ -32,13 +43,13 @@ Therefore any environment variables that are set in the same definition they
 are supposed to be substituted in will fail to substitute.
 
 Order of Variant Resolve
-========================
+------------------------
 
 Avoid setting environment variables in a variant and using them in a the same
 definition.
 
 .. code-block:: json
-    :icon: ../image/prefer.png
+    :icon: image/prefer.png
 
     {
         "environ": {
@@ -55,7 +66,7 @@ definition.
     }
 
 .. code-block:: json
-    :icon: ../image/avoid.png
+    :icon: image/avoid.png
 
     {
         "environ": {

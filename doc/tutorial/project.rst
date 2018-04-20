@@ -1,10 +1,9 @@
-.. _tutorial/job_setup:
-
-Job Override
-============
 
 Certain environment variables are currently set in a Job and affect DCC plugins
 being loaded inside that environment.
+
+Project Configurations and Overrides
+------------------------------------
 
 To override certain package definitions in a job, a job registry needs to be
 created.

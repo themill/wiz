@@ -1,8 +1,8 @@
 .. _definition:
 
-*******************
-Package Definitions
-*******************
+*************************
+Using Package Definitions
+*************************
 
 .. _definition/package:
 
@@ -42,6 +42,12 @@ Here is an example definition:
 
     Ideally a Meta-Schema would be used to validate the definition, which
     has not been implemented yet.
+
+.. seealso::
+
+    Follow these :ref:`Guidelines <guidelines/package_definitions>` for
+    writing proper package definitions.
+
 
 Identifier
 ----------
@@ -293,12 +299,3 @@ the command within the resolve context:
     as a value:
 
     >>> wiz run "nukex -V2 -x /path/to/script" --from nuke-package
-
-Guidelines
-==========
-Here are some guidelines to write package definitions:
-
-.. toctree::
-    :maxdepth: 1
-
-    guidelines
