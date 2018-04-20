@@ -70,8 +70,8 @@ augmented by referencing any variable names already included in the resolved
 mapping.
 
 If a variable value does not reference its variable name within its value, it
-can override any precedent value. To help debug any accidental overriding, a
-warning should be displayed each time a variable is overriding another one.
+can override any precedent value. To help debug any accidental overwrites, a
+warning is being displayed each time a variable is overwriting another one.
 
 .. code-block:: json
 
