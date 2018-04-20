@@ -347,11 +347,3 @@ Job Setup
     :maxdepth: 1
 
     job_setup
-
-Tools
------
-
-.. toctree::
-    :maxdepth: 1
-
-    tools

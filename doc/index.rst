@@ -14,6 +14,7 @@ Package management system.
     registry
     definition/index
     tutorial/index
+    tools
     command_line
     api_reference/index
     release/index

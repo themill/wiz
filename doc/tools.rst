@@ -1,4 +1,10 @@
-.. _tutorial/tools/wiz_explorer:
+.. _tools:
+
+*****
+Tools
+*****
+
+.. _tools/wiz_explorer:
 
 Wiz Explorer
 ============
@@ -26,21 +32,21 @@ Here upload the dump file.
 An overview page should appear, giving a summary of nodes created and conflicts
 identified, etc:
 
-.. image:: ../image/debug_overview.png
+.. image:: image/debug_overview.png
     :width: 800px
     :align: center
     :alt: debug graph
 
 Another tab shows the graph and allows stepping through the resolution process:
 
-.. image:: ../image/debug_graph.png
+.. image:: image/debug_graph.png
     :width: 800px
     :align: center
     :alt: debug graph
 
 A third tab shows a history of steps taken to build and resolve the graph:
 
-.. image:: ../image/debug_history.png
+.. image:: image/debug_history.png
     :width: 800px
     :align: center
     :alt: debug history
@@ -50,7 +56,7 @@ all environment variables that have been set and all commands that can be
 called in it. It also shows the exact packages (with versions) picked to create
 this context.
 
-.. image:: ../image/debug_resolved.png
+.. image:: image/debug_resolved.png
     :width: 800px
     :align: center
     :alt: debug resolved environment
