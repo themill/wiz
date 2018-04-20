@@ -54,8 +54,9 @@ displayed in the output like this.
 
 .. code-block:: console
 
-    [0] /usr/people/claudiaz/.wiz/registry
-    [1] /mill3d/server/apps/WIZ/registry
+    [0] /Users/jeremyr/dev/rnd/wiz-registry/primary-registry
+    [1] /Users/jeremyr/dev/rnd/wiz-registry/secondary-registry
+    [2] /Users/jeremyr/.wiz/registry
 
 .. _registry/setup:
 
