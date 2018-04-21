@@ -109,7 +109,7 @@ class Mapping(collections.Mapping):
     def encode(self):
         """Return serialized definition data."""
         return json.dumps(
-            self.to_ordered_dict(),
+            self.to_ordered_dict(serialize_content=True),
             indent=4,
             separators=(",", ": "),
             ensure_ascii=False

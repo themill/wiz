@@ -238,13 +238,12 @@ definition includes all default :term:`Maya` plugins currently available.
 This is the ``mill-maya`` package definition for 2018 (latest):
 
 .. code-block:: console
-    :emphasize-lines: 5, 16
+    :emphasize-lines: 4, 15
 
     >>> wiz view mill-maya
     info: View definition: mill-maya (2018)
     identifier: mill-maya
-    version:
-        2018
+    version: 2018
     description: Maya Application with Mill Plugins.
     registry: /mill3d/server/apps/WIZ/registry/secondary
     origin: /mill3d/server/apps/WIZ/registry/secondary/maya/maya-2018.json
@@ -255,11 +254,11 @@ This is the ``mill-maya`` package definition for 2018 (latest):
         maya: maya2018
         mayapy: mayapy
     requirements:
-            maya ==2018
-            mill-maya-start
-            mtoa
-            miasma-maya
-            ...
+        maya ==2018
+        mill-maya-start
+        mtoa
+        miasma-maya
+        ...
 
 To launch :term:`Maya` with this configuration, run::
 
@@ -272,18 +271,14 @@ A simpler way of launching application is to simply be able to run the command
 aliases directly.
 
 Since the ``maya`` command is specified in ``mill-maya`` (as you can see
-with ``wiz view mill-maya``), instead of running::
-
-    >>> wiz use mill-maya -- maya
-
-as in the previous example, this can be executed to launch :term:`Maya` with
-the ``mill-maya`` configuration::
+with ``wiz view mill-maya``), :term:`Maya` could also be launched with the
+``mill-maya`` configuration as follows::
 
     >>> wiz run maya
 
-To specify a version
-`PEP 440 <https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_
-for Python can be used::
+
+A version specifier as those described in the :term:`PEP 440` specification can
+be used::
 
     >>> wiz run maya==2016
 
@@ -293,8 +288,48 @@ Freeze Environment
 Any wiz command dynamically creates and resolves a graph to determine the
 final environment.
 
-To lock down an environment and write it out as a normal wrapper, the
-``wiz freeze`` command can be used.
+To lock down an environment as a new Wiz definition, the ``wiz freeze`` command
+can be used:
+
+.. code-block:: console
+
+    >>> wiz freeze maya mtoa -o ~/.wiz/registry
+    Indicate an identifier: my-maya
+    Indicate a description: This is my Maya
+    Indicate a version [0.1.0]:
+
+    >>> wiz view my-maya
+    info: View definition: my-maya (0.1.0)
+    identifier: my-maya
+    version: 0.1.0
+    description: This is my Maya
+    registry: /Users/claudiaz/.wiz/registry
+    origin: /Users/claudiaz/.wiz/registry/MyMaya-0.1.0.json
+    command:
+        maya: maya2018
+        mayapy: mayapy
+    environ:
+        MAYA_MMSET_DEFAULT_XCURSOR: 1
+        MAYA_ROOT: /mill3d/server/apps/MAYA
+        ARNOLD_SHADERS_MTOA: /mill3d/server/apps/ARNOLD/mtoa/maya-2018/MtoA-2.1.0.1-20_arnold-5.0.2.4_g8a6d063/shaders
+        MAYA_MODULE_PATH: /mill3d/server/apps/ARNOLD/mtoa/maya-2018/MtoA-2.1.0.1-20_arnold-5.0.2.4_g8a6d063
+        MAYA_OFFSCREEN_HRB: 1
+        MAYA_LOCATION: /mill3d/server/apps/MAYA/linux-x86-64
+        MAYA_PLUGINS: /mill3d/server/apps/MAYA/plugins/2018
+        QT_COMPRESS_TABLET_EVENTS: 1
+        MAYA_LICENSE_METHOD: network
+        WIZ_VERSION: 0.7.1
+        LOGNAME: claudiaz
+        USER: claudiaz
+        HOME: /usr/people/claudiaz
+        PATH: /mill3d/server/apps/MAYA/linux-x86-64/maya2018/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        WIZ_PACKAGES: WyJtdG9hWzIwMThdPT0yLjEuMC4xIiwgImJhc2UtbWF5YSIsICJtYXlhPT0yMDE4Il0=
+        DISPLAY: None
+        AUTODESK_ADLM_THINCLIENT_ENV: /mill3d/server/system/LICENCE/AUTODESK/ADLM/maya2018/adlm.xml
+        LM_LICENSE_FILE: 27000@licence3.themill.com:27000@licence7.themill.com:27000@permit.la.themill.com:27000@licence6.themill.com:27000@master.mill.co.uk
+
+It is also possible to lock down an environment and write it out as a
+:term:`C-Shell` or :term:`Bash` wrapper:
 
 .. code-block:: console
 
