@@ -25,7 +25,7 @@ be called here and recorded into a dump file, i.e:
 
 To launch the Wiz Explorer, open a browser and navigate to::
 
-    file:///mill3d/server/apps/WIZ/explorer/production/0.1.0/index.html
+    http://charlotte-staging/staging/wiz-explorer/default/
 
 Here upload the dump file.
 
