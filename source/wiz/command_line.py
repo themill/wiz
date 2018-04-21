@@ -557,7 +557,7 @@ def _resolve_and_use_context(
         # Otherwise, resolve the command and run it within the resolved context.
         else:
             resolved_command = wiz.resolve_command(
-                command_arguments, context.get("command", {})
+                " ".join(command_arguments), context.get("command", {})
             )
 
             wiz.spawn.execute(
