@@ -4,14 +4,10 @@
 Using Package Definitions
 *************************
 
-.. _definition/package:
+A package is defined as a collection of common commands and environment
+variables. The package definition is a :term:`JSON` file.
 
-Introducing package definitions
-===============================
-
-A package definition is a :term:`JSON` file.
-
-Here is an example definition:
+Here is an example of package definition:
 
 .. code-block:: json
 
@@ -38,24 +34,19 @@ Here is an example definition:
         ]
     }
 
-.. note::
-
-    Ideally a Meta-Schema would be used to validate the definition, which
-    has not been implemented yet.
-
 .. seealso::
 
     Follow these :ref:`Guidelines <guidelines/package_definitions>` for
     writing proper package definitions.
 
+.. _definition/identifier:
 
 Identifier
 ----------
 
 At minimum a package definition contains an ``identifier``, which has to be
-unique.
-If an identifier is found in multiple registries, the last sourced registry
-will define the package.
+unique. If an identifier is found in multiple :ref:`registries <registry>`, the
+last sourced registry will define the package.
 
 .. code-block:: json
 
@@ -63,32 +54,7 @@ will define the package.
         "identifier": "maya"
     }
 
-Environment
------------
-
-The optional ``environ`` keyword defines the environment mapping.
-
-The resolved environment combines all `environment variable mappings` from
-the ordered definitions to create the final environment mapping.
-
-In order to combine two environment mappings, each variable value can be
-augmented by referencing any variable names already included in the resolved
-mapping.
-
-If a variable value does not reference its variable name within its value, it
-can override any precedent value. To help debug any accidental overwrites, a
-warning is being displayed each time a variable is overwriting another one.
-
-.. code-block:: json
-
-    {
-        "environ": {
-            "LICENSE": "42000@licence.themill.com",
-            "PATH": "/path/to/application:${PATH}",
-            "PYTHONPATH": "/path/to/application/python:${PYTHONPATH}",
-            "LD_LIBRARY_PATH": "/path/to/application:${LD_LIBRARY_PATH}"
-        }
-    }
+.. _definition/version:
 
 Version
 -------
@@ -102,17 +68,19 @@ range of version is required.
         "version": "0.1.0"
     }
 
-The same version specifiers defined in
-`PEP 440 <https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_
-for Python should be used::
+The same version specifiers defined in :term:`PEP 440` are used::
 
     >>> wiz use "app-package >=0.1.0, <2"
 
 The version could also be specified when running a command directly::
 
-    >>> wiz run "app >= 0.1.0, <2"
+    >>> wiz run "app == 0.1.*"
+
+.. seealso:: :ref:`definition/command`
 
 If no version is requested, the latest version is automatically fetched.
+
+.. _definition/description:
 
 Description
 -----------
@@ -129,6 +97,8 @@ It is useful when searching for packages using::
 
     >>> wiz search app
 
+.. _definition/system:
+
 System
 ------
 
@@ -138,13 +108,6 @@ definition to a particular:
 * Platform (e.g. Linux, Windows)
 * Architecture (e.g. x86_64, i386)
 * Operating System (e.g. CentOS 7.3, CentOS 6.5, MacOS, Windows)
-
-The version specifiers defined in
-`PEP 440 <https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_
-should be used to identify the operating system version.
-
-If no system keyword is provided, the definition could be fetched and loaded
-from any platform.
 
 .. code-block:: json
 
@@ -156,6 +119,90 @@ from any platform.
         }
     }
 
+The version specifiers defined :term:`PEP 440` are used to identify the
+operating system version.
+
+If no system keyword is provided, the definition could be fetched and loaded
+from any platform.
+
+.. _definition/environ:
+
+Environment
+-----------
+
+The optional ``environ`` keyword defines the environment mapping.
+
+The resolved environment combines all `environment variable mappings` from
+all package definitions required to form the resolved context.
+
+In order to combine two environment mappings, each variable value can be
+augmented by referencing any variable names already included in the resolved
+mapping.
+
+If a variable value does not reference its variable name within its value, it
+can override any precedent value.
+
+.. code-block:: json
+
+    {
+        "environ": {
+            "LICENSE": "42000@licence.themill.com",
+            "PATH": "/path/to/application:${PATH}",
+            "PYTHONPATH": "/path/to/application/python:${PYTHONPATH}",
+            "LD_LIBRARY_PATH": "/path/to/application:${LD_LIBRARY_PATH}"
+        }
+    }
+
+.. note::
+
+    To help debug any accidental overwrites, a warning is being displayed each
+    time a variable is overwriting another one.
+
+.. _definition/command:
+
+Commands
+--------
+
+The optional ``command`` keyword contains a mapping of commands that serves as
+aliases when running within the resolved context.
+
+.. code-block:: json
+
+    {
+        "command": {
+            "nuke": "Nuke11.1",
+            "nukex": "Nuke11.1 --nukex",
+            "studio": "Nuke11.1 --studio",
+            "hiero": "Nuke11.1 --hiero"
+        }
+    }
+
+It can be used to run a command within a resolved environment (with or without
+additional arguments):
+
+.. code-block:: console
+
+    >>> wiz use nuke plugin-nuke -- nukex
+    >>> wiz use nuke plugin-nuke -- hiero
+    >>> wiz use nuke plugin-nuke -- nuke /path/to/script
+
+The command mappings are parsed when the package definitions are discovered so
+that each command is associated with the definition package it is in. This
+let the user call the command directly with the ``run`` command:
+
+.. code-block:: console
+
+    >>> wiz run nuke
+    >>> wiz run nuke==10.5.*
+    >>> wiz run nukex -- /path/to/script
+
+.. warning::
+
+    Each command must be unique within a :ref:`registry` and could be
+    overwritten by another package definition in another registry.
+
+.. _definition/requirements:
+
 Requirements
 ------------
 
@@ -164,10 +211,8 @@ definitions. This indicates that the resulting context has to be composed of
 other package definitions and thereby eases the creation of reliable context.
 
 By default, the latest versions of definitions will be fetched, but specific
-versions can be required.
-It is possible to use the same version specifiers defined in
-`PEP 440 <https://www.python.org/dev/peps/pep-0440/#version-specifiers>`_
-for Python in order to ease the dependency requirement:
+versions can be required. The same version specifiers defined in :term:`PEP 440`
+are use:
 
 .. code-block:: json
 
@@ -176,6 +221,10 @@ for Python in order to ease the dependency requirement:
             "python > 2.7, < 3"
         ]
     }
+
+When several requirements are specified, the order will define the priority of
+each required package definition. In case of conflict, the first requirement
+will have priority over the latest.
 
 .. warning::
 
@@ -188,24 +237,7 @@ for Python in order to ease the dependency requirement:
             "maya"
         ]
 
-Commands
---------
-
-The optional ``command`` keyword contains a mapping of command that serves as
-aliases when running within the resolved context.
-
-.. code-block:: json
-
-    {
-        "command": {
-            "app": "App0.1",
-            "app-py": "AppPython"
-        }
-    }
-
-.. seealso::
-
-    :ref:`definition/commands`
+.. _definition/variants:
 
 Variants
 --------
@@ -247,55 +279,3 @@ returned. However, a variant can also be requested individually::
 
     >>> wiz use foo[variant1]
 
-.. _definition/commands:
-
-Introducing Commands
-====================
-By including command aliases mapping within package definitions, it is possible
-to simplify the user experience within the resolved context:
-
-.. code-block:: json
-
-    {
-        "nuke": "Nuke11.1",
-        "nukex": "Nuke11.1 --nukex",
-        "studio": "Nuke11.1 --studio",
-        "hiero": "Nuke11.1 --hiero",
-    }
-
-Without adding these command aliases to the definitions DCCs would have to be
-launched using the executables name in the PATH, i.e:
-
-.. code-block:: console
-
-    >>> wiz use nuke
-    >>> Nuke11.1
-
-Adding the command aliases to the definitions simplifies the call to:
-
-.. code-block:: console
-
-    >>> wiz use nuke
-    >>> nuke
-
-.. warning::
-
-    The command is being identified by the mapping keys and can be overwritten by
-    another package definition in another registry.
-
-.. rubric:: run
-
-To further improve the user experience, it is be more practical to directly run
-the command within the resolve context:
-
-.. code-block:: console
-
-    >>> wiz run nukex --from nuke-package
-
-.. note::
-
-    If additional arguments need to be passed to the command, the parsing process
-    could become cumbersome. Quotes would be needed recognize the entire command
-    as a value:
-
-    >>> wiz run "nukex -V2 -x /path/to/script" --from nuke-package

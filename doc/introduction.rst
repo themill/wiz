@@ -8,7 +8,8 @@ Wiz is a package management system. It constructs a requirement graph from a
 list a package requests and resolves it into a context mapping which contains
 an environment mapping and a command mapping.
 
-The commands can be launched within the resolved environment or be run directly.
+The packages are defined in :ref:`package definitions <definition>` which are
+stored in one or several :ref:`registries <registry>`.
 
 It is developed in :term:`Python`.
 

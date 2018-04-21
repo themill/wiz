@@ -29,6 +29,11 @@ Glossary
 
         .. seealso:: https://www.autodesk.co.uk/products/maya/overview
 
+    PEP 440
+        Version Identification and Dependency Specification for :term:`Python`.
+
+        .. seealso:: https://www.python.org/dev/peps/pep-0440/
+
     Pip
         A recommended tool for installing :term:`Python` packages.
 
