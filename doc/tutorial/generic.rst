@@ -211,7 +211,7 @@ To run the ``maya`` command, just run it in the subshell::
 For convenience, commands can be automatically run once the environment got
 resolved using ``--``, i.e::
 
-    >>> wiz use "maya xmlf-maya pod-maya mtoa" -- maya
+    >>> wiz use maya xmlf-maya pod-maya mtoa -- maya
 
 .. note::
 
