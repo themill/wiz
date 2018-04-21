@@ -4,6 +4,16 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: command-line
+
+        Fixed :func:`wiz.command_line.main` to correctly launch a command within
+        a resolved context as follow::
+
+            wiz use baselight-nuke -- nukex
+
 .. release:: 0.7.0
     :date: 2018-04-18
 
