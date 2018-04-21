@@ -4,11 +4,9 @@
 Introduction
 ************
 
-Wiz is a package management system.
-
-It constructs a requirement graph from a list a package requests (such as
-``maya==2018`` or ``nuke==11.1.*``) and resolves it into a context mapping
-which contains an environment mapping and a command mapping.
+Wiz is a package management system. It constructs a requirement graph from a
+list a package requests and resolves it into a context mapping which contains
+an environment mapping and a command mapping.
 
 The commands can be launched within the resolved environment or be run directly.
 
