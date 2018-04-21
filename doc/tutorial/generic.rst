@@ -104,9 +104,9 @@ additional environment variables are being set by Wiz itself, namely:
 
 * LOGNAME
 * USER
-* PWD
 * HOME
 * DISPLAY
+* PATH (with only executable folders from the workstation)
 
 To check this, print the environment:
 
