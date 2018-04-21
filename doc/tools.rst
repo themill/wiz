@@ -21,7 +21,7 @@ be called here and recorded into a dump file, i.e:
 
 .. code-block:: console
 
-    >>> wiz run my-command --record /tmp
+    >>> wiz --record /tmp run my-command
 
 To launch the Wiz Explorer, open a browser and navigate to::
 
