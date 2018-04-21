@@ -231,7 +231,7 @@ Dynamic environments are very useful to test configurations and be able to take
 out conflicting packages, but most of the artists will want pre-configured
 environments. This can be achieved using requirements.
 
-While the ``maya`` package definition was faily slim, defining only some basic
+While the ``maya`` package definition was fairly slim, defining only some basic
 environment variables to get :term:`Maya` to run, the ``mill-maya`` package
 definition includes all default :term:`Maya` plugins currently available.
 
