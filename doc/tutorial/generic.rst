@@ -34,8 +34,7 @@ All these packages can be used with ``wiz use``.
     pod-maya [2018]       2.3.3      0          POD plugin for Maya.
     ...
 
-.. seealso::
-    :ref:`definition/package`
+.. seealso:: :ref:`definition`
 
 Running ``wiz list command`` will output a long list of commands found in the
 detected registries.
@@ -53,8 +52,7 @@ All these commands can be used with ``wiz run``.
     nuke          11.1.1     0          Nuke Application.
     ...
 
-.. seealso::
-    :ref:`definition/commands`
+.. seealso:: :ref:`definition/command`
 
 Package definitions are :term:`Json` files, which can be easily viewed and
 edited in a text editor of your choice, but for convenience the ``wiz view``
