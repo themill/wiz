@@ -11,13 +11,13 @@ Wiz Explorer
 
 The Wiz Explorer has been developed to ease debugging.
 Since the graph created to resolve into environments can become rather large,
-it is not always obvious why a package has been picked instead of another.To
+it is not always obvious why a package has been picked instead of another. To
 be able to step through the resolution process and analyse potential errors
 a visual representation was needed.
 
 To start using the Wiz Explorer a dump file has to be created from Wiz. For
-that the :option:`--record <wiz --record>` command is used. Any wiz command can be
-called here and recorded into a dump file, i.e:
+that the :option:`--record <wiz --record>` command is used. Any wiz command can
+be called here and recorded into a dump file, i.e:
 
 .. code-block:: console
 
