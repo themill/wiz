@@ -7,9 +7,17 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: fixed
+        :tags: command-line
+
+        Fixed :func:`wiz.command_line.main` to correctly launch a command within
+        a resolved context as follow::
+
+            wiz use baselight-nuke -- nukex
+
+    .. change:: fixed
         :tags: debug
 
-        Changed :func:`wiz.history.get` to properly set the timestamp to the
+        Changed :func:`wiz.history.get` to correctly set the timestamp to the
         history mapping returned.
 
 .. release:: 0.7.0
