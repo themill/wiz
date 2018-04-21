@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: debug
+
+        Changed :func:`wiz.history.get` to properly set the timestamp to the
+        history mapping returned.
+
 .. release:: 0.7.0
     :date: 2018-04-18
 

@@ -56,7 +56,7 @@ def start_recording(command=None):
     global _HISTORY
     _HISTORY["user"] = os.environ.get("USER")
     _HISTORY["hostname"] = platform.node()
-    _HISTORY["command"] = datetime.datetime.now().isoformat()
+    _HISTORY["timestamp"] = datetime.datetime.now().isoformat()
     _HISTORY["timezone"] = time.tzname[1]
 
     if command is not None:
