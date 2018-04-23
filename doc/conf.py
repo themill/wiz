@@ -23,6 +23,10 @@ extensions = [
     "lowdown"
 ]
 
+# Add local extensions.
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '_extension'))
+extensions.append('code_block')
+
 # The suffix of source filenames.
 source_suffix = ".rst"
 
@@ -31,7 +35,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"Wiz"
-copyright = u"2017, The Mill"
+copyright = u"2018, The Mill"
 
 # Version
 with open(
@@ -85,12 +89,15 @@ def autodoc_skip(app, what, name, obj, skip, options):
 
 intersphinx_mapping = {
     "python": ("http://docs.python.org/", None),
-    "packaging": ("https://packaging.pypa.io/en/stable/", None)
+    "packaging": ("https://packaging.pypa.io/en/stable/", None),
+    "infinite-monkey": ("http://rtd.themill.com/docs/infinite-monkey/en/stable/", None)
 }
 
 
 # -- Setup --------------------------------------------------------------------
 
 def setup(app):
-    app.connect("autodoc-skip-member", autodoc_skip)
-
+    """Setup *app*."""
+    # Ensure custom stylesheet added, even when on Read The Docs server where
+    # html_style setting is ignored.
+    app.add_stylesheet("style.css")

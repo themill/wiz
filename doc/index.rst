@@ -11,7 +11,11 @@ Package management system.
 
     introduction
     installing
-    tutorial
+    registry
+    definition
+    tutorial/index
+    guidelines
+    tools
     command_line
     api_reference/index
     release/index
