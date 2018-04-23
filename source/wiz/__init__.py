@@ -131,7 +131,9 @@ def query_current_context(definition_mapping, environ_mapping):
             "in a resolved context?"
         )
 
-    packages = wiz.package.decode(encoded_packages, definition_mapping)
+    packages = wiz.package.decode(
+        encoded_packages, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+    )
 
     _environ_mapping = wiz.package.initiate_environ(environ_mapping)
     return wiz.package.extract_context(
