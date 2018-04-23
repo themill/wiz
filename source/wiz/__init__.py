@@ -99,7 +99,7 @@ def query_definition(
         )
 
 
-def query_current_context(definition_mapping):
+def query_current_context(definition_mapping, environ_mapping):
     """Return current context mapping from a wiz resolved environment.
 
     The packages identifiers has been encoded into a :envvar:`WIZ_PACKAGES`
@@ -114,6 +114,10 @@ def query_current_context(definition_mapping):
         For an optimal result, the same definition mapping used for the current
         environment resolution should be used. If some packages are missing,
         a :exc:`~wiz.exception.WizError` exception will be raised.
+
+
+    *environ_mapping* can be a mapping of environment variables which would
+    be augmented by the resolved environment.
 
     :exc:`~wiz.exception.RequestNotFound` is raised if the
     :envvar:`WIZ_PACKAGES` is not found.
