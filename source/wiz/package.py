@@ -316,7 +316,7 @@ def initiate_environ(mapping=None):
 
 
 def encode(packages):
-    """Encode *packages* identifiers into :mod:`base64` and return it.
+    """Encode *packages* identifiers into :term:`base64` and return it.
 
     *packages* should be a list of :class:`Package` instances.
 
