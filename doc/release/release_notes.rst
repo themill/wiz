@@ -4,6 +4,13 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: API
+
+        Add missing argument to :func:`wiz.query_current_context` function.
+
 .. release:: 0.8.0
     :date: 2018-04-23
 
