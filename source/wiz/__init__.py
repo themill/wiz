@@ -99,7 +99,7 @@ def query_definition(
         )
 
 
-def query_current_context(definition_mapping, environ_mapping):
+def query_current_context(definition_mapping, environ_mapping=None):
     """Return current context mapping from a wiz resolved environment.
 
     The packages identifiers has been encoded into a :envvar:`WIZ_PACKAGES`
