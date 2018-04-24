@@ -485,7 +485,7 @@ def _display_definition(namespace, registries, system_mapping):
 
     else:
         logger.info(
-            "View definition from command: {} ({})".format(
+            "View definition from command: {}=={}".format(
                 definition.identifier, definition.version
             )
         )
@@ -503,7 +503,7 @@ def _display_definition(namespace, registries, system_mapping):
 
     else:
         logger.info(
-            "View definition: {} ({})".format(
+            "View definition: {}=={}".format(
                 definition.identifier, definition.version
             )
         )
