@@ -16,7 +16,7 @@ import wiz.filesystem
 import wiz.exception
 
 
-def fetch_definitions(paths, max_depth=None, system_mapping=None):
+def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
     """Return mapping from all definitions available under *paths*.
 
     Discover all available definitions under *paths*, searching recursively
@@ -67,7 +67,7 @@ def fetch_definition(request, definition_mapping):
     (e.g. "definition" or "definition >= 1.0.0, < 2").
 
     *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definitions`.
+    available. It could be fetched with :func:`fetch_definition_mapping`.
 
     Raises :exc:`wiz.exception.RequestNotFound` is the corresponding definition
     cannot be found.
@@ -86,7 +86,7 @@ def fetch_definition_from_command(command_request, definition_mapping):
     (e.g. "command" or "command >= 1.0.0, < 2").
 
     *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definitions`.
+    available. It could be fetched with :func:`fetch_definition_mapping`.
 
     Raises :exc:`wiz.exception.RequestNotFound` is the corresponding definition
     cannot be found.
@@ -142,7 +142,7 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
     requested to build the context (e.g. ["package >= 1.0.0, < 2"])
 
     *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definitions`.
+    available. It could be fetched with :func:`fetch_definition_mapping`.
 
     *environ_mapping* can be a mapping of environment variables which would
     be augmented by the resolved environment.
@@ -209,7 +209,7 @@ def resolve_command_context(request, definition_mapping, arguments=None):
     build the context (e.g. ["app >= 1.0.0, < 2"]).
 
     *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definitions`.
+    available. It could be fetched with :func:`fetch_definition_mapping`.
 
     *arguments* could be a list of all arguments which constitute the resolved
     command (e.g. ["--option", "value", "/path/to/script"]).
@@ -311,7 +311,7 @@ def query_context():
     ]
 
     # Extract and return each unique package from definition requirements.
-    definition_mapping = wiz.fetch_definitions(registries)
+    definition_mapping = wiz.fetch_definition_mapping(registries)
     packages = [
         wiz.package.extract(requirement, definition_mapping)[0]
         for requirement in requirements
@@ -331,9 +331,9 @@ def export_definition(
 
     It could be used as follow::
 
-        >>> definition_mapping = wiz.fetch_definitions("/path/to/registry")
+        >>> mapping = wiz.fetch_definition_mapping("/path/to/registry")
         >>> context = wiz.resolve_package_context(
-        ...     ["my-package >=1, <2"], definition_mapping
+        ...     ["my-package >=1, <2"], mapping
         ... )
         >>> wiz.export_definition(
         ...    "/path/to/output", "new-definition",

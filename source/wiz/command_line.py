@@ -359,7 +359,7 @@ def _fetch_and_display_definitions(namespace, registries, system_mapping):
     retrieved via :func:`wiz.system.query`.
 
     """
-    mapping = wiz.fetch_definitions(
+    mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
@@ -463,7 +463,7 @@ def _display_definition(namespace, registries, system_mapping):
     """
     logger = mlog.Logger(__name__ + "._display_definition")
 
-    mapping = wiz.fetch_definitions(
+    mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
@@ -544,7 +544,7 @@ def _resolve_and_use_context(
     """
     logger = mlog.Logger(__name__ + "._resolve_and_use_context")
 
-    mapping = wiz.fetch_definitions(
+    mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
@@ -604,7 +604,7 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
     """
     logger = mlog.Logger(__name__ + "._run_command")
 
-    mapping = wiz.fetch_definitions(
+    mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
@@ -656,7 +656,7 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
     """
     logger = mlog.Logger(__name__ + "._freeze_and_export_resolved_context")
 
-    mapping = wiz.fetch_definitions(
+    mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
