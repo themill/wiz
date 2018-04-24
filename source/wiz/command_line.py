@@ -471,42 +471,53 @@ def _display_definition(namespace, registries, system_mapping):
 
     results_found = False
 
-    request_types = [
-        wiz.symbol.COMMAND_REQUEST_TYPE,
-        wiz.symbol.PACKAGE_REQUEST_TYPE
-    ]
+    # Display the corresponding definition if the request is a command.
+    try:
+        definition = wiz.fetch_definition_from_command(
+            namespace.request, mapping
+        )
 
-    # Track origins to prevent the display of a definition twice.
-    _origins = set()
+    except wiz.exception.RequestNotFound as exception:
+        logger.debug(
+            "Impossible to query definition from command request: "
+            "{}\n".format(exception)
+        )
 
-    for request_type in request_types:
-        try:
-            definition = wiz.query_definition(
-                namespace.request, mapping, request_type=request_type
+    else:
+        logger.info(
+            "View definition from command: {} ({})".format(
+                definition.identifier, definition.version
             )
-            results_found = True
+        )
+        results_found = True
 
-        except wiz.exception.RequestNotFound as exception:
-            logger.debug(
-                "Impossible to query definition for {} request "
-                "type: {}\n".format(request_type, exception)
+    # Display the full definition if the request is a package.
+    try:
+        definition = wiz.fetch_definition(namespace.request, mapping)
+
+    except wiz.exception.RequestNotFound as exception:
+        logger.debug(
+            "Impossible to query definition from package request: "
+            "{}\n".format(exception)
+        )
+
+    else:
+        logger.info(
+            "View definition: {} ({})".format(
+                definition.identifier, definition.version
             )
+        )
 
+        if namespace.json:
+            print(definition.encode())
         else:
-            if definition.get("origin") not in _origins:
-                if namespace.json:
-                    print(definition.encode())
-                else:
-                    display_definition(definition)
+            display_definition(definition)
 
-            _origins.add(definition.get("origin"))
+        results_found = True
 
     # Otherwise, print a warning...
     if not results_found:
-        logger.warning(
-            "No definition could be found for "
-            "request: '{}'\n".format(namespace.request)
-        )
+        logger.warning("No definition could be found.\n")
 
 
 def _resolve_and_use_context(
@@ -725,16 +736,12 @@ def display_definition(definition):
     *definition* should be a :class:`wiz.definition.Definition` instance.
 
     """
-    logger = mlog.Logger(__name__ + ".display_definition")
-    logger.info(
-        "View definition: {} ({})".format(
-            definition.identifier, definition.version
-        )
-    )
-
     def _display(item, level=0):
         """Display *mapping*"""
         indent = " "*level
+        if len(indent) > 0:
+            indent += "- "
+
         if isinstance(item, collections.OrderedDict) or isinstance(item, dict):
             for key, value in item.items():
                 if isinstance(value, basestring) or isinstance(value, int):
@@ -745,12 +752,14 @@ def display_definition(definition):
 
         elif isinstance(item, list) or isinstance(item, tuple):
             for _item in item:
-                _display(_item, level=level + 4)
+                _display(_item, level=level)
 
         else:
             print("{}{}".format(indent, item))
 
-    _display(definition.to_ordered_dict())
+    _display(definition.to_ordered_dict(serialize_content=True))
+
+    # Print final blank line.
     print()
 
 
