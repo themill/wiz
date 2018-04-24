@@ -39,7 +39,10 @@ def fetch_definitions(paths, max_depth=None, system_mapping=None):
                     ...
                 },
                 ...
-            }
+            },
+            "registries": [
+                ...
+            ]
         }
 
     *system_mapping* could be a mapping of the current system. By default, the
@@ -49,9 +52,12 @@ def fetch_definitions(paths, max_depth=None, system_mapping=None):
     if system_mapping is None:
         system_mapping = wiz.system.query()
 
-    return wiz.definition.fetch(
+    mapping = wiz.definition.fetch(
         paths, system_mapping=system_mapping, max_depth=max_depth
     )
+
+    mapping["registries"] = paths
+    return mapping
 
 
 def query_definition(
@@ -99,15 +105,39 @@ def query_definition(
         )
 
 
-def query_current_context(definition_mapping, environ_mapping=None):
-    """Return current context mapping from a wiz resolved environment.
+def query_current_registries():
+    """Return registry list used to resolve the current wiz environment.
 
-    The packages identifiers has been encoded into a :envvar:`WIZ_PACKAGES`
+    The list of registries is returned in the original order.
+
+    The registry list has been encoded into a :envvar:`WIZ_REGISTRIES`
+    environment variable during the :func:`context resolution process
+    <resolve_package_context>`
+
+    :exc:`~wiz.exception.RequestNotFound` is raised if the
+    :envvar:`WIZ_REGISTRIES` is not found.
+
+    """
+    encoded_registries = os.environ.get("WIZ_REGISTRIES")
+    if encoded_registries is None:
+        raise wiz.exception.RequestNotFound(
+            "Impossible to retrieve the current context as the 'WIZ_REGISTRIES'"
+            " environment variable is not set. Are you sure you are currently "
+            "in a resolved context?"
+        )
+
+    return wiz.filesystem.decode(encoded_registries)
+
+
+def query_current_packages(definition_mapping=None):
+    """Return package list used to resolve the current wiz environment.
+
+    The list of :class:`wiz.package.Package` instances is returned in the
+    original order, from the least important one to the most important one.
+
+    The packages identifiers have been encoded into a :envvar:`WIZ_PACKAGES`
     environment variable that can be used to retrieve the context from which the
     current environment was resolved.
-
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definitions`.
 
     .. warning::
 
@@ -115,9 +145,9 @@ def query_current_context(definition_mapping, environ_mapping=None):
         environment resolution should be used. If some packages are missing,
         a :exc:`~wiz.exception.WizError` exception will be raised.
 
-
-    *environ_mapping* can be a mapping of environment variables which would
-    be augmented by the resolved environment.
+    *definition_mapping* could be a mapping regrouping all available definitions
+    available. If not provided, a definition mapping will be fetched using the
+    :func:`current registries <query_current_registries>`.
 
     :exc:`~wiz.exception.RequestNotFound` is raised if the
     :envvar:`WIZ_PACKAGES` is not found.
@@ -131,9 +161,30 @@ def query_current_context(definition_mapping, environ_mapping=None):
             "in a resolved context?"
         )
 
-    packages = wiz.package.decode(
+    if definition_mapping is None:
+        definition_mapping = wiz.fetch_definitions(
+            wiz.query_current_registries()
+        )
+
+    return wiz.package.decode(
         encoded_packages, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
     )
+
+
+def query_current_context(definition_mapping=None, environ_mapping=None):
+    """Return context mapping used to resolve the current wiz environment.
+
+    *definition_mapping* is a mapping regrouping all available definitions
+    available. It could be fetched with :func:`fetch_definitions`.
+
+    *environ_mapping* can be a mapping of environment variables which would
+    be augmented by the resolved environment.
+
+    Raises :exc:`~wiz.exception.WizError` if the current packages could not
+    be retrieved.
+
+    """
+    packages = wiz.query_current_packages(definition_mapping)
 
     _environ_mapping = wiz.package.initiate_environ(environ_mapping)
     context = wiz.package.extract_context(
@@ -164,8 +215,8 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
                 ...
             },
             "packages": [
-                {"identifier": "test1==1.1.0", "version": "1.1.0", ...},
-                {"identifier": "test2==0.3.0", "version": "0.3.0", ...},
+                Package(identifier="test1==1.1.0", version="1.1.0"),
+                Package(identifier="test2==0.3.0", version="0.3.0"),
                 ...
             ]
         }
@@ -182,6 +233,7 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
     """
     requirements = map(Requirement, requests)
 
+    registries = definition_mapping["registries"]
     resolver = wiz.graph.Resolver(
         definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
     )
@@ -195,8 +247,11 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
     context["packages"] = packages
 
     # Augment environment with wiz signature
-    context["environ"]["WIZ_VERSION"] = __version__
-    context["environ"]["WIZ_PACKAGES"] = wiz.package.encode(packages)
+    context["environ"] = context["environ"].update({
+        "WIZ_VERSION": __version__,
+        "WIZ_PACKAGES": wiz.package.encode(packages),
+        "WIZ_REGISTRIES": wiz.filesystem.encode(registries)
+    })
     return context
 
 

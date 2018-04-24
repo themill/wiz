@@ -1,19 +1,16 @@
 # :coding: utf-8
 
-import collections
 import re
 import os
-import base64
-import json
 
 import mlog
 from packaging.requirements import Requirement
 
-from wiz import __version__
 import wiz.definition
 import wiz.mapping
 import wiz.symbol
 import wiz.history
+import wiz.filesystem
 import wiz.exception
 
 
@@ -321,8 +318,7 @@ def encode(packages):
     *packages* should be a list of :class:`Package` instances.
 
     """
-    _packages = json.dumps([package.identifier for package in packages])
-    return base64.b64encode(_packages)
+    return wiz.filesystem.encode([package.identifier for package in packages])
 
 
 def decode(encoded_packages, definition_mapping):
@@ -335,7 +331,7 @@ def decode(encoded_packages, definition_mapping):
     associated with their unique identifier.
 
     """
-    package_identifiers = json.loads(base64.b64decode(encoded_packages))
+    package_identifiers = wiz.filesystem.decode(encoded_packages)
 
     # Build definition requirements from package identifiers
     requirements = [

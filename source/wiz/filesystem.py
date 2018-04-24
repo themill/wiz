@@ -6,6 +6,8 @@ import io
 import unicodedata
 import re
 import gzip
+import base64
+import json
 
 try:
     to_unicode = unicode
@@ -59,3 +61,25 @@ def sanitise_value(value, substitution_character="_", case_sensitive=True):
         value = value.lower()
 
     return unicode(value)
+
+
+def encode(element):
+    """Return serialized and encoded *element*.
+
+    *element* is serialized first, then encoded into :term:`base64`.
+
+    Raises :exc:`TypeError` if *element* is not JSON serializable.
+
+    """
+    return base64.b64encode(json.dumps(element))
+
+
+def decode(element):
+    """Return deserialized and decoded *element*.
+
+    *element* is decoded first from :term:`base64`, then deserialized.
+
+    Raises :exc:`TypeError` if *element* cannot be decoded or deserialized..
+
+    """
+    return json.loads(base64.b64decode(element))
