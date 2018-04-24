@@ -70,7 +70,7 @@ class Mapping(collections.Mapping):
         serialized.
 
         """
-        mapping = self.to_dict(serialize_content=serialize_content)
+        mapping = self.to_dict()
         content = collections.OrderedDict()
 
         def _extract(element, _identifier=None):
@@ -91,6 +91,8 @@ class Mapping(collections.Mapping):
                 )
 
             else:
+                if serialize_content:
+                    return str(element)
                 return element
 
         for identifier in self._ordered_identifiers:
