@@ -739,8 +739,6 @@ def display_definition(definition):
     def _display(item, level=0):
         """Display *mapping*"""
         indent = " "*level
-        if len(indent) > 0:
-            indent += "- "
 
         if isinstance(item, collections.OrderedDict) or isinstance(item, dict):
             for key, value in item.items():
@@ -752,7 +750,13 @@ def display_definition(definition):
 
         elif isinstance(item, list) or isinstance(item, tuple):
             for _item in item:
-                _display(_item, level=level)
+                if isinstance(_item, collections.OrderedDict):
+                    print("{}identifier: {}".format(
+                        indent, _item.pop("identifier")
+                    ))
+                    _display(_item, level=level + 4)
+                else:
+                    _display(_item, level=level)
 
         else:
             print("{}{}".format(indent, item))
