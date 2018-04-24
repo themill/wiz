@@ -60,49 +60,53 @@ def fetch_definitions(paths, max_depth=None, system_mapping=None):
     return mapping
 
 
-def query_definition(
-    request, definition_mapping, request_type=wiz.symbol.PACKAGE_REQUEST_TYPE
-):
-    """Return :class:`~wiz.definition.Definition` instance from *request*.
+def fetch_definition(request, definition_mapping):
+    """Return :class:`~wiz.definition.Definition` instance from request.
 
-    *request* should be a string indicating the package version requested to
-    build the context (e.g. ["package >= 1.0.0, < 2"])
+    *request* should be a string indicating the definition requested
+    (e.g. "definition" or "definition >= 1.0.0, < 2").
 
     *definition_mapping* is a mapping regrouping all available definitions
     available. It could be fetched with :func:`fetch_definitions`.
-
-    *request_type* should indicate the type of the request. It should be
-    "command" or "package". Default is "package".
 
     Raises :exc:`wiz.exception.RequestNotFound` is the corresponding definition
     cannot be found.
 
     """
     requirement = Requirement(request)
+    return wiz.definition.query(
+        requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+    )
 
-    if request_type == wiz.symbol.PACKAGE_REQUEST_TYPE:
-        return wiz.definition.query(
-            requirement, definition_mapping[request_type]
-        )
 
-    elif request_type == wiz.symbol.COMMAND_REQUEST_TYPE:
-        if requirement.name not in definition_mapping[request_type].keys():
-            raise wiz.exception.RequestNotFound(
-                "No command named '{}' can be found.".format(requirement.name)
-            )
+def fetch_definition_from_command(command_request, definition_mapping):
+    """Return :class:`~wiz.definition.Definition` instance from command request.
 
-        _requirement = Requirement(
-            definition_mapping[request_type][requirement.name]
-        )
-        _requirement.specifier = requirement.specifier
-        return wiz.definition.query(
-            _requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
-        )
+    *command_request* should be a string indicating the command requested
+    (e.g. "command" or "command >= 1.0.0, < 2").
 
-    else:
+    *definition_mapping* is a mapping regrouping all available definitions
+    available. It could be fetched with :func:`fetch_definitions`.
+
+    Raises :exc:`wiz.exception.RequestNotFound` is the corresponding definition
+    cannot be found.
+
+    """
+    requirement = Requirement(command_request)
+    request_type = wiz.symbol.COMMAND_REQUEST_TYPE
+
+    if requirement.name not in definition_mapping[request_type]:
         raise wiz.exception.RequestNotFound(
-            "The request type is incorrect [{}]".format(request_type)
+            "No command named '{}' can be found.".format(requirement.name)
         )
+
+    _requirement = Requirement(
+        definition_mapping[request_type][requirement.name]
+    )
+    _requirement.specifier = requirement.specifier
+    return wiz.definition.query(
+        _requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+    )
 
 
 def query_current_registries():
