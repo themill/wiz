@@ -247,7 +247,7 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
     context["packages"] = packages
 
     # Augment environment with wiz signature
-    context["environ"] = context["environ"].update({
+    context["environ"].update({
         "WIZ_VERSION": __version__,
         "WIZ_PACKAGES": wiz.package.encode(packages),
         "WIZ_REGISTRIES": wiz.filesystem.encode(registries)
