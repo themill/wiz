@@ -136,9 +136,12 @@ def query_current_context(definition_mapping, environ_mapping=None):
     )
 
     _environ_mapping = wiz.package.initiate_environ(environ_mapping)
-    return wiz.package.extract_context(
+    context = wiz.package.extract_context(
         packages, environ_mapping=_environ_mapping
     )
+
+    context["packages"] = packages
+    return context
 
 
 def resolve_package_context(requests, definition_mapping, environ_mapping=None):

@@ -4,13 +4,21 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: API
+
+        Added packages list to the context mapping retrieved by the
+        :func:`wiz.query_current_context` function.
+
 .. release:: 0.8.1
     :date: 2018-04-23
 
     .. change:: fixed
         :tags: API
 
-        Add missing argument to :func:`wiz.query_current_context` function.
+        Added missing argument to :func:`wiz.query_current_context` function.
 
 .. release:: 0.8.0
     :date: 2018-04-23
