@@ -4,6 +4,28 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: command-line
+
+        Changed the :option:`view <wiz view request>` command line option to
+        only display the full definition if the request is identified as a
+        package definition. If the request is identified as a command, only the
+        corresponding definition identifier is displayed.
+
+    .. change:: changed
+        :tags: API
+
+        Changed :func:`wiz.fetch_definition` to only return definition instance
+        from a package definition request.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.fetch_definition_from_command` to return definition
+        instance from a command request.
+
 .. release:: 0.8.2
     :date: 2018-04-23
 

@@ -54,11 +54,11 @@ def fetch_definitions(paths, max_depth=None, system_mapping=None):
     )
 
 
-def fetch_definition(package_request, definition_mapping):
-    """Return :class:`~wiz.definition.Definition` instance from package request.
+def fetch_definition(request, definition_mapping):
+    """Return :class:`~wiz.definition.Definition` instance from request.
 
-    *package_request* should be a string indicating the package requested to
-    build the context (e.g. ["package >= 1.0.0, < 2"])
+    *request* should be a string indicating the definition requested
+    (e.g. "definition" or "definition >= 1.0.0, < 2").
 
     *definition_mapping* is a mapping regrouping all available definitions
     available. It could be fetched with :func:`fetch_definitions`.
@@ -67,7 +67,7 @@ def fetch_definition(package_request, definition_mapping):
     cannot be found.
 
     """
-    requirement = Requirement(package_request)
+    requirement = Requirement(request)
     return wiz.definition.query(
         requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
     )
@@ -76,8 +76,8 @@ def fetch_definition(package_request, definition_mapping):
 def fetch_definition_from_command(command_request, definition_mapping):
     """Return :class:`~wiz.definition.Definition` instance from command request.
 
-    *command_request* should be a string indicating the command requested to
-    build the context (e.g. ["command >= 1.0.0, < 2"])
+    *command_request* should be a string indicating the command requested
+    (e.g. "command" or "command >= 1.0.0, < 2").
 
     *definition_mapping* is a mapping regrouping all available definitions
     available. It could be fetched with :func:`fetch_definitions`.
