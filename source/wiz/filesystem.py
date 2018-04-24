@@ -8,6 +8,7 @@ import re
 import gzip
 import base64
 import json
+import zlib
 
 try:
     to_unicode = unicode
@@ -71,7 +72,7 @@ def encode(element):
     Raises :exc:`TypeError` if *element* is not JSON serializable.
 
     """
-    return base64.b64encode(json.dumps(element))
+    return base64.b64encode(zlib.compress(json.dumps(element)))
 
 
 def decode(element):
@@ -82,4 +83,4 @@ def decode(element):
     Raises :exc:`TypeError` if *element* cannot be decoded or deserialized..
 
     """
-    return json.loads(base64.b64decode(element))
+    return json.loads(zlib.decompress(base64.b64decode(element)))

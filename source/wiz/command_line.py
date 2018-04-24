@@ -932,7 +932,7 @@ def display_environ_mapping(mapping):
         """Compute value to display."""
         if _variable == "DISPLAY":
             return [value]
-        if _variable == "WIZ_PACKAGES":
+        if _variable == "WIZ_CONTEXT":
             return [value[:50] + "..."]
         return str(value).split(os.pathsep)
 
