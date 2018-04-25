@@ -26,6 +26,20 @@ Release Notes
         Added :func:`wiz.fetch_definition_from_command` to return definition
         instance from a command request.
 
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.version` to build
+        :class:`packaging.version.Version` instances while raising
+        :exc:`wiz.exception.InvalidVersion` exception in case of failure.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.requirement` to build
+        :class:`packaging.requirements.Requirement` instances while raising
+        :exc:`wiz.exception.InvalidRequirement` exception in case of failure.
+
 .. release:: 0.8.2
     :date: 2018-04-23
 
