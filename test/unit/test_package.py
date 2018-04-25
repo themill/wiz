@@ -1,6 +1,5 @@
 # :coding: utf-8
 
-import itertools
 import os
 
 import pytest
@@ -481,12 +480,7 @@ def test_full_package_without_variant():
     assert package.description == "Test definition"
     assert package.command == {"app1": "App1", "app2": "App2"}
     assert package.environ == {"KEY1": "VALUE1", "KEY2": "VALUE2"}
-
-    for requirement_data, requirement in itertools.izip_longest(
-        definition.requirements, package.requirements
-    ):
-        assert isinstance(requirement, Requirement)
-        assert str(requirement) == str(requirement_data)
+    assert package.requirements == definition.requirements
 
 
 def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
@@ -527,12 +521,11 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
     assert package.description == "This is a definition"
     assert package.command == {"APP": "APP_EXE"}
     assert package.environ == {"KEY": "VALUE"}
-
-    for requirement_data, requirement in itertools.izip_longest(
-        ["test1 >= 2", "test2", "test3 >= 1.0, < 2"], package.requirements
-    ):
-        assert isinstance(requirement, Requirement)
-        assert str(requirement) == str(Requirement(requirement_data))
+    assert package.requirements == [
+        Requirement("test1 >= 2"),
+        Requirement("test2"),
+        Requirement("test3 >= 1.0, < 2")
+    ]
 
     mocked_combine_environ.assert_called_once_with(
         "test[Variant1]==0.1.0",

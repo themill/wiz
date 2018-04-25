@@ -692,12 +692,7 @@ def test_definition_with_requirements():
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
-
-    for expected_requirement, requirement in itertools.izip_longest(
-        data["requirements"], definition.requirements
-    ):
-        assert isinstance(requirement, Requirement)
-        assert str(requirement) == str(Requirement(expected_requirement))
+    assert definition.requirements == map(Requirement, data["requirements"])
 
     assert definition.to_ordered_dict(serialize_content=True) == OrderedDict([
         ("identifier", "test"),
@@ -831,15 +826,12 @@ def test_definition_with_variant():
     for variant_data, variant in itertools.izip_longest(
         data["variants"], definition.variants
     ):
-        assert variant_data["identifier"] == variant.identifier
-        assert variant_data.get("environ", {}) == variant.environ
-        assert variant_data.get("command", {}) == variant.command
-
-        for requirement_data, requirement in itertools.izip_longest(
-            variant_data.get("requirements", []), variant.requirements
-        ):
-            assert isinstance(requirement, Requirement)
-            assert str(requirement) == str(Requirement(requirement_data))
+        assert variant.identifier == variant_data["identifier"]
+        assert variant.environ == variant_data.get("environ", {})
+        assert variant.command == variant_data.get("command", {})
+        assert variant.requirements == map(
+            Requirement, variant_data.get("requirements", [])
+        )
 
     assert definition.to_ordered_dict(serialize_content=True) == OrderedDict([
         ("identifier", "test"),

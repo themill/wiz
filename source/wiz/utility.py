@@ -7,7 +7,18 @@ import wiz.exception
 
 
 def _display_requirement(_requirement):
-    """Replace the string conversion for *requirement* to increase readability.
+    """Improve readability when displaying Requirement instance.
+
+    Before::
+
+        >>> Requirement("nuke>=10,<11")
+        <Requirement('nuke<11,>=10')>
+
+    After::
+
+        >>> Requirement("nuke>=10,<11")
+        <Requirement('nuke >=10, <11')>
+
     """
     content = _requirement.name
 
@@ -21,6 +32,29 @@ def _display_requirement(_requirement):
 
 #: Monkeypatch magic method to improve readability of serialized item.
 Requirement.__str__ = _display_requirement
+
+
+def _compare_requirement(_requirement, other):
+    """Improve comparison between Requirement instances.
+
+    Before::
+
+        >>> Requirement("nuke>=10,<11") == Requirement("nuke>=10,<11")
+        False
+
+    After::
+
+        >>> Requirement("nuke>=10,<11") == Requirement("nuke>=10,<11")
+        True
+
+     """
+    if isinstance(other, Requirement):
+        return str(_requirement) == str(other)
+    return False
+
+
+#: Monkeypatch magic method to allow comparison between instances.
+Requirement.__eq__ = _compare_requirement
 
 
 def requirement(content):
