@@ -551,7 +551,7 @@ def _resolve_and_use_context(
     )
 
     try:
-        context = wiz.resolve_package_context(namespace.requests, mapping)
+        context = wiz.resolve_context(namespace.requests, mapping)
 
         # Only view the resolved context without spawning a shell nor
         # running any commands.
@@ -611,7 +611,7 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
     )
 
     try:
-        context = wiz.resolve_command_context(
+        context = wiz.resolve_context_from_command(
             namespace.request, mapping, arguments=command_arguments
         )
 
@@ -663,7 +663,7 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
     )
 
     try:
-        context = wiz.resolve_package_context(namespace.requests, mapping)
+        context = wiz.resolve_context(namespace.requests, mapping)
         identifier = _query_identifier(logger)
 
         if namespace.format == "wiz":

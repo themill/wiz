@@ -4,6 +4,7 @@ import json
 import collections
 import abc
 
+import wiz.utility
 import wiz.symbol
 import wiz.exception
 
@@ -59,7 +60,7 @@ class Mapping(collections.Mapping):
 
         """
         if serialize_content:
-            return _serialize(self._mapping.copy())
+            return wiz.utility.serialize(self._mapping.copy())
 
         return self._mapping.copy()
 
@@ -129,21 +130,3 @@ class Mapping(collections.Mapping):
     def __len__(self):
         """Return count of keys."""
         return len(self._mapping)
-
-
-def _serialize(element):
-    """Return serialized version of *element*.
-
-    *element* can be a of any types (:class:`Mapping`, dict, list, ...)
-
-    """
-    if isinstance(element, list):
-        return [_serialize(item) for item in element]
-
-    elif isinstance(element, dict):
-        return {_id: _serialize(item) for _id, item in element.items()}
-
-    elif isinstance(element, Mapping):
-        return element.to_dict(serialize_content=True)
-
-    return str(element)

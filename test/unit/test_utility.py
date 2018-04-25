@@ -2,7 +2,7 @@
 
 import pytest
 
-import wiz.filesystem
+import wiz.utility
 
 
 @pytest.mark.parametrize("element", [
@@ -24,7 +24,7 @@ import wiz.filesystem
 ])
 def test_encode_and_decode(element):
     """Encode *element* and immediately decode it."""
-    encoded = wiz.filesystem.encode(element)
+    encoded = wiz.utility.encode(element)
     assert isinstance(encoded, basestring)
-    assert element == wiz.filesystem.decode(encoded)
+    assert element == wiz.utility.decode(encoded)
 
