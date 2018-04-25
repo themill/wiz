@@ -2,8 +2,6 @@
 
 import os
 import json
-import collections
-import abc
 
 import mlog
 from packaging.requirements import Requirement, InvalidRequirement
