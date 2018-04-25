@@ -94,7 +94,9 @@ def validate(definition, requests):
 
     """
     # Convert requests into requirements.
-    requirements = [wiz.utility.requirement(request) for request in requests]
+    requirements = [
+        wiz.utility.get_requirement(request) for request in requests
+    ]
     if len(requirements) == 0:
         return False
 
@@ -307,11 +309,11 @@ class Definition(wiz.mapping.Mapping):
 
         try:
             if "version" in mapping.keys():
-                mapping["version"] = wiz.utility.version(mapping["version"])
+                mapping["version"] = wiz.utility.get_version(mapping["version"])
 
             if "requirements" in mapping.keys():
                 mapping["requirements"] = [
-                    wiz.utility.requirement(requirement)
+                    wiz.utility.get_requirement(requirement)
                     for requirement in mapping["requirements"]
                 ]
 
@@ -372,7 +374,7 @@ class _Variant(wiz.mapping.Mapping):
         try:
             if "requirements" in variant.keys():
                 variant["requirements"] = [
-                    wiz.utility.requirement(requirement)
+                    wiz.utility.get_requirement(requirement)
                     for requirement in variant["requirements"]
                 ]
 

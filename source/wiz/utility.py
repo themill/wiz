@@ -57,7 +57,7 @@ def _compare_requirement(_requirement, other):
 Requirement.__eq__ = _compare_requirement
 
 
-def requirement(content):
+def get_requirement(content):
     """Return the corresponding requirement instance from *content*.
 
     The requirement returned is a :class:`packaging.requirements.Requirement`
@@ -79,7 +79,7 @@ def requirement(content):
         )
 
 
-def version(content):
+def get_version(content):
     """Return the corresponding version instance from *content*.
 
     The version returned is a :class:`packaging.version.Version` instance.

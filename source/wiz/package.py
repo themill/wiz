@@ -337,7 +337,7 @@ def decode(encoded_packages, definition_mapping):
 
     # Build definition requirements from package identifiers
     requirements = [
-        wiz.utility.requirement(identifier)
+        wiz.utility.get_requirement(identifier)
         for identifier in package_identifiers
     ]
 

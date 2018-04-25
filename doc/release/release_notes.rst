@@ -29,14 +29,14 @@ Release Notes
     .. change:: new
         :tags: API
 
-        Added :func:`wiz.utility.version` to build
+        Added :func:`wiz.utility.get_version` to build
         :class:`packaging.version.Version` instances while raising
         :exc:`wiz.exception.InvalidVersion` exception in case of failure.
 
     .. change:: new
         :tags: API
 
-        Added :func:`wiz.utility.requirement` to build
+        Added :func:`wiz.utility.get_requirement` to build
         :class:`packaging.requirements.Requirement` instances while raising
         :exc:`wiz.exception.InvalidRequirement` exception in case of failure.
 

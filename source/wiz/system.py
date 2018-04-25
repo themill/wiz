@@ -92,7 +92,7 @@ def query_linux():
         "arch": _platform.machine(),
         "os": {
             "name": distribution,
-            "version": wiz.utility.version(version)
+            "version": wiz.utility.get_version(version)
         }
     }
 
@@ -104,7 +104,7 @@ def query_mac():
         "arch": _platform.machine(),
         "os": {
             "name": "mac",
-            "version": wiz.utility.version(_platform.mac_ver()[0])
+            "version": wiz.utility.get_version(_platform.mac_ver()[0])
         }
     }
 
@@ -130,7 +130,7 @@ def query_windows():
         "arch": _platform.machine(),
         "os": {
             "name": "windows",
-            "version": wiz.utility.version(_platform.win32_ver()[1])
+            "version": wiz.utility.get_version(_platform.win32_ver()[1])
         }
     }
 
@@ -173,7 +173,7 @@ def validate(definition, system_mapping):
     os_system = system.get("os")
     if os_system is not None:
         try:
-            requirement = wiz.utility.requirement(os_system)
+            requirement = wiz.utility.get_requirement(os_system)
         except wiz.exception.InvalidRequirement:
             raise wiz.exception.IncorrectDefinition(
                 "The operating system requirement is incorrect: {}".format(

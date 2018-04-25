@@ -986,7 +986,7 @@ def _query_version(logger, default="0.1.0"):
         content = raw_input() or default
 
         try:
-            version = wiz.utility.version(content)
+            version = wiz.utility.get_version(content)
         except wiz.exception.InvalidVersion as error:
             logger.warning(error)
             continue
