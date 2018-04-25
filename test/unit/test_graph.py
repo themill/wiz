@@ -1,9 +1,8 @@
 # :coding: utf-8
 
 import pytest
-from packaging.requirements import Requirement
-from packaging.version import Version
 
+from wiz.utility import Requirement, Version
 import wiz.graph
 import wiz.package
 import wiz.exception

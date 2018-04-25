@@ -9,7 +9,6 @@ import collections
 import datetime
 
 import mlog
-from packaging.version import Version, InvalidVersion
 
 import wiz.registry
 import wiz.symbol
@@ -19,6 +18,7 @@ import wiz.spawn
 import wiz.exception
 import wiz.filesystem
 import wiz.history
+import wiz.utility
 
 
 def construct_parser():
@@ -983,15 +983,15 @@ def _query_version(logger, default="0.1.0"):
     """Query a version for a resolved context."""
     while True:
         print("Indicate a version [{}]:".format(default), end=" ")
-        version = raw_input() or default
+        content = raw_input() or default
 
         try:
-            Version(version)
-        except InvalidVersion:
-            logger.warning("'{}' is an incorrect version".format(version))
+            version = wiz.utility.get_version(content)
+        except wiz.exception.InvalidVersion as error:
+            logger.warning(error)
             continue
-
-        return version
+        else:
+            return version
 
 
 def _query_command(aliases=None):

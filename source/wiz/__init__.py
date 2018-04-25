@@ -3,8 +3,6 @@
 import shlex
 import os
 
-from packaging.requirements import Requirement
-
 from _version import __version__
 import wiz.definition
 import wiz.package
@@ -14,6 +12,7 @@ import wiz.spawn
 import wiz.system
 import wiz.filesystem
 import wiz.exception
+import wiz.utility
 
 
 def fetch_definitions(paths, max_depth=None, system_mapping=None):
@@ -67,7 +66,7 @@ def fetch_definition(request, definition_mapping):
     cannot be found.
 
     """
-    requirement = Requirement(request)
+    requirement = wiz.utility.requirement(request)
     return wiz.definition.query(
         requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
     )
@@ -86,7 +85,7 @@ def fetch_definition_from_command(command_request, definition_mapping):
     cannot be found.
 
     """
-    requirement = Requirement(command_request)
+    requirement = wiz.utility.requirement(command_request)
     request_type = wiz.symbol.COMMAND_REQUEST_TYPE
 
     if requirement.name not in definition_mapping[request_type]:
@@ -94,7 +93,7 @@ def fetch_definition_from_command(command_request, definition_mapping):
             "No command named '{}' can be found.".format(requirement.name)
         )
 
-    _requirement = Requirement(
+    _requirement = wiz.utility.requirement(
         definition_mapping[request_type][requirement.name]
     )
     _requirement.specifier = requirement.specifier
@@ -184,7 +183,7 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
     be augmented by the resolved environment.
 
     """
-    requirements = map(Requirement, requests)
+    requirements = map(wiz.utility.requirement, requests)
 
     resolver = wiz.graph.Resolver(
         definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
@@ -242,13 +241,13 @@ def resolve_command_context(request, definition_mapping, arguments=None):
     command (e.g. ["--option", "value", "/path/to/script"]).
 
     """
-    requirement = Requirement(request)
+    requirement = wiz.utility.requirement(request)
 
     command = requirement.name
     if arguments is not None:
         command += " ".join(arguments)
 
-    definition_requirement = Requirement(
+    definition_requirement = wiz.utility.requirement(
         definition_mapping[wiz.symbol.COMMAND_REQUEST_TYPE][requirement.name]
     )
     definition_requirement.specifier = requirement.specifier
