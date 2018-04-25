@@ -7,11 +7,10 @@ import json
 import time
 import traceback
 
-from packaging.requirements import Requirement
-from packaging.version import Version
-
 from wiz import __version__
+from wiz.utility import Requirement, Version
 import wiz.symbol
+
 
 #: Indicate whether the history should be recorded.
 _IS_HISTORY_RECORDED = False

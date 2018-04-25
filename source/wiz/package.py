@@ -1,20 +1,18 @@
 # :coding: utf-8
 
-import collections
 import re
 import os
 import base64
 import json
 
 import mlog
-from packaging.requirements import Requirement
 
-from wiz import __version__
 import wiz.definition
 import wiz.mapping
 import wiz.symbol
 import wiz.history
 import wiz.exception
+import wiz.utility
 
 
 def extract(requirement, definition_mapping):
@@ -339,7 +337,8 @@ def decode(encoded_packages, definition_mapping):
 
     # Build definition requirements from package identifiers
     requirements = [
-        Requirement(identifier) for identifier in package_identifiers
+        wiz.utility.requirement(identifier)
+        for identifier in package_identifiers
     ]
 
     # Extract and return each unique package from definition requirements.

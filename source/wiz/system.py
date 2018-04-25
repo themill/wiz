@@ -2,12 +2,10 @@
 
 import platform as _platform
 
-from packaging.requirements import Requirement, InvalidRequirement
-from packaging.version import Version, InvalidVersion
-
 import wiz.exception
 import wiz.symbol
 import wiz.history
+import wiz.utility
 
 
 #: Operating System group mapping
@@ -57,7 +55,7 @@ def query(platform=None, architecture=None, os_name=None, os_version=None):
         else:
             raise wiz.exception.UnsupportedPlatform(name)
 
-    except InvalidVersion as error:
+    except wiz.exception.InvalidVersion as error:
         raise wiz.exception.IncorrectDefinition(
             "The operating system version found seems incorrect [{}]".format(
                 error
@@ -94,7 +92,7 @@ def query_linux():
         "arch": _platform.machine(),
         "os": {
             "name": distribution,
-            "version": Version(version)
+            "version": wiz.utility.version(version)
         }
     }
 
@@ -106,7 +104,7 @@ def query_mac():
         "arch": _platform.machine(),
         "os": {
             "name": "mac",
-            "version": Version(_platform.mac_ver()[0])
+            "version": wiz.utility.version(_platform.mac_ver()[0])
         }
     }
 
@@ -132,7 +130,7 @@ def query_windows():
         "arch": _platform.machine(),
         "os": {
             "name": "windows",
-            "version": Version(_platform.win32_ver()[1])
+            "version": wiz.utility.version(_platform.win32_ver()[1])
         }
     }
 
@@ -175,8 +173,8 @@ def validate(definition, system_mapping):
     os_system = system.get("os")
     if os_system is not None:
         try:
-            requirement = Requirement(os_system)
-        except InvalidRequirement:
+            requirement = wiz.utility.requirement(os_system)
+        except wiz.exception.InvalidRequirement:
             raise wiz.exception.IncorrectDefinition(
                 "The operating system requirement is incorrect: {}".format(
                     os_system

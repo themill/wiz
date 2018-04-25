@@ -2,12 +2,8 @@
 
 import os
 import json
-import collections
-import abc
 
 import mlog
-from packaging.requirements import Requirement, InvalidRequirement
-from packaging.version import Version, InvalidVersion
 
 import wiz.symbol
 import wiz.mapping
@@ -15,22 +11,7 @@ import wiz.filesystem
 import wiz.exception
 import wiz.system
 import wiz.history
-
-
-def _display_requirement(requirement):
-    """Replace the string conversion for *requirement* to increase readability.
-    """
-    content = requirement.name
-
-    if len(requirement.specifier) > 0:
-        content += " " + ", ".join(sorted([
-            str(specifier) for specifier in requirement.specifier
-        ], reverse=True))
-
-    return content
-
-
-Requirement.__str__ = _display_requirement
+import wiz.utility
 
 
 def fetch(paths, requests=None, system_mapping=None, max_depth=None):
@@ -112,17 +93,8 @@ def validate(definition, requests):
     affine the research to a particular version range.
 
     """
-    requirements = []
-
     # Convert requests into requirements.
-    for request in requests:
-        try:
-            requirement = Requirement(request)
-        except InvalidRequirement:
-            continue
-
-        requirements.append(requirement)
-
+    requirements = [wiz.utility.requirement(request) for request in requests]
     if len(requirements) == 0:
         return False
 
@@ -334,22 +306,16 @@ class Definition(wiz.mapping.Mapping):
         mapping = dict(*args, **kwargs)
 
         try:
-            if (
-                "version" in mapping.keys() and
-                not isinstance(mapping["version"], Version)
-            ):
-                mapping["version"] = Version(mapping["version"])
+            if "version" in mapping.keys():
+                mapping["version"] = wiz.utility.version(mapping["version"])
 
-            if (
-                "requirements" in mapping.keys() and
-                not isinstance(mapping["requirements"], Requirement)
-            ):
+            if "requirements" in mapping.keys():
                 mapping["requirements"] = [
-                    Requirement(requirement) for requirement
-                    in mapping["requirements"]
+                    wiz.utility.requirement(requirement)
+                    for requirement in mapping["requirements"]
                 ]
 
-        except InvalidVersion:
+        except wiz.exception.InvalidVersion:
             raise wiz.exception.IncorrectDefinition(
                 "The definition '{identifier}' has an incorrect "
                 "version [{version}]".format(
@@ -358,7 +324,7 @@ class Definition(wiz.mapping.Mapping):
                 )
             )
 
-        except InvalidRequirement as exception:
+        except wiz.exception.InvalidRequirement as exception:
             raise wiz.exception.IncorrectDefinition(
                 "The definition '{identifier}' contains an incorrect "
                 "requirement [{error}]".format(
@@ -406,11 +372,11 @@ class _Variant(wiz.mapping.Mapping):
         try:
             if "requirements" in variant.keys():
                 variant["requirements"] = [
-                    Requirement(requirement) for requirement
-                    in variant["requirements"]
+                    wiz.utility.requirement(requirement)
+                    for requirement in variant["requirements"]
                 ]
 
-        except InvalidRequirement as exception:
+        except wiz.exception.InvalidRequirement as exception:
             raise wiz.exception.IncorrectDefinition(
                 "The definition '{identifier}' [{variant}] contains an "
                 "incorrect requirement [{error}]".format(

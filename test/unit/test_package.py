@@ -4,10 +4,8 @@ import itertools
 import os
 
 import pytest
-from packaging.requirements import Requirement
-from packaging.version import Version
 
-from wiz import __version__
+from wiz.utility import Requirement, Version
 import wiz.package
 import wiz.definition
 import wiz.exception

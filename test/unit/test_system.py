@@ -3,8 +3,8 @@
 import platform
 
 import pytest
-from packaging.version import Version, InvalidVersion
 
+from wiz.utility import Version
 import wiz.system
 import wiz.definition
 import wiz.exception
@@ -93,7 +93,7 @@ def test_query_platform_error(mocked_platform_system):
 def test_query_version_error(mocked_platform_system, mocked_platform_linux):
     """Fails to query system mapping from incorrect os version."""
     mocked_platform_system.return_value = "linux"
-    mocked_platform_linux.side_effect = InvalidVersion
+    mocked_platform_linux.side_effect = wiz.exception.InvalidVersion
 
     with pytest.raises(wiz.exception.IncorrectDefinition):
         wiz.system.query()

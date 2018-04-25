@@ -95,3 +95,15 @@ class GraphResolutionError(WizError):
     """Raise when the environment graph is incorrect."""
 
     default_message = "The environment graph could not be resolved."
+
+
+class InvalidRequirement(WizError):
+    """Raise when a requirement is incorrect."""
+
+    default_message = "The requirement is incorrect."
+
+
+class InvalidVersion(WizError):
+    """Raise when a version is incorrect."""
+
+    default_message = "The version is incorrect."

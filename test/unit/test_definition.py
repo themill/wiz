@@ -7,9 +7,8 @@ from collections import OrderedDict
 import itertools
 
 import pytest
-from packaging.requirements import Requirement
-from packaging.version import Version
 
+from wiz.utility import Requirement, Version
 import wiz.definition
 import wiz.system
 import wiz.exception
@@ -301,7 +300,6 @@ def test_validation_fail(mocked_discover, mocked_validate, definitions):
 
 def test_validate(definitions):
     """Search a specific definition."""
-    assert wiz.definition.validate(definitions[0], [""]) is False
     assert wiz.definition.validate(definitions[0], ["foo"]) is True
     assert wiz.definition.validate(definitions[0], ["foo", "best"]) is False
     assert wiz.definition.validate(definitions[0], ["test"]) is True
@@ -442,10 +440,10 @@ def test_discover_with_max_depth(mocked_load, registries, definitions):
 def test_discover_without_disabled(mocked_load, registries, definitions):
     """Discover and yield definitions without disabled definition."""
     definitions[2] = wiz.definition.Definition(
-        disabled=True, **definitions[2].to_dict()
+        disabled=True, **definitions[2].to_dict(serialize_content=True)
     )
     definitions[4] = wiz.definition.Definition(
-        disabled=True, **definitions[4].to_dict()
+        disabled=True, **definitions[4].to_dict(serialize_content=True)
     )
     mocked_load.side_effect = definitions
 
@@ -900,7 +898,7 @@ def test_definition_with_requirement_error():
 
     assert (
         "IncorrectDefinition: The definition 'test' contains an incorrect "
-        "requirement [Invalid requirement, parse error at \"'-!!!'\"]"
+        "requirement [The requirement 'envA -!!!' is incorrect]"
     ) in str(error)
 
 
@@ -925,5 +923,5 @@ def test_definition_with_variant_requirement_error():
 
     assert (
         "IncorrectDefinition: The definition 'test' [1.0] contains an "
-        "incorrect requirement [Invalid requirement, parse error at \"'-!!!'\"]"
+        "incorrect requirement [The requirement 'envA -!!!' is incorrect]"
     ) in str(error)
