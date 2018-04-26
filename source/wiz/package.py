@@ -9,7 +9,6 @@ import wiz.definition
 import wiz.mapping
 import wiz.symbol
 import wiz.history
-import wiz.filesystem
 import wiz.exception
 
 
