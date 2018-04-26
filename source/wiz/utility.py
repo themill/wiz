@@ -27,6 +27,10 @@ def _display_requirement(_requirement):
     """
     content = _requirement.name
 
+    variant = ",".join(_requirement.extras)
+    if len(variant) > 0:
+        content += "[{}]".format(variant)
+
     if len(_requirement.specifier) > 0:
         content += " " + ", ".join(sorted([
             str(specifier) for specifier in _requirement.specifier
@@ -122,21 +126,3 @@ def decode(element):
 
     """
     return json.loads(zlib.decompress(base64.b64decode(element)))
-
-
-def serialize(element):
-    """Return recursively serialized *element*.
-
-    *element* can be a of any types (:class:`Mapping`, dict, list, ...)
-
-    """
-    if isinstance(element, list):
-        return [serialize(item) for item in element]
-
-    elif isinstance(element, dict):
-        return {_id: serialize(item) for _id, item in element.items()}
-
-    elif isinstance(element, wiz.mapping.Mapping):
-        return element.to_dict(serialize_content=True)
-
-    return str(element)
