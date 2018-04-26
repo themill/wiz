@@ -473,9 +473,10 @@ def _display_definition(namespace, registries, system_mapping):
 
     # Display the corresponding definition if the request is a command.
     try:
-        definition = wiz.fetch_definition_from_command(
+        request = wiz.fetch_package_request_from_command(
             namespace.request, mapping
         )
+        definition = wiz.fetch_definition(request, mapping)
 
     except wiz.exception.RequestNotFound as exception:
         logger.debug(
@@ -611,8 +612,16 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
     )
 
     try:
-        context = wiz.resolve_context_from_command(
-            namespace.request, mapping, arguments=command_arguments
+        requirement = wiz.utility.get_requirement(namespace.request)
+        request = wiz.fetch_package_request_from_command(
+            namespace.request, mapping
+        )
+
+        context = wiz.resolve_context([request], mapping)
+
+        resolved_command = wiz.resolve_command(
+            " ".join(command_arguments or [] + [requirement.name]),
+            context.get("command", {})
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -625,8 +634,7 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
 
         else:
             wiz.spawn.execute(
-                shlex.split(context["resolved_command"]),
-                context["environ"]
+                shlex.split(resolved_command), context["environ"]
             )
 
     except wiz.exception.WizError as error:

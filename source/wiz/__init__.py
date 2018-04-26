@@ -32,9 +32,9 @@ def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
             },
             "package": {
                 "my-app": {
-                    "1.1.0": <Definition(identifier="my-app", version="1.1.0")>,
-                    "1.0.0": <Definition(identifier="my-app", version="1.0.0")>,
-                    "0.1.0": <Definition(identifier="my-app", version="0.1.0")>,
+                    "1.1.0": Definition(identifier="my-app", version="1.1.0"),
+                    "1.0.0": Definition(identifier="my-app", version="1.0.0"),
+                    "0.1.0": Definition(identifier="my-app", version="0.1.0"),
                     ...
                 },
                 ...
@@ -78,36 +78,6 @@ def fetch_definition(request, definition_mapping):
     )
 
 
-def fetch_definition_from_command(command_request, definition_mapping):
-    """Return :class:`~wiz.definition.Definition` instance from command request.
-
-    *command_request* should be a string indicating the command requested
-    (e.g. "command" or "command >= 1.0.0, < 2").
-
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
-
-    Raises :exc:`wiz.exception.RequestNotFound` is the corresponding definition
-    cannot be found.
-
-    """
-    requirement = wiz.utility.get_requirement(command_request)
-    request_type = wiz.symbol.COMMAND_REQUEST_TYPE
-
-    if requirement.name not in definition_mapping[request_type]:
-        raise wiz.exception.RequestNotFound(
-            "No command named '{}' can be found.".format(requirement.name)
-        )
-
-    _requirement = wiz.utility.get_requirement(
-        definition_mapping[request_type][requirement.name]
-    )
-    _requirement.specifier = requirement.specifier
-    return wiz.definition.query(
-        _requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
-    )
-
-
 def fetch_package(request, definition_mapping):
     """Return best matching :class:`~wiz.package.Package` instance from request.
 
@@ -124,15 +94,24 @@ def fetch_package(request, definition_mapping):
     cannot be found.
 
     """
-    packages = wiz.package.extract(request, definition_mapping)
+    requirement = wiz.utility.get_requirement(request)
+    packages = wiz.package.extract(
+        requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+    )
     return packages[0]
 
 
-def fetch_package_from_command(command_request, definition_mapping):
-    """Return best matching :class:`~wiz.package.Package` instance from request.
+def fetch_package_request_from_command(command_request, definition_mapping):
+    """Return package request corresponding to command request.
 
-    If several packages are extracted from *request*, only the first one will be
-    returned.
+    Example::
+
+        >>> definition_mapping = {
+        ...     "command": {"hiero": "nuke"},
+        ...     "package": {"nuke": ...}
+        ... }
+        >>> fetch_package_request_from_command("hiero==10.5.*")
+        nuke==10.5.*
 
     *command_request* should be a string indicating the command requested
     (e.g. "command" or "command >= 1.0.0, < 2").
@@ -140,8 +119,7 @@ def fetch_package_from_command(command_request, definition_mapping):
     *definition_mapping* is a mapping regrouping all available definitions
     available. It could be fetched with :func:`fetch_definition_mapping`.
 
-    Raises :exc:`wiz.exception.RequestNotFound` is the corresponding definition
-    cannot be found.
+    Raises :exc:`wiz.exception.RequestNotFound` is the command cannot be found.
 
     """
     requirement = wiz.utility.get_requirement(command_request)
@@ -157,10 +135,7 @@ def fetch_package_from_command(command_request, definition_mapping):
     )
     _requirement.specifier = requirement.specifier
     _requirement.extras = requirement.extras
-
-    return wiz.definition.query(
-        _requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
-    )
+    return str(_requirement)
 
 
 def resolve_context(requests, definition_mapping, environ_mapping=None):
@@ -228,69 +203,6 @@ def resolve_context(requests, definition_mapping, environ_mapping=None):
     return context
 
 
-def resolve_context_from_command(
-    command_request, definition_mapping, arguments=None
-):
-    """Return context mapping from request.
-
-    The package request is extracted from the *command_request* so that the
-    corresponding package context can be :func:`resolved <resolve_context>`.
-    The resolved command is then computed with the *arguments* and added to the
-    context.
-
-    It should be in the form of::
-
-        {
-            "resolved_command": "AppExe --option value /path/to/script",
-            "command": {
-                "app": "AppExe"
-                ...
-            },
-            "environ": {
-                "KEY1": "value1",
-                "KEY2": "value2",
-                ...
-            },
-            "packages": [
-                {"identifier": "test1==1.1.0", "version": "1.1.0", ...},
-                {"identifier": "test2==0.3.0", "version": "0.3.0", ...},
-                ...
-            ],
-            "registries": [
-                ...
-            ]
-        }
-
-    *request* should be a string indicating the command version requested to
-    build the context (e.g. ["app >= 1.0.0, < 2"]).
-
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
-
-    *arguments* could be a list of all arguments which constitute the resolved
-    command (e.g. ["--option", "value", "/path/to/script"]).
-
-    """
-    requirement = wiz.utility.get_requirement(command_request)
-
-    command = requirement.name
-    if arguments is not None:
-        command += " ".join(arguments)
-
-    definition_requirement = wiz.utility.get_requirement(
-        definition_mapping[wiz.symbol.COMMAND_REQUEST_TYPE][requirement.name]
-    )
-    definition_requirement.specifier = requirement.specifier
-    definition_requirement.extras = requirement.extras
-    package_requests = [str(definition_requirement)]
-
-    context = wiz.resolve_context(package_requests, definition_mapping)
-    context["resolved_command"] = resolve_command(
-        command, context.get("command")
-    )
-    return context
-
-
 def resolve_command(command, command_mapping):
     """Return resolved command from *command* and *command_mapping*.
 
@@ -322,7 +234,7 @@ def resolve_command(command, command_mapping):
     return " ".join(commands)
 
 
-def query_context():
+def discover_context():
     """Return context mapping used to resolve the current wiz environment.
 
     It should be in the form of::
@@ -361,17 +273,11 @@ def query_context():
 
     package_identifiers, registries = wiz.utility.decode(encoded_context)
 
-    # Build definition requirements from package identifiers
-    requirements = [
-        wiz.utility.get_requirement(identifier)
-        for identifier in package_identifiers
-    ]
-
     # Extract and return each unique package from definition requirements.
     definition_mapping = wiz.fetch_definition_mapping(registries)
     packages = [
-        wiz.package.extract(requirement, definition_mapping)[0]
-        for requirement in requirements
+        wiz.fetch_package(identifier, definition_mapping)
+        for identifier in package_identifiers
     ]
 
     return {

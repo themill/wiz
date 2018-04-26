@@ -27,4 +27,3 @@ def test_encode_and_decode(element):
     encoded = wiz.utility.encode(element)
     assert isinstance(encoded, basestring)
     assert element == wiz.utility.decode(encoded)
-
