@@ -4,6 +4,7 @@ import pytest
 from packaging.requirements import Requirement
 
 from wiz._version import __version__
+import wiz
 import wiz.definition
 import wiz.package
 import wiz.system
