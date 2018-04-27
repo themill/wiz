@@ -87,14 +87,16 @@ It is possible to set certain variables for the entire package definition and
 others only for a variant, but they do not resolve inside the same
 definition.
 
-Versions
---------
+Version vs Variant
+------------------
 
-When creating new versions for an application/plugin/library (i.e. "maya 2018"
-vs "maya 2016" or "mtoa-2.1.0" vs "mtoa-2.1.0.1"), create a new package
-definition file and use the ``version`` keyword.
+When creating new versions for a package (i.e. "maya-2018" and "maya-2016",
+"mtoa-2.1.0" and "mtoa-2.1.0.1"), a new package definition file should be
+created. The new version should not be part of the ``identifier``, but instead
+the ``version`` keyword should be used.
 
-Avoid using ``variants`` for versioning.
+Avoid using ``variants`` for versioning. Variants can be very expensive for the
+performance of the graph resolution process.
 
 .. code-block:: json
     :icon: image/prefer.png
@@ -108,17 +110,26 @@ Avoid using ``variants`` for versioning.
     :icon: image/avoid.png
 
     {
+        "identifier": "maya-2018"
+    }
+
+.. code-block:: json
+    :icon: image/avoid.png
+
+    {
         "identifier": "maya",
         "variants": [
             {
                 "identifier": "2018"
+            },
+            {
+                "identifier": "2016"
             }
         ]
     }
 
 Variants should be used only if a different requirement would have to change
-the environment set.
-
+the environment set within a single package version.
 
 .. code-block:: json
     :icon: image/prefer.png
