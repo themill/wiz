@@ -17,28 +17,74 @@ Release Notes
     .. change:: changed
         :tags: API
 
-        Changed :func:`wiz.fetch_definition` to only return definition instance
-        from a package definition request.
+        Renamed :func:`wiz.query_definition` to :func:`wiz.fetch_definition`
+        for consistency.
+
+        To prevent confusion, it now returns definition instance from a
+        package definition request only, not from a command request.
+
+    .. change:: changed
+        :tags: API
+
+        Renamed :func:`wiz.fetch_definitions` function to
+        :func:`wiz.fetch_definition_mapping` for clarity.
+
+        To keep track of the origin of the definitions fetched, the registry
+        paths are now added as a "registries" keyword to the mapping returned.
+
+    .. change:: changed
+        :tags: API
+
+        Renamed :func:`wiz.query_current_context` function to
+        :func:`wiz.discover_context` for clarity.
+
+        To prevent incorrect packages to be fetched from different registries,
+        the original registry list is now stored in a :envvar:`WIZ_CONTEXT`
+        environment variable along with the package identifiers so that a valid
+        definition mapping could be fetched internally.
+
+    .. change:: changed
+        :tags: API
+
+        Renamed :func:`wiz.resolve_package_context` function to
+        :func:`wiz.resolve_context` for consistency.
+
+        To prevent incorrect packages to be fetched from different registries
+        when discovering the context from a resolved environment, the encoded
+        package identifiers are now stored in a :envvar:`WIZ_CONTEXT`
+        environment variable along with the registry list.
+
+    .. change:: changed
+        :tags: API
+
+        Removed :func:`wiz.resolve_command_context` for consistency as the
+        context should be only retrievable with a package request.
 
     .. change:: new
         :tags: API
 
-        Added :func:`wiz.fetch_definition_from_command` to return definition
-        instance from a command request.
+        Added :func:`wiz.fetch_package` to return best matching package instance
+        from a package request.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.fetch_package_request_from_command` to fetch the
+        package request corresponding to a command request.
 
     .. change:: new
         :tags: API
 
         Added :func:`wiz.utility.get_version` to build
-        :class:`packaging.version.Version` instances while raising
-        :exc:`wiz.exception.InvalidVersion` exception in case of failure.
+        :class:`packaging.version.Version` instances while raising a
+        :exc:`~wiz.exception.WizError` exception in case of failure.
 
     .. change:: new
         :tags: API
 
         Added :func:`wiz.utility.get_requirement` to build
-        :class:`packaging.requirements.Requirement` instances while raising
-        :exc:`wiz.exception.InvalidRequirement` exception in case of failure.
+        :class:`packaging.requirements.Requirement` instances while raising a
+        :exc:`~wiz.exception.WizError` exception in case of failure.
 
 .. release:: 0.8.2
     :date: 2018-04-23
