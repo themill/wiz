@@ -240,6 +240,15 @@ def discover_context():
     It should be in the form of::
 
         {
+            "command": {
+                "app": "AppExe"
+                ...
+            },
+            "environ": {
+                "KEY1": "value1",
+                "KEY2": "value2",
+                ...
+            },
             "packages": [
                 Package(identifier="test1==1.1.0", version="1.1.0"),
                 Package(identifier="test2==0.3.0", version="0.3.0"),
@@ -257,7 +266,7 @@ def discover_context():
     .. warning::
 
         The context cannot be retrieved if this function is called
-        outside of a environment resolved with Wiz.
+        outside of a resolved environment.
 
     :exc:`~wiz.exception.RequestNotFound` is raised if the
     :envvar:`WIZ_CONTEXT` is not found.
@@ -280,10 +289,14 @@ def discover_context():
         for identifier in package_identifiers
     ]
 
-    return {
-        "registries": registries,
-        "packages": packages
-    }
+    _environ_mapping = wiz.package.initiate_environ()
+    context = wiz.package.extract_context(
+        packages, environ_mapping=_environ_mapping
+    )
+
+    context["packages"] = packages
+    context["registries"] = registries
+    return context
 
 
 def export_definition(
