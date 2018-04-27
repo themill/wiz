@@ -15,7 +15,7 @@ import wiz.exception
 import wiz.utility
 
 
-def fetch_definitions(paths, max_depth=None, system_mapping=None):
+def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
     """Return mapping from all definitions available under *paths*.
 
     Discover all available definitions under *paths*, searching recursively
@@ -32,13 +32,16 @@ def fetch_definitions(paths, max_depth=None, system_mapping=None):
             },
             "package": {
                 "my-app": {
-                    "1.1.0": <Definition(identifier="my-app", version="1.1.0")>,
-                    "1.0.0": <Definition(identifier="my-app", version="1.0.0")>,
-                    "0.1.0": <Definition(identifier="my-app", version="0.1.0")>,
+                    "1.1.0": Definition(identifier="my-app", version="1.1.0"),
+                    "1.0.0": Definition(identifier="my-app", version="1.0.0"),
+                    "0.1.0": Definition(identifier="my-app", version="0.1.0"),
                     ...
                 },
                 ...
-            }
+            },
+            "registries": [
+                ...
+            ]
         }
 
     *system_mapping* could be a mapping of the current system. By default, the
@@ -48,9 +51,12 @@ def fetch_definitions(paths, max_depth=None, system_mapping=None):
     if system_mapping is None:
         system_mapping = wiz.system.query()
 
-    return wiz.definition.fetch(
+    mapping = wiz.definition.fetch(
         paths, system_mapping=system_mapping, max_depth=max_depth
     )
+
+    mapping["registries"] = paths
+    return mapping
 
 
 def fetch_definition(request, definition_mapping):
@@ -60,32 +66,63 @@ def fetch_definition(request, definition_mapping):
     (e.g. "definition" or "definition >= 1.0.0, < 2").
 
     *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definitions`.
+    available. It could be fetched with :func:`fetch_definition_mapping`.
 
     Raises :exc:`wiz.exception.RequestNotFound` is the corresponding definition
     cannot be found.
 
     """
-    requirement = wiz.utility.requirement(request)
+    requirement = wiz.utility.get_requirement(request)
     return wiz.definition.query(
         requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
     )
 
 
-def fetch_definition_from_command(command_request, definition_mapping):
-    """Return :class:`~wiz.definition.Definition` instance from command request.
+def fetch_package(request, definition_mapping):
+    """Return best matching :class:`~wiz.package.Package` instance from request.
 
-    *command_request* should be a string indicating the command requested
-    (e.g. "command" or "command >= 1.0.0, < 2").
+    If several packages are extracted from *request*, only the first one will be
+    returned.
+
+    *request* should be a string indicating the package requested
+    (e.g. "package" or "package[Variant] >= 1.0.0, < 2").
 
     *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definitions`.
+    available. It could be fetched with :func:`fetch_definition_mapping`.
 
     Raises :exc:`wiz.exception.RequestNotFound` is the corresponding definition
     cannot be found.
 
     """
-    requirement = wiz.utility.requirement(command_request)
+    requirement = wiz.utility.get_requirement(request)
+    packages = wiz.package.extract(
+        requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+    )
+    return packages[0]
+
+
+def fetch_package_request_from_command(command_request, definition_mapping):
+    """Return package request corresponding to command request.
+
+    Example::
+
+        >>> definition_mapping = {
+        ...     "command": {"hiero": "nuke"},
+        ...     "package": {"nuke": ...}
+        ... }
+        >>> fetch_package_request_from_command("hiero==10.5.*")
+        nuke==10.5.*
+
+    *command_request* should be a string indicating the command requested
+    (e.g. "command" or "command >= 1.0.0, < 2").
+
+    *definition_mapping* is a mapping regrouping all available definitions
+    available. It could be fetched with :func:`fetch_definition_mapping`.
+
+    Raises :exc:`wiz.exception.RequestNotFound` is the command cannot be found.
+
+    """
+    requirement = wiz.utility.get_requirement(command_request)
     request_type = wiz.symbol.COMMAND_REQUEST_TYPE
 
     if requirement.name not in definition_mapping[request_type]:
@@ -93,62 +130,16 @@ def fetch_definition_from_command(command_request, definition_mapping):
             "No command named '{}' can be found.".format(requirement.name)
         )
 
-    _requirement = wiz.utility.requirement(
+    _requirement = wiz.utility.get_requirement(
         definition_mapping[request_type][requirement.name]
     )
     _requirement.specifier = requirement.specifier
-    return wiz.definition.query(
-        _requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
-    )
+    _requirement.extras = requirement.extras
+    return str(_requirement)
 
 
-def query_current_context(definition_mapping, environ_mapping=None):
-    """Return current context mapping from a wiz resolved environment.
-
-    The packages identifiers has been encoded into a :envvar:`WIZ_PACKAGES`
-    environment variable that can be used to retrieve the context from which the
-    current environment was resolved.
-
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definitions`.
-
-    .. warning::
-
-        For an optimal result, the same definition mapping used for the current
-        environment resolution should be used. If some packages are missing,
-        a :exc:`~wiz.exception.WizError` exception will be raised.
-
-
-    *environ_mapping* can be a mapping of environment variables which would
-    be augmented by the resolved environment.
-
-    :exc:`~wiz.exception.RequestNotFound` is raised if the
-    :envvar:`WIZ_PACKAGES` is not found.
-
-    """
-    encoded_packages = os.environ.get("WIZ_PACKAGES")
-    if encoded_packages is None:
-        raise wiz.exception.RequestNotFound(
-            "Impossible to retrieve the current context as the 'WIZ_PACKAGES' "
-            "environment variable is not set. Are you sure you are currently "
-            "in a resolved context?"
-        )
-
-    packages = wiz.package.decode(
-        encoded_packages, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
-    )
-
-    _environ_mapping = wiz.package.initiate_environ(environ_mapping)
-    context = wiz.package.extract_context(
-        packages, environ_mapping=_environ_mapping
-    )
-
-    context["packages"] = packages
-    return context
-
-
-def resolve_package_context(requests, definition_mapping, environ_mapping=None):
-    """Return package context mapping from *requests*.
+def resolve_context(requests, definition_mapping, environ_mapping=None):
+    """Return context mapping from *requests*.
 
     The context should contain the resolved environment mapping, the
     resolved command mapping, and an ordered list of all serialized packages
@@ -167,8 +158,11 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
                 ...
             },
             "packages": [
-                {"identifier": "test1==1.1.0", "version": "1.1.0", ...},
-                {"identifier": "test2==0.3.0", "version": "0.3.0", ...},
+                Package(identifier="test1==1.1.0", version="1.1.0"),
+                Package(identifier="test2==0.3.0", version="0.3.0"),
+                ...
+            ],
+            "registries": [
                 ...
             ]
         }
@@ -177,14 +171,15 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
     requested to build the context (e.g. ["package >= 1.0.0, < 2"])
 
     *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definitions`.
+    available. It could be fetched with :func:`fetch_definition_mapping`.
 
     *environ_mapping* can be a mapping of environment variables which would
     be augmented by the resolved environment.
 
     """
-    requirements = map(wiz.utility.requirement, requests)
+    requirements = map(wiz.utility.get_requirement, requests)
 
+    registries = definition_mapping["registries"]
     resolver = wiz.graph.Resolver(
         definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
     )
@@ -196,68 +191,15 @@ def resolve_package_context(requests, definition_mapping, environ_mapping=None):
     )
 
     context["packages"] = packages
+    context["registries"] = registries
 
-    # Augment environment with wiz signature
-    context["environ"]["WIZ_VERSION"] = __version__
-    context["environ"]["WIZ_PACKAGES"] = wiz.package.encode(packages)
-    return context
-
-
-def resolve_command_context(request, definition_mapping, arguments=None):
-    """Return command context mapping from *request*.
-
-    The package request is extracted from the *command_request* so that the
-    corresponding package context can be
-    :func:`resolved <resolve_package_context>`. The resolved command is then
-    computed with the *arguments* and added to the context.
-
-    It should be in the form of::
-
-        {
-            "resolved_command": "AppExe --option value /path/to/script",
-            "command": {
-                "app": "AppExe"
-                ...
-            },
-            "environ": {
-                "KEY1": "value1",
-                "KEY2": "value2",
-                ...
-            },
-            "packages": [
-                {"identifier": "test1==1.1.0", "version": "1.1.0", ...},
-                {"identifier": "test2==0.3.0", "version": "0.3.0", ...},
-                ...
-            ]
-        }
-
-    *request* should be a string indicating the command version requested to
-    build the context (e.g. ["app >= 1.0.0, < 2"]).
-
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definitions`.
-
-    *arguments* could be a list of all arguments which constitute the resolved
-    command (e.g. ["--option", "value", "/path/to/script"]).
-
-    """
-    requirement = wiz.utility.requirement(request)
-
-    command = requirement.name
-    if arguments is not None:
-        command += " ".join(arguments)
-
-    definition_requirement = wiz.utility.requirement(
-        definition_mapping[wiz.symbol.COMMAND_REQUEST_TYPE][requirement.name]
-    )
-    definition_requirement.specifier = requirement.specifier
-    definition_requirement.extras = requirement.extras
-    package_requests = [str(definition_requirement)]
-
-    context = wiz.resolve_package_context(package_requests, definition_mapping)
-    context["resolved_command"] = resolve_command(
-        command, context.get("command")
-    )
+    # Augment context environment with wiz signature
+    context["environ"].update({
+        "WIZ_VERSION": __version__,
+        "WIZ_CONTEXT": wiz.utility.encode([
+            [_package.identifier for _package in packages], registries
+        ])
+    })
     return context
 
 
@@ -292,6 +234,58 @@ def resolve_command(command, command_mapping):
     return " ".join(commands)
 
 
+def discover_context():
+    """Return context mapping used to resolve the current wiz environment.
+
+    It should be in the form of::
+
+        {
+            "packages": [
+                Package(identifier="test1==1.1.0", version="1.1.0"),
+                Package(identifier="test2==0.3.0", version="0.3.0"),
+                ...
+            ],
+            "registries": [
+                ...
+            ]
+        }
+
+    The context should have been encoded into a :envvar:`WIZ_CONTEXT`
+    environment variable that can be used to retrieve the list of registries and
+    packages from which the current environment was resolved.
+
+    .. warning::
+
+        The context cannot be retrieved if this function is called
+        outside of a environment resolved with Wiz.
+
+    :exc:`~wiz.exception.RequestNotFound` is raised if the
+    :envvar:`WIZ_CONTEXT` is not found.
+
+    """
+    encoded_context = os.environ.get("WIZ_CONTEXT")
+    if encoded_context is None:
+        raise wiz.exception.RequestNotFound(
+            "Impossible to retrieve the current context as the 'WIZ_CONTEXT' "
+            "environment variable is not set. Are you sure you are currently "
+            "in a resolved environment?"
+        )
+
+    package_identifiers, registries = wiz.utility.decode(encoded_context)
+
+    # Extract and return each unique package from definition requirements.
+    definition_mapping = wiz.fetch_definition_mapping(registries)
+    packages = [
+        wiz.fetch_package(identifier, definition_mapping)
+        for identifier in package_identifiers
+    ]
+
+    return {
+        "registries": registries,
+        "packages": packages
+    }
+
+
 def export_definition(
     path, identifier, description, version=None, command_mapping=None,
     environ_mapping=None, packages=None,
@@ -300,9 +294,9 @@ def export_definition(
 
     It could be used as follow::
 
-        >>> definition_mapping = wiz.fetch_definitions("/path/to/registry")
-        >>> context = wiz.resolve_package_context(
-        ...     ["my-package >=1, <2"], definition_mapping
+        >>> mapping = wiz.fetch_definition_mapping("/path/to/registry")
+        >>> context = wiz.resolve_context(
+        ...     ["my-package >=1, <2"], mapping
         ... )
         >>> wiz.export_definition(
         ...    "/path/to/output", "new-definition",

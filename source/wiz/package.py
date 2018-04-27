@@ -2,8 +2,6 @@
 
 import re
 import os
-import base64
-import json
 
 import mlog
 
@@ -12,7 +10,6 @@ import wiz.mapping
 import wiz.symbol
 import wiz.history
 import wiz.exception
-import wiz.utility
 
 
 def extract(requirement, definition_mapping):
@@ -311,41 +308,6 @@ def initiate_environ(mapping=None):
         environ.update(**mapping)
 
     return environ
-
-
-def encode(packages):
-    """Encode *packages* identifiers into :term:`base64` and return it.
-
-    *packages* should be a list of :class:`Package` instances.
-
-    """
-    _packages = json.dumps([package.identifier for package in packages])
-    return base64.b64encode(_packages)
-
-
-def decode(encoded_packages, definition_mapping):
-    """Return decoded :class:`Package` instances from *encoded_packages*.
-
-    *encoded_packages* should be serialized package identifiers encoded in
-    :mod:`base64`. The :func:`encode` function could be used to encode packages.
-
-    *definition_mapping* is a mapping regrouping all available definitions
-    associated with their unique identifier.
-
-    """
-    package_identifiers = json.loads(base64.b64decode(encoded_packages))
-
-    # Build definition requirements from package identifiers
-    requirements = [
-        wiz.utility.get_requirement(identifier)
-        for identifier in package_identifiers
-    ]
-
-    # Extract and return each unique package from definition requirements.
-    return [
-        extract(requirement, definition_mapping)[0]
-        for requirement in requirements
-    ]
 
 
 def _generate_identifier(definition, variant):

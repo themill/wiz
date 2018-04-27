@@ -1,8 +1,13 @@
 # :coding: utf-8
 
+import base64
+import json
+import zlib
+
 from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
+import wiz.mapping
 import wiz.exception
 
 
@@ -21,6 +26,10 @@ def _display_requirement(_requirement):
 
     """
     content = _requirement.name
+
+    variant = ",".join(_requirement.extras)
+    if len(variant) > 0:
+        content += "[{}]".format(variant)
 
     if len(_requirement.specifier) > 0:
         content += " " + ", ".join(sorted([
@@ -95,3 +104,25 @@ def get_version(content):
         raise wiz.exception.InvalidVersion(
             "The version '{}' is incorrect".format(content)
         )
+
+
+def encode(element):
+    """Return serialized and encoded *element*.
+
+    *element* is serialized first, then encoded into :term:`base64`.
+
+    Raises :exc:`TypeError` if *element* is not JSON serializable.
+
+    """
+    return base64.b64encode(zlib.compress(json.dumps(element)))
+
+
+def decode(element):
+    """Return deserialized and decoded *element*.
+
+    *element* is decoded first from :term:`base64`, then deserialized.
+
+    Raises :exc:`TypeError` if *element* cannot be decoded or deserialized..
+
+    """
+    return json.loads(zlib.decompress(base64.b64decode(element)))

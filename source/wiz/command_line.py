@@ -359,7 +359,7 @@ def _fetch_and_display_definitions(namespace, registries, system_mapping):
     retrieved via :func:`wiz.system.query`.
 
     """
-    mapping = wiz.fetch_definitions(
+    mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
@@ -463,7 +463,7 @@ def _display_definition(namespace, registries, system_mapping):
     """
     logger = mlog.Logger(__name__ + "._display_definition")
 
-    mapping = wiz.fetch_definitions(
+    mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
@@ -473,9 +473,10 @@ def _display_definition(namespace, registries, system_mapping):
 
     # Display the corresponding definition if the request is a command.
     try:
-        definition = wiz.fetch_definition_from_command(
+        request = wiz.fetch_package_request_from_command(
             namespace.request, mapping
         )
+        definition = wiz.fetch_definition(request, mapping)
 
     except wiz.exception.RequestNotFound as exception:
         logger.debug(
@@ -544,14 +545,14 @@ def _resolve_and_use_context(
     """
     logger = mlog.Logger(__name__ + "._resolve_and_use_context")
 
-    mapping = wiz.fetch_definitions(
+    mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
     )
 
     try:
-        context = wiz.resolve_package_context(namespace.requests, mapping)
+        context = wiz.resolve_context(namespace.requests, mapping)
 
         # Only view the resolved context without spawning a shell nor
         # running any commands.
@@ -604,15 +605,23 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
     """
     logger = mlog.Logger(__name__ + "._run_command")
 
-    mapping = wiz.fetch_definitions(
+    mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
     )
 
     try:
-        context = wiz.resolve_command_context(
-            namespace.request, mapping, arguments=command_arguments
+        requirement = wiz.utility.get_requirement(namespace.request)
+        request = wiz.fetch_package_request_from_command(
+            namespace.request, mapping
+        )
+
+        context = wiz.resolve_context([request], mapping)
+
+        resolved_command = wiz.resolve_command(
+            " ".join([requirement.name] + command_arguments or []),
+            context.get("command", {})
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -625,8 +634,7 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
 
         else:
             wiz.spawn.execute(
-                shlex.split(context["resolved_command"]),
-                context["environ"]
+                shlex.split(resolved_command), context["environ"]
             )
 
     except wiz.exception.WizError as error:
@@ -656,14 +664,14 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
     """
     logger = mlog.Logger(__name__ + "._freeze_and_export_resolved_context")
 
-    mapping = wiz.fetch_definitions(
+    mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
         max_depth=namespace.definition_search_depth
     )
 
     try:
-        context = wiz.resolve_package_context(namespace.requests, mapping)
+        context = wiz.resolve_context(namespace.requests, mapping)
         identifier = _query_identifier(logger)
 
         if namespace.format == "wiz":
@@ -932,7 +940,7 @@ def display_environ_mapping(mapping):
         """Compute value to display."""
         if _variable == "DISPLAY":
             return [value]
-        if _variable == "WIZ_PACKAGES":
+        if _variable == "WIZ_CONTEXT":
             return [value[:50] + "..."]
         return str(value).split(os.pathsep)
 
