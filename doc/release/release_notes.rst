@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: API
+
+        Changed :func:`wiz.discover_context` to add the resolved environment and
+        command mappings to the context mapping returned.
+
 .. release:: 0.9.0
     :date: 2018-04-26
 
