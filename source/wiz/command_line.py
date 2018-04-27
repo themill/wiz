@@ -620,7 +620,7 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
         context = wiz.resolve_context([request], mapping)
 
         resolved_command = wiz.resolve_command(
-            " ".join([requirement.name] + command_arguments or []),
+            " ".join([requirement.name] + (command_arguments or [])),
             context.get("command", {})
         )
 
