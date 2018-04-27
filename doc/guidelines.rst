@@ -101,7 +101,7 @@ Avoid using ``variants`` for versioning.
 
     {
         "identifier": "maya",
-        "version": "2018",
+        "version": "2018"
     }
 
 .. code-block:: json
@@ -113,6 +113,7 @@ Avoid using ``variants`` for versioning.
             {
                 "identifier": "2018"
             }
+        ]
     }
 
 Variants should be used only if a different requirement would have to change
@@ -129,7 +130,7 @@ the environment set.
             {
                 "identifier": "2018",
                 "environ": {
-                    ...
+                    "key": "value1"
                 },
                 "requirements": [
                     "maya >= 2018 ,< 2019"
@@ -138,7 +139,7 @@ the environment set.
             {
                 "identifier": "2016",
                 "environ": {
-                    ...
+                    "key": "value2"
                 },
                 "requirements": [
                     "maya >= 2016 ,< 2017"
@@ -151,10 +152,10 @@ the environment set.
     :icon: image/avoid.png
 
     {
-        "identifier": "mtoa",
+        "identifier": "mtoa-2018",
         "version": "2.1.0",
         "environ": {
-            ...
+            "key": "value"
         },
         "requirements": [
             "maya >= 2018 ,< 2019"
