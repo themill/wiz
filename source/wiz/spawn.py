@@ -79,7 +79,7 @@ def execute(commands, environment):
         commands,
         preexec_fn=os.setsid,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         universal_newlines=True,
         env=environment
     )
