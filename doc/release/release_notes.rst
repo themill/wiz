@@ -6,6 +6,32 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.fetch_package` to return best matching package instance
+        from a package request.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.fetch_package_request_from_command` to fetch the
+        package request corresponding to a command request.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.get_version` to build
+        :class:`packaging.version.Version` instances while raising a
+        :exc:`~wiz.exception.WizError` exception in case of failure.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.get_requirement` to build
+        :class:`packaging.requirements.Requirement` instances while raising a
+        :exc:`~wiz.exception.WizError` exception in case of failure.
+
     .. change:: changed
         :tags: command-line
 
@@ -59,32 +85,6 @@ Release Notes
 
         Removed :func:`wiz.resolve_command_context` for consistency as the
         context should be only retrievable with a package request.
-
-    .. change:: new
-        :tags: API
-
-        Added :func:`wiz.fetch_package` to return best matching package instance
-        from a package request.
-
-    .. change:: new
-        :tags: API
-
-        Added :func:`wiz.fetch_package_request_from_command` to fetch the
-        package request corresponding to a command request.
-
-    .. change:: new
-        :tags: API
-
-        Added :func:`wiz.utility.get_version` to build
-        :class:`packaging.version.Version` instances while raising a
-        :exc:`~wiz.exception.WizError` exception in case of failure.
-
-    .. change:: new
-        :tags: API
-
-        Added :func:`wiz.utility.get_requirement` to build
-        :class:`packaging.requirements.Requirement` instances while raising a
-        :exc:`~wiz.exception.WizError` exception in case of failure.
 
 .. release:: 0.8.2
     :date: 2018-04-23
