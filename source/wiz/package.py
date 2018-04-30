@@ -223,7 +223,7 @@ def combine_command_mapping(package_identifier, mapping1, mapping2):
         value2 = mapping2.get(command)
 
         if value1 is not None and value2 is not None:
-            logger.warning(
+            logger.debug(
                 "The '{key}' command is being overridden "
                 "in '{identifier}'".format(
                     key=command, identifier=package_identifier

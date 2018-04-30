@@ -4,6 +4,17 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: logging
+
+        Changed :func:`wiz.package.combine_command_mapping` to display a debug
+        message instead of a warning message when a command from a package
+        definition is being overridden in another package definition. As
+        commands are being overridden for basically every usage (e.g. to add
+        plugins to an application), this created confusion for the user.
+
 .. release:: 0.9.1
     :date: 2018-04-27
 
