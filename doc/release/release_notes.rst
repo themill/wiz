@@ -4,7 +4,8 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 0.9.2
+    :date: 2018-04-30
 
     .. change:: changed
         :tags: logging
