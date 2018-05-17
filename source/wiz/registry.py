@@ -17,7 +17,7 @@ def get_defaults():
     return [
         os.path.join(server_root, "registry", "primary"),
         os.path.join(server_root, "registry", "secondary"),
-        os.path.join(os.sep, "jobs", "ads", ".wiz", "registry")
+        os.path.join(os.sep, "jobs", ".common", ".wiz", "registry")
     ]
 
 
