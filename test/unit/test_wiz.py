@@ -258,7 +258,7 @@ def test_resolve_command():
 
 def test_discover_context(
     monkeypatch, mocked_utility_decode, mocked_fetch_definition_mapping,
-    mocked_fetch_package
+    mocked_fetch_package, mocked_package_initiate_environ
 ):
     """Discover context from environment variable."""
     monkeypatch.setenv("WIZ_CONTEXT", "__CONTEXT__")
@@ -267,12 +267,20 @@ def test_discover_context(
     package_identifiers = ["package1==0.1.2", "package2==1.0.2"]
     mocked_utility_decode.return_value = [package_identifiers, paths]
     mocked_fetch_definition_mapping.return_value = "__DEFINITION_MAPPING__"
-    mocked_fetch_package.side_effect = ["PACKAGE1", "PACKAGE2"]
+    mocked_fetch_package.side_effect = [
+        {"identifier": "package1==0.1.2"}, {"identifier": "package2==1.0.2"}
+    ]
+    mocked_package_initiate_environ.return_value = {"KEY": "VALUE"}
 
     result = wiz.discover_context()
     assert result == {
         "registries": paths,
-        "packages": ["PACKAGE1", "PACKAGE2"]
+        "command": {},
+        "environ": {"KEY": "VALUE"},
+        "packages": [
+            {"identifier": "package1==0.1.2"},
+            {"identifier": "package2==1.0.2"}
+        ]
     }
 
     mocked_utility_decode.assert_called_once_with("__CONTEXT__")
