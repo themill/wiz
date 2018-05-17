@@ -5,23 +5,18 @@ import os
 
 def get_local():
     """Return the local registry if available."""
-    registry_path = os.path.join(
-        os.path.expanduser("~"), ".wiz", "registry"
-    )
-
+    registry_path = os.path.join(os.path.expanduser("~"), ".wiz", "registry")
     if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
         return registry_path
 
 
 def get_defaults():
     """Return the default registries."""
+    server_root = os.path.join(os.sep, "mill3d", "server", "apps", "WIZ")
+
     return [
-        os.path.join(
-            os.sep, "mill3d", "server", "apps", "WIZ", "registry", "primary"
-        ),
-        os.path.join(
-            os.sep, "mill3d", "server", "apps", "WIZ", "registry", "secondary"
-        ),
+        os.path.join(server_root, "registry", "primary"),
+        os.path.join(server_root, "registry", "secondary"),
         os.path.join(os.sep, "jobs", "ads", ".wiz", "registry")
     ]
 
