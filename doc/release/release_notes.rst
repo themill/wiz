@@ -4,6 +4,13 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+
+        Changed :func:`wiz.registry.discover` to yield all registry folders
+        available within the path folder hierarchy if under :file:`/jobs/ads`
+
 .. release:: 0.9.2
     :date: 2018-04-30
 

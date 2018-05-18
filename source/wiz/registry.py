@@ -29,7 +29,7 @@ def fetch(paths, include_local=True, include_working_directory=True):
     *include_local* indicates whether the local registry should be included.
 
     *include_working_directory* indicates whether the current working directory
-    should be parsed to discover a registry.
+    should be parsed to discover registry folders.
 
     """
     registries = []
@@ -51,7 +51,7 @@ def fetch(paths, include_local=True, include_working_directory=True):
 
 
 def discover(path):
-    """Yield available registry folders from *path*.
+    """Yield available registry folders from *path* folder hierarchy.
 
     Each folder constituting the hierarchy of *path* are parsed so that
     existing :file:`.common/wiz/registry` folders can be yield from the deepest
