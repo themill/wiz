@@ -35,7 +35,7 @@ def fetch(paths, include_local=True, include_working_directory=True):
     registries = []
 
     for path in paths:
-        if not os.path.isdir(path) and not os.access(path, os.R_OK):
+        if not wiz.filesystem.is_accessible(path):
             continue
         registries.append(path)
 
