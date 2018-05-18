@@ -62,7 +62,7 @@ def discover(path):
         >>> list(discover("/jobs/ads/project/identity/shot"))
         [
             "/jobs/ads/project/.common/wiz/registry",
-            "/jobs/ads/project/identity/shot.common/wiz/registry"
+            "/jobs/ads/project/identity/shot/.common/wiz/registry"
         ]
 
     .. important::
