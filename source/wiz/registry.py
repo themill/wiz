@@ -2,6 +2,8 @@
 
 import os
 
+import wiz.filesystem
+
 
 def get_local():
     """Return the local registry if available."""
@@ -17,7 +19,7 @@ def get_defaults():
     return [
         os.path.join(server_root, "registry", "primary"),
         os.path.join(server_root, "registry", "secondary"),
-        os.path.join(os.sep, "jobs", ".common", ".wiz", "registry")
+        os.path.join(os.sep, "jobs", ".common", "wiz", "registry")
     ]
 
 
@@ -38,8 +40,7 @@ def fetch(paths, include_local=True, include_working_directory=True):
         registries.append(path)
 
     if include_working_directory:
-        registry_path = discover(os.getcwd())
-        if registry_path:
+        for registry_path in discover(os.getcwd()):
             registries.append(registry_path)
 
     registry_path = get_local()
@@ -50,17 +51,23 @@ def fetch(paths, include_local=True, include_working_directory=True):
 
 
 def discover(path):
-    """Return registry from *path* if available under the folder structure.
+    """Yield available registry folders from *path*.
 
-    The registry path should be a :file:`.wiz/registry` folder within *path*.
+    Each folder constituting the hierarchy of *path* are parsed so that
+    existing :file:`.common/wiz/registry` folders can be yield from the deepest
+    to the closest.
 
-    Return the registry path discovered, or None if the folder is not found
-    or not accessible.
+    Example::
 
-    .. note::
+        >>> list(discover("/jobs/ads/project/identity/shot"))
+        [
+            "/jobs/ads/project/.common/wiz/registry",
+            "/jobs/ads/project/identity/shot.common/wiz/registry"
+        ]
 
-        No registry folder will be fetched if *path* is not under
-        :file:`/jobs/ads`.
+    .. important::
+
+        Registry folders can be discovered only under :file:`/jobs/ads`.
 
     """
     path = os.path.abspath(path)
@@ -70,6 +77,9 @@ def discover(path):
     if not path.startswith(prefix):
         return
 
-    registry_path = os.path.join(path, ".wiz", "registry")
-    if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
-        return registry_path
+    for folder in path.split(os.sep)[3:]:
+        prefix = os.path.join(prefix, folder)
+        registry_path = os.path.join(prefix, ".common", "wiz", "registry")
+
+        if wiz.filesystem.is_accessible(registry_path):
+            yield registry_path

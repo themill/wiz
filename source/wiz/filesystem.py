@@ -26,6 +26,11 @@ def export(path, content, compressed=False):
             outfile.write(to_unicode(content))
 
 
+def is_accessible(folder_path):
+    """Indicate whether the *folder_path* is accessible."""
+    return os.path.isdir(folder_path) and os.access(folder_path, os.R_OK)
+
+
 def ensure_directory(path):
     """Ensure directory exists at *path*."""
     try:
