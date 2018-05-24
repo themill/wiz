@@ -24,8 +24,8 @@ displayed in the output like this.
 
 .. code-block:: console
 
-    [0] /Users/jeremyr/dev/rnd/wiz-registry/primary-registry
-    [1] /Users/jeremyr/dev/rnd/wiz-registry/secondary-registry
+    [0] /mill3d/server/apps/WIZ/registry/primary/default
+    [1] /mill3d/server/apps/WIZ/registry/secondary/default
     [2] /Users/jeremyr/.wiz/registry
 
 
@@ -67,7 +67,7 @@ The site registries contain site-specific package definitions, useful
 for a single site only (e.g. houdini hsite, site specific environment
 variables).
 
-It is available in :file:`/jobs/ads/.wiz/registry`.
+It is available in :file:`/jobs/.common/wiz/registry`.
 
 .. _registry/project:
 
@@ -77,7 +77,9 @@ Project registries
 The project registries contain project-specific package definitions (e.g.
 containing TD tools currently added via the TDSVN tools). It is parsed depending
 on the current directory when running the package manager tool and is located
-within a project structure (under :file:`/jobs/ads/`).
+within a project structure under a :file:`.common/wiz/registry` sub-folder.
+
+Project registries can only be discovered under :file:`/jobs/ads/`.
 
 .. _registry/personal:
 

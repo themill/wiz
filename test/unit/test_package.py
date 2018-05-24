@@ -401,36 +401,27 @@ def test_combine_environ_mapping(logger, mapping1, mapping2, expected, warning):
         )
 
 
-@pytest.mark.parametrize("mapping1, mapping2, expected, warning", [
+@pytest.mark.parametrize("mapping1, mapping2, expected", [
     (
         {"app1": "App1"},
         {"app2": "App2"},
         {"app1": "App1", "app2": "App2"},
-        None
     ),
     (
         {"app1": "App1.0"},
         {"app1": "App1.5"},
         {"app1": "App1.5"},
-        "The 'app1' command is being overridden in '{package}'"
     )
 ], ids=[
     "combine-key",
     "override-key",
 ])
-def test_combine_command_mapping(logger, mapping1, mapping2, expected, warning):
+def test_combine_command_mapping(mapping1, mapping2, expected):
     """Return combined command mapping from *mapping1* and *mapping2*."""
     package_identifier = "Test==0.1.0"
     assert wiz.package.combine_command_mapping(
         package_identifier, mapping1, mapping2
     ) == expected
-
-    if warning is None:
-        logger.warning.assert_not_called()
-    else:
-        logger.warning.assert_called_once_with(
-            warning.format(package=package_identifier)
-        )
 
 
 def test_minimal_package_without_variant():

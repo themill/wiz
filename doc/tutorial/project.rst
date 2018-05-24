@@ -1,41 +1,59 @@
-
-Certain environment variables are currently set in a Job and affect DCC plugins
-being loaded inside that environment.
+Some environment variables should be set for a Job only so that DCC plugins or
+applications would be affected only inside this environment.
 
 .. _tutorial/project:
 
 Project Configurations and Overrides
 ------------------------------------
 
-To override certain package definitions in a job, a job registry needs to be
-created.
+Let's consider a fake project called ``my_project`` which can be replace with
+any existing projects::
 
-So first, create a ``.wiz/registry`` directory in the job / shot / project.
+    /jobs/ads/my_project/
 
-Inside that registry certain project specific variables can be set with a
-project package definition. Create a ``project.json`` package definition and
-add the projects environment:
+Create a :file:`.common/wiz/registry` directory in the project folder:
 
 .. code-block:: console
 
-    >>> cd .wiz/registry
-    >>> vim project.json
+    >>> mkdir -p /jobs/ads/my_project/.common/wiz/registry
+
+Create a :file:`project.json` package definition file to indicate the
+environment variables needed for the project:
+
+.. code-block:: console
+
+    >>> cat /jobs/ads/my_project/.common/wiz/registry/project.json
     {
         "identifier": "my-project",
-        "description": "Maya Application for my-project.",
+        "description": "Environment for my-project.",
         "environ": {
-            "MILL_EPISODE_PATH": "/jobs/ads/{PROJECT}",
-            "TDSVN_ROOT": "/jobs/ads/{PROJECT}/.common/3d"
+            "MILL_EPISODE_PATH": "/jobs/ads/my_project",
         }
     }
 
-Next the package definition including the command to override can be added.
-Create a ``maya.json`` package definition and add the special environment:
+Create an additional :file:`td-svn.json` package definition file to indicate the
+location of the TD SVN root folder within the project:
 
 .. code-block:: console
 
-    >>> cd .wiz/registry
-    >>> vim maya.json
+    >>> cat /jobs/ads/my_project/.common/wiz/registry/td-svn.json
+    {
+        "identifier": "td-svn",
+        "description": "Environment for TD SVN.",
+        "environ": {
+            "TDSVN_ROOT": "${MILL_EPISODE_PATH}/.common/3d"
+        },
+        "requirements": [
+            "my-project"
+        ]
+    }
+
+Finally, a :file:`maya.json` could be added in order to override the `maya`
+command so that the additional scripts and modules are included:
+
+.. code-block:: console
+
+    >>> cat /jobs/ads/my_project/.common/wiz/registry/maya.json
     {
         "identifier": "my-project-maya",
         "description": "Maya Application for my-project.",
@@ -49,14 +67,23 @@ Create a ``maya.json`` package definition and add the special environment:
         },
         "requirements": [
             "my-project",
-            "mill-maya"
+            "td-svn",
+            "mill-maya",
         ]
     }
 
-This custom job :term:`Maya` configuration can now be launched like:
+.. note::
+
+    The package identifier must be unique as the objective is to override the
+    command and not the full `mill-maya` package which is needed as a
+    requirement.
+
+It is now possible to start :term:`Maya` anywhere under the project folder to
+include all TD SVN scripts and modules.
 
 .. code-block:: console
 
+    >>> cd /jobs/ads/my_project
     >>> wiz run maya
 
 .. note::
@@ -73,9 +100,3 @@ This custom job :term:`Maya` configuration can now be launched like:
 
     Which would then just load the project configuration with a vanilla Maya
     setup and `mtoa`.
-
-.. warning::
-
-    Currently for the job registry to be picked up, the user needs to be in the
-    directory the ``.wiz/registry`` is located. A hierarchical search for
-    higher level registries for jobs is coming soon.

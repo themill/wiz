@@ -2,27 +2,24 @@
 
 import os
 
+import wiz.filesystem
+
 
 def get_local():
     """Return the local registry if available."""
-    registry_path = os.path.join(
-        os.path.expanduser("~"), ".wiz", "registry"
-    )
-
+    registry_path = os.path.join(os.path.expanduser("~"), ".wiz", "registry")
     if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
         return registry_path
 
 
 def get_defaults():
     """Return the default registries."""
+    server_root = os.path.join(os.sep, "mill3d", "server", "apps", "WIZ")
+
     return [
-        os.path.join(
-            os.sep, "mill3d", "server", "apps", "WIZ", "registry", "primary"
-        ),
-        os.path.join(
-            os.sep, "mill3d", "server", "apps", "WIZ", "registry", "secondary"
-        ),
-        os.path.join(os.sep, "jobs", "ads", ".wiz", "registry")
+        os.path.join(server_root, "registry", "primary", "default"),
+        os.path.join(server_root, "registry", "secondary", "default"),
+        os.path.join(os.sep, "jobs", ".common", "wiz", "registry")
     ]
 
 
@@ -32,19 +29,18 @@ def fetch(paths, include_local=True, include_working_directory=True):
     *include_local* indicates whether the local registry should be included.
 
     *include_working_directory* indicates whether the current working directory
-    should be parsed to discover a registry.
+    should be parsed to discover registry folders.
 
     """
     registries = []
 
     for path in paths:
-        if not os.path.isdir(path) and not os.access(path, os.R_OK):
+        if not wiz.filesystem.is_accessible(path):
             continue
         registries.append(path)
 
     if include_working_directory:
-        registry_path = discover(os.getcwd())
-        if registry_path:
+        for registry_path in discover(os.getcwd()):
             registries.append(registry_path)
 
     registry_path = get_local()
@@ -55,17 +51,23 @@ def fetch(paths, include_local=True, include_working_directory=True):
 
 
 def discover(path):
-    """Return registry from *path* if available under the folder structure.
+    """Yield available registry folders from *path* folder hierarchy.
 
-    The registry path should be a :file:`.wiz/registry` folder within *path*.
+    Each folder constituting the hierarchy of *path* are parsed so that
+    existing :file:`.common/wiz/registry` folders can be yield from the deepest
+    to the closest.
 
-    Return the registry path discovered, or None if the folder is not found
-    or not accessible.
+    Example::
 
-    .. note::
+        >>> list(discover("/jobs/ads/project/identity/shot"))
+        [
+            "/jobs/ads/project/.common/wiz/registry",
+            "/jobs/ads/project/identity/shot/.common/wiz/registry"
+        ]
 
-        No registry folder will be fetched if *path* is not under
-        :file:`/jobs/ads`.
+    .. important::
+
+        Registry folders can be discovered only under :file:`/jobs/ads`.
 
     """
     path = os.path.abspath(path)
@@ -75,6 +77,9 @@ def discover(path):
     if not path.startswith(prefix):
         return
 
-    registry_path = os.path.join(path, ".wiz", "registry")
-    if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
-        return registry_path
+    for folder in path.split(os.sep)[3:]:
+        prefix = os.path.join(prefix, folder)
+        registry_path = os.path.join(prefix, ".common", "wiz", "registry")
+
+        if wiz.filesystem.is_accessible(registry_path):
+            yield registry_path
