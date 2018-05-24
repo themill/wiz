@@ -61,10 +61,12 @@ def test_get_defaults():
     """Return default registries."""
     assert wiz.registry.get_defaults() == [
         os.path.join(
-            os.sep, "mill3d", "server", "apps", "WIZ", "registry", "primary"
+            os.sep, "mill3d", "server", "apps", "WIZ", "registry",
+            "primary", "default"
         ),
         os.path.join(
-            os.sep, "mill3d", "server", "apps", "WIZ", "registry", "secondary"
+            os.sep, "mill3d", "server", "apps", "WIZ", "registry",
+            "secondary", "default"
         ),
         os.path.join(os.sep, "jobs", ".common", "wiz", "registry")
     ]

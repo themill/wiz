@@ -22,8 +22,8 @@ All these packages can be used with ``wiz use``.
     >>> wiz list package
     Registries
     ----------------------------------------------
-    [0] /mill3d/server/apps/WIZ/registry/primary
-    [1] /mill3d/server/apps/WIZ/registry/secondary
+    [0] /mill3d/server/apps/WIZ/registry/primary/default
+    [1] /mill3d/server/apps/WIZ/registry/secondary/default
     [2] /usr/people/claudiaz/.wiz/registry
 
 
@@ -67,8 +67,8 @@ This is what the :term:`Maya` package definition for example looks like:
     identifier: maya
     version: 2018
     description: Maya Application.
-    registry: /mill3d/server/apps/WIZ/registry
-    origin: /mill3d/server/apps/WIZ/registry/primary/maya/maya-2018.json
+    registry: /mill3d/server/apps/WIZ/registry/default
+    origin: /mill3d/server/apps/WIZ/registry/primary/default/maya/maya-2018.json
     system:
         arch: x86_64
         os: el >= 6, < 8
@@ -143,7 +143,7 @@ To check this, print the environment:
 
     * the registries in order
     * all packages with versions that have been resolved
-    * all command aliases accessable in the environment
+    * all command aliases accessible in the environment
     * all environment variables set
 
     .. code-block:: console
@@ -152,8 +152,8 @@ To check this, print the environment:
 
         Registries
         ----------------------------------------------
-        [0] /mill3d/server/apps/WIZ/registry/primary
-        [1] /mill3d/server/apps/WIZ/registry/secondary
+        [0] /mill3d/server/apps/WIZ/registry/primary/default
+        [1] /mill3d/server/apps/WIZ/registry/secondary/default
         [2] /usr/people/claudiaz/.wiz/registry
 
 
@@ -245,8 +245,8 @@ This is the ``mill-maya`` package definition for 2018 (latest):
     identifier: mill-maya
     version: 2018
     description: Maya Application with Mill Plugins.
-    registry: /mill3d/server/apps/WIZ/registry/secondary
-    origin: /mill3d/server/apps/WIZ/registry/secondary/maya/maya-2018.json
+    registry: /mill3d/server/apps/WIZ/registry/secondary/default
+    origin: /mill3d/server/apps/WIZ/registry/secondary/default/maya/maya-2018.json
     system:
         arch: x86_64
         os: el >= 6, < 8

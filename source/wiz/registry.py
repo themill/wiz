@@ -17,8 +17,8 @@ def get_defaults():
     server_root = os.path.join(os.sep, "mill3d", "server", "apps", "WIZ")
 
     return [
-        os.path.join(server_root, "registry", "primary"),
-        os.path.join(server_root, "registry", "secondary"),
+        os.path.join(server_root, "registry", "primary", "default"),
+        os.path.join(server_root, "registry", "secondary", "default"),
         os.path.join(os.sep, "jobs", ".common", "wiz", "registry")
     ]
 

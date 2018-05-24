@@ -24,8 +24,8 @@ displayed in the output like this.
 
 .. code-block:: console
 
-    [0] /Users/jeremyr/dev/rnd/wiz-registry/primary-registry
-    [1] /Users/jeremyr/dev/rnd/wiz-registry/secondary-registry
+    [0] /mill3d/server/apps/WIZ/registry/primary/default
+    [1] /mill3d/server/apps/WIZ/registry/secondary/default
     [2] /Users/jeremyr/.wiz/registry
 
 
