@@ -67,7 +67,7 @@ This is what the :term:`Maya` package definition for example looks like:
     identifier: maya
     version: 2018
     description: Maya Application.
-    registry: /mill3d/server/apps/WIZ/registry/default
+    registry: /mill3d/server/apps/WIZ/registry/primary/default
     origin: /mill3d/server/apps/WIZ/registry/primary/default/maya/maya-2018.json
     system:
         arch: x86_64
@@ -136,7 +136,7 @@ To check this, print the environment:
 
 .. note::
 
-    To only view a resolved environment, without creating a subshell, the
+    To only view a resolved environment, without creating a sub-shell, the
     ``wiz use --view`` command can be used.
 
     The returned output shows:
