@@ -11,6 +11,11 @@ Release Notes
         Changed :func:`wiz.registry.discover` to yield all registry folders
         available within the path folder hierarchy if under :file:`/jobs/ads`
 
+    .. change:: changed
+
+        Changed :func:`wiz.registry.get_defaults` to update the location of the
+        job registry folder and global registry folders.
+
 .. release:: 0.9.2
     :date: 2018-04-30
 
