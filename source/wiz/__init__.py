@@ -300,8 +300,8 @@ def discover_context():
 
 
 def export_definition(
-    path, identifier, description, version=None, command_mapping=None,
-    environ_mapping=None, packages=None,
+    path, identifier, description=None, version=None, system=None, command=None,
+    environ=None, requirements=None,
 ):
     """Export a context as a definition in *path*.
 
@@ -357,17 +357,19 @@ def export_definition(
     """
     definition_data = {
         "identifier": identifier,
-        "description": description,
     }
+
+    if description is not None:
+        definition_data["description"] = description
 
     if version is not None:
         definition_data["version"] = version
 
-    if command_mapping is not None:
-        definition_data["command"] = command_mapping
+    if command is not None:
+        definition_data["command"] = command
 
-    if environ_mapping is not None:
-        definition_data["environ"] = environ_mapping
+    if environ is not None:
+        definition_data["environ"] = environ
 
     if packages is not None:
         definition_data["requirements"] = [

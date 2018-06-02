@@ -1,0 +1,99 @@
+{
+    "id": "wiz://definition_schema/1#",
+    "$schema": "wiz://definition_schema/1#",
+    "description": "Wiz Package Definition Schema.",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "format": "uri",
+            "type": "string"
+        },
+        "identifier": {
+            "description": "Unique identifier for the definition.",
+            "type": "string"
+        },
+        "description": {
+            "description": "Description of the definition.",
+            "type": "string"
+        },
+        "version": {
+            "description": "Version of the definition.",
+            "type": "string"
+        },
+        "system": {
+            "description": "System constraints limiting the scope of the definition.",
+            "type": "object",
+            "properties": {
+                "platform": {
+                    "description": "Platform identifier compatible with the definition.",
+                    "type": "string"
+                },
+                "os": {
+                    "description": "Operating system specifier compatible with the definition.",
+                    "type": "string"
+                },
+                "arch": {
+                    "description": "Architecture compatible with the definition.",
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
+        },
+        "command": {
+            "description": "Mapping of commands that can be exposed for this definition.",
+            "type": "object",
+            "minProperties": 1
+        },
+        "environ": {
+            "description": "Mapping of environment variables.",
+            "type": "object",
+            "minProperties": 1
+        },
+        "requirements": {
+            "description": "List of ordered definition specifiers required by the definition.",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+                "type": "string"
+            }
+        },
+        "variants": {
+            "description": "List of ordered mapping which define variation of the definition.",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "identifier": {
+                        "description": "Unique identifier for the definition variant.",
+                        "type": "string"
+                    },
+                    "command": {
+                        "description": "Mapping of commands that can be exposed for this definition variant.",
+                        "type": "object",
+                        "minProperties": 1
+                    },
+                    "environ": {
+                        "description": "Mapping of environment variables for this definition variant.",
+                        "type": "object",
+                        "minProperties": 1
+                    },
+                    "requirements": {
+                        "description": "List of ordered definition specifiers required by the definition variant.",
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": ["identifier"]
+            }
+        }
+    },
+    "required": ["identifier"]
+}
