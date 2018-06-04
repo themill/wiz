@@ -362,8 +362,6 @@ def test_query_definition_mixed_version_error(package_definition_mapping):
     with pytest.raises(wiz.exception.RequestNotFound) as error:
         wiz.definition.query(requirement, package_definition_mapping)
 
-    print error
-
     assert (
         "RequestNotFound: Impossible to retrieve the best matching definition "
         "for 'foo' as non-versioned and versioned definitions have been "
@@ -910,8 +908,6 @@ def test_definition_with_variant_requirement_error():
 
     with pytest.raises(wiz.exception.IncorrectDefinition) as error:
         wiz.definition.Definition(data)
-
-    print str(error)
 
     assert (
         "IncorrectDefinition: The definition 'test' [1.0] contains an "

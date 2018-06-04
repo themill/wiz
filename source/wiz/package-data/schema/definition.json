@@ -43,7 +43,8 @@
         "command": {
             "description": "Mapping of commands that can be exposed for this definition.",
             "type": "object",
-            "minProperties": 1
+            "minProperties": 1,
+            "additionalProperties": {"type": "string"}
         },
         "environ": {
             "description": "Mapping of environment variables.",

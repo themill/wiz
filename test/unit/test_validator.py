@@ -1,52 +1,489 @@
 # :coding: utf-8
 
+import pytest
+
 import wiz.validator
 
 
 def test_minimal_definition():
-    """Validate """
+    """Validate a minimal definition data."""
     data = {"identifier": "test"}
-    wiz.validator.DefinitionValidator.check_schema(data)
+    assert list(wiz.validator.yield_definition_errors(data)) == []
+    assert list(wiz.validator.yield_definition_errors({})) == [
+        {
+            "message": "u'identifier' is a required property",
+            "path": "/",
+            "schema_path": "/required/0"
+        }
+    ]
 
 
-def test_definition_with_version():
-    """Validate """
+def test_unexpected_property():
+    """Fail to validate a definition with unexpected property."""
+    data = {"other": "test"}
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "u'identifier' is a required property",
+            "path": "/",
+            "schema_path": "/required/0"
+        },
+        {
+            "message": (
+                "Additional properties are not allowed ('other' was unexpected)"
+            ),
+            "path": "/",
+            "schema_path": "/additionalProperties"
+        }
+    ]
+
+
+@pytest.mark.parametrize("value", [
+    2,
+    True,
+    ["element1", "element2"],
+    {"key": "value"}
+], ids=[
+    "number",
+    "boolean",
+    "list",
+    "object"
+])
+def test_incorrect_identifier_type(value):
+    """Raise an error when identifier type is incorrect."""
+    data = {"identifier": value}
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'string'".format(value),
+            "path": "/identifier",
+            "schema_path": "/properties/identifier/type"
+        }
+    ]
+
+
+@pytest.mark.parametrize("value", [
+    "0.1.0",
+    "2018",
+    "A",
+    "123a"
+], ids=[
+    "semantic-versioning",
+    "number-version",
+    "alphabetical-version",
+    "other"
+])
+def test_definition_with_version(value):
+    """Validate a definition data with a version."""
     data = {
         "identifier": "test",
-        "version": "0.1.0",
+        "version": value,
     }
-    wiz.validator.DefinitionValidator.check_schema(data)
+    assert list(wiz.validator.yield_definition_errors(data)) == []
+
+
+@pytest.mark.parametrize("value", [
+    2018,
+    True,
+    ["element1", "element2"],
+    {"key": "value"}
+], ids=[
+    "number",
+    "boolean",
+    "list",
+    "object"
+])
+def test_incorrect_version_type(value):
+    """Raise an error when version type is incorrect."""
+    data = {
+        "identifier": "test",
+        "version": value,
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'string'".format(value),
+            "path": "/version",
+            "schema_path": "/properties/version/type"
+        }
+    ]
 
 
 def test_definition_with_description():
+    """Validate a definition data with a description."""
     data = {
         "identifier": "test",
         "description": "This is a definition"
     }
-    wiz.validator.DefinitionValidator.check_schema(data)
+    assert list(wiz.validator.yield_definition_errors(data)) == []
+
+
+@pytest.mark.parametrize("value", [
+    42,
+    True,
+    ["A description", "Another description"],
+    {"key": "value"}
+], ids=[
+    "number",
+    "boolean",
+    "list",
+    "object"
+])
+def test_incorrect_description_type(value):
+    """Raise an error when description type is incorrect."""
+    data = {
+        "identifier": "test",
+        "description": value,
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'string'".format(value),
+            "path": "/description",
+            "schema_path": "/properties/description/type"
+        }
+    ]
+
+
+def test_definition_with_system():
+    """Validate a definition data with a system mapping."""
+    data = {
+        "identifier": "test",
+        "system": {
+            "platform": "linux",
+            "os": "el >=7, <8",
+            "arch": "x86_64"
+        }
+    }
+    assert list(wiz.validator.yield_definition_errors(data)) == []
+
+
+@pytest.mark.parametrize("value", [
+    "a-system",
+    42,
+    True,
+    ["linux", "mac"],
+], ids=[
+    "string",
+    "number",
+    "boolean",
+    "list"
+])
+def test_incorrect_system_type(value):
+    """Raise an error when system type is incorrect."""
+    data = {
+        "identifier": "test",
+        "system": value,
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'object'".format(value),
+            "path": "/system",
+            "schema_path": "/properties/system/type"
+        }
+    ]
+
+
+def test_incorrect_unexpected_system_property():
+    """Raise an error when unexpected system property is found."""
+    data = {
+        "identifier": "test",
+        "system": {
+            "key": "value"
+        },
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": (
+                "Additional properties are not allowed ('key' was unexpected)"
+            ),
+            "path": "/system",
+            "schema_path": "/properties/system/additionalProperties"
+        }
+    ]
+
+
+def test_incorrect_system_values():
+    """Raise an error when system values are incorrect."""
+    data = {
+        "identifier": "test",
+        "system": {
+            "platform": 42,
+            "os": False,
+            "arch": ["64"]
+        },
+    }
+
+    assert sorted(
+        list(wiz.validator.yield_definition_errors(data)),
+        key=lambda error: error["path"]
+    ) == [
+        {
+            "message": "['64'] is not of type u'string'",
+            "path": "/system/arch",
+            "schema_path": "/properties/system/properties/arch/type"
+        },
+        {
+            "message": "False is not of type u'string'",
+            "path": "/system/os",
+            "schema_path": "/properties/system/properties/os/type"
+        },
+        {
+            "message": "42 is not of type u'string'",
+            "path": "/system/platform",
+            "schema_path": "/properties/system/properties/platform/type"
+        }
+    ]
+
+
+def test_system_empty():
+    """Raise an error when system object is empty."""
+    data = {
+        "identifier": "test",
+        "system": {},
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{} does not have enough properties",
+            "path": "/system",
+            "schema_path": "/properties/system/minProperties"
+        }
+    ]
 
 
 def test_definition_with_environ():
+    """Validate a definition data with environment mapping."""
     data = {
         "identifier": "test",
-        "description": "This is a definition",
         "environ": {
             "KEY1": "VALUE1",
             "KEY2": "VALUE2",
             "KEY3": "PATH1:PATH2:PATH3"
         }
     }
-    wiz.validator.DefinitionValidator.check_schema(data)
+    assert list(wiz.validator.yield_definition_errors(data)) == []
+
+
+@pytest.mark.parametrize("value", [
+    "an-environment",
+    42,
+    True,
+    ["env1", "env2"],
+], ids=[
+    "string",
+    "number",
+    "boolean",
+    "list"
+])
+def test_incorrect_environ_type(value):
+    """Raise an error when environ type is incorrect."""
+    data = {
+        "identifier": "test",
+        "environ": value,
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'object'".format(value),
+            "path": "/environ",
+            "schema_path": "/properties/environ/type"
+        }
+    ]
+
+
+def test_incorrect_environ_value_type():
+    """Raise an error when an environ value is not a string."""
+    data = {
+        "identifier": "test",
+        "environ": {
+            "KEY1": 42,
+            "KEY2": True,
+            "KEY3": {"env1": "something"},
+            "KEY4": ["env1", "env2"]
+        }
+    }
+    assert sorted(
+        list(wiz.validator.yield_definition_errors(data)),
+        key=lambda error: error["path"]
+    ) == [
+        {
+            "message": "42 is not of type u'string'",
+            "path": "/environ/KEY1",
+            "schema_path": "/properties/environ/additionalProperties/type"
+        },
+        {
+            "message": "True is not of type u'string'",
+            "path": "/environ/KEY2",
+            "schema_path": "/properties/environ/additionalProperties/type"
+        },
+        {
+            "message": "{'env1': 'something'} is not of type u'string'",
+            "path": "/environ/KEY3",
+            "schema_path": "/properties/environ/additionalProperties/type"
+        },
+        {
+            "message": "['env1', 'env2'] is not of type u'string'",
+            "path": "/environ/KEY4",
+            "schema_path": "/properties/environ/additionalProperties/type"
+        }
+    ]
+
+
+def test_environ_empty():
+    """Raise an error when environ object is empty."""
+    data = {
+        "identifier": "test",
+        "environ": {},
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{} does not have enough properties",
+            "path": "/environ",
+            "schema_path": "/properties/environ/minProperties"
+        }
+    ]
+
+
+def test_definition_with_command():
+    """Validate a definition data with command mapping."""
+    data = {
+        "identifier": "test",
+        "command": {
+            "app": "App0.1",
+            "appX": "App0.1 --option value"
+        }
+    }
+    assert list(wiz.validator.yield_definition_errors(data)) == []
+
+
+def test_incorrect_command_value_type():
+    """Raise an error when a command value is not a string."""
+    data = {
+        "identifier": "test",
+        "command": {
+            "app1": 42,
+            "app2": True,
+            "app3": {"app": "something"},
+            "app4": ["app1", "app2"]
+        }
+    }
+    assert sorted(
+        list(wiz.validator.yield_definition_errors(data)),
+        key=lambda error: error["path"]
+    ) == [
+        {
+            "message": "42 is not of type u'string'",
+            "path": "/command/app1",
+            "schema_path": "/properties/command/additionalProperties/type"
+        },
+        {
+            "message": "True is not of type u'string'",
+            "path": "/command/app2",
+            "schema_path": "/properties/command/additionalProperties/type"
+        },
+        {
+            "message": "{'app': 'something'} is not of type u'string'",
+            "path": "/command/app3",
+            "schema_path": "/properties/command/additionalProperties/type"
+        },
+        {
+            "message": "['app1', 'app2'] is not of type u'string'",
+            "path": "/command/app4",
+            "schema_path": "/properties/command/additionalProperties/type"
+        }
+    ]
+
+
+def test_command_empty():
+    """Raise an error when command object is empty."""
+    data = {
+        "identifier": "test",
+        "command": {},
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{} does not have enough properties",
+            "path": "/command",
+            "schema_path": "/properties/command/minProperties"
+        }
+    ]
 
 
 def test_definition_with_requirements():
+    """Validate a definition data with requirements list."""
     data = {
         "identifier": "test",
-        "description": "This is a definition",
         "requirements": [
             "envA >= 1.0.0",
             "envB >= 3.4.2, < 4",
             "envC"
         ]
     }
-    wiz.validator.DefinitionValidator.check_schema(data)
+    assert list(wiz.validator.yield_definition_errors(data)) == []
+
+
+@pytest.mark.parametrize("value", [
+    "package",
+    42,
+    True,
+    {"package1": "version"}
+], ids=[
+    "string",
+    "number",
+    "boolean",
+    "object"
+])
+def test_incorrect_requirements_type(value):
+    """Raise an error when requirements type is incorrect."""
+    data = {
+        "identifier": "test",
+        "requirements": value,
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'array'".format(value),
+            "path": "/requirements",
+            "schema_path": "/properties/requirements/type"
+        }
+    ]
+
+
+def test_incorrect_requirement_item_type():
+    """Raise an error when a requirement item is not a string."""
+    data = {
+        "identifier": "test",
+        "requirements": [
+            42,
+            True,
+            {"package1": "version"},
+            ["package1", "package2"]
+        ],
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "42 is not of type u'string'",
+            "path": "/requirements/0",
+            "schema_path": "/properties/requirements/items/type"
+        },
+        {
+            "message": "True is not of type u'string'",
+            "path": "/requirements/1",
+            "schema_path": "/properties/requirements/items/type"
+        },
+        {
+            "message": "{'package1': 'version'} is not of type u'string'",
+            "path": "/requirements/2",
+            "schema_path": "/properties/requirements/items/type"
+        },
+        {
+            "message": "['package1', 'package2'] is not of type u'string'",
+            "path": "/requirements/3",
+            "schema_path": "/properties/requirements/items/type"
+        },
+    ]

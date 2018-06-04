@@ -1,18 +1,16 @@
 # :coding: utf-8
 
-import collections
 import os
 import json
-import urlparse
+import collections
 
 import jsonschema.validators
 
 
-# Add 'wiz' scheme in "http"-like schemes in order to get the expected
-# result from `urlparse.urljoin` within `RefResolver.resolve`
-urlparse.uses_netloc.append("wiz")
-urlparse.uses_relative.append("wiz")
-urlparse.uses_fragment.append("wiz")
+#: Root directory containing the schemas.
+_SCHEMA_ROOT = os.path.join(
+    os.path.dirname(__file__), "package-data", "schema"
+)
 
 
 # Set up custom validator base class that ensures:
@@ -57,11 +55,19 @@ def _load_schema(schema_path):
     return schema
 
 
-class DefinitionValidator(_Validator):
-    """Definition data schema validator."""
+def yield_definition_errors(data):
+    """Yield errors in package definition data.
 
-    META_SCHEMA = _load_schema(
-        os.path.join(
-            os.path.dirname(__file__), "meta_schema", "definition.json"
-        )
-    )
+    An empty list is yielded if no errors are found.
+
+    """
+    schema = _load_schema(os.path.join(_SCHEMA_ROOT, "definition.json"))
+
+    for error in _Validator(schema).iter_errors(data):
+        yield {
+            "message": error.message,
+            "path": "/{}".format("/".join(str(e) for e in error.path)),
+            "schema_path": "/{}".format(
+                "/".join(str(e) for e in error.schema_path)
+            )
+        }
