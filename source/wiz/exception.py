@@ -3,7 +3,6 @@
 import sys
 import traceback
 
-import jsonschema
 import packaging.requirements
 
 
@@ -61,33 +60,6 @@ class IncorrectDefinition(WizError):
     """Raise when a definition is incorrect."""
 
     default_message = "The definition is incorrect."
-
-    def __init__(self, message=None, details=None):
-        """Initialise with *message* and optional *details*.
-
-        Use :attr:`default_message` if *message* not specified.
-
-        Alternatively, *message* may be an instance of
-        :exc:`jsonschema.exceptions.SchemaError`. In this case, relevant
-        information will be extracted and stored as details and an appropriate
-        message used instead.
-
-        *details* should be a mapping of additional contextual information. Its
-        contents may be referenced in the message.
-
-        """
-        if isinstance(message, jsonschema.exceptions.SchemaError):
-            if details is None:
-                details = {}
-
-            details.setdefault("error", message.message)
-            details.setdefault("path", "/".join(message.path))
-
-            message = "{} {{error}} ({{path}})".format(self.default_message)
-
-        super(IncorrectDefinition, self).__init__(
-            message=message, details=details
-        )
 
 
 class RequestNotFound(WizError):
