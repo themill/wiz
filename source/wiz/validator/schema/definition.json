@@ -48,7 +48,8 @@
         "environ": {
             "description": "Mapping of environment variables.",
             "type": "object",
-            "minProperties": 1
+            "minProperties": 1,
+            "additionalProperties": {"type": "string"}
         },
         "requirements": {
             "description": "List of ordered definition specifiers required by the definition.",
