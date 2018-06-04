@@ -95,5 +95,6 @@
             }
         }
     },
-    "required": ["identifier"]
+    "required": ["identifier"],
+    "additionalProperties": false
 }

@@ -58,7 +58,7 @@ def _load_schema(schema_path):
 
 
 class DefinitionValidator(_Validator):
-    """Definition schema validator."""
+    """Definition data schema validator."""
 
     META_SCHEMA = _load_schema(
         os.path.join(
