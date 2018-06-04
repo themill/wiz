@@ -17,7 +17,7 @@ def export(path, content, compressed=False):
     """Create file from *content* in *path*."""
     # Ensure that "~" is resolved if necessary and that the relative path is
     # always converted into a absolute path.
-    path = os.path.realpath(os.path.expanduser(path))
+    path = os.path.abspath(os.path.expanduser(path))
 
     ensure_directory(os.path.dirname(path))
 
