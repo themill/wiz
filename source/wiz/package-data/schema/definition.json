@@ -4,10 +4,6 @@
     "description": "Wiz Package Definition Schema.",
     "type": "object",
     "properties": {
-        "$schema": {
-            "format": "uri",
-            "type": "string"
-        },
         "identifier": {
             "description": "Unique identifier for the definition.",
             "type": "string"
@@ -76,12 +72,14 @@
                     "command": {
                         "description": "Mapping of commands that can be exposed for this definition variant.",
                         "type": "object",
-                        "minProperties": 1
+                        "minProperties": 1,
+                        "additionalProperties": {"type": "string"}
                     },
                     "environ": {
                         "description": "Mapping of environment variables for this definition variant.",
                         "type": "object",
-                        "minProperties": 1
+                        "minProperties": 1,
+                        "additionalProperties": {"type": "string"}
                     },
                     "requirements": {
                         "description": "List of ordered definition specifiers required by the definition variant.",
@@ -93,7 +91,8 @@
                         }
                     }
                 },
-                "required": ["identifier"]
+                "required": ["identifier"],
+                "additionalProperties": false
             }
         }
     },
