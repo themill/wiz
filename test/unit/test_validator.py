@@ -359,6 +359,33 @@ def test_definition_with_command():
     assert list(wiz.validator.yield_definition_errors(data)) == []
 
 
+@pytest.mark.parametrize("value", [
+    "a-command",
+    42,
+    True,
+    ["app1", "app2"],
+], ids=[
+    "string",
+    "number",
+    "boolean",
+    "list"
+])
+def test_incorrect_command_type(value):
+    """Raise an error when command type is incorrect."""
+    data = {
+        "identifier": "test",
+        "command": value,
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'object'".format(value),
+            "path": "/command",
+            "schema_path": "/properties/command/type"
+        }
+    ]
+
+
 def test_incorrect_command_value_type():
     """Raise an error when a command value is not a string."""
     data = {
@@ -486,4 +513,323 @@ def test_incorrect_requirement_item_type():
             "path": "/requirements/3",
             "schema_path": "/properties/requirements/items/type"
         },
+    ]
+
+
+def test_requirements_empty():
+    """Raise an error when requirement array is empty."""
+    data = {
+        "identifier": "test",
+        "requirements": [],
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "[] is too short",
+            "path": "/requirements",
+            "schema_path": "/properties/requirements/minItems"
+        }
+    ]
+
+
+def test_definition_with_variants():
+    """Validate a definition data with variants list."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "1.0",
+                "environ": {
+                    "VERSION": "1.0"
+                },
+                "requirements": [
+                    "envA >= 1.0, < 2"
+                ]
+            },
+            {
+                "identifier": "2.0",
+                "environ": {
+                    "VERSION": "2.0"
+                },
+                "command": {
+                    "app": "App2.0",
+                },
+                "requirements": [
+                    "envA >= 2.0, < 3"
+                ]
+            },
+            {
+                "identifier": "XXX",
+                "command": {
+                    "app": "AppXXX",
+                },
+            }
+        ]
+    }
+    assert list(wiz.validator.yield_definition_errors(data)) == []
+
+
+@pytest.mark.parametrize("value", [
+    "variant",
+    42,
+    True,
+    {"test": "variant"}
+], ids=[
+    "string",
+    "number",
+    "boolean",
+    "object"
+])
+def test_incorrect_variants_type(value):
+    """Raise an error when variants type is incorrect."""
+    data = {
+        "identifier": "test",
+        "variants": value,
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'array'".format(value),
+            "path": "/variants",
+            "schema_path": "/properties/variants/type"
+        }
+    ]
+
+
+def test_incorrect_variant_item_type():
+    """Raise an error when a variant item is not a string."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            42,
+            True,
+            "a-variant",
+            ["variant1", "variant2"]
+        ],
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "42 is not of type u'object'",
+            "path": "/variants/0",
+            "schema_path": "/properties/variants/items/type"
+        },
+        {
+            "message": "True is not of type u'object'",
+            "path": "/variants/1",
+            "schema_path": "/properties/variants/items/type"
+        },
+        {
+            "message": "'a-variant' is not of type u'object'",
+            "path": "/variants/2",
+            "schema_path": "/properties/variants/items/type"
+        },
+        {
+            "message": "['variant1', 'variant2'] is not of type u'object'",
+            "path": "/variants/3",
+            "schema_path": "/properties/variants/items/type"
+        },
+    ]
+
+
+def test_incorrect_minimal_variant():
+    """Validate a minimal variant definition."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {}
+        ]
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "u'identifier' is a required property",
+            "path": "/variants/0",
+            "schema_path": "/properties/variants/items/required/0"
+        }
+    ]
+
+
+def test_unexpected_variant_property():
+    """Fail to validate a definition with unexpected variant property."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {"other": "test"}
+        ]
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": (
+                "Additional properties are not allowed ('other' was unexpected)"
+            ),
+            "path": "/variants/0",
+            "schema_path": "/properties/variants/items/additionalProperties"
+        },
+        {
+            "message": "u'identifier' is a required property",
+            "path": "/variants/0",
+            "schema_path": "/properties/variants/items/required/0"
+        }
+    ]
+
+
+def test_variants_empty():
+    """Raise an error when variant array is empty."""
+    data = {
+        "identifier": "test",
+        "variants": [],
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "[] is too short",
+            "path": "/variants",
+            "schema_path": "/properties/variants/minItems"
+        }
+    ]
+
+
+@pytest.mark.parametrize("value", [
+    2,
+    True,
+    ["element1", "element2"],
+    {"key": "value"}
+], ids=[
+    "number",
+    "boolean",
+    "list",
+    "object"
+])
+def test_incorrect_variant_identifier_type(value):
+    """Raise an error when variant identifier type is incorrect."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {"identifier": value}
+        ]
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'string'".format(value),
+            "path": "/variants/0/identifier",
+            "schema_path": (
+                "/properties/variants/items/properties/identifier/type"
+            )
+        }
+    ]
+
+
+@pytest.mark.parametrize("value", [
+    "a-command",
+    42,
+    True,
+    ["app1", "app2"],
+], ids=[
+    "string",
+    "number",
+    "boolean",
+    "list"
+])
+def test_incorrect_variant_command_type(value):
+    """Raise an error when variant command type is incorrect."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "test",
+                "command": value
+            }
+        ]
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'object'".format(value),
+            "path": "/variants/0/command",
+            "schema_path": (
+                "/properties/variants/items/properties/command/type"
+            )
+        }
+    ]
+
+
+def test_incorrect_variant_command_value_type():
+    """Raise an error when a variant command value is not a string."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "test",
+                "command": {
+                    "app1": 42,
+                    "app2": True,
+                    "app3": {"app": "something"},
+                    "app4": ["app1", "app2"]
+                }
+            }
+        ]
+    }
+
+    assert sorted(
+        list(wiz.validator.yield_definition_errors(data)),
+        key=lambda error: error["path"]
+    ) == [
+        {
+            "message": "42 is not of type u'string'",
+            "path": "/variants/0/command/app1",
+            "schema_path": (
+                "/properties/variants/items/properties/command/"
+                "additionalProperties/type"
+            )
+        },
+        {
+            "message": "True is not of type u'string'",
+            "path": "/variants/0/command/app2",
+            "schema_path": (
+                "/properties/variants/items/properties/command/"
+                "additionalProperties/type"
+            )
+        },
+        {
+            "message": "{'app': 'something'} is not of type u'string'",
+            "path": "/variants/0/command/app3",
+            "schema_path": (
+                "/properties/variants/items/properties/command/"
+                "additionalProperties/type"
+            )
+        },
+        {
+            "message": "['app1', 'app2'] is not of type u'string'",
+            "path": "/variants/0/command/app4",
+            "schema_path": (
+                "/properties/variants/items/properties/command/"
+                "additionalProperties/type"
+            )
+        }
+    ]
+
+
+def test_variant_command_empty():
+    """Raise an error when variant command object is empty."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "test",
+                "command": {}
+            }
+        ]
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{} does not have enough properties",
+            "path": "/variants/0/command",
+            "schema_path": (
+                "/properties/variants/items/properties/command/minProperties"
+            )
+        }
     ]
