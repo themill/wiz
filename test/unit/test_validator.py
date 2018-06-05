@@ -144,6 +144,42 @@ def test_incorrect_description_type(value):
     ]
 
 
+def test_definition_with_disabled():
+    """Validate a definition data with a disabled keyword."""
+    data = {
+        "identifier": "test",
+        "disabled": True
+    }
+    assert list(wiz.validator.yield_definition_errors(data)) == []
+
+
+@pytest.mark.parametrize("value", [
+    42,
+    "True",
+    ["True", "False"],
+    {"key": "value"}
+], ids=[
+    "number",
+    "string",
+    "list",
+    "object"
+])
+def test_incorrect_description_type(value):
+    """Raise an error when description type is incorrect."""
+    data = {
+        "identifier": "test",
+        "disabled": value,
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'boolean'".format(value),
+            "path": "/disabled",
+            "schema_path": "/properties/disabled/type"
+        }
+    ]
+
+
 def test_definition_with_system():
     """Validate a definition data with a system mapping."""
     data = {

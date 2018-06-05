@@ -16,6 +16,11 @@
             "description": "Version of the definition.",
             "type": "string"
         },
+        "disabled": {
+            "description": "Indicate whether the definition can be discover.",
+            "type": "boolean",
+            "default": false
+        },
         "system": {
             "description": "System constraints limiting the scope of the definition.",
             "type": "object",
