@@ -833,3 +833,114 @@ def test_variant_command_empty():
             )
         }
     ]
+
+
+@pytest.mark.parametrize("value", [
+    "an-environment",
+    42,
+    True,
+    ["env1", "env2"],
+], ids=[
+    "string",
+    "number",
+    "boolean",
+    "list"
+])
+def test_incorrect_variant_environ_type(value):
+    """Raise an error when variant environ type is incorrect."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "test",
+                "environ": value
+            }
+        ]
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'object'".format(value),
+            "path": "/variants/0/environ",
+            "schema_path": "/properties/variants/items/properties/environ/type"
+        }
+    ]
+
+
+def test_incorrect_variant_environ_value_type():
+    """Raise an error when a variant environ value is not a string."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "test",
+                "environ": {
+                    "KEY1": 42,
+                    "KEY2": True,
+                    "KEY3": {"env1": "something"},
+                    "KEY4": ["env1", "env2"]
+                }
+            }
+        ]
+    }
+
+    assert sorted(
+        list(wiz.validator.yield_definition_errors(data)),
+        key=lambda error: error["path"]
+    ) == [
+        {
+            "message": "42 is not of type u'string'",
+            "path": "/variants/0/environ/KEY1",
+            "schema_path": (
+                "/properties/variants/items/properties/environ/"
+                "additionalProperties/type"
+            )
+        },
+        {
+            "message": "True is not of type u'string'",
+            "path": "/variants/0/environ/KEY2",
+            "schema_path": (
+                "/properties/variants/items/properties/environ/"
+                "additionalProperties/type"
+            )
+        },
+        {
+            "message": "{'env1': 'something'} is not of type u'string'",
+            "path": "/variants/0/environ/KEY3",
+            "schema_path": (
+                "/properties/variants/items/properties/environ/"
+                "additionalProperties/type"
+            )
+        },
+        {
+            "message": "['env1', 'env2'] is not of type u'string'",
+            "path": "/variants/0/environ/KEY4",
+            "schema_path": (
+                "/properties/variants/items/properties/environ/"
+                "additionalProperties/type"
+            )
+        }
+    ]
+
+
+def test_variant_environ_empty():
+    """Raise an error when variant environ object is empty."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "test",
+                "environ": {}
+            }
+        ]
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{} does not have enough properties",
+            "path": "/variants/0/environ",
+            "schema_path": (
+                "/properties/variants/items/properties/environ/minProperties"
+            )
+        }
+    ]
