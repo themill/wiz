@@ -9,7 +9,7 @@ import jsonschema.validators
 
 #: Root directory containing the schemas.
 _SCHEMA_ROOT = os.path.join(
-    os.path.dirname(__file__), "package-data", "schema"
+    os.path.dirname(__file__), "package_data", "schema"
 )
 
 
