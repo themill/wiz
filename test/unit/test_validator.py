@@ -21,18 +21,22 @@ def test_minimal_definition():
 def test_unexpected_property():
     """Fail to validate a definition with unexpected property."""
     data = {"other": "test"}
-    assert list(wiz.validator.yield_definition_errors(data)) == [
-        {
-            "message": "u'identifier' is a required property",
-            "path": "/",
-            "schema_path": "/required/0"
-        },
+
+    assert sorted(
+        list(wiz.validator.yield_definition_errors(data)),
+        key=lambda error: error["schema_path"]
+    ) == [
         {
             "message": (
                 "Additional properties are not allowed ('other' was unexpected)"
             ),
             "path": "/",
             "schema_path": "/additionalProperties"
+        },
+        {
+            "message": "u'identifier' is a required property",
+            "path": "/",
+            "schema_path": "/required/0"
         }
     ]
 
@@ -695,7 +699,10 @@ def test_unexpected_variant_property():
         ]
     }
 
-    assert list(wiz.validator.yield_definition_errors(data)) == [
+    assert sorted(
+        list(wiz.validator.yield_definition_errors(data)),
+        key=lambda error: error["schema_path"]
+    ) == [
         {
             "message": (
                 "Additional properties are not allowed ('other' was unexpected)"

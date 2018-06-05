@@ -1,6 +1,4 @@
 {
-    "id": "wiz://definition_schema/1#",
-    "$schema": "wiz://definition_schema/1#",
     "description": "Wiz Package Definition Schema.",
     "type": "object",
     "properties": {
