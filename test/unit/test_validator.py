@@ -944,3 +944,109 @@ def test_variant_environ_empty():
             )
         }
     ]
+
+
+@pytest.mark.parametrize("value", [
+    "package",
+    42,
+    True,
+    {"package1": "version"}
+], ids=[
+    "string",
+    "number",
+    "boolean",
+    "object"
+])
+def test_incorrect_variant_requirements_type(value):
+    """Raise an error when variant requirements type is incorrect."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "test",
+                "requirements": value
+            }
+        ]
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'array'".format(value),
+            "path": "/variants/0/requirements",
+            "schema_path": (
+                "/properties/variants/items/properties/requirements/type"
+            )
+        }
+    ]
+
+
+def test_incorrect_variant_requirement_item_type():
+    """Raise an error when a variant requirement item is not a string."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "test",
+                "requirements": [
+                    42,
+                    True,
+                    {"package1": "version"},
+                    ["package1", "package2"]
+                ]
+            }
+        ]
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "42 is not of type u'string'",
+            "path": "/variants/0/requirements/0",
+            "schema_path": (
+                "/properties/variants/items/properties/requirements/items/type"
+            )
+        },
+        {
+            "message": "True is not of type u'string'",
+            "path": "/variants/0/requirements/1",
+            "schema_path": (
+                "/properties/variants/items/properties/requirements/items/type"
+            )
+        },
+        {
+            "message": "{'package1': 'version'} is not of type u'string'",
+            "path": "/variants/0/requirements/2",
+            "schema_path": (
+                "/properties/variants/items/properties/requirements/items/type"
+            )
+        },
+        {
+            "message": "['package1', 'package2'] is not of type u'string'",
+            "path": "/variants/0/requirements/3",
+            "schema_path": (
+                "/properties/variants/items/properties/requirements/items/type"
+            )
+        },
+    ]
+
+
+def test_variant_requirements_empty():
+    """Raise an error when variant requirement array is empty."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "test",
+                "requirements": []
+            }
+        ]
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "[] is too short",
+            "path": "/variants/0/requirements",
+            "schema_path": (
+                "/properties/variants/items/properties/requirements/minItems"
+            )
+        }
+    ]
