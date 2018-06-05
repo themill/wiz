@@ -12,6 +12,7 @@ import wiz.exception
 import wiz.system
 import wiz.history
 import wiz.utility
+import wiz.validator
 
 
 def fetch(paths, requests=None, system_mapping=None, max_depth=None):
@@ -306,6 +307,14 @@ class Definition(wiz.mapping.Mapping):
     def __init__(self, *args, **kwargs):
         """Initialise definition."""
         mapping = dict(*args, **kwargs)
+
+        for error in wiz.validator.yield_definition_errors(mapping):
+            raise wiz.exception.IncorrectDefinition(
+                "{message} ({path})".format(
+                    message=error.get("message"),
+                    path=error.get("path"),
+                )
+            )
 
         try:
             if "version" in mapping.keys():
