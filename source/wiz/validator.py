@@ -56,9 +56,13 @@ def _load_schema(schema_path):
 
 
 def yield_definition_errors(data):
-    """Yield errors in package definition data.
+    """Yield list of errors found in package definition data.
 
     An empty list is yielded if no errors are found.
+
+    The following :term:`JSON` schema will be used:
+
+    .. literalinclude:: ../../source/wiz/package_data/schema/definition.json
 
     """
     schema = _load_schema(os.path.join(_SCHEMA_ROOT, "definition.json"))
