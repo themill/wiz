@@ -650,9 +650,9 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
 
     Command example::
 
-        wiz freeze package1>=1 package2==2.3.0 package3
-        wiz freeze --format bash package1>=1 package2==2.3.0 package3
-        wiz freeze --format tcsh package1>=1 package2==2.3.0 package3
+        wiz freeze package1>=1 package2==2.3.0 package3 -o /tmp
+        wiz freeze --format bash package1>=1 package2==2.3.0 package3 -o /tmp
+        wiz freeze --format tcsh package1>=1 package2==2.3.0 package3 -o /tmp
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
