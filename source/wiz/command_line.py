@@ -650,9 +650,9 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
 
     Command example::
 
-        wiz freeze package1>=1 package2==2.3.0 package3
-        wiz freeze --format bash package1>=1 package2==2.3.0 package3
-        wiz freeze --format tcsh package1>=1 package2==2.3.0 package3
+        wiz freeze package1>=1 package2==2.3.0 package3 -o /tmp
+        wiz freeze --format bash package1>=1 package2==2.3.0 package3 -o /tmp
+        wiz freeze --format tcsh package1>=1 package2==2.3.0 package3 -o /tmp
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
@@ -678,28 +678,39 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
             description = _query_description(logger)
             version = _query_version(logger)
 
-            wiz.export_definition(
-                namespace.output, identifier, description,
-                version=version,
-                command_mapping=context.get("command"),
-                environ_mapping=context.get("environ")
-            )
+            definition_data = {
+                "identifier": identifier,
+                "description": description,
+                "version": version
+            }
+
+            command_mapping = context.get("command")
+            if command_mapping is not None:
+                definition_data["command"] = command_mapping
+
+            environ_mapping = context.get("environ")
+            if environ_mapping is not None:
+                definition_data["environ"] = environ_mapping
+
+            wiz.export_definition(namespace.output, definition_data)
 
         elif namespace.format == "bash":
             command = _query_command(context.get("command", {}).values())
-            wiz.export_bash_wrapper(
-                namespace.output, identifier,
+            wiz.export_script(
+                namespace.output, "bash",
+                identifier,
+                environ=context.get("environ", {}),
                 command=command,
-                environ_mapping=context.get("environ"),
                 packages=context.get("packages")
             )
 
         elif namespace.format == "tcsh":
             command = _query_command(context.get("command", {}).values())
-            wiz.export_csh_wrapper(
-                namespace.output, identifier,
+            wiz.export_script(
+                namespace.output, "csh",
+                identifier,
+                environ=context.get("environ", {}),
                 command=command,
-                environ_mapping=context.get("environ"),
                 packages=context.get("packages")
             )
 

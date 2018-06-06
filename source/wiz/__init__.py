@@ -299,86 +299,44 @@ def discover_context():
     return context
 
 
-def export_definition(
-    path, identifier, description, version=None, command_mapping=None,
-    environ_mapping=None, packages=None,
-):
+def export_definition(path, definition_data):
     """Export a context as a definition in *path*.
 
     It could be used as follow::
 
-        >>> mapping = wiz.fetch_definition_mapping("/path/to/registry")
-        >>> context = wiz.resolve_context(
-        ...     ["my-package >=1, <2"], mapping
-        ... )
-        >>> wiz.export_definition(
-        ...    "/path/to/output", "new-definition",
-        ...    "Exported definition from 'my-package'.",
-        ...    command_mapping=context.get("command"),
-        ...    environ_mapping=context.get("environ")
-        ... )
+        >>> definition_data = {
+        ...     "identifier": "foo",
+        ...     "version": "0.1.0",
+        ...     "description": "Environment for foo application",
+        ...     "command": {
+        ...         "app": "App0.1"
+        ...     },
+        ...     "environ": {
+        ...         "KEY": "VALUE"
+        ...     }
+        ... }
+        >>> wiz.export_definition("/path/to/output", definition_data)
 
-        "/path/to/output/new-definition.json"
+        "/path/to/output/foo-0.1.0.json"
 
     *path* should be a valid directory to save the exported definition.
 
-    *identifier* should be a unique identifier for the exported definition.
-
-    *description* should be a short description for the exported definition.
-
-    *version* could be a valid version string for the exported definition. If
-    unspecified the definition will be un-versioned.
-
-    *command_mapping* could be a mapping of commands available in the exported
-    definition. Each command key should be unique in a registry. The mapping
-    should be in the form of::
-
-        {
-            "app": "AppExe",
-            "appX": "AppExe --mode X"
-        }
-
-    *environ_mapping* could be a mapping of all environment variable that will
-    be set by the exported definition. It should be in the form of::
-
-        {
-            "KEY1": "value1",
-            "KEY2": "value2",
-        }
-
-    *packages* could be a list of :class:`wiz.package.Package` instances
-    requested by the exported definition.
+    *definition_data* should represent a mapping which represent a definition.
 
     Raises :exc:`wiz.exception.IncorrectDefinition` if the definition can not
-    be created from incoming data.
+    be created from *definition_data*.
 
     Raises :exc:`OSError` if the definition can not be exported in *path*.
 
     """
-    definition_data = {
-        "identifier": identifier,
-        "description": description,
-    }
-
-    if version is not None:
-        definition_data["version"] = version
-
-    if command_mapping is not None:
-        definition_data["command"] = command_mapping
-
-    if environ_mapping is not None:
-        definition_data["environ"] = environ_mapping
-
-    if packages is not None:
-        definition_data["requirements"] = [
-            _package.identifier for _package in packages
-        ]
-
-    return wiz.definition.export(path, definition_data)
+    _definition = wiz.definition.Definition(**definition_data)
+    return wiz.definition.export(
+        path, _definition.to_ordered_dict(serialize_content=True)
+    )
 
 
-def export_bash_wrapper(
-    path, identifier, command=None, environ_mapping=None, packages=None,
+def export_script(
+    path, script_type, identifier, environ, command=None, packages=None,
 ):
     """Export context as :term:`Bash` wrapper in *path*.
 
@@ -386,11 +344,11 @@ def export_bash_wrapper(
 
     *path* should be a valid directory to save the exported wrapper.
 
+    *script_type* should be either "csh" or "bash".
+
     *identifier* should define the name of the exported wrapper.
 
-    *command* could define a command to run within the exported wrapper.
-
-    *environ_mapping* could be a mapping of all environment variable that will
+    *environ* should be a mapping of all environment variable that will
     be set by the exported definition. It should be in the form of::
 
         {
@@ -398,15 +356,26 @@ def export_bash_wrapper(
             "KEY2": "value2",
         }
 
+    *command* could define a command to run within the exported wrapper.
+
     *packages* could indicate a list of :class:`wiz.package.Package` instances
     which helped creating the context.
+
+    Raises :exc:`ValueError` if the *script_type* is incorrect.
+
+    Raises :exc:`ValueError` if *environ* mapping is empty.
 
     Raises :exc:`OSError` if the wrapper can not be exported in *path*.
 
     """
     file_path = os.path.join(os.path.abspath(path), identifier)
 
-    content = "#!/bin/bash\n"
+    if script_type == "bash":
+        content = "#!/bin/bash\n"
+    elif script_type == "csh":
+        content = "#!/bin/tcsh -f\n"
+    else:
+        raise ValueError("'{}' is not a valid script type.".format(script_type))
 
     # Indicate information about the generation process.
     if packages is not None:
@@ -415,69 +384,25 @@ def export_bash_wrapper(
             content += "# - {}\n".format(_package.identifier)
         content += "#\n"
 
-    for key, value in environ_mapping.items():
+    if len(environ.keys()) == 0:
+        raise ValueError("The environment mapping should not be empty.")
+
+    for key, value in environ.items():
         # Do not override the PATH environment variable to prevent
         # error when executing the script.
         if key == "PATH":
             value += ":${PATH}"
 
-        content += "export {0}=\"{1}\"\n".format(key, value)
+        if script_type == "bash":
+            content += "export {0}=\"{1}\"\n".format(key, value)
+        else:
+            content += "setenv {0} \"{1}\"\n".format(key, value)
 
-    if command:
-        content += command + " $@"
-
-    wiz.filesystem.export(file_path, content)
-    return file_path
-
-
-def export_csh_wrapper(
-    path, identifier, command=None, environ_mapping=None, packages=None,
-):
-    """Export context as :term:`C-Shell` wrapper in *path*.
-
-    Return the path to the bash wrapper created.
-
-    *path* should be a valid directory to save the exported wrapper.
-
-    *identifier* should define the name of the exported wrapper.
-
-    *command* could define a command to run within the exported wrapper.
-
-    *environ_mapping* could be a mapping of all environment variable that will
-    be set by the exported definition. It should be in the form of::
-
-        {
-            "KEY1": "value1",
-            "KEY2": "value2",
-        }
-
-    *packages* could indicate a list of :class:`wiz.package.Package` instances
-    which helped creating the context.
-
-    Raises :exc:`OSError` if the wrapper can not be exported in *path*.
-
-    """
-    file_path = os.path.join(os.path.abspath(path), identifier)
-
-    content = "#!/bin/tcsh -f\n"
-
-    # Indicate information about the generation process.
-    if packages is not None:
-        content += "#\n# Generated by wiz with the following environments:\n"
-        for _package in packages:
-            content += "# - {}\n".format(_package.identifier)
-        content += "#\n"
-
-    for key, value in environ_mapping.items():
-        # Do not override the PATH environment variable to prevent
-        # error when executing the script.
-        if key == "PATH":
-            value += ":${PATH}"
-
-        content += "setenv {0} \"{1}\"\n".format(key, value)
-
-    if command:
-        content += command + " $argv:q"
+    if command is not None:
+        if script_type == "bash":
+            content += command + " $@\n"
+        else:
+            content += command + " $argv:q\n"
 
     wiz.filesystem.export(file_path, content)
     return file_path

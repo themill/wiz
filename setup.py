@@ -24,7 +24,8 @@ with open(
 # Compute dependencies.
 INSTALL_REQUIRES = [
     "mlog >= 0.0.6, < 1",
-    "packaging >= 16, < 17"
+    "packaging >= 17.1, < 18",
+    "jsonschema >= 2.5, < 3"
 ]
 
 DOC_REQUIRES = [

@@ -4,6 +4,37 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+
+        Added :func:`wiz.validator.yield_definition_errors` to identify and
+        yield potential errors in a definition data following a
+        :term:`JSON Schema`.
+
+    .. change:: changed
+
+        Changed :class:`wiz.definition.Definition` to validate data mapping on
+        instantiation and raise potential error as
+        :exc:`~wiz.exception.IncorrectDefinition`.
+
+    .. change:: changed
+
+        Changed :func:`wiz.export_definition` to take a data mapping instead of
+        individually requesting each keyword.
+
+        The "packages" argument which were used to pass a list of
+        :class:`~wiz.package.Package` instances to indicate the requirements
+        list is no longer necessary as the requirements list could directly be
+        passed to the data mapping. This implies that the user no longer need to
+        fetch the corresponding packages prior to export a definition.
+
+    .. change:: changed
+
+        The :func:`wiz.export_bash_wrapper` and :func:`wiz.export_csh_wrapper`
+        functions have been removed and replaced by an :func:`wiz.export_script`
+        function which simply take a "script_type" argument.
+
 .. release:: 0.10.0
     :date: 2018-05-24
 
