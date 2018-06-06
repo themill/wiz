@@ -402,3 +402,17 @@ def test_export_definition_data_error():
 
     with pytest.raises(wiz.exception.IncorrectDefinition):
         wiz.export_definition("/incorrect", definition_data)
+
+
+def test_export_csh_script(temporary_directory):
+    """Export CSH script."""
+    wiz.export_script(temporary_directory, "csh", "foo", {"KEY": "VALUE"})
+
+    file_path = os.path.join(temporary_directory, "foo")
+    assert os.path.isfile(file_path) is True
+
+    with open(file_path, "r") as stream:
+        assert stream.read() == (
+            "#!/bin/tcsh -f\n"
+            "setenv KEY \"VALUE\"\n"
+        )

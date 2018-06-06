@@ -336,8 +336,7 @@ def export_definition(path, definition_data):
 
 
 def export_script(
-    path, script_type, identifier, command=None, environ_mapping=None,
-    packages=None,
+    path, script_type, identifier, environ_mapping, command=None, packages=None,
 ):
     """Export context as :term:`Bash` wrapper in *path*.
 
@@ -349,9 +348,7 @@ def export_script(
 
     *identifier* should define the name of the exported wrapper.
 
-    *command* could define a command to run within the exported wrapper.
-
-    *environ_mapping* could be a mapping of all environment variable that will
+    *environ_mapping* should be a mapping of all environment variable that will
     be set by the exported definition. It should be in the form of::
 
         {
@@ -359,10 +356,14 @@ def export_script(
             "KEY2": "value2",
         }
 
+    *command* could define a command to run within the exported wrapper.
+
     *packages* could indicate a list of :class:`wiz.package.Package` instances
     which helped creating the context.
 
     Raises :exc:`ValueError` if the *script_type* is incorrect.
+
+    Raises :exc:`ValueError` if *environ_mapping* is empty.
 
     Raises :exc:`OSError` if the wrapper can not be exported in *path*.
 
@@ -394,7 +395,7 @@ def export_script(
         else:
             content += "setenv {0} \"{1}\"\n".format(key, value)
 
-    if command:
+    if command is not None:
         if script_type == "bash":
             content += command + " $@"
         else:
