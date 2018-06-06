@@ -31,6 +31,12 @@ Glossary
 
         .. seealso:: http://www.json.org/
 
+    JSON Schema
+        A vocabulary that allows you to annotate and validate :term:`JSON`
+        documents. Useful in defining data contracts.
+
+        .. seealso:: http://json-schema.org/
+
     Maya
         A digital content creator provided by Autodesk.
 
