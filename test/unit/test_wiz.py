@@ -373,3 +373,32 @@ def test_export_definition_with_version(temporary_directory):
              "    }\n"
              "}"
         )
+
+
+def test_export_definition_path_error():
+    """Fail to export definition when path is incorrect."""
+    definition_data = {
+        "identifier": "foo",
+        "description": "Test definition",
+        "command": {
+            "app": "App0.1",
+            "appX": "AppX0.1"
+        },
+        "environ": {
+            "KEY": "VALUE"
+        }
+    }
+
+    with pytest.raises(OSError):
+        wiz.export_definition("/incorrect", definition_data)
+
+
+def test_export_definition_data_error():
+    """Fail to export definition when data is incorrect."""
+    definition_data = {
+        "identifier": "foo",
+        "other": "boo!"
+    }
+
+    with pytest.raises(wiz.exception.IncorrectDefinition):
+        wiz.export_definition("/incorrect", definition_data)
