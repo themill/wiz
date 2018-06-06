@@ -678,12 +678,21 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
             description = _query_description(logger)
             version = _query_version(logger)
 
-            wiz.export_definition(
-                namespace.output, identifier, description,
-                version=version,
-                command_mapping=context.get("command"),
-                environ_mapping=context.get("environ")
-            )
+            definition_data = {
+                "identifier": identifier,
+                "description": description,
+                "version": version
+            }
+
+            command_mapping = context.get("command")
+            if command_mapping is not None:
+                definition_data["command"] = command_mapping
+
+            environ_mapping = context.get("environ")
+            if environ_mapping is not None:
+                definition_data["environ"] = environ_mapping
+
+            wiz.export_definition(namespace.output, definition_data)
 
         elif namespace.format == "bash":
             command = _query_command(context.get("command", {}).values())

@@ -299,84 +299,40 @@ def discover_context():
     return context
 
 
-def export_definition(
-    path, identifier, description=None, version=None, system=None, command=None,
-    environ=None, requirements=None,
-):
+def export_definition(path, definition_data):
     """Export a context as a definition in *path*.
 
     It could be used as follow::
 
-        >>> mapping = wiz.fetch_definition_mapping("/path/to/registry")
-        >>> context = wiz.resolve_context(
-        ...     ["my-package >=1, <2"], mapping
-        ... )
-        >>> wiz.export_definition(
-        ...    "/path/to/output", "new-definition",
-        ...    "Exported definition from 'my-package'.",
-        ...    command_mapping=context.get("command"),
-        ...    environ_mapping=context.get("environ")
-        ... )
+        >>> definition_data = {
+        ...     "identifier": "foo",
+        ...     "version": "0.1.0",
+        ...     "description": "Environment for foo application",
+        ...     "command": {
+        ...         "app": "App0.1"
+        ...     },
+        ...     "environ": {
+        ...         "KEY": "VALUE"
+        ...     }
+        ... }
+        >>> wiz.export_definition("/path/to/output", definition_data)
 
-        "/path/to/output/new-definition.json"
+        "/path/to/output/foo.json"
 
     *path* should be a valid directory to save the exported definition.
 
-    *identifier* should be a unique identifier for the exported definition.
-
-    *description* should be a short description for the exported definition.
-
-    *version* could be a valid version string for the exported definition. If
-    unspecified the definition will be un-versioned.
-
-    *command_mapping* could be a mapping of commands available in the exported
-    definition. Each command key should be unique in a registry. The mapping
-    should be in the form of::
-
-        {
-            "app": "AppExe",
-            "appX": "AppExe --mode X"
-        }
-
-    *environ_mapping* could be a mapping of all environment variable that will
-    be set by the exported definition. It should be in the form of::
-
-        {
-            "KEY1": "value1",
-            "KEY2": "value2",
-        }
-
-    *packages* could be a list of :class:`wiz.package.Package` instances
-    requested by the exported definition.
+    *definition_data* should represent a mapping which represent a definition.
 
     Raises :exc:`wiz.exception.IncorrectDefinition` if the definition can not
-    be created from incoming data.
+    be created from *definition_data*.
 
     Raises :exc:`OSError` if the definition can not be exported in *path*.
 
     """
-    definition_data = {
-        "identifier": identifier,
-    }
-
-    if description is not None:
-        definition_data["description"] = description
-
-    if version is not None:
-        definition_data["version"] = version
-
-    if command is not None:
-        definition_data["command"] = command
-
-    if environ is not None:
-        definition_data["environ"] = environ
-
-    if packages is not None:
-        definition_data["requirements"] = [
-            _package.identifier for _package in packages
-        ]
-
-    return wiz.definition.export(path, definition_data)
+    _definition = wiz.definition.Definition(**definition_data)
+    return wiz.definition.export(
+        path, _definition.to_ordered_dict(serialize_content=True)
+    )
 
 
 def export_bash_wrapper(
