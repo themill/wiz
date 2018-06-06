@@ -699,8 +699,8 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
             wiz.export_script(
                 namespace.output, "bash",
                 identifier,
+                environ=context.get("environ", {}),
                 command=command,
-                environ_mapping=context.get("environ"),
                 packages=context.get("packages")
             )
 
@@ -709,8 +709,8 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
             wiz.export_script(
                 namespace.output, "csh",
                 identifier,
+                environ=context.get("environ", {}),
                 command=command,
-                environ_mapping=context.get("environ"),
                 packages=context.get("packages")
             )
 
