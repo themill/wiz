@@ -4,7 +4,8 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 0.11.0
+    :date: 2018-06-06
 
     .. change:: new
 
