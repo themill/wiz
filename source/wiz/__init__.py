@@ -336,7 +336,7 @@ def export_definition(path, definition_data):
 
 
 def export_script(
-    path, script_type, identifier, environ_mapping, command=None, packages=None,
+    path, script_type, identifier, environ, command=None, packages=None,
 ):
     """Export context as :term:`Bash` wrapper in *path*.
 
@@ -348,7 +348,7 @@ def export_script(
 
     *identifier* should define the name of the exported wrapper.
 
-    *environ_mapping* should be a mapping of all environment variable that will
+    *environ* should be a mapping of all environment variable that will
     be set by the exported definition. It should be in the form of::
 
         {
@@ -363,7 +363,7 @@ def export_script(
 
     Raises :exc:`ValueError` if the *script_type* is incorrect.
 
-    Raises :exc:`ValueError` if *environ_mapping* is empty.
+    Raises :exc:`ValueError` if *environ* mapping is empty.
 
     Raises :exc:`OSError` if the wrapper can not be exported in *path*.
 
@@ -384,7 +384,10 @@ def export_script(
             content += "# - {}\n".format(_package.identifier)
         content += "#\n"
 
-    for key, value in environ_mapping.items():
+    if len(environ.keys()) == 0:
+        raise ValueError("The environment mapping should not be empty.")
+
+    for key, value in environ.items():
         # Do not override the PATH environment variable to prevent
         # error when executing the script.
         if key == "PATH":
@@ -397,9 +400,9 @@ def export_script(
 
     if command is not None:
         if script_type == "bash":
-            content += command + " $@"
+            content += command + " $@\n"
         else:
-            content += command + " $argv:q"
+            content += command + " $argv:q\n"
 
     wiz.filesystem.export(file_path, content)
     return file_path
