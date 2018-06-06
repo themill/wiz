@@ -696,8 +696,9 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
 
         elif namespace.format == "bash":
             command = _query_command(context.get("command", {}).values())
-            wiz.export_bash_wrapper(
-                namespace.output, identifier,
+            wiz.export_script(
+                namespace.output, "bash",
+                identifier,
                 command=command,
                 environ_mapping=context.get("environ"),
                 packages=context.get("packages")
@@ -705,8 +706,9 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
 
         elif namespace.format == "tcsh":
             command = _query_command(context.get("command", {}).values())
-            wiz.export_csh_wrapper(
-                namespace.output, identifier,
+            wiz.export_script(
+                namespace.output, "csh",
+                identifier,
                 command=command,
                 environ_mapping=context.get("environ"),
                 packages=context.get("packages")
