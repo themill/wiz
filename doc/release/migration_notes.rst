@@ -7,9 +7,9 @@ Migration notes
 This section will show more detailed information when relevant for switching to
 a new version, such as when upgrading involves backwards incompatibilities.
 
-.. _release/migration/0.10.0:
+.. _release/migration/0.11.0:
 
-Migrate to 0.10.0
+Migrate to 0.11.0
 =================
 
 The :func:`wiz.export_bash_wrapper` and :func:`wiz.export_csh_wrapper`
