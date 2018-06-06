@@ -4,22 +4,33 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Changed the `MANIFEST template
+        <https://docs.python.org/2/distutils/sourcedist.html#the-manifest-in-template>`_
+        to release the package source with :term:`JSON` files.
+
 .. release:: 0.11.0
     :date: 2018-06-06
 
     .. change:: new
+        :tags: API
 
         Added :func:`wiz.validator.yield_definition_errors` to identify and
         yield potential errors in a definition data following a
         :term:`JSON Schema`.
 
     .. change:: changed
+        :tags: API
 
         Changed :class:`wiz.definition.Definition` to validate data mapping on
         instantiation and raise potential error as
         :exc:`~wiz.exception.IncorrectDefinition`.
 
     .. change:: changed
+        :tags: API
 
         Changed :func:`wiz.export_definition` to take a data mapping instead of
         individually requesting each keyword.
@@ -31,6 +42,7 @@ Release Notes
         fetch the corresponding packages prior to export a definition.
 
     .. change:: changed
+        :tags: API
 
         The :func:`wiz.export_bash_wrapper` and :func:`wiz.export_csh_wrapper`
         functions have been removed and replaced by an :func:`wiz.export_script`
