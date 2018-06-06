@@ -19,6 +19,14 @@
             "type": "boolean",
             "default": false
         },
+        "registry": {
+            "description": "Full path to the registry in which the definition file has been found.",
+            "type": "string"
+        },
+        "origin": {
+            "description": "Full path to the definition file.",
+            "type": "string"
+        },
         "system": {
             "description": "System constraints limiting the scope of the definition.",
             "type": "object",

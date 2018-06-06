@@ -168,8 +168,8 @@ def test_definition_with_disabled():
     "list",
     "object"
 ])
-def test_incorrect_description_type(value):
-    """Raise an error when description type is incorrect."""
+def test_incorrect_disabled_type(value):
+    """Raise an error when disabled type is incorrect."""
     data = {
         "identifier": "test",
         "disabled": value,
@@ -180,6 +180,78 @@ def test_incorrect_description_type(value):
             "message": "{!r} is not of type u'boolean'".format(value),
             "path": "/disabled",
             "schema_path": "/properties/disabled/type"
+        }
+    ]
+
+
+def test_definition_with_origin():
+    """Validate a definition data with an origin keyword."""
+    data = {
+        "identifier": "test",
+        "origin": "/path/to/definition.json"
+    }
+    assert list(wiz.validator.yield_definition_errors(data)) == []
+
+
+@pytest.mark.parametrize("value", [
+    42,
+    True,
+    ["True", "False"],
+    {"key": "value"}
+], ids=[
+    "number",
+    "boolean",
+    "list",
+    "object"
+])
+def test_incorrect_origin_type(value):
+    """Raise an error when origin type is incorrect."""
+    data = {
+        "identifier": "test",
+        "origin": value,
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'string'".format(value),
+            "path": "/origin",
+            "schema_path": "/properties/origin/type"
+        }
+    ]
+
+
+def test_definition_with_registry():
+    """Validate a definition data with a registry keyword."""
+    data = {
+        "identifier": "test",
+        "registry": "/path/to/registry"
+    }
+    assert list(wiz.validator.yield_definition_errors(data)) == []
+
+
+@pytest.mark.parametrize("value", [
+    42,
+    True,
+    ["True", "False"],
+    {"key": "value"}
+], ids=[
+    "number",
+    "boolean",
+    "list",
+    "object"
+])
+def test_incorrect_registry_type(value):
+    """Raise an error when registry type is incorrect."""
+    data = {
+        "identifier": "test",
+        "registry": value,
+    }
+
+    assert list(wiz.validator.yield_definition_errors(data)) == [
+        {
+            "message": "{!r} is not of type u'string'".format(value),
+            "path": "/registry",
+            "schema_path": "/properties/registry/type"
         }
     ]
 

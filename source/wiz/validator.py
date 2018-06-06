@@ -60,7 +60,7 @@ def yield_definition_errors(data):
 
     An empty list is yielded if no errors are found.
 
-    The following :term:`JSON` schema will be used:
+    The following :term:`JSON Schema` will be used:
 
     .. literalinclude:: ../../source/wiz/package_data/schema/definition.json
 
