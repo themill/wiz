@@ -1,5 +1,7 @@
 # :coding: utf-8
 
+import os
+
 import pytest
 from packaging.requirements import Requirement
 
@@ -301,3 +303,73 @@ def test_discover_context_error(monkeypatch):
 
     with pytest.raises(wiz.exception.RequestNotFound):
         wiz.discover_context()
+
+
+def test_export_definition(temporary_directory):
+    """Export a definition to file."""
+    definition_data = {
+        "identifier": "foo",
+        "description": "Test definition",
+        "command": {
+            "app": "App0.1",
+            "appX": "AppX0.1"
+        },
+        "environ": {
+            "KEY": "VALUE"
+        }
+    }
+    wiz.export_definition(temporary_directory, definition_data)
+
+    file_path = os.path.join(temporary_directory, "foo.json")
+    assert os.path.isfile(file_path) is True
+
+    with open(file_path, "r") as stream:
+        assert stream.read() == (
+             "{\n"
+             "    \"identifier\": \"foo\",\n"
+             "    \"description\": \"Test definition\",\n"
+             "    \"command\": {\n"
+             "        \"app\": \"App0.1\",\n"
+             "        \"appX\": \"AppX0.1\"\n"
+             "    },\n"
+             "    \"environ\": {\n"
+             "        \"KEY\": \"VALUE\"\n"
+             "    }\n"
+             "}"
+        )
+
+
+def test_export_definition_with_version(temporary_directory):
+    """Export a definition to file with version."""
+    definition_data = {
+        "identifier": "foo",
+        "version": "0.1.0",
+        "description": "Test definition",
+        "command": {
+            "app": "App0.1",
+            "appX": "AppX0.1"
+        },
+        "environ": {
+            "KEY": "VALUE"
+        }
+    }
+    wiz.export_definition(temporary_directory, definition_data)
+
+    file_path = os.path.join(temporary_directory, "foo-0.1.0.json")
+    assert os.path.isfile(file_path) is True
+
+    with open(file_path, "r") as stream:
+        assert stream.read() == (
+             "{\n"
+             "    \"identifier\": \"foo\",\n"
+             "    \"version\": \"0.1.0\",\n"
+             "    \"description\": \"Test definition\",\n"
+             "    \"command\": {\n"
+             "        \"app\": \"App0.1\",\n"
+             "        \"appX\": \"AppX0.1\"\n"
+             "    },\n"
+             "    \"environ\": {\n"
+             "        \"KEY\": \"VALUE\"\n"
+             "    }\n"
+             "}"
+        )
