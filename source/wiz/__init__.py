@@ -317,7 +317,7 @@ def export_definition(path, definition_data):
         ... }
         >>> wiz.export_definition("/path/to/output", definition_data)
 
-        "/path/to/output/foo.json"
+        "/path/to/output/foo-0.1.0.json"
 
     *path* should be a valid directory to save the exported definition.
 
