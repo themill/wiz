@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: registry
+
+        Changed :func:`wiz.registry.get_defaults` to update the location of the
+        site registry folder.
+
 .. release:: 0.11.1
     :date: 2018-06-06
 
@@ -60,7 +68,7 @@ Release Notes
     .. change:: changed
 
         Changed :func:`wiz.registry.get_defaults` to update the location of the
-        job registry folder and global registry folders.
+        site registry folder and global registry folders.
 
 .. release:: 0.9.2
     :date: 2018-04-30
