@@ -11,18 +11,18 @@ any existing projects::
 
     /jobs/ads/my_project/
 
-Create a :file:`.common/wiz/registry` directory in the project folder:
+Create a :file:`.wiz/registry` directory in the project folder:
 
 .. code-block:: console
 
-    >>> mkdir -p /jobs/ads/my_project/.common/wiz/registry
+    >>> mkdir -p /jobs/ads/my_project/.wiz/registry
 
 Create a :file:`project.json` package definition file to indicate the
 environment variables needed for the project:
 
 .. code-block:: console
 
-    >>> cat /jobs/ads/my_project/.common/wiz/registry/project.json
+    >>> cat /jobs/ads/my_project/.wiz/registry/project.json
     {
         "identifier": "my-project",
         "description": "Environment for my-project.",
@@ -36,7 +36,7 @@ location of the TD SVN root folder within the project:
 
 .. code-block:: console
 
-    >>> cat /jobs/ads/my_project/.common/wiz/registry/td-svn.json
+    >>> cat /jobs/ads/my_project/.wiz/registry/td-svn.json
     {
         "identifier": "td-svn",
         "description": "Environment for TD SVN.",
@@ -53,7 +53,7 @@ command so that the additional scripts and modules are included:
 
 .. code-block:: console
 
-    >>> cat /jobs/ads/my_project/.common/wiz/registry/maya.json
+    >>> cat /jobs/ads/my_project/.wiz/registry/maya.json
     {
         "identifier": "my-project-maya",
         "description": "Maya Application for my-project.",

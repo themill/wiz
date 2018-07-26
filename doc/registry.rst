@@ -67,7 +67,7 @@ The site registries contain site-specific package definitions, useful
 for a single site only (e.g. houdini hsite, site specific environment
 variables).
 
-It is available in :file:`/jobs/.common/wiz/registry`.
+It is available in :file:`/jobs/.wiz/registry/default`.
 
 .. _registry/project:
 
@@ -77,7 +77,7 @@ Project registries
 The project registries contain project-specific package definitions (e.g.
 containing TD tools currently added via the TDSVN tools). It is parsed depending
 on the current directory when running the package manager tool and is located
-within a project structure under a :file:`.common/wiz/registry` sub-folder.
+within a project structure under a :file:`.wiz/registry` sub-folder.
 
 Project registries can only be discovered under :file:`/jobs/ads/`.
 
