@@ -68,7 +68,7 @@ def test_get_defaults():
             os.sep, "mill3d", "server", "apps", "WIZ", "registry",
             "secondary", "default"
         ),
-        os.path.join(os.sep, "jobs", ".common", "wiz", "registry")
+        os.path.join(os.sep, "jobs", ".wiz", "registry", "default")
     ]
 
 
@@ -80,7 +80,7 @@ def test_discover(mocked_accessible):
     path = os.path.join(prefix, "project", "identity", "shot", "animation")
     registries = wiz.registry.discover(path)
 
-    end = os.path.join(".common", "wiz", "registry")
+    end = os.path.join(".wiz", "registry")
 
     assert isinstance(registries, types.GeneratorType)
     assert list(registries) == [

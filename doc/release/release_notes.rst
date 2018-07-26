@@ -4,6 +4,28 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: registry
+
+        Changed :func:`wiz.registry.get_defaults` to update the location of the
+        site registry folder in order to prevent using the :file:`.common`
+        hidden folder.
+
+        :file:`/jobs/.common/wiz/registry/default` →
+        :file:`/jobs/.wiz/registry/default`
+
+    .. change:: changed
+        :tags: registry
+
+        Changed :func:`wiz.registry.discover` to update the location of the
+        project registry sub-folder in order to prevent using the
+        :file:`.common` hidden folder.
+
+        :file:`[PREFIX_PROJECT]/.common/wiz/registry` →
+        :file:`[PREFIX_PROJECT]/.wiz/registry`
+
 .. release:: 0.12.0
     :date: 2018-06-08
 
@@ -12,6 +34,8 @@ Release Notes
 
         Changed :func:`wiz.registry.get_defaults` to update the location of the
         site registry folder.
+
+        :file:`/jobs/.common/wiz/registry` → :file:`/jobs/.common/wiz/registry/default`
 
 .. release:: 0.11.1
     :date: 2018-06-06

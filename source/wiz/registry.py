@@ -19,7 +19,7 @@ def get_defaults():
     return [
         os.path.join(server_root, "registry", "primary", "default"),
         os.path.join(server_root, "registry", "secondary", "default"),
-        os.path.join(os.sep, "jobs", ".common", "wiz", "registry", "default")
+        os.path.join(os.sep, "jobs", ".wiz", "registry", "default")
     ]
 
 
@@ -54,15 +54,15 @@ def discover(path):
     """Yield available registry folders from *path* folder hierarchy.
 
     Each folder constituting the hierarchy of *path* are parsed so that
-    existing :file:`.common/wiz/registry` folders can be yield from the deepest
+    existing :file:`.wiz/registry` folders can be yield from the deepest
     to the closest.
 
     Example::
 
         >>> list(discover("/jobs/ads/project/identity/shot"))
         [
-            "/jobs/ads/project/.common/wiz/registry",
-            "/jobs/ads/project/identity/shot/.common/wiz/registry"
+            "/jobs/ads/project/.wiz/registry",
+            "/jobs/ads/project/identity/shot/.wiz/registry"
         ]
 
     .. important::
@@ -79,7 +79,7 @@ def discover(path):
 
     for folder in path.split(os.sep)[3:]:
         prefix = os.path.join(prefix, folder)
-        registry_path = os.path.join(prefix, ".common", "wiz", "registry")
+        registry_path = os.path.join(prefix, ".wiz", "registry")
 
         if wiz.filesystem.is_accessible(registry_path):
             yield registry_path
