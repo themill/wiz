@@ -22,6 +22,66 @@ def mocked_package(mocker):
     return mocker.patch.object(wiz.package, "Package", return_value="PACKAGE")
 
 
+def test_generate_identifier():
+    """Generate package name from definition."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    assert wiz.package.generate_identifier(definition) == "foo"
+
+
+def test_generate_identifier_with_version():
+    """Generate package name from definition with version."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "version": "0.1.0",
+    })
+
+    assert wiz.package.generate_identifier(definition) == "foo==0.1.0"
+
+
+def test_generate_identifier_with_variant():
+    """Generate package name from definition with variant."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "variants": [
+            {"identifier": "bar1"},
+            {"identifier": "bar2"},
+            {"identifier": "bar3"}
+        ]
+    })
+
+    assert wiz.package.generate_identifier(definition) == "foo"
+    assert wiz.package.generate_identifier(definition, "bar1") == "foo[bar1]"
+    assert wiz.package.generate_identifier(definition, "bar2") == "foo[bar2]"
+    assert wiz.package.generate_identifier(definition, "bar3") == "foo[bar3]"
+
+
+def test_generate_identifier_with_version_and_variant():
+    """Generate package name from definition with version and variant."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "version": "0.1.0",
+        "variants": [
+            {"identifier": "bar1"},
+            {"identifier": "bar2"},
+            {"identifier": "bar3"}
+        ]
+    })
+
+    assert wiz.package.generate_identifier(definition) == "foo==0.1.0"
+    assert wiz.package.generate_identifier(
+        definition, "bar1"
+    ) == "foo[bar1]==0.1.0"
+    assert wiz.package.generate_identifier(
+        definition, "bar2"
+    ) == "foo[bar2]==0.1.0"
+    assert wiz.package.generate_identifier(
+        definition, "bar3"
+    ) == "foo[bar3]==0.1.0"
+
+
 def test_extract_without_variant(mocked_definition_query, mocked_package):
     """Extract one Package from definition."""
     definition = wiz.definition.Definition({
