@@ -39,6 +39,9 @@ def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
                 },
                 ...
             },
+            "implicit-packages": [
+                "foo==0.1.0", ...
+            ]
             "registries": [
                 ...
             ]
@@ -177,7 +180,10 @@ def resolve_context(requests, definition_mapping, environ_mapping=None):
     be augmented by the resolved environment.
 
     """
-    requirements = map(wiz.utility.get_requirement, requests)
+    implicit_package_requests = definition_mapping.get("implicit-packages", [])
+    requirements = map(
+        wiz.utility.get_requirement, requests + implicit_package_requests
+    )
 
     registries = definition_mapping["registries"]
     resolver = wiz.graph.Resolver(
