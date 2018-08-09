@@ -33,7 +33,7 @@ def generate_identifier(definition, variant_identifier=None):
 
     if variant_identifier is not None:
         identifiers = [variant.identifier for variant in definition.variants]
-        if variant_identifier in identifiers:
+        if variant_identifier not in identifiers:
             raise wiz.exception.IncorrectDefinition(
                 "The definition '{identifier}=={version}' does not contain a "
                 "variant identified as {variant}".format(
@@ -373,7 +373,7 @@ class Package(wiz.mapping.Mapping):
         )
 
         mapping["identifier"] = generate_identifier(
-            definition, variant.identifier
+            definition, variant.identifier if variant else None
         )
         mapping["definition_identifier"] = definition.identifier
         mapping["variant_name"] = None
