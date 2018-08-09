@@ -12,6 +12,45 @@ import wiz.history
 import wiz.exception
 
 
+def generate_identifier(definition, variant_identifier=None):
+    """Generate package identifier from *definition*.
+
+    *definition* should be an instance of :class:`~wiz.definition.Definition`.
+
+    If *variant_identifier* is specified, the package identifier will be
+    generated accordingly.
+
+    Raise :exc:`wiz.exception.IncorrectDefinition` if *variant_identifier*
+    is not found in *definition*.
+
+    .. note::
+
+        The package identifier returned is usable as a request to query the
+        corresponding :class:`Package` instance.
+
+    """
+    identifier = definition.identifier
+
+    if variant_identifier is not None:
+        identifiers = [variant.identifier for variant in definition.variants]
+        if variant_identifier in identifiers:
+            raise wiz.exception.IncorrectDefinition(
+                "The definition '{identifier}=={version}' does not contain a "
+                "variant identified as {variant}".format(
+                    identifier=identifier,
+                    version=definition.version,
+                    variant=variant_identifier
+                )
+            )
+
+        identifier += "[{}]".format(variant_identifier)
+
+    if definition.version != wiz.symbol.UNKNOWN_VALUE:
+        identifier += "=={}".format(definition.version)
+
+    return identifier
+
+
 def extract(requirement, definition_mapping):
     """Extract list of :class:`Package` instances from *requirement*.
 
@@ -310,23 +349,6 @@ def initiate_environ(mapping=None):
     return environ
 
 
-def _generate_identifier(definition, variant):
-    """Generate package identifier from *definition* and *variant*
-
-    The identifier should be usable to query the package from definition
-
-    """
-    identifier = definition.identifier
-
-    if variant is not None:
-        identifier += "[{}]".format(variant.identifier)
-
-    if definition.version != wiz.symbol.UNKNOWN_VALUE:
-        identifier += "=={}".format(definition.version)
-
-    return identifier
-
-
 class Package(wiz.mapping.Mapping):
     """Package object."""
 
@@ -350,7 +372,9 @@ class Package(wiz.mapping.Mapping):
             (k, v) for k, v in definition_data.items() if k != "variants"
         )
 
-        mapping["identifier"] = _generate_identifier(definition, variant)
+        mapping["identifier"] = generate_identifier(
+            definition, variant.identifier
+        )
         mapping["definition_identifier"] = definition.identifier
         mapping["variant_name"] = None
 
