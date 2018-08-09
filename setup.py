@@ -42,7 +42,6 @@ TEST_REQUIRES = [
     "pytest-runner >= 2.7, < 3",
     "pytest >= 3.2.2, < 4",
     "pytest-mock >= 0.11, < 1",
-    "pytest-catchlog >= 1, < 2",
     "pytest-xdist >= 1.1, < 2",
     "pytest-cov >= 2, < 3"
 ]
