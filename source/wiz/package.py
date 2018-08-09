@@ -35,10 +35,14 @@ def generate_identifier(definition, variant_identifier=None):
         identifiers = [variant.identifier for variant in definition.variants]
         if variant_identifier not in identifiers:
             raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}=={version}' does not contain a "
-                "variant identified as {variant}".format(
+                "The definition '{identifier}{version}' does not contain a "
+                "variant identified as '{variant}'".format(
                     identifier=identifier,
-                    version=definition.version,
+                    version=(
+                        "=={}".format(definition.version)
+                        if definition.version != wiz.symbol.UNKNOWN_VALUE
+                        else ""
+                    ),
                     variant=variant_identifier
                 )
             )

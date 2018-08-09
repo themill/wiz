@@ -57,6 +57,14 @@ def test_generate_identifier_with_variant():
     assert wiz.package.generate_identifier(definition, "bar2") == "foo[bar2]"
     assert wiz.package.generate_identifier(definition, "bar3") == "foo[bar3]"
 
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.package.generate_identifier(definition, "incorrect")
+
+    assert (
+        "The definition 'foo' does not contain a variant identified "
+        "as 'incorrect'"
+    ) in str(error)
+
 
 def test_generate_identifier_with_version_and_variant():
     """Generate package name from definition with version and variant."""
@@ -80,6 +88,14 @@ def test_generate_identifier_with_version_and_variant():
     assert wiz.package.generate_identifier(
         definition, "bar3"
     ) == "foo[bar3]==0.1.0"
+
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.package.generate_identifier(definition, "incorrect")
+
+    assert (
+        "The definition 'foo==0.1.0' does not contain a variant identified "
+        "as 'incorrect'"
+    ) in str(error)
 
 
 def test_extract_without_variant(mocked_definition_query, mocked_package):
