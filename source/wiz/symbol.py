@@ -15,7 +15,7 @@ PACKAGE_REQUEST_TYPE = "package"
 COMMAND_REQUEST_TYPE = "command"
 
 #: Identifier for packages which should be use implicitly in context.
-IMPLICIT_PACKAGE = "implicit-package"
+IMPLICIT_PACKAGE = "implicit-packages"
 
 #: History action for system identification.
 SYSTEM_IDENTIFICATION_ACTION = "IDENTIFY_SYSTEM"
