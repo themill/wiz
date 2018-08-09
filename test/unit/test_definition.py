@@ -251,7 +251,8 @@ def test_fetch(mocked_discover, mocked_validate, definitions, options):
             "baz": "baz-package",
             "bim-test": "bim-package",
             "bim": "bim-package"
-        }
+        },
+        "implicit-packages": []
     }
 
 
@@ -271,7 +272,8 @@ def test_fetch_system(mocked_discover, definitions, mocked_system_validate):
 
     assert result == {
         "package": {},
-        "command": {}
+        "command": {},
+        "implicit-packages": []
     }
 
 
@@ -294,7 +296,8 @@ def test_validation_fail(mocked_discover, mocked_validate, definitions):
 
     assert result == {
         "package": {},
-        "command": {}
+        "command": {},
+        "implicit-packages": []
     }
 
 
