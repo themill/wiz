@@ -83,6 +83,77 @@ def definitions():
 
 
 @pytest.fixture()
+def definitions_with_auto_use():
+    """Return list of mocked definitions with 'auto-use' keyword."""
+    return [
+        wiz.definition.Definition({
+            "identifier": "foo-package",
+            "version": "0.1.0",
+            "description": "A test package for foo.",
+            "auto-use": True
+        }),
+        wiz.definition.Definition({
+            "identifier": "foo-package",
+            "version": "1.1.0",
+            "description": "Another test package for foo.",
+            "auto-use": True,
+            "command": {
+                "foo": "Foo1.1",
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "bar-package",
+            "version": "1.0.0",
+            "description": "A test package for bar.",
+            "command": {
+                "bar": "Bar1.0",
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "bar-package",
+            "version": "0.9.2",
+            "description": "Another test package for bar.",
+            "command": {
+                "bar": "Bar0.9",
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "baz-package",
+            "version": "0.1.1",
+            "description": "A test package for baz.",
+            "command": {
+                "baz": "Baz0.1",
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "bim-package",
+            "version": "0.2.1",
+            "description": "A test package for bim.",
+            "command": {
+                "bim": "Bim0.2",
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "bim-package",
+            "version": "0.2.1",
+            "description": "Another test package for bim.",
+            "command": {
+                "bim-test": "Bim0.2 --test",
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "bim-package",
+            "version": "0.1.0",
+            "description": "Yet another test package for bim.",
+            "auto-use": True,
+            "command": {
+                "bim": "Bim0.1",
+            }
+        })
+    ]
+
+
+@pytest.fixture()
 def package_definition_mapping():
     """Return mocked package mapping."""
     return {
@@ -253,6 +324,70 @@ def test_fetch(mocked_discover, mocked_validate, definitions, options):
             "bim": "bim-package"
         },
         "implicit-packages": []
+    }
+
+
+@pytest.mark.parametrize("options", [
+    {},
+    {"requests": ["something", "test>1"]},
+    {"max_depth": 4}
+], ids=[
+    "without-option",
+    "with-requests",
+    "with-max-depth"
+])
+def test_fetch_with_implicit_packages(
+    mocked_discover, mocked_validate, definitions_with_auto_use, options
+):
+    """Fetch all definition within *paths*."""
+    mocked_discover.return_value = definitions_with_auto_use
+    result = wiz.definition.fetch(
+        ["/path/to/registry-1", "/path/to/registry-2"], **options
+    )
+
+    mocked_discover.assert_called_once_with(
+        ["/path/to/registry-1", "/path/to/registry-2"],
+        max_depth=options.get("max_depth")
+    )
+
+    if options.get("requests") is not None:
+        assert mocked_validate.call_count == len(definitions_with_auto_use)
+        for definition in definitions_with_auto_use:
+            mocked_validate.assert_any_call(definition, options["requests"])
+    else:
+        mocked_validate.assert_not_called()
+
+    assert result == {
+        "package": {
+            "foo-package": {
+                "0.1.0": definitions_with_auto_use[0],
+                "1.1.0": definitions_with_auto_use[1]
+            },
+            "bar-package": {
+                "1.0.0": definitions_with_auto_use[2],
+                "0.9.2": definitions_with_auto_use[3]
+            },
+            "baz-package": {
+                "0.1.1": definitions_with_auto_use[4]
+            },
+            "bim-package": {
+                # The 5th definition in the incoming list is overridden by the
+                # 6th one which has the same identifier and version.
+                "0.2.1": definitions_with_auto_use[6],
+                "0.1.0": definitions_with_auto_use[7]
+            }
+        },
+        "command": {
+            "foo": "foo-package",
+            "bar": "bar-package",
+            "baz": "baz-package",
+            "bim-test": "bim-package",
+            "bim": "bim-package"
+        },
+        "implicit-packages": [
+            "foo-package==1.1.0",
+            "bim-package==0.1.0"
+        ]
     }
 
 

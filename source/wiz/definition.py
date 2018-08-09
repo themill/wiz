@@ -35,7 +35,10 @@ def fetch(paths, requests=None, system_mapping=None, max_depth=None):
                     ...
                 },
                 ...
-            }
+            },
+            "implicit-packages": [
+                "foo==0.1.0", ...
+            ]
         }
 
     *requests* could be a list of element which can influence the definition
@@ -84,7 +87,7 @@ def fetch(paths, requests=None, system_mapping=None, max_depth=None):
         # Record package identifiers which should be used implicitly in context.
         if definition.get("auto-use"):
             implicit_definitions.append(identifier)
-            implicit_definition_mapping[identifier].setdefault(identifier, {})
+            implicit_definition_mapping.setdefault(identifier, {})
             implicit_definition_mapping[identifier][version] = definition
             logger.debug(
                 "Definition '{}=={}' set to be implicitly used with 'auto-use' "
@@ -97,7 +100,9 @@ def fetch(paths, requests=None, system_mapping=None, max_depth=None):
 
     # Add implicit package identifiers of best matching definitions which have
     # the 'auto-use' keyword in the order of discovery to preserve priorities.
-    for definition_identifier in implicit_definitions:
+    for definition_identifier in sorted(
+        set(implicit_definitions), key=lambda _identifier: _identifier.index
+    ):
         requirement = Requirement(definition_identifier)
         definition = query(requirement, implicit_definition_mapping)
         mapping[wiz.symbol.IMPLICIT_PACKAGE].append(
