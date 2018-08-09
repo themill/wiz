@@ -4,7 +4,6 @@ import os
 import json
 
 import mlog
-from packaging.requirements import Requirement
 
 import wiz.symbol
 import wiz.mapping
@@ -103,7 +102,7 @@ def fetch(paths, requests=None, system_mapping=None, max_depth=None):
     for definition_identifier in sorted(
         set(implicit_definitions), key=lambda _identifier: _identifier.index
     ):
-        requirement = Requirement(definition_identifier)
+        requirement = wiz.utility.get_requirement(definition_identifier)
         definition = query(requirement, implicit_definition_mapping)
         mapping[wiz.symbol.IMPLICIT_PACKAGE].append(
             wiz.package.generate_identifier(definition)
