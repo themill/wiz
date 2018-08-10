@@ -68,6 +68,15 @@
                 "type": "string"
             }
         },
+        "constraints": {
+            "description": "List of specifiers which restraint the package range for corresponding definition.",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+                "type": "string"
+            }
+        },
         "variants": {
             "description": "List of ordered mapping which define variation of the definition.",
             "type": "array",
@@ -94,6 +103,15 @@
                     },
                     "requirements": {
                         "description": "List of ordered definition specifiers required by the definition variant.",
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "constraints": {
+                        "description": "List of specifiers which restraint the package range for corresponding definition.",
                         "type": "array",
                         "minItems": 1,
                         "uniqueItems": true,
