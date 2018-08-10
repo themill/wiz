@@ -39,6 +39,7 @@ DOC_REQUIRES = [
 ]
 
 TEST_REQUIRES = [
+    "mock >= 2, < 3",
     "pytest-runner >= 2.7, < 3",
     "pytest >= 3.2.2, < 4",
     "pytest-mock >= 0.11, < 1",

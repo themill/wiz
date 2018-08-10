@@ -625,7 +625,7 @@ class Graph(object):
                 in self._node_mapping.items()
             },
             "definition": {
-                _id: list(node_ids) for _id, node_ids
+                _id: sorted(node_ids) for _id, node_ids
                 in self._definition_mapping.items()
             },
             "link": self._link_mapping.copy(),
@@ -633,7 +633,7 @@ class Graph(object):
             "constraints": {
                 _id: [constraint.to_dict() for constraint in constraints]
                 for _id, constraints in self._constraint_mapping.items()
-            },
+            }
         }
 
     def copy(self):
@@ -841,8 +841,11 @@ class Graph(object):
                 # Record constraints so that it could be added later to the
                 # graph as nodes if necessary.
                 for index, _requirement in enumerate(package.constraints):
-                    self._constraint_mapping[_requirement.name] = Constraint(
-                        _requirement, package.identifier, weight=index + 1
+                    self._constraint_mapping.setdefault(_requirement.name, [])
+                    self._constraint_mapping[_requirement.name].append(
+                        Constraint(
+                            _requirement, package.identifier, weight=index + 1
+                        )
                     )
 
             node = self.node(package.identifier)
