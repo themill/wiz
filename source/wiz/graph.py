@@ -709,8 +709,22 @@ class Graph(object):
         """Update graph from *requirements*.
 
         *requirements* should be a list of
-        :class:`packaging.requirements.Requirement` instances ordered from the
-        ost important to the least important.
+        class:`packaging.requirements.Requirement` instances ordered from the
+        most important to the least important.
+
+        One or several :class:`~wiz.package.Package` instances will be
+        extracted from  *requirements* and :class:`Node` instances will be added
+        to graph accordingly. The process will be repeated recursively for
+        dependent requirements from newly created packages.
+
+        Package's requirement are traversed with a `Breadth-first search
+        <https://en.wikipedia.org/wiki/Breadth-first_search>`_ algorithm so that
+        potential errors are raised for top-level packages first.
+
+        Constraint packages will be recorded as :class:`Constraint` instances.
+        Corresponding packages will be added to the graph only if at least one
+        package with the same definition identifier has previously been added
+        to the graph.
 
         """
         queue = _queue.Queue()
@@ -737,7 +751,8 @@ class Graph(object):
 
             self._update_from_queue(queue)
 
-            # Check if constraints need to be converted after updating graph.
+            # Check if other new constraints need to be added to graph after
+            # updating graph with previous constraints.
             constraints_needed = self._constraints_identified_in_graph()
 
     def _constraints_identified_in_graph(self):
@@ -755,6 +770,11 @@ class Graph(object):
                 constraints += self._constraint_mapping[identifier]
                 del self._constraint_mapping[identifier]
 
+        self._logger.debug(
+            "Constraints which needs to be added to the graph: {}".format(
+                [constraint.requirement for constraint in constraints]
+            )
+        )
         return constraints
 
     def _update_from_queue(self, queue):
@@ -772,7 +792,6 @@ class Graph(object):
                 parent_identifier=data.get("parent_identifier"),
                 weight=data.get("weight")
             )
-
 
     def _update_from_requirement(
         self, requirement, queue, parent_identifier=None, weight=1
@@ -991,11 +1010,15 @@ class Node(object):
 class Constraint(object):
     """Representation of a constraint mapping within the :class:`Graph`.
 
-    It should contain one class:`packaging.requirements.Requirement` instance,
+    It encapsulates one :class:`packaging.requirements.Requirement` instance,
     its parent package identifier and a weight number.
 
-    A constraint will be converted into one or several :class:`Node` instance
+    A constraint will be converted into one or several :class:`Node` instances
     as soon as the corresponding definition identifier is found in the graph.
+
+    For instance, if a constraint has a requirement such as
+    `foo >= 0.1.0, < 0.2.0`, it will be added to the graph only if another
+    package from the `foo` definition(s) has been previously added to the graph.
 
     """
 
