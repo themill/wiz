@@ -141,7 +141,9 @@ def fetch_package_request_from_command(command_request, definition_mapping):
     return str(_requirement)
 
 
-def resolve_context(requests, definition_mapping, environ_mapping=None):
+def resolve_context(
+    requests, definition_mapping, ignore_implicit=False, environ_mapping=None
+):
     """Return context mapping from *requests*.
 
     The context should contain the resolved environment mapping, the
@@ -176,14 +178,20 @@ def resolve_context(requests, definition_mapping, environ_mapping=None):
     *definition_mapping* is a mapping regrouping all available definitions
     available. It could be fetched with :func:`fetch_definition_mapping`.
 
+    *ignore_implicit* indicates whether implicit packages should not be
+    included in context. Default is False.
+
     *environ_mapping* can be a mapping of environment variables which would
     be augmented by the resolved environment.
 
     """
-    implicit_package_requests = definition_mapping.get("implicit-packages", [])
-    requirements = map(
-        wiz.utility.get_requirement, requests + implicit_package_requests
-    )
+    # To prevent mutating input list.
+    _requests = requests[:]
+
+    if not ignore_implicit:
+        _requests += definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, [])
+
+    requirements = map(wiz.utility.get_requirement, _requests)
 
     registries = definition_mapping["registries"]
     resolver = wiz.graph.Resolver(

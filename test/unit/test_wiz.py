@@ -248,6 +248,133 @@ def test_resolve_context(
     )
 
 
+@pytest.mark.parametrize("options", [
+    {},
+    {"environ_mapping": "__ENVIRON__"},
+], ids=[
+    "without-environ",
+    "with-environ",
+])
+def test_resolve_context_with_implicit_packages(
+    mocked_graph_resolver, mocked_package_initiate_environ,
+    mocked_package_extract_context, mocked_utility_encode,
+    mocker, options
+):
+    """Get resolved context mapping with implicit packages."""
+    requests = ["test1 >=10, < 11", "test2", "test3[variant]"]
+    implicit = ["foo==0.1.0", "bar==5.2.1"]
+    paths = ["/path/to/registry1", "/path/to/registry2"]
+
+    context = {"environ": {"KEY": "VALUE"}, "command": {"app": "APP"}}
+    packages = [
+        mocker.Mock(identifier="test1"),
+        mocker.Mock(identifier="test2"),
+        mocker.Mock(identifier="test3")
+    ]
+
+    mocked_resolver = mocker.Mock(**{"compute_packages.return_value": packages})
+    mocked_graph_resolver.return_value = mocked_resolver
+    mocked_package_initiate_environ.return_value = "__INITIAL_ENVIRON__"
+    mocked_package_extract_context.return_value = context
+    mocked_utility_encode.return_value = "__ENCODED_CONTEXT__"
+
+    definition_mapping = {
+        "package": "__PACKAGE_DEFINITIONS__",
+        "registries": paths,
+        "implicit-packages": implicit
+    }
+
+    result = wiz.resolve_context(requests, definition_mapping, **options)
+
+    assert result == {
+        "environ": {
+            "KEY": "VALUE",
+            "WIZ_VERSION": __version__,
+            "WIZ_CONTEXT": "__ENCODED_CONTEXT__"
+        },
+        "command": {"app": "APP"},
+        "packages": packages,
+        "registries": paths
+    }
+
+    mocked_graph_resolver.assert_called_once_with("__PACKAGE_DEFINITIONS__")
+    mocked_resolver.compute_packages.assert_called_once_with([
+        Requirement(request) for request in requests + implicit
+    ])
+
+    mocked_package_initiate_environ.assert_called_once_with(
+        options.get("environ_mapping")
+    )
+
+    mocked_package_extract_context.assert_called_once_with(
+        packages, environ_mapping="__INITIAL_ENVIRON__"
+    )
+
+
+@pytest.mark.parametrize("options", [
+    {},
+    {"environ_mapping": "__ENVIRON__"},
+], ids=[
+    "without-environ",
+    "with-environ",
+])
+def test_resolve_context_with_implicit_packages_ignored(
+    mocked_graph_resolver, mocked_package_initiate_environ,
+    mocked_package_extract_context, mocked_utility_encode,
+    mocker, options
+):
+    """Get resolved context mapping with implicit packages ignored."""
+    requests = ["test1 >=10, < 11", "test2", "test3[variant]"]
+    implicit = ["foo==0.1.0", "bar==5.2.1"]
+    paths = ["/path/to/registry1", "/path/to/registry2"]
+
+    context = {"environ": {"KEY": "VALUE"}, "command": {"app": "APP"}}
+    packages = [
+        mocker.Mock(identifier="test1"),
+        mocker.Mock(identifier="test2"),
+        mocker.Mock(identifier="test3")
+    ]
+
+    mocked_resolver = mocker.Mock(**{"compute_packages.return_value": packages})
+    mocked_graph_resolver.return_value = mocked_resolver
+    mocked_package_initiate_environ.return_value = "__INITIAL_ENVIRON__"
+    mocked_package_extract_context.return_value = context
+    mocked_utility_encode.return_value = "__ENCODED_CONTEXT__"
+
+    definition_mapping = {
+        "package": "__PACKAGE_DEFINITIONS__",
+        "registries": paths,
+        "implicit-packages": implicit
+    }
+
+    options["ignore_implicit"] = True
+    result = wiz.resolve_context(requests, definition_mapping, **options)
+
+    assert result == {
+        "environ": {
+            "KEY": "VALUE",
+            "WIZ_VERSION": __version__,
+            "WIZ_CONTEXT": "__ENCODED_CONTEXT__"
+        },
+        "command": {"app": "APP"},
+        "packages": packages,
+        "registries": paths
+    }
+
+    mocked_graph_resolver.assert_called_once_with("__PACKAGE_DEFINITIONS__")
+    mocked_resolver.compute_packages.assert_called_once_with([
+        Requirement(request) for request in requests
+    ])
+
+    mocked_package_initiate_environ.assert_called_once_with(
+        options.get("environ_mapping")
+    )
+
+    mocked_package_extract_context.assert_called_once_with(
+        packages, environ_mapping="__INITIAL_ENVIRON__"
+    )
+
+
 def test_resolve_command():
     """Resolve a command from command mapping."""
     command = "app --option value /path/to/script"
