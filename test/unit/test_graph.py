@@ -794,7 +794,9 @@ def test_graph_update_from_requirement_non_existing(
     mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
 ):
     """Update graph from requirement."""
-    package = mocker.Mock(identifier="A==0.1.0", requirements=[])
+    package = mocker.Mock(
+        identifier="A==0.1.0", requirements=[], constraints=[]
+    )
     node = mocker.Mock(identifier="_A==0.1.0")
     requirement = Requirement("A")
 
@@ -839,7 +841,9 @@ def test_graph_update_from_requirement_non_existing_with_requirements(
     mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
 ):
     """Update graph from requirement."""
-    package = mocker.Mock(identifier="A==0.1.0", requirements=["B", "C", "D"])
+    package = mocker.Mock(
+        identifier="A==0.1.0", requirements=["B", "C", "D"], constraints=[]
+    )
     node = mocker.Mock(identifier="_A==0.1.0")
     requirement = Requirement("A")
 
@@ -894,9 +898,15 @@ def test_graph_update_from_requirement_multi_packages(
 ):
     """Update graph from requirement."""
     packages = [
-        mocker.Mock(identifier="A[variant1]==0.1.0", requirements=[]),
-        mocker.Mock(identifier="A[variant2]==0.1.0", requirements=[]),
-        mocker.Mock(identifier="A[variant3]==0.1.0", requirements=[])
+        mocker.Mock(
+            identifier="A[variant1]==0.1.0", requirements=[], constraints=[]
+        ),
+        mocker.Mock(
+            identifier="A[variant2]==0.1.0", requirements=[], constraints=[]
+        ),
+        mocker.Mock(
+            identifier="A[variant3]==0.1.0", requirements=[], constraints=[]
+        )
     ]
 
     nodes = [
