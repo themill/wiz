@@ -570,7 +570,7 @@ class Graph(object):
 
     def __init__(
         self, resolver, node_mapping=None, definition_mapping=None,
-        variant_mapping=None, link_mapping=None
+        constraint_mapping=None, variant_mapping=None, link_mapping=None
     ):
         """Initialise Graph.
 
@@ -581,6 +581,9 @@ class Graph(object):
 
         *definition_mapping* can be an initial mapping of node identifier sets
         organised per definition identifier.
+
+        *constraint_mapping* can be an initial mapping of :class:`Constraint`
+        instances organised per definition identifier.
 
         *variant_mapping* can be an initial mapping of node identifier variant
         lists organised per unique variant group identifier.
@@ -598,6 +601,9 @@ class Graph(object):
 
         # Set of node identifiers organised per definition identifier.
         self._definition_mapping = definition_mapping or {}
+
+        # List of constraint instances organised per definition identifier.
+        self._constraint_mapping = constraint_mapping or {}
 
         # List of node identifier variants per hashed variant group identifier.
         self._variant_mapping = variant_mapping or {}
@@ -623,7 +629,11 @@ class Graph(object):
                 in self._definition_mapping.items()
             },
             "link": self._link_mapping.copy(),
-            "variants": self._variant_mapping.values()
+            "variants": self._variant_mapping.values(),
+            "constraints": {
+                _id: [constraint.to_dict() for constraint in constraints]
+                for _id, constraints in self._constraint_mapping.items()
+            },
         }
 
     def copy(self):
@@ -631,7 +641,8 @@ class Graph(object):
         return Graph(
             self._resolver,
             node_mapping=self._node_mapping.copy(),
-            definition_mapping=self._definition_mapping.copy(),
+            definition_mapping=copy.deepcopy(self._definition_mapping),
+            constraint_mapping=copy.deepcopy(self._constraint_mapping),
             variant_mapping=self._variant_mapping.copy(),
             link_mapping=self._link_mapping.copy()
         )
@@ -695,7 +706,7 @@ class Graph(object):
         return conflicted
 
     def update_from_requirements(self, requirements):
-        """Recursively update graph from *requirements*.
+        """Update graph from *requirements*.
 
         *requirements* should be a list of
         :class:`packaging.requirements.Requirement` instances ordered from the
@@ -704,17 +715,64 @@ class Graph(object):
         """
         queue = _queue.Queue()
 
+        # Fill up queue from constraint and update the graph accordingly.
         for index, requirement in enumerate(requirements):
             queue.put({"requirement": requirement, "weight": index + 1})
 
+        self._update_from_queue(queue)
+
+        # If constraints have been found, identify those which have
+        # corresponding definition identifier in the graph and add it to the
+        # queue to convert them into nodes.
+
+        constraints_needed = self._constraints_identified_in_graph()
+
+        while len(constraints_needed) > 0:
+            for constraint in constraints_needed:
+                queue.put({
+                    "requirement": constraint.requirement,
+                    "parent_identifier": constraint.parent_identifier,
+                    "weight": constraint.weight
+                })
+
+            self._update_from_queue(queue)
+
+            # Check if constraints need to be converted after updating graph.
+            constraints_needed = self._constraints_identified_in_graph()
+
+    def _constraints_identified_in_graph(self):
+        """Return :class:`Constraint` instances which should be added to graph.
+
+        A constraint should be added to the graph once its definition identifier
+        is found in the graph. The constraints returned will be removed from
+        constraint mapping recorded by graph.
+
+        """
+        constraints = []
+
+        for identifier in self._constraint_mapping.keys():
+            if identifier in self._definition_mapping.keys():
+                constraints += self._constraint_mapping[identifier]
+                del self._constraint_mapping[identifier]
+
+        return constraints
+
+    def _update_from_queue(self, queue):
+        """Recursively update graph from data contained in *queue*.
+
+        *queue* should be a :class:`Queue` instance.
+
+        """
         while not queue.empty():
             data = queue.get()
 
+            # The queue will be augmented with all dependent requirements.
             self._update_from_requirement(
                 data.get("requirement"), queue,
                 parent_identifier=data.get("parent_identifier"),
                 weight=data.get("weight")
             )
+
 
     def _update_from_requirement(
         self, requirement, queue, parent_identifier=None, weight=1
@@ -753,12 +811,20 @@ class Graph(object):
             if not self.exists(package.identifier):
                 self._create_node_from_package(package)
 
+                # Update queue with dependent requirement.
                 for index, _requirement in enumerate(package.requirements):
                     queue.put({
                         "requirement": _requirement,
                         "parent_identifier": package.identifier,
                         "weight": index + 1
                     })
+
+                # Record constraints so that it could be added later to the
+                # graph as nodes if necessary.
+                for index, _requirement in enumerate(package.constraints):
+                    self._constraint_mapping[_requirement.name] = Constraint(
+                        _requirement, package.identifier, weight=index + 1
+                    )
 
             node = self.node(package.identifier)
             node.add_parent(parent_identifier or self.ROOT)
@@ -874,7 +940,11 @@ class Graph(object):
 
 
 class Node(object):
-    """Node encapsulating a package within the graph.
+    """Representation of an element of the :class:`Graph`.
+
+    It encapsulates one :class:`~wiz.package.Package` instance with all parent
+    package identifiers.
+
     """
 
     def __init__(self, package):
@@ -915,6 +985,57 @@ class Node(object):
         return {
             "package": self._package.to_dict(serialize_content=True),
             "parents": list(self._parent_identifiers)
+        }
+
+
+class Constraint(object):
+    """Representation of a constraint mapping within the :class:`Graph`.
+
+    It should contain one class:`packaging.requirements.Requirement` instance,
+    its parent package identifier and a weight number.
+
+    A constraint will be converted into one or several :class:`Node` instance
+    as soon as the corresponding definition identifier is found in the graph.
+
+    """
+
+    def __init__(self, requirement, parent_identifier, weight=1):
+        """Initialize Constraint.
+
+        *requirement* should be an instance of
+        :class:`packaging.requirements.Requirement`.
+
+        *parent_identifier* can indicate the identifier of a parent node.
+
+        *weight* is a number which indicate the importance of the dependency
+        link from the node to its parent. Default is 1.
+
+        """
+        self._requirement = requirement
+        self._parent_identifier = parent_identifier
+        self._weight = weight
+
+    @property
+    def requirement(self):
+        """Return :class:`packaging.requirements.Requirement` instance."""
+        return self._requirement
+
+    @property
+    def parent_identifier(self):
+        """Return parent identifier."""
+        return self._parent_identifier
+
+    @property
+    def weight(self):
+        """Return weight number."""
+        return self._weight
+
+    def to_dict(self):
+        """Return corresponding dictionary."""
+        return {
+            "requirement": self._requirement,
+            "parent_identifier": self._parent_identifier,
+            "weight": self._weight,
         }
 
 
