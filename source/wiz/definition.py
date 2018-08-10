@@ -326,6 +326,12 @@ class Definition(wiz.mapping.Mapping):
                     for requirement in mapping["requirements"]
                 ]
 
+            if "constraints" in mapping.keys():
+                mapping["constraints"] = [
+                    wiz.utility.get_requirement(requirement)
+                    for requirement in mapping["constraints"]
+                ]
+
         except wiz.exception.InvalidVersion:
             raise wiz.exception.IncorrectDefinition(
                 "The definition '{identifier}' has an incorrect "
@@ -371,6 +377,7 @@ class Definition(wiz.mapping.Mapping):
             "command",
             "environ",
             "requirements",
+            "constraints",
             "variants"
         ]
 
@@ -385,6 +392,12 @@ class _Variant(wiz.mapping.Mapping):
                 variant["requirements"] = [
                     wiz.utility.get_requirement(requirement)
                     for requirement in variant["requirements"]
+                ]
+
+            if "constraints" in variant.keys():
+                variant["constraints"] = [
+                    wiz.utility.get_requirement(requirement)
+                    for requirement in variant["constraints"]
                 ]
 
         except wiz.exception.InvalidRequirement as exception:
@@ -406,5 +419,6 @@ class _Variant(wiz.mapping.Mapping):
             "identifier",
             "command",
             "environ",
-            "requirements"
+            "requirements",
+            "constraints"
         ]

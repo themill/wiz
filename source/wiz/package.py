@@ -372,6 +372,13 @@ class Package(wiz.mapping.Mapping):
                     + variant["requirements"]
                 )
 
+            if len(variant.get("constraints", [])) > 0:
+                mapping["constraints"] = (
+                    # To prevent mutating the the original constraint list.
+                    definition_data.get("constraints", [])[:]
+                    + variant["constraints"]
+                )
+
         super(Package, self).__init__(mapping)
 
     @property
@@ -398,5 +405,6 @@ class Package(wiz.mapping.Mapping):
             "system",
             "command",
             "environ",
-            "requirements"
+            "requirements",
+            "constraints"
         ]
