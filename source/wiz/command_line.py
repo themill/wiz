@@ -69,7 +69,10 @@ def construct_parser():
 
     parser.add_argument(
         "--ignore-implicit",
-        help="Do not include implicit packages in resolved context.",
+        help=(
+            "Do not include implicit packages (with 'auto-use' set to true) "
+            "in resolved context."
+        ),
         action="store_true"
     )
 
