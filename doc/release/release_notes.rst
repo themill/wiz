@@ -36,8 +36,8 @@ Release Notes
     .. change:: changed
         :tags: API
 
-        Updated :func:`wiz.definition.fetch` to detect and record implicit
-        package identifiers.
+        Updated :func:`wiz.definition.fetch` to detect implicit package
+        identifiers and add it to the definition mapping returned.
 
     .. change:: changed
         :tags: API
