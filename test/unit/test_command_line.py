@@ -279,7 +279,7 @@ def test_freeze_definition(
     wiz.command_line.main(["freeze", "bim", "bar", "-o", temporary_directory])
 
     mocked_resolve_context.assert_called_once_with(
-        ["bim", "bar"], "__DEFINITION_MAPPING__"
+        ["bim", "bar"], "__DEFINITION_MAPPING__", ignore_implicit=False
     )
 
     file_path = os.path.join(temporary_directory, "foo-0.1.0.json")
@@ -324,7 +324,7 @@ def test_freeze_definition_csh(
     ])
 
     mocked_resolve_context.assert_called_once_with(
-        ["bim", "bar"], "__DEFINITION_MAPPING__"
+        ["bim", "bar"], "__DEFINITION_MAPPING__", ignore_implicit=False
     )
 
     file_path = os.path.join(temporary_directory, "foo")
@@ -366,7 +366,7 @@ def test_freeze_definition_bash(
     ])
 
     mocked_resolve_context.assert_called_once_with(
-        ["bim", "bar"], "__DEFINITION_MAPPING__"
+        ["bim", "bar"], "__DEFINITION_MAPPING__", ignore_implicit=False
     )
 
     file_path = os.path.join(temporary_directory, "foo")

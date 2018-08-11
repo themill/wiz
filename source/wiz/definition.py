@@ -7,6 +7,7 @@ import mlog
 
 import wiz.symbol
 import wiz.mapping
+import wiz.package
 import wiz.filesystem
 import wiz.exception
 import wiz.system
@@ -33,7 +34,10 @@ def fetch(paths, requests=None, system_mapping=None, max_depth=None):
                     ...
                 },
                 ...
-            }
+            },
+            "implicit-packages": [
+                "foo==0.1.0", ...
+            ]
         }
 
     *requests* could be a list of element which can influence the definition
@@ -47,10 +51,17 @@ def fetch(paths, requests=None, system_mapping=None, max_depth=None):
     up to *max_depth*.
 
     """
+    logger = mlog.Logger(__name__ + ".fetch")
+
     mapping = {
         wiz.symbol.PACKAGE_REQUEST_TYPE: {},
-        wiz.symbol.COMMAND_REQUEST_TYPE: {}
+        wiz.symbol.COMMAND_REQUEST_TYPE: {},
+        wiz.symbol.IMPLICIT_PACKAGE: []
     }
+
+    # Record definitions which should be implicitly used.
+    implicit_definitions = []
+    implicit_definition_mapping = {}
 
     for definition in discover(paths, max_depth=max_depth):
         if requests is not None and not validate(definition, requests):
@@ -72,9 +83,30 @@ def fetch(paths, requests=None, system_mapping=None, max_depth=None):
         mapping[package_type].setdefault(identifier, {})
         mapping[package_type][identifier][version] = definition
 
+        # Record package identifiers which should be used implicitly in context.
+        if definition.get("auto-use"):
+            implicit_definitions.append(identifier)
+            implicit_definition_mapping.setdefault(identifier, {})
+            implicit_definition_mapping[identifier][version] = definition
+            logger.debug(
+                "Definition '{}=={}' set to be implicitly used with 'auto-use' "
+                "keyword".format(identifier, version)
+            )
+
         # Record commands from definition.
         for command in definition.command.keys():
             mapping[command_type][command] = definition.identifier
+
+    # Add implicit package identifiers of best matching definitions which have
+    # the 'auto-use' keyword in the order of discovery to preserve priorities.
+    for definition_identifier in sorted(
+        set(implicit_definitions), key=lambda _identifier: _identifier.index
+    ):
+        requirement = wiz.utility.get_requirement(definition_identifier)
+        definition = query(requirement, implicit_definition_mapping)
+        mapping[wiz.symbol.IMPLICIT_PACKAGE].append(
+            wiz.package.generate_identifier(definition)
+        )
 
     wiz.history.record_action(
         wiz.symbol.DEFINITIONS_COLLECTION_ACTION,

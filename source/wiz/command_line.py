@@ -68,6 +68,15 @@ def construct_parser():
     )
 
     parser.add_argument(
+        "--ignore-implicit",
+        help=(
+            "Do not include implicit packages (with 'auto-use' set to true) "
+            "in resolved context."
+        ),
+        action="store_true"
+    )
+
+    parser.add_argument(
         "--platform",
         help="Override the detected platform.",
         metavar="PLATFORM",
@@ -552,7 +561,10 @@ def _resolve_and_use_context(
     )
 
     try:
-        context = wiz.resolve_context(namespace.requests, mapping)
+        context = wiz.resolve_context(
+            namespace.requests, mapping,
+            ignore_implicit=namespace.ignore_implicit
+        )
 
         # Only view the resolved context without spawning a shell nor
         # running any commands.
@@ -617,7 +629,10 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
             namespace.request, mapping
         )
 
-        context = wiz.resolve_context([request], mapping)
+        context = wiz.resolve_context(
+            [request], mapping,
+            ignore_implicit=namespace.ignore_implicit
+        )
 
         resolved_command = wiz.resolve_command(
             " ".join([requirement.name] + (command_arguments or [])),
@@ -671,7 +686,10 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
     )
 
     try:
-        context = wiz.resolve_context(namespace.requests, mapping)
+        context = wiz.resolve_context(
+            namespace.requests, mapping,
+            ignore_implicit=namespace.ignore_implicit
+        )
         identifier = _query_identifier(logger)
 
         if namespace.format == "wiz":

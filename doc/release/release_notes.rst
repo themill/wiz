@@ -14,6 +14,31 @@ Release Notes
         a context only if another package with the same definition identifier is
         required.
 
+    .. change:: new
+        :tags: definition
+
+        Added optional 'auto-use' keyword to definition schema which indicates
+        whether corresponding package should be used implicitly to resolve
+        context. Default is False.
+
+    .. change:: new
+        :tags: command-line
+
+        Added :option:`--ignore-implicit <wiz --ignore-implicit>` command line
+        option to skip implicit packages.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.package.generate_identifier` to generate corresponding
+        package identifier from a definition.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.definition.fetch` to detect and record implicit
+        package identifiers.
+
     .. change:: changed
         :tags: API
 
