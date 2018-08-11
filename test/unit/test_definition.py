@@ -1026,7 +1026,7 @@ def test_definition_with_requirement_error():
 
     assert (
         "IncorrectDefinition: The definition 'test' contains an incorrect "
-        "requirement [The requirement 'envA -!!!' is incorrect]"
+        "package requirement [The requirement 'envA -!!!' is incorrect]"
     ) in str(error)
 
 
@@ -1049,5 +1049,6 @@ def test_definition_with_variant_requirement_error():
 
     assert (
         "IncorrectDefinition: The definition 'test' [1.0] contains an "
-        "incorrect requirement [The requirement 'envA -!!!' is incorrect]"
+        "incorrect package requirement [The requirement 'envA -!!!' "
+        "is incorrect]"
     ) in str(error)

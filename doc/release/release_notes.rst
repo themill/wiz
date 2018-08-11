@@ -9,6 +9,14 @@ Release Notes
     .. change:: new
         :tags: definition
 
+        Added optional 'constraints' keyword to definition schema which
+        indicates a list of package requirements which should be used to resolve
+        a context only if another package with the same definition identifier is
+        required.
+
+    .. change:: new
+        :tags: definition
+
         Added optional 'auto-use' keyword to definition schema which indicates
         whether corresponding package should be used implicitly to resolve
         context. Default is False.
@@ -28,8 +36,20 @@ Release Notes
     .. change:: changed
         :tags: API
 
-        Updated :func:`wiz.definition.fetch` to detect and record implicit
-        package identifiers.
+        Updated :func:`wiz.definition.fetch` to detect implicit package
+        identifiers and add it to the definition mapping returned.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :meth:`wiz.graph.Graph.update_from_requirements` to take
+        constraint packages into account while resolving the graph.
+
+    .. change:: fixed
+        :tags: API
+
+        Fixed :meth:`wiz.graph.extract_requirement` to retrieve requirement when
+        the parent node is :attr:`wiz.graph.Graph.ROOT`.
 
 .. release:: 0.13.0
     :date: 2018-07-26

@@ -52,6 +52,11 @@ class Mapping(collections.Mapping):
         """Return requirement list."""
         return self.get("requirements", [])
 
+    @property
+    def constraints(self):
+        """Return constraint list."""
+        return self.get("constraints", [])
+
     def to_dict(self, serialize_content=False):
         """Return corresponding dictionary.
 
