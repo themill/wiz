@@ -20,6 +20,12 @@ Release Notes
         Updated :meth:`wiz.graph.Graph.update_from_requirements` to take
         constraint packages into account while resolving the graph.
 
+    .. change:: fixed
+        :tags: API
+
+        Fixed :meth:`wiz.graph.extract_requirement` to retrieve requirement when
+        the parent node is :attr:`wiz.graph.Graph.ROOT`.
+
 .. release:: 0.13.0
     :date: 2018-07-26
 

@@ -472,17 +472,20 @@ def extract_requirement(graph, node):
     """
     mapping = {}
 
-    for identifier in node.parent_identifiers:
-        parent_node = graph.node(identifier)
+    for parent_identifier in node.parent_identifiers:
+        if parent_identifier != graph.ROOT:
+            parent_node = graph.node(parent_identifier)
 
-        # Filter out non existing nodes from incoming.
-        if parent_node is None:
-            continue
+            # Filter out non existing nodes from incoming.
+            if parent_node is None:
+                continue
+
+            parent_identifier = parent_node.identifier
 
         requirement = graph.link_requirement(
-            node.identifier, parent_node.identifier
+            node.identifier, parent_identifier
         )
-        mapping[requirement] = parent_node.identifier
+        mapping[requirement] = parent_identifier
 
     return mapping
 
