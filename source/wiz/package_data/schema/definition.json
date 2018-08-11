@@ -36,7 +36,7 @@
                     "type": "string"
                 },
                 "os": {
-                    "description": "Operating system specifier compatible with the definition.",
+                    "description": "Operating system requirement compatible with the definition.",
                     "type": "string"
                 },
                 "arch": {
@@ -60,7 +60,7 @@
             "additionalProperties": {"type": "string"}
         },
         "requirements": {
-            "description": "List of ordered definition specifiers required by the definition.",
+            "description": "List of package requirement ordered by priority needed by the definition.",
             "type": "array",
             "minItems": 1,
             "uniqueItems": true,
@@ -69,7 +69,7 @@
             }
         },
         "constraints": {
-            "description": "List of specifiers which restraint the package range for corresponding definition.",
+            "description": "List of package constraints imposed by the definition.",
             "type": "array",
             "minItems": 1,
             "uniqueItems": true,
@@ -102,7 +102,7 @@
                         "additionalProperties": {"type": "string"}
                     },
                     "requirements": {
-                        "description": "List of ordered definition specifiers required by the definition variant.",
+                        "description": "List of package requirement ordered by priority needed by the definition variant.",
                         "type": "array",
                         "minItems": 1,
                         "uniqueItems": true,
@@ -111,7 +111,7 @@
                         }
                     },
                     "constraints": {
-                        "description": "List of specifiers which restraint the package range for corresponding definition.",
+                        "description": "List of package constraints imposed by the definition variant.",
                         "type": "array",
                         "minItems": 1,
                         "uniqueItems": true,

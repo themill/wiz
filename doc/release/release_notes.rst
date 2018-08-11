@@ -4,6 +4,22 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+        :tags: definition
+
+        Added optional 'constraints' keyword to definition schema which
+        indicates a list of package requirements which should be used to resolve
+        a context only if another package with the same definition identifier is
+        required.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :meth:`wiz.graph.Graph.update_from_requirements` to take
+        constraint packages into account while resolving the graph.
+
 .. release:: 0.13.0
     :date: 2018-07-26
 
