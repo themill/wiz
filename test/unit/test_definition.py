@@ -708,6 +708,7 @@ def test_minimal_definition():
     assert definition.description == "unknown"
     assert definition.environ == {}
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
@@ -737,6 +738,7 @@ def test_definition_with_version(options, expected_version):
     assert definition.description == "unknown"
     assert definition.environ == {}
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
@@ -760,6 +762,7 @@ def test_definition_with_description():
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
@@ -787,6 +790,7 @@ def test_definition_with_environ():
     assert definition.version == "unknown"
     assert definition.description == "This is a definition"
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
@@ -828,6 +832,7 @@ def test_definition_with_requirements():
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
+    assert definition.constraints == []
     assert definition.requirements == map(Requirement, data["requirements"])
 
     assert definition.to_ordered_dict(serialize_content=True) == OrderedDict([
@@ -841,6 +846,43 @@ def test_definition_with_requirements():
     ])
 
     for requirement in definition.to_ordered_dict()["requirements"]:
+        assert isinstance(requirement, Requirement)
+
+
+def test_definition_with_constraints():
+    """Create a definition with constraints."""
+    data = {
+        "identifier": "test",
+        "description": "This is a definition",
+        "constraints": [
+            "envA >= 1.0.0",
+            "envB >= 3.4.2, < 4",
+            "envC"
+        ]
+    }
+
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.version == "unknown"
+    assert definition.description == "This is a definition"
+    assert definition.environ == {}
+    assert definition.command == {}
+    assert definition.system == {}
+    assert definition.variants == []
+    assert definition.constraints == map(Requirement, data["constraints"])
+    assert definition.requirements == []
+
+    assert definition.to_ordered_dict(serialize_content=True) == OrderedDict([
+        ("identifier", "test"),
+        ("description", "This is a definition"),
+        ("constraints", [
+            "envA >=1.0.0",
+            "envB >=3.4.2, <4",
+            "envC"
+        ])
+    ])
+
+    for requirement in definition.to_ordered_dict()["constraints"]:
         assert isinstance(requirement, Requirement)
 
 
@@ -861,6 +903,7 @@ def test_definition_with_command():
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.system == {}
     assert definition.variants == []
 
@@ -897,6 +940,7 @@ def test_definition_with_system():
     assert definition.environ == {}
     assert definition.command == {}
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.variants == []
 
     assert definition.system == {
@@ -927,6 +971,9 @@ def test_definition_with_variant():
                 },
                 "requirements": [
                     "envA >= 1.0, < 2"
+                ],
+                "constraints": [
+                    "envB==0.1.0"
                 ]
             },
             {
@@ -976,7 +1023,8 @@ def test_definition_with_variant():
             OrderedDict([
                 ("identifier", "1.0"),
                 ("environ", {"VERSION": "1.0"}),
-                ("requirements", ["envA >=1.0, <2"])
+                ("requirements", ["envA >=1.0, <2"]),
+                ("constraints", ["envB ==0.1.0"])
             ]),
             OrderedDict([
                 ("identifier", "2.0"),
@@ -993,6 +1041,8 @@ def test_definition_with_variant():
 
     for variant in definition.to_ordered_dict()["variants"]:
         for requirement in variant.get("requirements", []):
+            assert isinstance(requirement, Requirement)
+        for requirement in variant.get("constraints", []):
             assert isinstance(requirement, Requirement)
 
 
@@ -1030,6 +1080,24 @@ def test_definition_with_requirement_error():
     ) in str(error)
 
 
+def test_definition_with_constraint_error():
+    """Fail to create a definition with incorrect constraint."""
+    data = {
+        "identifier": "test",
+        "constraints": [
+            "envA -!!!",
+        ]
+    }
+
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.definition.Definition(data)
+
+    assert (
+        "IncorrectDefinition: The definition 'test' contains an incorrect "
+        "package constraint [The requirement 'envA -!!!' is incorrect]"
+    ) in str(error)
+
+
 def test_definition_with_variant_requirement_error():
     """Fail to create a definition with incorrect variant requirement."""
     data = {
@@ -1050,5 +1118,29 @@ def test_definition_with_variant_requirement_error():
     assert (
         "IncorrectDefinition: The definition 'test' [1.0] contains an "
         "incorrect package requirement [The requirement 'envA -!!!' "
+        "is incorrect]"
+    ) in str(error)
+
+
+def test_definition_with_variant_constraint_error():
+    """Fail to create a definition with incorrect variant constraint."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "1.0",
+                "constraints": [
+                    "envA -!!!"
+                ]
+            }
+        ]
+    }
+
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.definition.Definition(data)
+
+    assert (
+        "IncorrectDefinition: The definition 'test' [1.0] contains an "
+        "incorrect package constraint [The requirement 'envA -!!!' "
         "is incorrect]"
     ) in str(error)
