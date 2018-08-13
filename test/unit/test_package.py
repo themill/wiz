@@ -513,6 +513,7 @@ def test_minimal_package_without_variant():
     assert package.command == {}
     assert package.environ == {}
     assert package.requirements == []
+    assert package.constraints == []
 
     assert len(package) == 3
     assert sorted(package) == [
@@ -537,6 +538,9 @@ def test_full_package_without_variant():
         "requirements": [
             "test1 >= 2",
             "test2"
+        ],
+        "constraints": [
+            "foo==0.1.0"
         ]
     })
 
@@ -548,6 +552,7 @@ def test_full_package_without_variant():
     assert package.command == {"app1": "App1", "app2": "App2"}
     assert package.environ == {"KEY1": "VALUE1", "KEY2": "VALUE2"}
     assert package.requirements == definition.requirements
+    assert package.constraints == definition.constraints
 
 
 def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
@@ -566,6 +571,9 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
             "test1 >= 2",
             "test2"
         ],
+        "constraints": [
+            "foo==0.1.0"
+        ],
         "variants": [
             {
                 "identifier": "Variant1",
@@ -574,6 +582,9 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
                 },
                 "requirements": [
                     "test3 >= 1.0, < 2"
+                ],
+                "constraints": [
+                    "foo2==8.5.0"
                 ]
             },
         ]
@@ -592,6 +603,10 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
         Requirement("test1 >= 2"),
         Requirement("test2"),
         Requirement("test3 >= 1.0, < 2")
+    ]
+    assert package.constraints == [
+        Requirement("foo==0.1.0"),
+        Requirement("foo2==8.5.0")
     ]
 
     mocked_combine_environ.assert_called_once_with(
