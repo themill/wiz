@@ -402,6 +402,77 @@ class Definition(wiz.mapping.Mapping):
 
         super(Definition, self).__init__(mapping)
 
+    def set(self, element, value):
+        """Returns copy of instance with *element* set to *value*.
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping[element] = value
+        return self.__class__(**_mapping)
+
+    def update(self, element, value_mapping):
+        """Returns copy of instance with *element* updated with *value_mapping*.
+
+        Raise :exc:`ValueError` if *mapping* is not a dictionary.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping.setdefault(element, {})
+
+        if not isinstance(_mapping[element], dict):
+            raise ValueError(
+                "Impossible to update 'element' as it is not a dictionary."
+            )
+
+        _mapping[element].update(value_mapping)
+        return self.__class__(**_mapping)
+
+    def extend(self, element, values):
+        """Returns copy of instance with *element* extended with *values*.
+
+        Raise :exc:`ValueError` if *mapping* is not a list.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping.setdefault(element, [])
+
+        if not isinstance(_mapping[element], list):
+            raise ValueError(
+                "Impossible to extend 'element' as it is not a list."
+            )
+
+        _mapping[element].extend(values)
+        return self.__class__(**_mapping)
+
+    def insert(self, element, value, index):
+        """Returns copy of instance with *element* extended with *value*.
+
+        *index* should be the index number at which the *value* should be
+        inserted.
+
+        Raise :exc:`ValueError` if *mapping* is not a list.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping.setdefault(element, [])
+
+        if not isinstance(_mapping[element], list):
+            raise ValueError(
+                "Impossible to extend 'element' as it is not a list."
+            )
+
+        _mapping[element].insert(index, value)
+        return self.__class__(**_mapping)
+
+    def remove(self, element):
+        """Returns copy of instance without *element*.
+
+        Raise :exc:`KeyError` if *element* is not in mapping.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        del _mapping[element]
+        return self.__class__(**_mapping)
+
     @property
     def variants(self):
         """Return variant list."""
