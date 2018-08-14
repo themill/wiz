@@ -58,13 +58,13 @@ Release Notes
         :tags: API
 
         Added :func:`wiz.load_definition` to conveniently alias the
-        :func:`wiz.definition_load` function.
+        :func:`wiz.definition.load` function.
 
     .. change:: changed
         :tags: API
 
         Updated :func:`wiz.export_definition` to export a :term:`JSON` file from
-        a mapping or a :class:`wiz.definition.Definition` instance.
+        a mapping or a :class:`~wiz.definition.Definition` instance.
 
 .. release:: 0.14.0
     :date: 2018-08-10
