@@ -344,10 +344,43 @@ def test_fetch(mocked_discover, mocked_validate, definitions, options):
     "with-max-depth"
 ])
 def test_fetch_with_implicit_packages(
-    mocked_discover, mocked_validate, definitions_with_auto_use, options
+    mocked_discover, mocked_validate, options
 ):
     """Fetch all definition within *paths*."""
-    mocked_discover.return_value = definitions_with_auto_use
+    definitions = [
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "version": "0.1.0",
+            "auto-use": True
+        }),
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "version": "1.1.0",
+            "auto-use": True
+        }),
+        wiz.definition.Definition({
+            "identifier": "bar",
+            "version": "1.0.0",
+        }),
+        wiz.definition.Definition({
+            "identifier": "bar",
+            "version": "0.9.2",
+            "auto-use": True
+        }),
+        wiz.definition.Definition({
+            "identifier": "baz",
+        }),
+        wiz.definition.Definition({
+            "identifier": "bim",
+            "auto-use": True
+        }),
+        wiz.definition.Definition({
+            "identifier": "bam",
+            "auto-use": True
+        }),
+    ]
+
+    mocked_discover.return_value = definitions
     result = wiz.definition.fetch(
         ["/path/to/registry-1", "/path/to/registry-2"], **options
     )
@@ -358,42 +391,38 @@ def test_fetch_with_implicit_packages(
     )
 
     if options.get("requests") is not None:
-        assert mocked_validate.call_count == len(definitions_with_auto_use)
-        for definition in definitions_with_auto_use:
+        assert mocked_validate.call_count == len(definitions)
+        for definition in definitions:
             mocked_validate.assert_any_call(definition, options["requests"])
     else:
         mocked_validate.assert_not_called()
 
     assert result == {
         "package": {
-            "foo-package": {
-                "0.1.0": definitions_with_auto_use[0],
-                "1.1.0": definitions_with_auto_use[1]
+            "foo": {
+                "0.1.0": definitions[0],
+                "1.1.0": definitions[1]
             },
-            "bar-package": {
-                "1.0.0": definitions_with_auto_use[2],
-                "0.9.2": definitions_with_auto_use[3]
+            "bar": {
+                "1.0.0": definitions[2],
+                "0.9.2": definitions[3]
             },
-            "baz-package": {
-                "0.1.1": definitions_with_auto_use[4]
+            "baz": {
+                "unknown": definitions[4]
             },
-            "bim-package": {
-                # The 5th definition in the incoming list is overridden by the
-                # 6th one which has the same identifier and version.
-                "0.2.1": definitions_with_auto_use[6],
-                "0.1.0": definitions_with_auto_use[7]
+            "bim": {
+                "unknown": definitions[5],
+            },
+            "bam": {
+                "unknown": definitions[6],
             }
         },
-        "command": {
-            "foo": "foo-package",
-            "bar": "bar-package",
-            "baz": "baz-package",
-            "bim-test": "bim-package",
-            "bim": "bim-package"
-        },
+        "command": {},
         "implicit-packages": [
-            "foo-package==1.1.0",
-            "bim-package==0.1.0"
+            "bam",
+            "bim",
+            "bar==0.9.2",
+            "foo==1.1.0"
         ]
     }
 

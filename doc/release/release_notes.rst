@@ -4,6 +4,15 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: API
+
+        Fixed :func:`wiz.definition.fetch` to sort implicit packages in inverse
+        order of discovery to ensure that the package from the latest registries
+        have highest priority.
+
 .. release:: 0.15.0
     :date: 2018-08-14
 
