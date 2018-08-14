@@ -420,8 +420,8 @@ class Package(wiz.mapping.Mapping):
         return self.get("variant_name")
 
     @property
-    def _ordered_identifiers(self):
-        """Return ordered identifiers"""
+    def _ordered_keywords(self):
+        """Return ordered keywords."""
         return [
             "identifier",
             "definition-identifier",

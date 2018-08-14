@@ -13,6 +13,13 @@ Release Notes
         order of discovery to ensure that the package from the latest registries
         have highest priority.
 
+    .. change:: fixed
+        :tags: API
+
+        Fixed :meth:`wiz.mapping.Mapping.to_ordered_dict` to ensure that
+        the 'auto-use' keyword is displayed at a logical position in the
+        serialized definition and package instances.
+
 .. release:: 0.15.0
     :date: 2018-08-14
 

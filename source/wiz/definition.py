@@ -521,8 +521,8 @@ class Definition(wiz.mapping.Mapping):
         return self.get("variants", [])
 
     @property
-    def _ordered_identifiers(self):
-        """Return ordered identifiers"""
+    def _ordered_keywords(self):
+        """Return ordered keywords."""
         return [
             "identifier",
             "version",
@@ -581,8 +581,8 @@ class _Variant(wiz.mapping.Mapping):
         super(_Variant, self).__init__(variant)
 
     @property
-    def _ordered_identifiers(self):
-        """Return ordered identifiers"""
+    def _ordered_keywords(self):
+        """Return ordered keywords."""
         return [
             "identifier",
             "command",
