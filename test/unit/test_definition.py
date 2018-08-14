@@ -10,6 +10,7 @@ import pytest
 
 from wiz.utility import Requirement, Version
 import wiz.definition
+import wiz.filesystem
 import wiz.system
 import wiz.exception
 
@@ -240,6 +241,12 @@ def registries(temporary_directory):
 def mocked_system_validate(mocker):
     """Return mocked system.validate function."""
     return mocker.patch.object(wiz.system, "validate")
+
+
+@pytest.fixture()
+def mocked_filesystem_export(mocker):
+    """Return mocked filesystem.export function."""
+    return mocker.patch.object(wiz.filesystem, "export")
 
 
 @pytest.fixture()
@@ -507,6 +514,146 @@ def test_query_definition_mixed_version_error(package_definition_mapping):
     ) in str(error)
 
 
+def test_export_data(mocked_filesystem_export):
+    """Export definition data as a JSON file."""
+    data = {
+        "identifier": "foo",
+        "description": "Test definition",
+        "command": {
+            "app": "App0.1",
+            "appX": "AppX0.1"
+        },
+        "environ": {
+            "KEY": "VALUE"
+        }
+    }
+
+    wiz.definition.export("/path/to/output", data)
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/output/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"description\": \"Test definition\",\n"
+            "    \"command\": {\n"
+            "        \"app\": \"App0.1\",\n"
+            "        \"appX\": \"AppX0.1\"\n"
+            "    },\n"
+            "    \"environ\": {\n"
+            "        \"KEY\": \"VALUE\"\n"
+            "    }\n"
+            "}"
+        )
+    )
+
+
+def test_export_data_with_version(mocked_filesystem_export):
+    """Export a definition data as a JSON file with version."""
+    data = {
+        "identifier": "foo",
+        "version": "0.1.0",
+        "description": "Test definition",
+        "command": {
+            "app": "App0.1",
+            "appX": "AppX0.1"
+        },
+        "environ": {
+            "KEY": "VALUE"
+        }
+    }
+
+    wiz.definition.export("/path/to/output", data)
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/output/foo-0.1.0.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\",\n"
+            "    \"description\": \"Test definition\",\n"
+            "    \"command\": {\n"
+            "        \"app\": \"App0.1\",\n"
+            "        \"appX\": \"AppX0.1\"\n"
+            "    },\n"
+            "    \"environ\": {\n"
+            "        \"KEY\": \"VALUE\"\n"
+            "    }\n"
+            "}"
+        )
+    )
+
+
+def test_export(mocked_filesystem_export):
+    """Export definition as a JSON file."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "description": "Test definition",
+        "command": {
+            "app": "App0.1",
+            "appX": "AppX0.1"
+        },
+        "environ": {
+            "KEY": "VALUE"
+        }
+    })
+
+    wiz.definition.export("/path/to/output", definition)
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/output/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"description\": \"Test definition\",\n"
+            "    \"command\": {\n"
+            "        \"app\": \"App0.1\",\n"
+            "        \"appX\": \"AppX0.1\"\n"
+            "    },\n"
+            "    \"environ\": {\n"
+            "        \"KEY\": \"VALUE\"\n"
+            "    }\n"
+            "}"
+        )
+    )
+
+
+def test_export_with_version(mocked_filesystem_export):
+    """Export a definition as a JSON file with version."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "version": "0.1.0",
+        "description": "Test definition",
+        "command": {
+            "app": "App0.1",
+            "appX": "AppX0.1"
+        },
+        "environ": {
+            "KEY": "VALUE"
+        }
+    })
+
+    wiz.definition.export("/path/to/output", definition)
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/output/foo-0.1.0.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\",\n"
+            "    \"description\": \"Test definition\",\n"
+            "    \"command\": {\n"
+            "        \"app\": \"App0.1\",\n"
+            "        \"appX\": \"AppX0.1\"\n"
+            "    },\n"
+            "    \"environ\": {\n"
+            "        \"KEY\": \"VALUE\"\n"
+            "    }\n"
+            "}"
+        )
+    )
+
+
 def test_discover(mocked_load, registries, definitions):
     """Discover and yield *definitions*."""
     mocked_load.side_effect = definitions
@@ -708,6 +855,7 @@ def test_minimal_definition():
     assert definition.description == "unknown"
     assert definition.environ == {}
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
@@ -737,6 +885,7 @@ def test_definition_with_version(options, expected_version):
     assert definition.description == "unknown"
     assert definition.environ == {}
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
@@ -760,6 +909,7 @@ def test_definition_with_description():
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
@@ -787,6 +937,7 @@ def test_definition_with_environ():
     assert definition.version == "unknown"
     assert definition.description == "This is a definition"
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
@@ -828,6 +979,7 @@ def test_definition_with_requirements():
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
+    assert definition.constraints == []
     assert definition.requirements == map(Requirement, data["requirements"])
 
     assert definition.to_ordered_dict(serialize_content=True) == OrderedDict([
@@ -841,6 +993,43 @@ def test_definition_with_requirements():
     ])
 
     for requirement in definition.to_ordered_dict()["requirements"]:
+        assert isinstance(requirement, Requirement)
+
+
+def test_definition_with_constraints():
+    """Create a definition with constraints."""
+    data = {
+        "identifier": "test",
+        "description": "This is a definition",
+        "constraints": [
+            "envA >= 1.0.0",
+            "envB >= 3.4.2, < 4",
+            "envC"
+        ]
+    }
+
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.version == "unknown"
+    assert definition.description == "This is a definition"
+    assert definition.environ == {}
+    assert definition.command == {}
+    assert definition.system == {}
+    assert definition.variants == []
+    assert definition.constraints == map(Requirement, data["constraints"])
+    assert definition.requirements == []
+
+    assert definition.to_ordered_dict(serialize_content=True) == OrderedDict([
+        ("identifier", "test"),
+        ("description", "This is a definition"),
+        ("constraints", [
+            "envA >=1.0.0",
+            "envB >=3.4.2, <4",
+            "envC"
+        ])
+    ])
+
+    for requirement in definition.to_ordered_dict()["constraints"]:
         assert isinstance(requirement, Requirement)
 
 
@@ -861,6 +1050,7 @@ def test_definition_with_command():
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.system == {}
     assert definition.variants == []
 
@@ -897,6 +1087,7 @@ def test_definition_with_system():
     assert definition.environ == {}
     assert definition.command == {}
     assert definition.requirements == []
+    assert definition.constraints == []
     assert definition.variants == []
 
     assert definition.system == {
@@ -927,6 +1118,9 @@ def test_definition_with_variant():
                 },
                 "requirements": [
                     "envA >= 1.0, < 2"
+                ],
+                "constraints": [
+                    "envB==0.1.0"
                 ]
             },
             {
@@ -976,7 +1170,8 @@ def test_definition_with_variant():
             OrderedDict([
                 ("identifier", "1.0"),
                 ("environ", {"VERSION": "1.0"}),
-                ("requirements", ["envA >=1.0, <2"])
+                ("requirements", ["envA >=1.0, <2"]),
+                ("constraints", ["envB ==0.1.0"])
             ]),
             OrderedDict([
                 ("identifier", "2.0"),
@@ -993,6 +1188,8 @@ def test_definition_with_variant():
 
     for variant in definition.to_ordered_dict()["variants"]:
         for requirement in variant.get("requirements", []):
+            assert isinstance(requirement, Requirement)
+        for requirement in variant.get("constraints", []):
             assert isinstance(requirement, Requirement)
 
 
@@ -1030,6 +1227,24 @@ def test_definition_with_requirement_error():
     ) in str(error)
 
 
+def test_definition_with_constraint_error():
+    """Fail to create a definition with incorrect constraint."""
+    data = {
+        "identifier": "test",
+        "constraints": [
+            "envA -!!!",
+        ]
+    }
+
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.definition.Definition(data)
+
+    assert (
+        "IncorrectDefinition: The definition 'test' contains an incorrect "
+        "package constraint [The requirement 'envA -!!!' is incorrect]"
+    ) in str(error)
+
+
 def test_definition_with_variant_requirement_error():
     """Fail to create a definition with incorrect variant requirement."""
     data = {
@@ -1052,3 +1267,440 @@ def test_definition_with_variant_requirement_error():
         "incorrect package requirement [The requirement 'envA -!!!' "
         "is incorrect]"
     ) in str(error)
+
+
+def test_definition_with_variant_constraint_error():
+    """Fail to create a definition with incorrect variant constraint."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "1.0",
+                "constraints": [
+                    "envA -!!!"
+                ]
+            }
+        ]
+    }
+
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.definition.Definition(data)
+
+    assert (
+        "IncorrectDefinition: The definition 'test' [1.0] contains an "
+        "incorrect package constraint [The requirement 'envA -!!!' "
+        "is incorrect]"
+    ) in str(error)
+
+
+def test_definition_set():
+    """Create new definition from existing definition with new element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    # Change identifier
+    definition2 = definition1.set("identifier", "bar")
+    assert definition2.to_dict(serialize_content=True) == {"identifier": "bar"}
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    # Add version
+    definition3 = definition2.set("version", "0.1.0")
+    assert definition3.to_dict(serialize_content=True) == {
+        "identifier": "bar",
+        "version": "0.1.0"
+    }
+    assert definition2.to_dict(serialize_content=True) == {"identifier": "bar"}
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+
+def test_definition_variant_set():
+    """Create new definition from existing definition with new variant."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    # Add variant
+    definition2 = definition1.set(
+        "variants", [
+            {"identifier": "Variant1", "requirements": ["bar"]},
+            {"identifier": "Variant2", "requirements": ["bar>1"]}
+        ]
+    )
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "variants": [
+            {"identifier": "Variant1", "requirements": ["bar"]},
+            {"identifier": "Variant2", "requirements": ["bar >1"]}
+        ]
+    }
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    # Overwrite variant
+    definition3 = definition2.set(
+        "variants", [
+            {"identifier": "test"},
+        ]
+    )
+    assert definition3.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "variants": [
+            {"identifier": "test"}
+        ]
+    }
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "variants": [
+            {"identifier": "Variant1", "requirements": ["bar"]},
+            {"identifier": "Variant2", "requirements": ["bar >1"]}
+        ]
+    }
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+
+def test_definition_update():
+    """Create new definition from existing definition with updated element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    definition2 = definition1.update(
+        "environ", {"key1": "value1", "key2": "value2"}
+    )
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    }
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    definition3 = definition2.update(
+        "environ", {"key1": "VALUE1", "key3": "value3"}
+    )
+    assert definition3.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key1": "VALUE1",
+            "key2": "value2",
+            "key3": "value3"
+        }
+    }
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    }
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+
+def test_definition_update_error():
+    """Fail to create new definition with non-dictionary element updated."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    with pytest.raises(ValueError):
+        definition1.update("identifier", {"key1": "value1"})
+
+
+def test_definition_extend():
+    """Create new definition from existing definition with extended element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    definition2 = definition1.extend(
+        "requirements", ["bar", "bim>=1"]
+    )
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    definition3 = definition2.extend(
+        "requirements", ["test"]
+    )
+    assert definition3.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1",
+            "test"
+        ]
+    }
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+
+def test_definition_extend_error():
+    """Fail to create new definition with non-list element extended."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    with pytest.raises(ValueError):
+        definition1.extend("identifier", ["test"])
+
+
+def test_definition_insert():
+    """Create new definition from existing definition with extended element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    definition2 = definition1.set(
+        "requirements", ["bar", "bim>=1"]
+    )
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    definition3 = definition2.insert(
+        "requirements", "test", 0
+    )
+    assert definition3.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+
+def test_definition_insert_error():
+    """Fail to create new definition with non-list element extended."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    with pytest.raises(ValueError):
+        definition1.insert("identifier", ["test"], 0)
+
+
+def test_definition_remove():
+    """Create new definition from existing definition without element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "version": "0.1.0"
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "version": "0.1.0"
+    }
+
+    definition2 = definition1.remove("version")
+    assert definition2.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "version": "0.1.0"
+    }
+
+
+def test_definition_remove_error():
+    """Fail to create new definition without un-existing element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    with pytest.raises(KeyError):
+        definition1.remove("error")
+
+
+def test_definition_remove_key():
+    """Create new definition from existing definition without element key."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    }
+
+    definition2 = definition1.remove_key("environ", "key1")
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key2": "value2"
+        }
+    }
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    }
+
+
+def test_definition_remove_key_error():
+    """Fail to create new definition without un-existing element or element key.
+    """
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    }
+
+    with pytest.raises(KeyError):
+        definition1.remove_key("test", "error")
+
+    with pytest.raises(KeyError):
+        definition1.remove_key("environ", "key42")
+
+    with pytest.raises(ValueError):
+        definition1.remove_key("identifier", "key42")
+
+
+def test_definition_remove_index():
+    """Create new definition from existing definition without element index."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+    definition2 = definition1.remove_index("requirements", 0)
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+    definition3 = definition2.remove_index("requirements", 1)
+    assert definition3.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "bar",
+        ]
+    }
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+
+def test_definition_remove_index_error():
+    """Fail to create definition without un-existing element or element index.
+    """
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+    with pytest.raises(KeyError):
+        definition1.remove_index("test", "error")
+
+    with pytest.raises(KeyError):
+        definition1.remove_index("environ", 42)
+
+    with pytest.raises(ValueError):
+        definition1.remove_key("identifier", 42)

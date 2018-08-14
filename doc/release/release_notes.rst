@@ -4,6 +4,68 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+        :tags: API
+
+        Added :meth:`~wiz.definition.Definition.set` method to return copy
+        of a :class:`~wiz.definition.Definition` instance with a new element.
+
+    .. change:: new
+        :tags: API
+
+        Added :meth:`~wiz.definition.Definition.update` method to return copy
+        of a :class:`~wiz.definition.Definition` instance with element mapping
+        updated.
+
+    .. change:: new
+        :tags: API
+
+        Added :meth:`~wiz.definition.Definition.extend` method to return copy
+        of a :class:`~wiz.definition.Definition` instance with element list
+        extended.
+
+    .. change:: new
+        :tags: API
+
+        Added :meth:`~wiz.definition.Definition.insert` method to return copy
+        of a :class:`~wiz.definition.Definition` instance with element added
+        to list at specific index.
+
+    .. change:: new
+        :tags: API
+
+        Added :meth:`~wiz.definition.Definition.remove` method to return copy
+        of a :class:`~wiz.definition.Definition` instance without a specific
+        element.
+
+    .. change:: new
+        :tags: API
+
+        Added :meth:`~wiz.definition.Definition.remove_key` method to return
+        copy of a :class:`~wiz.definition.Definition` instance without a
+        specific key in element mapping.
+
+    .. change:: new
+        :tags: API
+
+        Added :meth:`~wiz.definition.Definition.remove_index` method to return
+        copy of a :class:`~wiz.definition.Definition` instance without a
+        specific index in element list.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.load_definition` to conveniently alias the
+        :func:`wiz.definition.load` function.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.export_definition` to export a :term:`JSON` file from
+        a mapping or a :class:`~wiz.definition.Definition` instance.
+
 .. release:: 0.14.0
     :date: 2018-08-10
 

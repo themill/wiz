@@ -40,6 +40,18 @@ def mocked_definition_query(mocker):
 
 
 @pytest.fixture()
+def mocked_definition_load(mocker):
+    """Return mocked 'wiz.definition.load' function."""
+    return mocker.patch.object(wiz.definition, "load")
+
+
+@pytest.fixture()
+def mocked_definition_export(mocker):
+    """Return mocked 'wiz.definition.export' function."""
+    return mocker.patch.object(wiz.definition, "export")
+
+
+@pytest.fixture()
 def mocked_package_extract(mocker):
     """Return mocked 'wiz.package.extract' function."""
     return mocker.patch.object(wiz.package, "extract")
@@ -432,7 +444,13 @@ def test_discover_context_error(monkeypatch):
         wiz.discover_context()
 
 
-def test_export_definition(temporary_directory):
+def test_load_definition(mocked_definition_load):
+    """Load a definition."""
+    wiz.load_definition("/path/to/definition.json")
+    mocked_definition_load.assert_called_once_with("/path/to/definition.json")
+
+
+def test_export_definition(mocked_definition_export):
     """Export a definition to file."""
     definition_data = {
         "identifier": "foo",
@@ -445,90 +463,10 @@ def test_export_definition(temporary_directory):
             "KEY": "VALUE"
         }
     }
-    wiz.export_definition(temporary_directory, definition_data)
-
-    file_path = os.path.join(temporary_directory, "foo.json")
-    assert os.path.isfile(file_path) is True
-
-    with open(file_path, "r") as stream:
-        assert stream.read() == (
-             "{\n"
-             "    \"identifier\": \"foo\",\n"
-             "    \"description\": \"Test definition\",\n"
-             "    \"command\": {\n"
-             "        \"app\": \"App0.1\",\n"
-             "        \"appX\": \"AppX0.1\"\n"
-             "    },\n"
-             "    \"environ\": {\n"
-             "        \"KEY\": \"VALUE\"\n"
-             "    }\n"
-             "}"
-        )
-
-
-def test_export_definition_with_version(temporary_directory):
-    """Export a definition to file with version."""
-    definition_data = {
-        "identifier": "foo",
-        "version": "0.1.0",
-        "description": "Test definition",
-        "command": {
-            "app": "App0.1",
-            "appX": "AppX0.1"
-        },
-        "environ": {
-            "KEY": "VALUE"
-        }
-    }
-    wiz.export_definition(temporary_directory, definition_data)
-
-    file_path = os.path.join(temporary_directory, "foo-0.1.0.json")
-    assert os.path.isfile(file_path) is True
-
-    with open(file_path, "r") as stream:
-        assert stream.read() == (
-             "{\n"
-             "    \"identifier\": \"foo\",\n"
-             "    \"version\": \"0.1.0\",\n"
-             "    \"description\": \"Test definition\",\n"
-             "    \"command\": {\n"
-             "        \"app\": \"App0.1\",\n"
-             "        \"appX\": \"AppX0.1\"\n"
-             "    },\n"
-             "    \"environ\": {\n"
-             "        \"KEY\": \"VALUE\"\n"
-             "    }\n"
-             "}"
-        )
-
-
-def test_export_definition_path_error():
-    """Fail to export definition when path is incorrect."""
-    definition_data = {
-        "identifier": "foo",
-        "description": "Test definition",
-        "command": {
-            "app": "App0.1",
-            "appX": "AppX0.1"
-        },
-        "environ": {
-            "KEY": "VALUE"
-        }
-    }
-
-    with pytest.raises(OSError):
-        wiz.export_definition("/incorrect", definition_data)
-
-
-def test_export_definition_data_error():
-    """Fail to export definition when data is incorrect."""
-    definition_data = {
-        "identifier": "foo",
-        "other": "boo!"
-    }
-
-    with pytest.raises(wiz.exception.IncorrectDefinition):
-        wiz.export_definition("/incorrect", definition_data)
+    wiz.export_definition("/path/to/output", definition_data)
+    mocked_definition_export.assert_called_once_with(
+        "/path/to/output", definition_data
+    )
 
 
 @pytest.fixture()

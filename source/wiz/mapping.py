@@ -2,6 +2,7 @@
 
 import json
 import collections
+import copy
 import abc
 
 import wiz.utility
@@ -64,10 +65,11 @@ class Mapping(collections.Mapping):
         serialized.
 
         """
+        _mapping = copy.deepcopy(self._mapping)
         if serialize_content:
-            return _serialize_content(self._mapping.copy())
+            return _serialize_content(_mapping)
 
-        return self._mapping.copy()
+        return _mapping
 
     def to_ordered_dict(self, serialize_content=False):
         """Return corresponding ordered dictionary.

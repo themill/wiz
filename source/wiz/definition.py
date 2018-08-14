@@ -195,14 +195,15 @@ def query(requirement, definition_mapping):
     return definition
 
 
-def export(path, mapping):
-    """Export *mapping* as definition to *path*.
+def export(path, definition):
+    """Export *definition* as a :term:`JSON` file to *path*.
 
     Return exported definition file path.
 
     *path* should be a valid directory to save the exported definition.
 
-    *mapping* should be in the form of::
+    *definition* could be an instance of :class:`Definition` or a mapping in
+    the form of::
 
         {
             "identifier": "my-package",
@@ -222,25 +223,23 @@ def export(path, mapping):
             ]
         }
 
-    If no version is specified, the exported definition will be un-versioned.
-
     The identifier must be unique in the registry so that it could be
     :func:`queried <query>`.
 
     The command identifier must also be unique in the registry.
 
     """
-    # Create definition from data.
-    _definition = wiz.definition.Definition(**mapping)
+    if not isinstance(definition, Definition):
+        definition = wiz.definition.Definition(**definition)
 
-    file_name = "{}.json".format(_definition.identifier)
-    if _definition.version != wiz.symbol.UNKNOWN_VALUE:
+    file_name = "{}.json".format(definition.identifier)
+    if definition.version != wiz.symbol.UNKNOWN_VALUE:
         file_name = "{}-{}.json".format(
-            _definition.identifier, _definition.version
+            definition.identifier, definition.version
         )
 
     file_path = os.path.join(os.path.abspath(path), file_name)
-    wiz.filesystem.export(file_path, _definition.encode())
+    wiz.filesystem.export(file_path, definition.encode())
     return file_path
 
 
@@ -321,7 +320,7 @@ def load(path, mapping=None):
     leading to the creation of the definition.
 
     A :exc:`wiz.exception.IncorrectDefinition` exception will be raised
-    otherwise.
+    if the definition is incorrect.
 
     """
     if mapping is None:
@@ -401,6 +400,117 @@ class Definition(wiz.mapping.Mapping):
             ]
 
         super(Definition, self).__init__(mapping)
+
+    def set(self, element, value):
+        """Returns copy of instance with *element* set to *value*.
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping[element] = value
+        return self.__class__(**_mapping)
+
+    def update(self, element, value):
+        """Returns copy of instance with *element* mapping updated with *value*.
+
+        Raise :exc:`ValueError` if *element* is not a dictionary.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping.setdefault(element, {})
+
+        if not isinstance(_mapping[element], dict):
+            raise ValueError(
+                "Impossible to update '{}' as it is not a "
+                "dictionary.".format(element)
+            )
+
+        _mapping[element].update(value)
+        return self.__class__(**_mapping)
+
+    def extend(self, element, values):
+        """Returns copy of instance with *element* list extended with *values*.
+
+        Raise :exc:`ValueError` if *mapping* is not a list.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping.setdefault(element, [])
+
+        if not isinstance(_mapping[element], list):
+            raise ValueError(
+                "Impossible to extend '{}' as it is not a list.".format(element)
+            )
+
+        _mapping[element].extend(values)
+        return self.__class__(**_mapping)
+
+    def insert(self, element, value, index):
+        """Returns copy of instance with *value* inserted in *element* list.
+
+        *index* should be the index number at which the *value* should be
+        inserted.
+
+        Raise :exc:`ValueError` if *mapping* is not a list.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping.setdefault(element, [])
+
+        if not isinstance(_mapping[element], list):
+            raise ValueError(
+                "Impossible to insert '{}' in '{}' as it is not "
+                "a list.".format(value, element)
+            )
+
+        _mapping[element].insert(index, value)
+        return self.__class__(**_mapping)
+
+    def remove(self, element):
+        """Returns copy of instance without *element*.
+
+        Raise :exc:`KeyError` if *element* is not in mapping.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        del _mapping[element]
+        return self.__class__(**_mapping)
+
+    def remove_key(self, element, value):
+        """Returns copy of instance without key *value* from *element* mapping.
+
+        Raise :exc:`ValueError` if *element* is not a dictionary.
+
+        Raise :exc:`KeyError` if *element* is not in mapping or if *value* is
+        not in *element* mapping.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        if not isinstance(_mapping[element], dict):
+            raise ValueError(
+                "Impossible to remove key from '{}' as it is not a "
+                "dictionary.".format(element)
+            )
+
+        del _mapping[element][value]
+        return self.__class__(**_mapping)
+
+    def remove_index(self, element, index):
+        """Returns copy of instance without *index* from *element* list.
+
+        Raise :exc:`ValueError` if *element* is not a list.
+
+        Raise :exc:`KeyError` if *element* is not in mapping or if *index* is
+        not in *element* list.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        if not isinstance(_mapping[element], list):
+            raise ValueError(
+                "Impossible to remove index from '{}' as it is not a "
+                "list.".format(element)
+            )
+
+        del _mapping[element][index]
+        return self.__class__(**_mapping)
 
     @property
     def variants(self):

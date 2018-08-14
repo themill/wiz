@@ -37,6 +37,12 @@ def is_accessible(folder_path):
 
 def ensure_directory(path):
     """Ensure directory exists at *path*."""
+    # Explicitly indicate that path should be a directory as default OSError
+    # raised by 'os.makedirs' just indicates that the file exists, which is a
+    # bit confusing for user.
+    if os.path.isfile(path):
+        raise OSError("'{}' should be a directory".format(path))
+
     try:
         os.makedirs(path)
     except OSError as error:
