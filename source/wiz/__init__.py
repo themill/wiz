@@ -314,9 +314,7 @@ def discover_context():
 
 
 def load_definition(path):
-    """Load and return a definition instance from file *path*.
-
-    An instance of :class:`wiz.definition.Definition` will be returned.
+    """Return :class:`~wiz.definition.Definition` instance from file *path*.
 
     *path* should be a valid :term:`JSON` file path which contains a definition.
 
