@@ -43,6 +43,20 @@ Release Notes
     .. change:: new
         :tags: API
 
+        Added :meth:`~wiz.definition.Definition.remove_key` method to return
+        copy of a :class:`~wiz.definition.Definition` instance without a
+        specific key in element mapping.
+
+    .. change:: new
+        :tags: API
+
+        Added :meth:`~wiz.definition.Definition.remove_index` method to return
+        copy of a :class:`~wiz.definition.Definition` instance without a
+        specific index in element list.
+
+    .. change:: new
+        :tags: API
+
         Added :func:`wiz.load_definition` to conveniently alias the
         :func:`wiz.definition_load` function.
 
