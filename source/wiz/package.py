@@ -430,6 +430,7 @@ class Package(wiz.mapping.Mapping):
             "description",
             "registry",
             "origin",
+            "auto-use",
             "system",
             "command",
             "environ",
