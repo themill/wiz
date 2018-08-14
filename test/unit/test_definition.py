@@ -1362,38 +1362,6 @@ def test_definition_variant_set():
     assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
 
 
-def test_definition_remove():
-    """Create new definition from existing definition without element."""
-    definition1 = wiz.definition.Definition({
-        "identifier": "foo",
-        "version": "0.1.0"
-    })
-
-    assert definition1.to_dict(serialize_content=True) == {
-        "identifier": "foo",
-        "version": "0.1.0"
-    }
-
-    definition2 = definition1.remove("version")
-    assert definition2.to_dict(serialize_content=True) == {"identifier": "foo"}
-    assert definition1.to_dict(serialize_content=True) == {
-        "identifier": "foo",
-        "version": "0.1.0"
-    }
-
-
-def test_definition_remove_error():
-    """Fail to create new definition without un-existing element."""
-    definition1 = wiz.definition.Definition({
-        "identifier": "foo",
-    })
-
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
-
-    with pytest.raises(KeyError):
-        definition1.remove("error")
-
-
 def test_definition_update():
     """Create new definition from existing definition with updated element."""
     definition1 = wiz.definition.Definition({
@@ -1551,3 +1519,188 @@ def test_definition_insert_error():
 
     with pytest.raises(ValueError):
         definition1.insert("identifier", ["test"], 0)
+
+
+def test_definition_remove():
+    """Create new definition from existing definition without element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "version": "0.1.0"
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "version": "0.1.0"
+    }
+
+    definition2 = definition1.remove("version")
+    assert definition2.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "version": "0.1.0"
+    }
+
+
+def test_definition_remove_error():
+    """Fail to create new definition without un-existing element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+
+    with pytest.raises(KeyError):
+        definition1.remove("error")
+
+
+def test_definition_remove_key():
+    """Create new definition from existing definition without element key."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    }
+
+    definition2 = definition1.remove_key("environ", "key1")
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key2": "value2"
+        }
+    }
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    }
+
+
+def test_definition_remove_key_error():
+    """Fail to create new definition without un-existing element or element key.
+    """
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    }
+
+    with pytest.raises(KeyError):
+        definition1.remove_key("test", "error")
+
+    with pytest.raises(KeyError):
+        definition1.remove_key("environ", "key42")
+
+    with pytest.raises(ValueError):
+        definition1.remove_key("identifier", "key42")
+
+
+def test_definition_remove_index():
+    """Create new definition from existing definition without element index."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+    definition2 = definition1.remove_index("requirements", 0)
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+    definition3 = definition2.remove_index("requirements", 1)
+    assert definition3.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "bar",
+        ]
+    }
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+
+def test_definition_remove_index_error():
+    """Fail to create definition without un-existing element or element index.
+    """
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+    with pytest.raises(KeyError):
+        definition1.remove_index("test", "error")
+
+    with pytest.raises(KeyError):
+        definition1.remove_index("environ", 42)
+
+    with pytest.raises(ValueError):
+        definition1.remove_key("identifier", 42)
