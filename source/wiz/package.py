@@ -379,7 +379,7 @@ class Package(wiz.mapping.Mapping):
         mapping["identifier"] = generate_identifier(
             definition, variant.identifier if variant else None
         )
-        mapping["definition_identifier"] = definition.identifier
+        mapping["definition-identifier"] = definition.identifier
         mapping["variant_name"] = None
 
         if variant is not None:
@@ -412,7 +412,7 @@ class Package(wiz.mapping.Mapping):
     @property
     def definition_identifier(self):
         """Return definition identifier."""
-        return self.get("definition_identifier")
+        return self.get("definition-identifier")
 
     @property
     def variant_name(self):
@@ -424,7 +424,7 @@ class Package(wiz.mapping.Mapping):
         """Return ordered identifiers"""
         return [
             "identifier",
-            "definition_identifier",
+            "definition-identifier",
             "variant_name",
             "version",
             "description",

@@ -517,7 +517,7 @@ def test_minimal_package_without_variant():
 
     assert len(package) == 3
     assert sorted(package) == [
-        "definition_identifier", "identifier", "variant_name"
+        "definition-identifier", "identifier", "variant_name"
     ]
 
 
