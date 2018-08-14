@@ -103,7 +103,7 @@ class Mapping(collections.Mapping):
                     return str(element)
                 return element
 
-        for identifier in self._ordered_identifiers:
+        for identifier in self._ordered_keywords:
             if identifier not in mapping.keys():
                 continue
 
@@ -113,8 +113,8 @@ class Mapping(collections.Mapping):
         return content
 
     @abc.abstractmethod
-    def _ordered_identifiers(self):
-        """Return ordered identifiers"""
+    def _ordered_keywords(self):
+        """Return ordered keywords"""
 
     def encode(self):
         """Return serialized definition data."""

@@ -844,29 +844,118 @@ def test_definition_mapping():
     """Create definition and return mapping and serialized mapping."""
     data = {
         "identifier": "test",
+        "version": "0.1.0",
         "description": "This is a definition",
+        "registry": "/path/to/registry",
+        "origin": "/path/to/registry/test-0.1.0.json",
+        "auto-use": True,
+        "system": {
+            "platform": "linux",
+            "os": "el >= 6, < 7",
+            "arch": "x86_64"
+        },
+        "command": {
+            "app": "AppX"
+        },
         "environ": {
             "KEY1": "VALUE1"
-        }
+        },
+        "requirements": ["foo"],
+        "constraints": ["bar==2.1.0"],
+        "variants": [
+            {
+                "identifier": "Variant1",
+                "command": {
+                    "appV1": "AppX --test"
+                },
+                "environ": {
+                    "KEY2": "VALUE2"
+                },
+                "requirements": ["bim >= 9, < 10"],
+                "constraints": ["baz==6.3.1"]
+            }
+        ]
     }
 
     environment = wiz.definition.Definition(data)
 
     assert environment.to_dict() == {
         "identifier": "test",
+        "version": Version("0.1.0"),
         "description": "This is a definition",
+        "registry": "/path/to/registry",
+        "origin": "/path/to/registry/test-0.1.0.json",
+        "auto-use": True,
+        "system": {
+            "platform": "linux",
+            "os": "el >= 6, < 7",
+            "arch": "x86_64"
+        },
+        "command": {
+            "app": "AppX"
+        },
         "environ": {
-            "KEY1": "VALUE1",
-        }
+            "KEY1": "VALUE1"
+        },
+        "requirements": [Requirement("foo")],
+        "constraints": [Requirement("bar==2.1.0")],
+        "variants": [
+            {
+                "identifier": "Variant1",
+                "command": {
+                    "appV1": "AppX --test"
+                },
+                "environ": {
+                    "KEY2": "VALUE2"
+                },
+                "requirements": [Requirement("bim >= 9, < 10")],
+                "constraints": [Requirement("baz==6.3.1")]
+            }
+        ]
     }
 
     assert environment.encode() == (
         "{\n"
         "    \"identifier\": \"test\",\n"
+        "    \"version\": \"0.1.0\",\n"
         "    \"description\": \"This is a definition\",\n"
+        "    \"registry\": \"/path/to/registry\",\n"
+        "    \"origin\": \"/path/to/registry/test-0.1.0.json\",\n"
+        "    \"auto-use\": \"True\",\n"
+        "    \"system\": {\n"
+        "        \"platform\": \"linux\",\n"
+        "        \"os\": \"el >= 6, < 7\",\n"
+        "        \"arch\": \"x86_64\"\n"
+        "    },\n"
+        "    \"command\": {\n"
+        "        \"app\": \"AppX\"\n"
+        "    },\n"
         "    \"environ\": {\n"
         "        \"KEY1\": \"VALUE1\"\n"
-        "    }\n"
+        "    },\n"
+        "    \"requirements\": [\n"
+        "        \"foo\"\n"
+        "    ],\n"
+        "    \"constraints\": [\n"
+        "        \"bar ==2.1.0\"\n"
+        "    ],\n"
+        "    \"variants\": [\n"
+        "        {\n"
+        "            \"identifier\": \"Variant1\",\n"
+        "            \"command\": {\n"
+        "                \"appV1\": \"AppX --test\"\n"
+        "            },\n"
+        "            \"environ\": {\n"
+        "                \"KEY2\": \"VALUE2\"\n"
+        "            },\n"
+        "            \"requirements\": [\n"
+        "                \"bim >=9, <10\"\n"
+        "            ],\n"
+        "            \"constraints\": [\n"
+        "                \"baz ==6.3.1\"\n"
+        "            ]\n"
+        "        }\n"
+        "    ]\n"
         "}"
     )
 
