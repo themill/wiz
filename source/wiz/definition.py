@@ -195,14 +195,15 @@ def query(requirement, definition_mapping):
     return definition
 
 
-def export(path, mapping):
-    """Export *mapping* as definition to *path*.
+def export(path, definition):
+    """Export *definition* as a :term:`JSON` file to *path*.
 
     Return exported definition file path.
 
     *path* should be a valid directory to save the exported definition.
 
-    *mapping* should be in the form of::
+    *definition* could be an instance of :class:`Definition` or a mapping in
+    the form of::
 
         {
             "identifier": "my-package",
@@ -222,25 +223,23 @@ def export(path, mapping):
             ]
         }
 
-    If no version is specified, the exported definition will be un-versioned.
-
     The identifier must be unique in the registry so that it could be
     :func:`queried <query>`.
 
     The command identifier must also be unique in the registry.
 
     """
-    # Create definition from data.
-    _definition = wiz.definition.Definition(**mapping)
+    if not isinstance(definition, Definition):
+        definition = wiz.definition.Definition(**definition)
 
-    file_name = "{}.json".format(_definition.identifier)
-    if _definition.version != wiz.symbol.UNKNOWN_VALUE:
+    file_name = "{}.json".format(definition.identifier)
+    if definition.version != wiz.symbol.UNKNOWN_VALUE:
         file_name = "{}-{}.json".format(
-            _definition.identifier, _definition.version
+            definition.identifier, definition.version
         )
 
     file_path = os.path.join(os.path.abspath(path), file_name)
-    wiz.filesystem.export(file_path, _definition.encode())
+    wiz.filesystem.export(file_path, definition.encode())
     return file_path
 
 
@@ -321,7 +320,7 @@ def load(path, mapping=None):
     leading to the creation of the definition.
 
     A :exc:`wiz.exception.IncorrectDefinition` exception will be raised
-    otherwise.
+    if the definition is incorrect.
 
     """
     if mapping is None:

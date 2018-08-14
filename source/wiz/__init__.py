@@ -283,7 +283,7 @@ def discover_context():
         outside of a resolved environment.
 
     :exc:`~wiz.exception.RequestNotFound` is raised if the
-    :envvar:`WIZ_CONTEXT` is not found.
+    :envvar:`WIZ_CONTEXT` environment variable is not found.
 
     """
     encoded_context = os.environ.get("WIZ_CONTEXT")
@@ -313,40 +313,53 @@ def discover_context():
     return context
 
 
-def export_definition(path, definition_data):
-    """Export a context as a definition in *path*.
+def load_definition(path):
+    """Load and return a definition instance from file *path*.
 
-    It could be used as follow::
+    An instance of :class:`wiz.definition.Definition` will be returned.
 
-        >>> definition_data = {
-        ...     "identifier": "foo",
-        ...     "version": "0.1.0",
-        ...     "description": "Environment for foo application",
-        ...     "command": {
-        ...         "app": "App0.1"
-        ...     },
-        ...     "environ": {
-        ...         "KEY": "VALUE"
-        ...     }
-        ... }
-        >>> wiz.export_definition("/path/to/output", definition_data)
+    *path* should be a valid :term:`JSON` file path which contains a definition.
 
-        "/path/to/output/foo-0.1.0.json"
+    A :exc:`wiz.exception.IncorrectDefinition` exception will be raised
+    if the definition is incorrect.
+
+    """
+    return wiz.definition.load(path)
+
+
+def export_definition(path, data):
+    """Export definition *data* as a :term:`JSON` file in directory *path*.
 
     *path* should be a valid directory to save the exported definition.
 
-    *definition_data* should represent a mapping which represent a definition.
+    *data* could be an instance of :class:`wiz.definition.Definition` or
+    a mapping in the form of::
 
-    Raises :exc:`wiz.exception.IncorrectDefinition` if the definition can not
-    be created from *definition_data*.
+        {
+            "identifier": "foo",
+            "description": "This is my package",
+            "version": "0.1.0",
+            "command": {
+                "app": "AppExe",
+                "appX": "AppExe --mode X"
+            },
+            "environ": {
+                "KEY1": "value1",
+                "KEY2": "value2"
+            },
+            "requirements": [
+                "package1 >=1, <2",
+                "package2"
+            ]
+        }
+
+    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
+    cannot create a valid instance of :class:`wiz.definition.Definition`.
 
     Raises :exc:`OSError` if the definition can not be exported in *path*.
 
     """
-    _definition = wiz.definition.Definition(**definition_data)
-    return wiz.definition.export(
-        path, _definition.to_ordered_dict(serialize_content=True)
-    )
+    return wiz.definition.export(path, data)
 
 
 def export_script(

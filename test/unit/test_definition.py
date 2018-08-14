@@ -10,6 +10,7 @@ import pytest
 
 from wiz.utility import Requirement, Version
 import wiz.definition
+import wiz.filesystem
 import wiz.system
 import wiz.exception
 
@@ -240,6 +241,12 @@ def registries(temporary_directory):
 def mocked_system_validate(mocker):
     """Return mocked system.validate function."""
     return mocker.patch.object(wiz.system, "validate")
+
+
+@pytest.fixture()
+def mocked_filesystem_export(mocker):
+    """Return mocked filesystem.export function."""
+    return mocker.patch.object(wiz.filesystem, "export")
 
 
 @pytest.fixture()
@@ -505,6 +512,146 @@ def test_query_definition_mixed_version_error(package_definition_mapping):
         "for 'foo' as non-versioned and versioned definitions have been "
         "fetched."
     ) in str(error)
+
+
+def test_export_data(mocked_filesystem_export):
+    """Export definition data as a JSON file."""
+    data = {
+        "identifier": "foo",
+        "description": "Test definition",
+        "command": {
+            "app": "App0.1",
+            "appX": "AppX0.1"
+        },
+        "environ": {
+            "KEY": "VALUE"
+        }
+    }
+
+    wiz.definition.export("/path/to/output", data)
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/output/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"description\": \"Test definition\",\n"
+            "    \"command\": {\n"
+            "        \"app\": \"App0.1\",\n"
+            "        \"appX\": \"AppX0.1\"\n"
+            "    },\n"
+            "    \"environ\": {\n"
+            "        \"KEY\": \"VALUE\"\n"
+            "    }\n"
+            "}"
+        )
+    )
+
+
+def test_export_data_with_version(mocked_filesystem_export):
+    """Export a definition data as a JSON file with version."""
+    data = {
+        "identifier": "foo",
+        "version": "0.1.0",
+        "description": "Test definition",
+        "command": {
+            "app": "App0.1",
+            "appX": "AppX0.1"
+        },
+        "environ": {
+            "KEY": "VALUE"
+        }
+    }
+
+    wiz.definition.export("/path/to/output", data)
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/output/foo-0.1.0.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\",\n"
+            "    \"description\": \"Test definition\",\n"
+            "    \"command\": {\n"
+            "        \"app\": \"App0.1\",\n"
+            "        \"appX\": \"AppX0.1\"\n"
+            "    },\n"
+            "    \"environ\": {\n"
+            "        \"KEY\": \"VALUE\"\n"
+            "    }\n"
+            "}"
+        )
+    )
+
+
+def test_export(mocked_filesystem_export):
+    """Export definition as a JSON file."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "description": "Test definition",
+        "command": {
+            "app": "App0.1",
+            "appX": "AppX0.1"
+        },
+        "environ": {
+            "KEY": "VALUE"
+        }
+    })
+
+    wiz.definition.export("/path/to/output", definition)
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/output/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"description\": \"Test definition\",\n"
+            "    \"command\": {\n"
+            "        \"app\": \"App0.1\",\n"
+            "        \"appX\": \"AppX0.1\"\n"
+            "    },\n"
+            "    \"environ\": {\n"
+            "        \"KEY\": \"VALUE\"\n"
+            "    }\n"
+            "}"
+        )
+    )
+
+
+def test_export_with_version(mocked_filesystem_export):
+    """Export a definition as a JSON file with version."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "version": "0.1.0",
+        "description": "Test definition",
+        "command": {
+            "app": "App0.1",
+            "appX": "AppX0.1"
+        },
+        "environ": {
+            "KEY": "VALUE"
+        }
+    })
+
+    wiz.definition.export("/path/to/output", definition)
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/output/foo-0.1.0.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\",\n"
+            "    \"description\": \"Test definition\",\n"
+            "    \"command\": {\n"
+            "        \"app\": \"App0.1\",\n"
+            "        \"appX\": \"AppX0.1\"\n"
+            "    },\n"
+            "    \"environ\": {\n"
+            "        \"KEY\": \"VALUE\"\n"
+            "    }\n"
+            "}"
+        )
+    )
 
 
 def test_discover(mocked_load, registries, definitions):
