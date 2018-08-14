@@ -100,7 +100,8 @@ def fetch(paths, requests=None, system_mapping=None, max_depth=None):
     # Add implicit package identifiers of best matching definitions which have
     # the 'auto-use' keyword in the order of discovery to preserve priorities.
     for definition_identifier in sorted(
-        set(implicit_definitions), key=lambda _identifier: _identifier.index
+        implicit_definition_mapping.keys(),
+        key=lambda _id: implicit_definitions.index(_id)
     ):
         requirement = wiz.utility.get_requirement(definition_identifier)
         definition = query(requirement, implicit_definition_mapping)
