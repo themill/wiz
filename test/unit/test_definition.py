@@ -1705,6 +1705,28 @@ def test_definition_remove_key():
     }
 
 
+def test_definition_remove_last_key():
+    """Create new definition from existing definition without element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    }
+
+    definition2 = definition1.remove_key("environ", "key1")
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+    }
+
+
 def test_definition_remove_key_error():
     """Fail to create new definition without un-existing element or element key.
     """
@@ -1790,6 +1812,28 @@ def test_definition_remove_index():
             "bar",
             "bim >=1"
         ]
+    }
+
+
+def test_definition_remove_last_index():
+    """Create new definition from existing definition without element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "requirements": [
+            "test",
+        ]
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "test",
+        ]
+    }
+
+    definition2 = definition1.remove_index("requirements", 0)
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
     }
 
 
