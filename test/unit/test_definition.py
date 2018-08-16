@@ -1750,8 +1750,12 @@ def test_definition_remove_key_error():
     with pytest.raises(KeyError):
         definition1.remove_key("environ", "key42")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as error:
         definition1.remove_key("identifier", "key42")
+
+    assert (
+       "Impossible to remove key from 'identifier' as it is not a dictionary."
+    ) in str(error)
 
 
 def test_definition_remove_index():
@@ -1864,5 +1868,9 @@ def test_definition_remove_index_error():
     with pytest.raises(KeyError):
         definition1.remove_index("environ", 42)
 
-    with pytest.raises(ValueError):
-        definition1.remove_key("identifier", 42)
+    with pytest.raises(ValueError) as error:
+        definition1.remove_index("identifier", 42)
+
+    assert (
+       "Impossible to remove index from 'identifier' as it is not a list."
+    ) in str(error)
