@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: API
+
+        Fixed :mod:`wiz.mapping` to prevent capitalizing boolean elements during
+        serialization.
+
 .. release:: 0.15.1
     :date: 2018-08-14
 

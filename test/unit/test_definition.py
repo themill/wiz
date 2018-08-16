@@ -921,7 +921,7 @@ def test_definition_mapping():
         "    \"description\": \"This is a definition\",\n"
         "    \"registry\": \"/path/to/registry\",\n"
         "    \"origin\": \"/path/to/registry/test-0.1.0.json\",\n"
-        "    \"auto-use\": \"True\",\n"
+        "    \"auto-use\": \"true\",\n"
         "    \"system\": {\n"
         "        \"platform\": \"linux\",\n"
         "        \"os\": \"el >= 6, < 7\",\n"
