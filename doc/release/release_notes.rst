@@ -12,6 +12,20 @@ Release Notes
         Fixed :mod:`wiz.mapping` to prevent capitalizing boolean elements during
         serialization.
 
+    .. change:: fixed
+        :tags: API
+
+        Fixed :meth:`~wiz.definition.Definition.remove_key` method to return
+        copy of a :class:`~wiz.definition.Definition` instance without element
+        mapping if the latest key is removed.
+
+    .. change:: fixed
+        :tags: API
+
+        Added :meth:`~wiz.definition.Definition.remove_index` method to return
+        copy of a :class:`~wiz.definition.Definition` instance without element
+        list if the latest item is removed.
+
 .. release:: 0.15.1
     :date: 2018-08-14
 

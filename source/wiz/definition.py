@@ -482,6 +482,9 @@ class Definition(wiz.mapping.Mapping):
     def remove_key(self, element, value):
         """Returns copy of instance without key *value* from *element* mapping.
 
+        If *element* mapping is empty after removing *value*, the *element* key
+        will be removed.
+
         Raise :exc:`ValueError` if *element* is not a dictionary.
 
         Raise :exc:`KeyError` if *element* is not in mapping or if *value* is
@@ -496,10 +499,16 @@ class Definition(wiz.mapping.Mapping):
             )
 
         del _mapping[element][value]
+        if len(_mapping[element]) == 0:
+            del _mapping[element]
+
         return self.__class__(**_mapping)
 
     def remove_index(self, element, index):
         """Returns copy of instance without *index* from *element* list.
+
+        If *element* list is empty after removing *index*, the *element* key
+        will be removed.
 
         Raise :exc:`ValueError` if *element* is not a list.
 
@@ -515,6 +524,9 @@ class Definition(wiz.mapping.Mapping):
             )
 
         del _mapping[element][index]
+        if len(_mapping[element]) == 0:
+            del _mapping[element]
+
         return self.__class__(**_mapping)
 
     @property
