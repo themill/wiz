@@ -343,9 +343,11 @@ class Definition(wiz.mapping.Mapping):
         mapping = dict(*args, **kwargs)
 
         for error in wiz.validator.yield_definition_errors(mapping):
+            # Ensure that message can be used within format string syntax
+            message = error.get("message").replace("{", "{{").replace("}", "}}")
             raise wiz.exception.IncorrectDefinition(
                 "{message} ({path})".format(
-                    message=error.get("message"),
+                    message=message,
                     path=error.get("path"),
                 )
             )
