@@ -100,7 +100,7 @@ class Mapping(collections.Mapping):
 
             else:
                 if serialize_content:
-                    return str(element)
+                    return _serialize_content(element)
                 return element
 
         for identifier in self._ordered_keywords:
@@ -153,5 +153,9 @@ def _serialize_content(element):
 
     elif isinstance(element, Mapping):
         return element.to_dict(serialize_content=True)
+
+    # Boolean values are not serialized.
+    elif isinstance(element, bool):
+        return element
 
     return str(element)
