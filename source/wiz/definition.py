@@ -470,12 +470,11 @@ class Definition(wiz.mapping.Mapping):
         return self.__class__(**_mapping)
 
     def remove(self, element):
-        """Returns copy of instance without *element*.
-
-        Raise :exc:`KeyError` if *element* is not in mapping.
-
-        """
+        """Returns copy of instance without *element*."""
         _mapping = self.to_dict(serialize_content=True)
+        if element not in _mapping.keys():
+            return self
+
         del _mapping[element]
         return self.__class__(**_mapping)
 
@@ -487,16 +486,19 @@ class Definition(wiz.mapping.Mapping):
 
         Raise :exc:`ValueError` if *element* is not a dictionary.
 
-        Raise :exc:`KeyError` if *element* is not in mapping or if *value* is
-        not in *element* mapping.
-
         """
         _mapping = self.to_dict(serialize_content=True)
+        if element not in _mapping.keys():
+            return self
+
         if not isinstance(_mapping[element], dict):
             raise ValueError(
                 "Impossible to remove key from '{}' as it is not a "
                 "dictionary.".format(element)
             )
+
+        if value not in _mapping[element].keys():
+            return self
 
         del _mapping[element][value]
         if len(_mapping[element]) == 0:
@@ -512,16 +514,19 @@ class Definition(wiz.mapping.Mapping):
 
         Raise :exc:`ValueError` if *element* is not a list.
 
-        Raise :exc:`KeyError` if *element* is not in mapping or if *index* is
-        not in *element* list.
-
         """
         _mapping = self.to_dict(serialize_content=True)
+        if element not in _mapping.keys():
+            return self
+
         if not isinstance(_mapping[element], list):
             raise ValueError(
                 "Impossible to remove index from '{}' as it is not a "
                 "list.".format(element)
             )
+
+        if index >= len(_mapping[element]):
+            return self
 
         del _mapping[element][index]
         if len(_mapping[element]) == 0:
