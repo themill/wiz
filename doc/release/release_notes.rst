@@ -4,7 +4,8 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 0.16.0
+    :date: 2018-08-16
 
     .. change:: changed
         :tags: API
