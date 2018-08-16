@@ -4,6 +4,7 @@ import shlex
 import os
 
 from _version import __version__
+import wiz.registry
 import wiz.definition
 import wiz.package
 import wiz.graph
@@ -142,7 +143,8 @@ def fetch_package_request_from_command(command_request, definition_mapping):
 
 
 def resolve_context(
-    requests, definition_mapping, ignore_implicit=False, environ_mapping=None
+    requests, definition_mapping=None, ignore_implicit=False,
+    environ_mapping=None
 ):
     """Return context mapping from *requests*.
 
@@ -177,6 +179,8 @@ def resolve_context(
 
     *definition_mapping* is a mapping regrouping all available definitions
     available. It could be fetched with :func:`fetch_definition_mapping`.
+    If no definition mapping is provided, a sensible one will be fetched from
+    :func:`default registries <wiz.registry.get_defaults>`.
 
     *ignore_implicit* indicates whether implicit packages should not be
     included in context. Default is False.
@@ -187,6 +191,11 @@ def resolve_context(
     """
     # To prevent mutating input list.
     _requests = requests[:]
+
+    if definition_mapping is None:
+        definition_mapping = wiz.fetch_definition_mapping(
+            wiz.registry.get_defaults()
+        )
 
     if not ignore_implicit:
         _requests += definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, [])

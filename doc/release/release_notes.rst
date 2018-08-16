@@ -9,6 +9,13 @@ Release Notes
     .. change:: changed
         :tags: API
 
+        Updated :func:`wiz.resolve_context` to make the *definition_mapping*
+        argument optional. If no definition mapping is provided, a sensible one
+        will be fetched from default registries.
+
+    .. change:: changed
+        :tags: API
+
         Updated :meth:`~wiz.definition.Definition.remove` method to return
         :class:`~wiz.definition.Definition` instance without raising
         :exc:`KeyError` exception when element to remove does not exist.
