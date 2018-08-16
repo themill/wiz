@@ -44,8 +44,9 @@ Release Notes
     .. change:: fixed
         :tags: API
 
-        Fixed :mod:`wiz.mapping` to prevent capitalizing boolean elements during
-        serialization.
+        Fixed :mod:`wiz.mapping` to prevent serialisation of boolean values as
+        it causes validation errors when serialized mapping is used to create
+        a new :class:`~wiz.definition.Definition` instance.
 
 .. release:: 0.15.1
     :date: 2018-08-14

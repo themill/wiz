@@ -154,8 +154,8 @@ def _serialize_content(element):
     elif isinstance(element, Mapping):
         return element.to_dict(serialize_content=True)
 
-    # To prevent boolean value to end up capitalized in the JSON file.
+    # Boolean values are not serialized.
     elif isinstance(element, bool):
-        return json.dumps(element)
+        return element
 
     return str(element)
