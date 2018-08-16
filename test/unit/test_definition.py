@@ -1705,6 +1705,28 @@ def test_definition_remove_key():
     }
 
 
+def test_definition_remove_last_key():
+    """Create new definition from existing definition without element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    }
+
+    definition2 = definition1.remove_key("environ", "key1")
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+    }
+
+
 def test_definition_remove_key_error():
     """Fail to create new definition without un-existing element or element key.
     """
@@ -1728,8 +1750,12 @@ def test_definition_remove_key_error():
     with pytest.raises(KeyError):
         definition1.remove_key("environ", "key42")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as error:
         definition1.remove_key("identifier", "key42")
+
+    assert (
+       "Impossible to remove key from 'identifier' as it is not a dictionary."
+    ) in str(error)
 
 
 def test_definition_remove_index():
@@ -1793,6 +1819,28 @@ def test_definition_remove_index():
     }
 
 
+def test_definition_remove_last_index():
+    """Create new definition from existing definition without element."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+        "requirements": [
+            "test",
+        ]
+    })
+
+    assert definition1.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+        "requirements": [
+            "test",
+        ]
+    }
+
+    definition2 = definition1.remove_index("requirements", 0)
+    assert definition2.to_dict(serialize_content=True) == {
+        "identifier": "foo",
+    }
+
+
 def test_definition_remove_index_error():
     """Fail to create definition without un-existing element or element index.
     """
@@ -1820,5 +1868,9 @@ def test_definition_remove_index_error():
     with pytest.raises(KeyError):
         definition1.remove_index("environ", 42)
 
-    with pytest.raises(ValueError):
-        definition1.remove_key("identifier", 42)
+    with pytest.raises(ValueError) as error:
+        definition1.remove_index("identifier", 42)
+
+    assert (
+       "Impossible to remove index from 'identifier' as it is not a list."
+    ) in str(error)
