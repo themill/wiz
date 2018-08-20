@@ -83,7 +83,7 @@ class RequestNotFound(WizError):
             if details is None:
                 details = {}
 
-            details.setdefault("name", message.name)
+            details.setdefault("name", str(message))
             message = "The requirement '{name}' could not be resolved."
 
         super(RequestNotFound, self).__init__(

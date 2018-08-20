@@ -775,7 +775,7 @@ class Graph(object):
 
         self._logger.debug(
             "Constraints which needs to be added to the graph: {}".format(
-                [constraint.requirement for constraint in constraints]
+                [str(constraint.requirement) for constraint in constraints]
             )
         )
         return constraints
