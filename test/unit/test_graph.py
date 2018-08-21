@@ -727,6 +727,7 @@ def test_graph_update_from_requirements(
     _mapping = {
         "A==0.2.0": mocker.Mock(
             identifier="A==0.2.0",
+            variant_name=None,
             definition_identifier="A",
             requirements=[],
             constraints=[],
@@ -734,6 +735,7 @@ def test_graph_update_from_requirements(
         ),
         "B==2.1.1": mocker.Mock(
             identifier="B==2.1.1",
+            variant_name=None,
             definition_identifier="B",
             requirements=[],
             constraints=[],
@@ -765,7 +767,7 @@ def test_graph_update_from_requirements(
             }
         },
         "variants": [],
-        "constraints": {}
+        "constraint": {}
     }
 
 
@@ -778,6 +780,7 @@ def test_graph_update_from_requirements_with_dependencies(
     _mapping = {
         "A==0.1.0": mocker.Mock(
             identifier="A==0.1.0",
+            variant_name=None,
             definition_identifier="A",
             requirements=[Requirement("B>=2"), Requirement("C")],
             constraints=[],
@@ -785,6 +788,7 @@ def test_graph_update_from_requirements_with_dependencies(
         ),
         "B==3.0.0": mocker.Mock(
             identifier="B==3.0.0",
+            variant_name=None,
             definition_identifier="B",
             requirements=[],
             constraints=[],
@@ -792,6 +796,7 @@ def test_graph_update_from_requirements_with_dependencies(
         ),
         "C==1.2.3": mocker.Mock(
             identifier="C==1.2.3",
+            variant_name=None,
             definition_identifier="C",
             requirements=[Requirement("D")],
             constraints=[],
@@ -799,6 +804,7 @@ def test_graph_update_from_requirements_with_dependencies(
         ),
         "D==0.1.0": mocker.Mock(
             identifier="D==0.1.0",
+            variant_name=None,
             definition_identifier="D",
             requirements=[Requirement("E")],
             constraints=[],
@@ -806,6 +812,7 @@ def test_graph_update_from_requirements_with_dependencies(
         ),
         "E==0.2.0": mocker.Mock(
             identifier="E==0.2.0",
+            variant_name=None,
             definition_identifier="E",
             requirements=[],
             constraints=[],
@@ -855,7 +862,7 @@ def test_graph_update_from_requirements_with_dependencies(
             }
         },
         "variants": [],
-        "constraints": {}
+        "constraint": {}
     }
 
 
@@ -868,6 +875,7 @@ def test_graph_update_from_requirements_with_variants(
     _mapping = {
         "A[V1]==0.2.0": mocker.Mock(
             identifier="A[V1]==0.2.0",
+            variant_name="V1",
             definition_identifier="A",
             requirements=[],
             constraints=[],
@@ -875,6 +883,7 @@ def test_graph_update_from_requirements_with_variants(
         ),
         "A[V2]==0.2.0": mocker.Mock(
             identifier="A[V2]==0.2.0",
+            variant_name="V2",
             definition_identifier="A",
             requirements=[],
             constraints=[],
@@ -882,6 +891,7 @@ def test_graph_update_from_requirements_with_variants(
         ),
         "A[V3]==0.2.0": mocker.Mock(
             identifier="A[V3]==0.2.0",
+            variant_name="V3",
             definition_identifier="A",
             requirements=[],
             constraints=[],
@@ -917,7 +927,7 @@ def test_graph_update_from_requirements_with_variants(
             },
         },
         "variants": [["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"]],
-        "constraints": {}
+        "constraint": {}
     }
 
 
@@ -930,6 +940,7 @@ def test_graph_update_from_requirements_with_unused_constraints(
     _mapping = {
         "A==0.2.0": mocker.Mock(
             identifier="A==0.2.0",
+            variant_name=None,
             definition_identifier="A",
             requirements=[],
             constraints=[],
@@ -937,6 +948,7 @@ def test_graph_update_from_requirements_with_unused_constraints(
         ),
         "B==2.1.1": mocker.Mock(
             identifier="B==2.1.1",
+            variant_name=None,
             definition_identifier="B",
             requirements=[],
             constraints=[Requirement("C==2.0.4")],
@@ -968,7 +980,7 @@ def test_graph_update_from_requirements_with_unused_constraints(
             }
         },
         "variants": [],
-        "constraints": {
+        "constraint": {
             "C": [
                 {
                     "requirement": Requirement("C==2.0.4"),
@@ -989,6 +1001,7 @@ def test_graph_update_from_requirements_with_used_constraints(
     _mapping = {
         "A==0.2.0": mocker.Mock(
             identifier="A==0.2.0",
+            variant_name=None,
             definition_identifier="A",
             requirements=[],
             constraints=[],
@@ -996,6 +1009,7 @@ def test_graph_update_from_requirements_with_used_constraints(
         ),
         "B==2.1.1": mocker.Mock(
             identifier="B==2.1.1",
+            variant_name=None,
             definition_identifier="B",
             requirements=[],
             constraints=[Requirement("C==2.0.4")],
@@ -1003,6 +1017,7 @@ def test_graph_update_from_requirements_with_used_constraints(
         ),
         "C==2.0.4": mocker.Mock(
             identifier="C==2.0.4",
+            variant_name=None,
             definition_identifier="C",
             requirements=[],
             constraints=[],
@@ -1010,6 +1025,7 @@ def test_graph_update_from_requirements_with_used_constraints(
         ),
         "C==3.0.0": mocker.Mock(
             identifier="C==3.0.0",
+            variant_name=None,
             definition_identifier="C",
             requirements=[],
             constraints=[],
@@ -1054,7 +1070,7 @@ def test_graph_update_from_requirements_with_used_constraints(
             }
         },
         "variants": [],
-        "constraints": {}
+        "constraint": {}
     }
 
 
@@ -1365,13 +1381,15 @@ def test_graph_reset_variants():
 def test_node(mocker):
     """Create and use node."""
     package = mocker.Mock(
-        identifier="A==0.1.0",
+        identifier="A[V1]==0.1.0",
+        variant_name="V1",
         definition_identifier="defA"
     )
 
     node = wiz.graph.Node(package)
-    assert node.identifier == "A==0.1.0"
+    assert node.identifier == "A[V1]==0.1.0"
     assert node.definition == "defA"
+    assert node.variant_name == "V1"
     assert node.package == package
     assert node.parent_identifiers == set()
 
