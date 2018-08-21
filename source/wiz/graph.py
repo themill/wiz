@@ -100,32 +100,32 @@ class Resolver(object):
         corresponding parent node identifier.
 
         """
-        variant_groups = graph.variant_groups()
+        variant_groups = self.extract_variant_groups(graph, priority_mapping)
         if len(variant_groups) == 0:
             self._logger.debug("No alternative graphs created.")
             return 0
 
-        # Order the variant groups per priority to compute those nearest to the
-        # top-level first. Each node from a variant group should have the same
-        # priority, so we can sort the group list by using the first identifier
-        # of each group as a key reference.
-        sorted_variant_groups = sorted(
-            variant_groups,
-            key=lambda _group: priority_mapping[_group[0]].get("priority"),
-        )
-
         graph_list = [graph.copy()]
 
-        for variant_group in sorted_variant_groups:
+        for variant_group in variant_groups:
+            mapping = {}
+
+            # Organize corresponding nodes per variant
+            for node_identifier in variant_group:
+                node = graph.node(node_identifier)
+                mapping.setdefault(node.package.variant_name, [])
+                mapping[node.package.variant_name].append(node)
+
             new_graph_list = []
 
-            # For each graph in the list, create an alternative graph with each
-            # isolated node identifier from the variant group.
+            # For each graph in list, create an alternative graph containing
+            # only node with common variant from this group
             for _graph in graph_list:
-                for node_identifier in variant_group:
+                for identifiers in mapping.values():
                     copied_graph = _graph.copy()
                     other_identifiers = (
-                        _id for _id in variant_group if _id != node_identifier
+                        node_identifier for node_identifier in variant_group
+                        if node_identifier not in identifiers
                     )
 
                     # Remove all other variant from the variant graph.
@@ -150,6 +150,52 @@ class Resolver(object):
         number = len(graph_list)
         self._logger.debug("graph divided into {} new graphs.".format(number))
         return number
+
+    def extract_variant_groups(self, graph, priority_mapping):
+        """Return variant group list sorted per priority.
+
+        Variant groups are extracted from the *graph* according to
+        *definition_identifiers*. It should be as follow::
+
+            [
+                ["foo[V1]==0.1.0", "foo[V2]==0.1.0"],
+                ["bar[V1]==2.1.5", "bar[V1]==2.2.0", "bar[V2]==2.2.0"]
+            ]
+
+        Each sub-group is sorted per priority and top level group is sorted
+        according to the priority of the first element of each group.
+
+        *graph* must be an instance of :class:`Graph`.
+
+        *priority_mapping* is a mapping indicating the lowest possible priority
+        of each node identifier from the root level of the graph with its
+        corresponding parent node identifier.
+
+        """
+        variant_groups = []
+
+        definition_identifiers = graph.definition_identifiers_with_variants()
+        if len(definition_identifiers) == 0:
+            self._logger.debug("No variant detected in the graph.")
+            return variant_groups
+
+        for definition_identifier in definition_identifiers:
+            identifiers = sorted(
+                graph.node_identifiers(definition_identifier),
+                key=lambda _id: priority_mapping[_id].get("priority")
+            )
+
+            self._logger.debug(
+                "Variant detected for {!r}: {}".format(
+                    definition_identifier, identifiers
+                )
+            )
+            variant_groups.append(identifiers)
+
+        return sorted(
+            variant_groups,
+            key=lambda group: priority_mapping[group[0]].get("priority")
+        )
 
     def resolve_conflicts(self, graph):
         """Attempt to resolve all conflicts in *graph*.
@@ -587,8 +633,8 @@ class Graph(object):
         *constraint_mapping* can be an initial mapping of :class:`Constraint`
         instances organised per definition identifier.
 
-        *variant_mapping* can be an initial mapping of node identifier variant
-        lists organised per unique variant group identifier.
+        *variant_mapping* can be an initial mapping of definition variant names
+        organized per definition identifier.
 
         *link_mapping* can be an initial mapping of node identifiers
         association.
@@ -607,7 +653,7 @@ class Graph(object):
         # List of constraint instances organised per definition identifier.
         self._constraint_mapping = constraint_mapping or {}
 
-        # List of node identifier variants per hashed variant group identifier.
+        # Set of variant identifiers per definition identifier.
         self._variant_mapping = variant_mapping or {}
 
         # Record the weight of each link in the graph.
@@ -622,19 +668,20 @@ class Graph(object):
         """Return corresponding dictionary."""
         return {
             "identifier": self.identifier,
-            "node": {
+            "node_mapping": {
                 _id: node.to_dict() for _id, node
                 in self._node_mapping.items()
             },
-            "definition": {
+            "definition_mapping": {
                 _id: sorted(node_ids) for _id, node_ids
                 in self._definition_mapping.items()
             },
-            "link": copy.deepcopy(self._link_mapping),
-            "variants": [
-                sorted(node_ids) for node_ids in self._variant_mapping.values()
-            ],
-            "constraints": {
+            "link_mapping": copy.deepcopy(self._link_mapping),
+            "variant_mapping": {
+                _id: sorted(node_ids) for _id, node_ids
+                in self._variant_mapping.items()
+            },
+            "constraint_mapping": {
                 _id: [constraint.to_dict() for constraint in constraints]
                 for _id, constraints in self._constraint_mapping.items()
             }
@@ -663,9 +710,18 @@ class Graph(object):
         """Indicate whether the node *identifier* is in the graph."""
         return identifier in self._node_mapping.keys()
 
-    def variant_groups(self):
-        """Return list of variant node identifier groups."""
-        return self._variant_mapping.values()
+    def node_identifiers(self, definition_identifier):
+        """Return list of node identifiers with common *definition_identifier*.
+        """
+        return self._definition_mapping[definition_identifier]
+
+    def definition_identifiers_with_variants(self):
+        """Return list of definition identifiers with more than one variant.
+        """
+        return [
+            identifier for identifier in self._variant_mapping.keys()
+            if len(self._variant_mapping[identifier]) > 1
+        ]
 
     def outcoming(self, identifier):
         """Return outcoming node identifiers for node *identifier*."""
@@ -822,13 +878,6 @@ class Graph(object):
             requirement, self._resolver.definition_mapping
         )
 
-        # If more than one package is returned, start_recording all node
-        # identifiers into a variant group.
-        if len(packages) > 1 or requirement.name in self._variant_mapping:
-            identifiers = [package.identifier for package in packages]
-            self._variant_mapping.setdefault(requirement.name, set())
-            self._variant_mapping[requirement.name].update(identifiers)
-
         # Create a node for each package if necessary.
         for package in packages:
             if not self.exists(package.identifier):
@@ -872,10 +921,16 @@ class Graph(object):
         self._logger.debug("Adding package: {}".format(package.identifier))
         self._node_mapping[package.identifier] = Node(package)
 
+        _definition_id = package.definition_identifier
+
+        # Record variant per definition identifier if necessary.
+        if package.variant_name is not None:
+            self._variant_mapping.setdefault(_definition_id, set())
+            self._variant_mapping[_definition_id].add(package.variant_name)
+
         # Record node identifiers per package to identify conflicts.
-        definition_identifier = package.definition_identifier
-        self._definition_mapping.setdefault(definition_identifier, set())
-        self._definition_mapping[definition_identifier].add(package.identifier)
+        self._definition_mapping.setdefault(_definition_id, set())
+        self._definition_mapping[_definition_id].add(package.identifier)
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_NODE_CREATION_ACTION,
