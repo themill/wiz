@@ -107,8 +107,8 @@ class Resolver(object):
 
         # Order the variant groups per priority to compute those nearest to the
         # top-level first. We can assume that the first identifier of each group
-        # is the node with the highest priority as the node is traversed using a
-        # Breadth First Search algorithm.
+        # is the node with the highest priority as the graph has been updated
+        # using a Breadth First Search algorithm.
         variant_groups = sorted(
             variant_groups,
             key=lambda _group: priority_mapping[_group[0]].get("priority"),
