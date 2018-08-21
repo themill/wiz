@@ -113,8 +113,7 @@ class Resolver(object):
         # the node with the highest priority.
         variant_groups = sorted(
             variant_groups,
-            key=lambda _group: priority_mapping[_group[0]].get("priority"),
-            reverse=True
+            key=lambda _group: priority_mapping[_group[-1]].get("priority"),
         )
 
         graph_list = [graph.copy()]
