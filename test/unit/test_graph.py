@@ -594,18 +594,34 @@ def test_graph_exists():
     assert graph.exists("B") is False
 
 
-def test_graph_variant_groups():
+def test_graph_variant_groups(mocker):
     """Extract variants from graph."""
     graph = wiz.graph.Graph(None)
     assert graph.variant_groups() == []
 
     graph = wiz.graph.Graph(
-        None, variant_mapping={
-            "_idA": ["A1", "A2"],
-            "_idB": ["B1", "B2"],
+        None,
+        node_mapping={
+            "A[V1]==0.1.0": mocker.Mock(variant_name="V1"),
+            "A[V2]==0.1.0": mocker.Mock(variant_name="V2"),
+            "B[V1]==0.1.0": mocker.Mock(variant_name="V1"),
+            "B[V1]==0.2.0": mocker.Mock(variant_name="V1"),
+            "B[V2]==0.1.0": mocker.Mock(variant_name="V2"),
+            "C[V1]==0.1.0": mocker.Mock(variant_name="V1"),
+            "D[V1]==0.1.0": mocker.Mock(variant_name="V1"),
+            "D[V1]==0.2.0": mocker.Mock(variant_name="V1")
+        },
+        variant_mapping={
+            "A": ["A[V1]==0.1.0", "A[V2]==0.1.0"],
+            "B": ["B[V1]==0.1.0", "B[V2]==0.1.0", "B[V1]==0.2.0"],
+            "C": ["C[V1]==0.1.0"],
+            "D": ["D[V1]==0.1.0", "D[V1]==0.2.0"]
         }
     )
-    assert sorted(graph.variant_groups()) == [["A1", "A2"], ["B1", "B2"]]
+    assert sorted(graph.variant_groups()) == [
+        ["A[V1]==0.1.0", "A[V2]==0.1.0"],
+        ["B[V1]==0.1.0", "B[V2]==0.1.0", "B[V1]==0.2.0"]
+    ]
 
 
 def test_graph_outcoming():
