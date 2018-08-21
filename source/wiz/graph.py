@@ -106,33 +106,37 @@ class Resolver(object):
             return 0
 
         # Order the variant groups per priority to compute those nearest to the
-        # top-level first. We cannot change te order of each individual variant
-        # group as it should be guaranteed during the extraction from the
-        # definition. As the node is traversed using a Breadth First Search
-        # algorithm, we can assume that the first identifier of each group is
-        # the node with the highest priority.
+        # top-level first. We can assume that the first identifier of each group
+        # is the node with the highest priority as the node is traversed using a
+        # Breadth First Search algorithm.
         variant_groups = sorted(
             variant_groups,
-            key=lambda _group: priority_mapping[_group[-1]].get("priority"),
+            key=lambda _group: priority_mapping[_group[0]].get("priority"),
         )
 
         graph_list = [graph.copy()]
 
         for variant_group in variant_groups:
             mapping = {}
+            variant_names = []
 
-            # Organize corresponding nodes per variant
+            # Regroup corresponding nodes per variant to prevent treating
+            # conflicts as variants.
             for node_identifier in variant_group:
                 node = graph.node(node_identifier)
                 mapping.setdefault(node.package.variant_name, [])
                 mapping[node.package.variant_name].append(node_identifier)
+
+                # Record variant in list to preserve order
+                variant_names.append(node.package.variant_name)
 
             new_graph_list = []
 
             # For each graph in list, create an alternative graph containing
             # only node with common variant from this group
             for _graph in graph_list:
-                for identifiers in mapping.values():
+                for variant_name in variant_names:
+                    identifiers = mapping[variant_name]
                     copied_graph = _graph.copy()
                     other_identifiers = (
                         node_identifier for node_identifier in variant_group
@@ -598,8 +602,8 @@ class Graph(object):
         *constraint_mapping* can be an initial mapping of :class:`Constraint`
         instances organised per definition identifier.
 
-        *variant_mapping* can be an initial mapping of node identifier variant
-        lists organised per unique variant group identifier.
+        *variant_mapping* can be an initial mapping of node identifiers with
+        variant organised per definition identifier.
 
         *link_mapping* can be an initial mapping of node identifiers
         association.
@@ -618,7 +622,7 @@ class Graph(object):
         # List of constraint instances organised per definition identifier.
         self._constraint_mapping = constraint_mapping or {}
 
-        # List of node identifier variants per variant group identifier.
+        # List of identifiers with variant organised per definition identifier.
         self._variant_mapping = variant_mapping or {}
 
         # Record the weight of each link in the graph.
@@ -676,18 +680,27 @@ class Graph(object):
         """Return list of variant group list.
 
         A variant group list should contain at least more than one node
-        identifiers with different variant names. It should be in the form of::
+        identifier which belongs at least to two different variant names.
+        It should be in the form of::
 
             [
                 ["foo[V1]==0.1.0", "foo[V2]==0.1.0"],
-                ["bar[V1]==2.1.5", "bar[V2]==2.2.0"]
+                ["bar[V1]==2.1.5", "bar[V2]==2.2.0", "bar[V2]==2.1.0"]
             ]
 
         """
-        return [
-            identifiers for identifiers in self._variant_mapping.values()
-            if len(identifiers) > 1
-        ]
+        _variant_groups = []
+
+        for identifiers in self._variant_mapping.values():
+            variant_names = set([
+                self._node_mapping[identifier].package.variant_name
+                for identifier in identifiers
+            ])
+
+            if len(variant_names) > 1:
+                _variant_groups.append(identifiers)
+
+        return _variant_groups
 
     def outcoming(self, identifier):
         """Return outcoming node identifiers for node *identifier*."""
@@ -889,13 +902,11 @@ class Graph(object):
 
         _definition_id = package.definition_identifier
 
-        # Record variant per unique key identifier if necessary. The unique key
-        # should contain the definition identifier and the version.
+        # Record variant per unique key identifier if necessary.
         if package.variant_name is not None:
-            variant_key = "{}-{}".format(_definition_id, package.version)
-            self._variant_mapping.setdefault(variant_key, [])
-            if package.identifier not in self._variant_mapping[variant_key]:
-                self._variant_mapping[variant_key].append(package.identifier)
+            self._variant_mapping.setdefault(_definition_id, [])
+            if package.identifier not in self._variant_mapping[_definition_id]:
+                self._variant_mapping[_definition_id].append(package.identifier)
 
         # Record node identifiers per package to identify conflicts.
         self._definition_mapping.setdefault(_definition_id, set())
