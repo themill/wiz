@@ -126,7 +126,7 @@ class Resolver(object):
             for node_identifier in variant_group:
                 node = graph.node(node_identifier)
                 mapping.setdefault(node.package.variant_name, [])
-                mapping[node.package.variant_name].append(node)
+                mapping[node.package.variant_name].append(node_identifier)
 
             new_graph_list = []
 
