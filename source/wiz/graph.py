@@ -128,7 +128,8 @@ class Resolver(object):
                 mapping[node.package.variant_name].append(node_identifier)
 
                 # Record variant in list to preserve order
-                variant_names.append(node.package.variant_name)
+                if node.package.variant_name not in variant_names:
+                    variant_names.append(node.package.variant_name)
 
             new_graph_list = []
 
