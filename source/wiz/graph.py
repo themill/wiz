@@ -2,7 +2,6 @@
 
 import copy
 import uuid
-import hashlib
 import itertools
 from collections import deque
 from heapq import heapify, heappush, heappop
@@ -631,8 +630,10 @@ class Graph(object):
                 _id: sorted(node_ids) for _id, node_ids
                 in self._definition_mapping.items()
             },
-            "link": self._link_mapping.copy(),
-            "variants": self._variant_mapping.values(),
+            "link": copy.deepcopy(self._link_mapping),
+            "variants": [
+                sorted(node_ids) for node_ids in self._variant_mapping.values()
+            ],
             "constraints": {
                 _id: [constraint.to_dict() for constraint in constraints]
                 for _id, constraints in self._constraint_mapping.items()
@@ -643,11 +644,11 @@ class Graph(object):
         """Return a copy of the graph."""
         return Graph(
             self._resolver,
-            node_mapping=self._node_mapping.copy(),
+            node_mapping=copy.deepcopy(self._node_mapping),
             definition_mapping=copy.deepcopy(self._definition_mapping),
             constraint_mapping=copy.deepcopy(self._constraint_mapping),
-            variant_mapping=self._variant_mapping.copy(),
-            link_mapping=self._link_mapping.copy()
+            variant_mapping=copy.deepcopy(self._variant_mapping),
+            link_mapping=copy.deepcopy(self._link_mapping)
         )
 
     def node(self, identifier):
@@ -823,10 +824,10 @@ class Graph(object):
 
         # If more than one package is returned, start_recording all node
         # identifiers into a variant group.
-        if len(packages) > 1:
+        if len(packages) > 1 or requirement.name in self._variant_mapping:
             identifiers = [package.identifier for package in packages]
-            hashed_object = hashlib.md5("".join(sorted(identifiers)))
-            self._variant_mapping[hashed_object.hexdigest()] = identifiers
+            self._variant_mapping.setdefault(requirement.name, set())
+            self._variant_mapping[requirement.name].update(identifiers)
 
         # Create a node for each package if necessary.
         for package in packages:
