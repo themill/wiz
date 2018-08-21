@@ -124,12 +124,12 @@ class Resolver(object):
             # conflicts as variants.
             for node_identifier in variant_group:
                 node = graph.node(node_identifier)
-                mapping.setdefault(node.package.variant_name, [])
-                mapping[node.package.variant_name].append(node_identifier)
+                mapping.setdefault(node.variant_name, [])
+                mapping[node.variant_name].append(node_identifier)
 
                 # Record variant in list to preserve order
-                if node.package.variant_name not in variant_names:
-                    variant_names.append(node.package.variant_name)
+                if node.variant_name not in variant_names:
+                    variant_names.append(node.variant_name)
 
             new_graph_list = []
 
@@ -694,7 +694,7 @@ class Graph(object):
 
         for identifiers in self._variant_mapping.values():
             variant_names = set([
-                self._node_mapping[identifier].package.variant_name
+                self._node_mapping[identifier].variant_name
                 for identifier in identifiers
             ])
 
@@ -1025,8 +1025,26 @@ class Node(object):
 
     @property
     def identifier(self):
-        """Return identifier of the node."""
+        """Return identifier of the node.
+
+        .. note::
+
+            The node identifier is the same as the embedded
+            :class:`~wiz.package.Package` instance identifier.
+
+        """
         return self._package.identifier
+
+    @property
+    def variant_name(self):
+        """Return variant name of the node.
+
+        Return the variant name of the embedded
+        :class:`~wiz.package.Package` instance. If the package does not have a
+        variant, None is returned.
+
+        """
+        return self._package.variant_name
 
     @property
     def package(self):
