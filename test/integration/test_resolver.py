@@ -32,8 +32,8 @@ def test_scenario_1():
 
     Expected: F==1.0.0, D==0.1.0, B==0.1.0, C==0.3.2, G==2.0.2, A==0.2.0
 
-    The order of 'D==0.1.0' / 'B==0.1.0' and 'C==0.3.2' / 'G==2.0.2' can
-    vary as they have similar priority number.
+    The position of 'D==0.1.0' / 'B==0.1.0' and 'C==0.3.2' / 'G==2.0.2' can
+    vary as they have similar priority numbers.
 
     """
     definition_mapping = {
@@ -153,7 +153,8 @@ def test_scenario_2():
                              |
                              `--(F>=1)-- F==1.0.0
 
-    Expected: Unable to compute to to requirement compatibility.
+    Expected: Unable to compute due to requirement compatibility between
+    'D>0.1.0' and 'D==0.1.0'.
 
     """
     definition_mapping = {
