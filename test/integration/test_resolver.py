@@ -8,7 +8,7 @@ from wiz.utility import Requirement
 
 
 def test_scenario_1():
-    """Test graph resolution for the following graph.
+    """Compute packages for the following graph.
 
     Root
      |
@@ -131,7 +131,7 @@ def test_scenario_1():
 
 
 def test_scenario_2():
-    """Test graph resolution for the following graph.
+    """Fail to compute packages for the following graph.
 
     Root
      |
@@ -243,7 +243,10 @@ def test_scenario_2():
 
 
 def test_scenario_3():
-    """Test graph resolution for the following graph.
+    """Compute packages for the following graph.
+
+    In a situation with several solutions, the solution which guaranty the
+    conservation of the node nearest to the top level is chosen
 
     Root
      |
@@ -292,7 +295,12 @@ def test_scenario_3():
 
 
 def test_scenario_4():
-    """Test graph resolution for the following graph.
+    """Compute packages for the following graph.
+
+    When only the identifier of a definition with several variants is required,
+    all variants are added to the graph which is then divided into as many
+    graphs as there are variants. The graph are ordered following the order of
+    the variants and the first graph to resolve is the solution.
 
     Root
      |
@@ -369,7 +377,10 @@ def test_scenario_4():
 
 
 def test_scenario_5():
-    """Test graph resolution for the following graph.
+    """Compute packages for the following graph.
+
+    When a specific variant of a definition is required, only one graph with
+    this exact variant is added to the graph.
 
     Root
      |
@@ -434,7 +445,11 @@ def test_scenario_5():
 
 
 def test_scenario_6():
-    """Test graph resolution for the following graph.
+    """Compute packages for the following graph.
+
+    Like the scenario 4, we end up with as many graph as there are variants. But
+    the additional requirement makes the 2 first graphs fail so that only the
+    3rd graph is resolved.
 
     Root
      |
