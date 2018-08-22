@@ -527,3 +527,49 @@ def test_scenario_6():
     assert len(packages) == 2
     assert packages[0].identifier == "B==2.0.0"
     assert packages[1].identifier == "A[V2]==1.0.0"
+
+
+def test_scenario_7():
+    """Compute packages for the following graph.
+
+    Root
+     |
+     |--(A<=0.3.0): A==0.3.0
+     |
+     `--(B): B==0.1.0
+         |
+         `--(A !=0.3.0): A==1.0.0
+
+    Expected:
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0"
+            }),
+            "0.3.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.3.0"
+            }),
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0"
+            })
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0",
+                "requirements": ["A !=0.3.0"]
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A<=0.3.0"), Requirement("B")
+    ])
+
+    assert len(packages) == 2
