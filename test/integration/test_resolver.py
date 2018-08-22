@@ -366,3 +366,149 @@ def test_scenario_4():
     assert len(packages) == 2
     assert packages[0].identifier == "B==4.0.0"
     assert packages[1].identifier == "A[V4]==1.0.0"
+
+
+def test_scenario_5():
+    """Test graph resolution for the following graph.
+
+    Root
+     |
+     `--(A[V1])-- A[V1]==1.0.0
+              |
+              `--(B >=1, <2)-- B==1.0.0
+
+    Expected: B==1.0.0, A[V1]==1.0.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V4",
+                        "requirements": ["B >=4, <5"]
+                    },
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["B >=1, <2"]
+                    }
+                ]
+            }),
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0"
+            }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+            "4.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "4.0.0"
+            }),
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([Requirement("A[V1]")])
+
+    assert len(packages) == 2
+    assert packages[0].identifier == "B==1.0.0"
+    assert packages[1].identifier == "A[V1]==1.0.0"
+
+
+def test_scenario_6():
+    """Test graph resolution for the following graph.
+
+    Root
+     |
+     |--(A)-- A[V1]==1.0.0
+     |        |
+     |        `--(B >=1, <2)-- B==1.0.0
+     |
+     |--(A)-- A[V2]==1.0.0
+     |        |
+     |        `--(B >=2, <3)-- B==2.0.0
+     |
+     |--(A)-- A[V3]==1.0.0
+     |        |
+     |        `--(B >=3, <4)-- B==3.0.0
+     |
+     |--(A)-- A[V4]==1.0.0
+     |        |
+     |        `--(B >=4, <5)-- B==4.0.0
+     |
+     `--(B==2.*)-- B==2.0.0
+
+    Expected: B==2.0.0, A[V2]==1.0.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V4",
+                        "requirements": ["B >=4, <5"]
+                    },
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["B >=1, <2"]
+                    }
+                ]
+            }),
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0"
+            }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+            "4.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "4.0.0"
+            }),
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("B==2.*")
+    ])
+
+    assert len(packages) == 2
+    assert packages[0].identifier == "B==2.0.0"
+    assert packages[1].identifier == "A[V2]==1.0.0"
