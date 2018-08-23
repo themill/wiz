@@ -238,7 +238,8 @@ def test_scenario_2():
         resolver.compute_packages([Requirement("A"), Requirement("G")])
 
     assert (
-        "A requirement conflict has been detected for 'D==0.1.4'"
+        "The combined requirement 'D >0.1.0, ==0.1.0' could not be resolved "
+        "from the following packages: ['D==0.1.4', 'D==0.1.0']."
     ) in str(error)
 
 
@@ -559,9 +560,9 @@ def test_scenario_7():
             })
         },
         "B": {
-            "1.0.0": wiz.definition.Definition({
+            "0.1.0": wiz.definition.Definition({
                 "identifier": "B",
-                "version": "1.0.0",
+                "version": "0.1.0",
                 "requirements": ["A !=0.3.0"]
             })
         }
@@ -573,3 +574,5 @@ def test_scenario_7():
     ])
 
     assert len(packages) == 2
+    assert packages[0].identifier == "B==0.1.0"
+    assert packages[1].identifier == "A==0.2.0"

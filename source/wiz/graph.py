@@ -2,7 +2,6 @@
 
 import copy
 import uuid
-import itertools
 from collections import deque
 from heapq import heapify, heappush, heappop
 try:
@@ -211,18 +210,26 @@ class Resolver(object):
             # Identify nodes conflicting with this node.
             conflicted_nodes = extract_conflicted_nodes(graph, node)
 
-            # Ensure that all requirements from parent links are compatibles.
-            validate_requirements(graph, node, conflicted_nodes)
-
             # Compute valid node identifier from combined requirements.
             requirement = combined_requirements(
                 graph, [node] + conflicted_nodes, priority_mapping
             )
 
-            # Query packages from combined requirement.
-            packages = wiz.package.extract(
-                requirement, self._definition_mapping
-            )
+            # Query packages from combined requirement and raise an error if
+            # necessary.
+            try:
+                packages = wiz.package.extract(
+                    requirement, self._definition_mapping
+                )
+            except wiz.exception.RequestNotFound:
+                _nodes = [node] + conflicted_nodes
+                _identifiers = [_node.identifier for _node in _nodes]
+                raise wiz.exception.GraphResolutionError(
+                    "The combined requirement '{}' could not be resolved from "
+                    "the following packages: {!r}.\n".format(
+                        requirement, _identifiers
+                    )
+                )
 
             identifiers = [package.identifier for package in packages]
 
@@ -406,67 +413,6 @@ def extract_conflicted_nodes(graph, node):
         if _node.definition == node.definition
         and _node.identifier != node.identifier
     ]
-
-
-def validate_requirements(graph, node, conflicted_nodes):
-    """Validate requirements for *node* against those from *conflicted_nodes*.
-
-    *graph* must be an instance of :class:`Graph`.
-
-    *node* should be a :class:`Node` instance.
-
-    *conflicted_nodes* should be a list of :class:`Node` instances which share
-    a similar definition identifier.
-
-    Raise :exc:`wiz.exception.GraphResolutionError` if two node requirements
-    are incompatible.
-
-    """
-    logger = mlog.Logger(__name__ + ".validate_requirements")
-
-    mapping1 = extract_requirement(graph, node)
-
-    for conflicted_node in conflicted_nodes:
-        mapping2 = extract_requirement(graph, conflicted_node)
-
-        for requirement1, requirement2 in itertools.combinations(
-            mapping1.keys() + mapping2.keys(), 2
-        ):
-            conflict = False
-
-            # Nodes are not compatible if both package versions are not
-            # compatible with at least one of the specifier.
-            if (
-                node.package.version not in requirement2.specifier and
-                conflicted_node.package.version not in requirement1.specifier
-            ):
-                conflict = True
-
-            # Nodes are not compatible if different variants were requested.
-            elif requirement1.extras != requirement2.extras:
-                conflict = True
-
-            if conflict:
-                raise wiz.exception.GraphResolutionError(
-                    "A requirement conflict has been detected for "
-                    "'{package}'\n"
-                    " - {requirement1} [from {parent1}]\n"
-                    " - {requirement2} [from {parent2}]\n".format(
-                        package=node.package.identifier,
-                        requirement1=requirement1,
-                        requirement2=requirement2,
-                        parent1=mapping1[requirement1],
-                        parent2=mapping2[requirement2],
-                    )
-                )
-
-            logger.debug(
-                "'{requirement1}' and '{requirement2}' are "
-                "compatibles".format(
-                    requirement1=requirement1,
-                    requirement2=requirement2
-                )
-            )
 
 
 def extract_requirement(graph, node):
