@@ -276,56 +276,6 @@ def test_extract_conflicted_nodes(mocker, mocked_graph):
     ) == [node_mapping["A"], node_mapping["B"]]
 
 
-def test_extract_requirement(mocker, mocked_graph):
-    """Extract node requirement mapping."""
-    node = mocker.Mock(identifier="A", parent_identifiers=["B", "C"])
-
-    requirements = [
-        Requirement("A > 1"),
-        Requirement("A == 1.5.0")
-    ]
-
-    mocked_graph.node.side_effect = [
-        mocker.Mock(identifier="B"),
-        mocker.Mock(identifier="C")
-    ]
-
-    mocked_graph.link_requirement.side_effect = requirements
-
-    assert wiz.graph.extract_requirement(mocked_graph, node) == {
-        requirements[0]: "B",
-        requirements[1]: "C"
-    }
-
-    assert mocked_graph.link_requirement.call_count == 2
-    mocked_graph.link_requirement.assert_any_call("A", "B")
-    mocked_graph.link_requirement.assert_any_call("A", "C")
-
-
-def test_extract_requirement_with_missing_parent(mocker, mocked_graph):
-    """Extract node requirement mapping with missing parent."""
-    node = mocker.Mock(identifier="A", parent_identifiers=["B", "C"])
-
-    requirements = [
-        Requirement("A > 1"),
-        Requirement("A == 1.5.0")
-    ]
-
-    # The node B doesn't exist in the graph.
-    mocked_graph.node.side_effect = [
-        None, mocker.Mock(identifier="C")
-    ]
-
-    mocked_graph.link_requirement.side_effect = requirements[1:]
-
-    assert wiz.graph.extract_requirement(mocked_graph, node) == {
-        requirements[1]: "C"
-    }
-
-    assert mocked_graph.link_requirement.call_count == 1
-    mocked_graph.link_requirement.assert_any_call("A", "C")
-
-
 def test_combined_requirements(mocker, mocked_graph):
     """Combine nodes requirements."""
     requirements = [

@@ -215,19 +215,22 @@ class Resolver(object):
                 graph, [node] + conflicted_nodes, priority_mapping
             )
 
-            # Query packages from combined requirement and raise an error if
-            # necessary.
+            # Query packages from combined requirement.
             try:
                 packages = wiz.package.extract(
                     requirement, self._definition_mapping
                 )
             except wiz.exception.RequestNotFound:
-                _nodes = [node] + conflicted_nodes
-                _identifiers = [_node.identifier for _node in _nodes]
+                _parents = extract_parents(graph, [node] + conflicted_nodes)
+
+                # If conflict parents are themselves conflicting, discard it.
+                if len(_parents.intersection(conflicts)) > 0:
+                    continue
+
                 raise wiz.exception.GraphResolutionError(
                     "The combined requirement '{}' could not be resolved from "
                     "the following packages: {!r}.\n".format(
-                        requirement, _identifiers
+                        requirement, sorted(_parents)
                     )
                 )
 
@@ -415,42 +418,6 @@ def extract_conflicted_nodes(graph, node):
     ]
 
 
-def extract_requirement(graph, node):
-    """Return mapping regrouping all requirements for existing *node*.
-
-    The mapping associates each requirement name with a parent identifier::
-
-        >>> extract_requirement(graph, node)
-        {
-            Requirement("foo >= 0.1.0, < 1"): "bar",
-            Requirement("foo == 1.0.0"): "baz"
-        }
-
-    *graph* must be an instance of :class:`Graph`.
-
-    *node* should be a :class:`Node` instance.
-
-    """
-    mapping = {}
-
-    for parent_identifier in node.parent_identifiers:
-        if parent_identifier != graph.ROOT:
-            parent_node = graph.node(parent_identifier)
-
-            # Filter out non existing nodes from incoming.
-            if parent_node is None:
-                continue
-
-            parent_identifier = parent_node.identifier
-
-        requirement = graph.link_requirement(
-            node.identifier, parent_identifier
-        )
-        mapping[requirement] = parent_identifier
-
-    return mapping
-
-
 def combined_requirements(graph, nodes, priority_mapping):
     """Return combined requirements from *nodes* in *graph*.
 
@@ -488,6 +455,32 @@ def combined_requirements(graph, nodes, priority_mapping):
             requirement.specifier &= _requirement.specifier
 
     return requirement
+
+
+def extract_parents(graph, nodes):
+    """Return set of parent identifiers from *nodes*.
+
+    *graph* must be an instance of :class:`Graph`.
+
+    *nodes* should be a list of :class:`Node` instances.
+
+    """
+    identifiers = set()
+
+    for node in nodes:
+        for parent_identifier in node.parent_identifiers:
+            if parent_identifier == graph.ROOT:
+                continue
+
+            # Filter out non existing nodes from incoming.
+            parent_node = graph.node(parent_identifier)
+            if parent_node is None:
+                continue
+
+            parent_identifier = parent_node.identifier
+            identifiers.add(parent_identifier)
+
+    return identifiers
 
 
 def extract_ordered_packages(graph, priority_mapping):

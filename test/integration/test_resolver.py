@@ -239,7 +239,7 @@ def test_scenario_2():
 
     assert (
         "The combined requirement 'D >0.1.0, ==0.1.0' could not be resolved "
-        "from the following packages: ['D==0.1.4', 'D==0.1.0']."
+        "from the following packages: ['B==0.1.0', 'C==0.3.2']."
     ) in str(error)
 
 
@@ -579,3 +579,132 @@ def test_scenario_7():
     assert len(packages) == 2
     assert packages[0].identifier == "B==0.1.0"
     assert packages[1].identifier == "A==0.2.0"
+
+
+def test_scenario_8():
+    """Compute packages for the following graph.
+
+    When conflicts parents are themselves conflicting, they should be discarded
+    so that the next conflict is taken care of first.
+
+    Root
+     |
+     |--(A): A==1.0.0
+     |   |
+     |   `--(C>=1): C== 1.0.0
+     |
+     `--(B): B==0.1.0
+         |
+         `--(A <1): A== 0.9.0
+             |
+             `--(C <1): C== 0.9.0
+
+    Expected: C==0.9.0, A==0.9.0, B==0.1.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "requirements": ["C>=1"]
+            }),
+            "0.9.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.9.0",
+                "requirements": ["C<1"]
+            })
+        },
+        "B": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "requirements": ["A<1"],
+
+            })
+        },
+        "C": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "1.0.0"
+            }),
+            "0.9.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.9.0"
+            })
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("B")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].identifier == "C==0.9.0"
+    assert packages[1].identifier == "A==0.9.0"
+    assert packages[2].identifier == "B==0.1.0"
+
+
+def test_scenario_9():
+    """Compute packages for the following graph.
+
+    Like the scenario 8 with different order in the graph.
+
+    Root
+     |
+     |--(A <1): A== 0.9.0
+     |   |
+     |   `--(C <1): C== 0.9.0
+     |
+     `--(B): B==0.1.0
+         |
+         `--(A): A== 1.0.0
+             |
+             `--(C>=1): C== 1.0.0
+
+    Expected: C==0.9.0, B==0.1.0, A==0.9.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "requirements": ["C>=1"]
+            }),
+            "0.9.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.9.0",
+                "requirements": ["C<1"]
+            })
+        },
+        "B": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "requirements": ["A"],
+
+            })
+        },
+        "C": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "1.0.0"
+            }),
+            "0.9.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.9.0"
+            })
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A <1"), Requirement("B")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].identifier == "B==0.1.0"
+    assert packages[1].identifier == "C==0.9.0"
+    assert packages[2].identifier == "A==0.9.0"
