@@ -533,6 +533,9 @@ def test_scenario_6():
 def test_scenario_7():
     """Compute packages for the following graph.
 
+    The combined requirement of packages can lead to the addition of a different
+    package version to the graph during the conflict resolution process.
+
     Root
      |
      |--(A<=0.3.0): A==0.3.0
@@ -541,7 +544,7 @@ def test_scenario_7():
          |
          `--(A !=0.3.0): A==1.0.0
 
-    Expected:
+    Expected: B==0.1.0, A==0.2.0
 
     """
     definition_mapping = {
