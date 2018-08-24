@@ -4,6 +4,31 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: API
+
+        Fixed :class:`wiz.graph.Resolver` to better handle graph division from
+        variant groups added to the graph. As variant groups were simply
+        identified during the package extraction process, a single variant could
+        appear in several groups, which led to unnecessary graph divisions.
+        Variant groups are now organized per definition identifier and updated
+        for each package added to the graph when necessary.
+
+    .. change:: fixed
+        :tags: API
+
+        Fixed :class:`wiz.graph.Resolver` to better identify conflicts between
+        package requirements. Conflicted packages were compared with each
+        other's requirement to ensure that at least one of them were matching
+        both requirements to ensure their compatibility. However, this strategy
+        could not recognize when two conflicted packages had compatible
+        requirements but none of the versions were matching both of them. For
+        instance, two packages identified as "foo==1.0.0" and
+        "foo==0.5.0" and added to the graph respectively from the
+        requirements "foo!==0.5.0" and "foo<1".
+
 .. release:: 0.16.0
     :date: 2018-08-16
 
