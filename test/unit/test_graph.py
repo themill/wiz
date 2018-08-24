@@ -342,6 +342,28 @@ def test_combined_requirements_error(mocker, mocked_graph):
     mocked_graph.link_requirement.assert_any_call("Z==1.9", "C")
 
 
+def test_extract_parents(mocker, mocked_graph):
+    """Extract parent identifiers from nodes."""
+    nodes = [
+        mocker.Mock(identifier="A", parent_identifiers=["E", "F"]),
+        mocker.Mock(identifier="B", parent_identifiers=["F", "G"]),
+        mocker.Mock(identifier="C", parent_identifiers=["root"]),
+        mocker.Mock(identifier="D", parent_identifiers=["H"])
+    ]
+
+    mocked_graph.node.side_effect = [
+        mocker.Mock(identifier="E"),
+        mocker.Mock(identifier="F"),
+        mocker.Mock(identifier="F"),
+        mocker.Mock(identifier="G"),
+        None
+    ]
+
+    parents = wiz.graph.extract_parents(mocked_graph, nodes)
+    assert isinstance(parents, set) is True
+    assert sorted(parents) == ["E", "F", "G"]
+
+
 @pytest.mark.parametrize("identifiers, priority_mapping, expected", [
     (
         [],
