@@ -725,7 +725,7 @@ def test_scenario_10():
          |
          `--(A !=0.3.0): A==1.0.0
 
-    Expected: B==0.1.0, A==0.2.0
+    Expected: B==0.1.0, C[V3]==1.0.0, A==0.2.0
 
     """
     definition_mapping = {
