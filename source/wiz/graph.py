@@ -32,6 +32,10 @@ class Resolver(object):
         # All available definitions.
         self._definition_mapping = definition_mapping
 
+        # List of definition identifiers with variants which required graph
+        # division
+        self._definitions_with_variants = []
+
         # Stack of all graphs to resolve, sorted from the least important to
         # the most important.
         self._graphs_stack = deque()
@@ -99,17 +103,20 @@ class Resolver(object):
         corresponding parent node identifier.
 
         """
-        variant_groups = graph.variant_groups()
-        if len(variant_groups) == 0:
+        variant_mapping = graph.variant_mapping()
+        if len(variant_mapping) == 0:
             self._logger.debug("No alternative graphs created.")
             return 0
+
+        # Record all definition identifiers which led to graph division.
+        self._definitions_with_variants.extend(variant_mapping.keys())
 
         # Order the variant groups per priority to compute those nearest to the
         # top-level first. We can assume that the first identifier of each group
         # is the node with the highest priority as the graph has been updated
         # using a Breadth First Search algorithm.
         variant_groups = sorted(
-            variant_groups,
+            variant_mapping.values(),
             key=lambda _group: priority_mapping[_group[0]].get("priority"),
         )
 
@@ -223,7 +230,7 @@ class Resolver(object):
             except wiz.exception.RequestNotFound:
                 _parents = extract_parents(graph, [node] + conflicted_nodes)
 
-                # If conflict parents are themselves conflicting, discard it.
+                # Discard conflicted node if parents are themselves conflicting.
                 if len(_parents.intersection(conflicts)) > 0:
                     continue
 
@@ -255,16 +262,23 @@ class Resolver(object):
                             weight=weight
                         )
 
-                # If some of the newly extracted packages are not in the list
-                # of conflicted nodes, that means that the requirement should
-                # be added to the graph.
-                new_identifiers = set(identifiers).difference(
+                # Identify whether some of the newly extracted packages are not
+                # in the list of conflicted nodes to decide if the graoh should
+                # be updated.
+                _identifiers = set(identifiers).difference(
                     set([_node.identifier for _node in conflicted_nodes])
                 )
 
-                if len(new_identifiers) > 0:
+                # If not all extracted packages are identified as conflicts, it
+                # means that variants need to be added to the  graph. If
+                # variants from this definition identifier have  already been
+                # processed, the update is skipped.
+                if (
+                    len(_identifiers) == len(conflicted_nodes) and
+                    node.definition not in self._definitions_with_variants
+                ):
                     self._logger.debug(
-                        "Add to graph: {}".format(", ".join(new_identifiers))
+                        "Add to graph: {}".format(", ".join(_identifiers))
                     )
                     graph.update_from_requirements([requirement])
 
@@ -616,31 +630,32 @@ class Graph(object):
         """Indicate whether the node *identifier* is in the graph."""
         return identifier in self._node_mapping.keys()
 
-    def variant_groups(self):
-        """Return list of variant group list.
+    def variant_mapping(self):
+        """Return variant groups organised per definition identifier.
 
         A variant group list should contain at least more than one node
         identifier which belongs at least to two different variant names.
-        It should be in the form of::
 
-            [
-                ["foo[V1]==0.1.0", "foo[V2]==0.1.0"],
-                ["bar[V1]==2.1.5", "bar[V2]==2.2.0", "bar[V2]==2.1.0"]
-            ]
+        The mapping should be in the form of::
+
+            {
+                "foo": ["foo[V1]==0.1.0", "foo[V2]==0.1.0"],
+                "bar": ["bar[V1]==2.1.5", "bar[V2]==2.2.0", "bar[V2]==2.1.0"]
+            }
 
         """
-        _variant_groups = []
+        mapping = {}
 
-        for identifiers in self._variant_mapping.values():
+        for definition_identifier, identifiers in self._variant_mapping.items():
             variant_names = set([
                 self._node_mapping[identifier].variant_name
                 for identifier in identifiers
             ])
 
             if len(variant_names) > 1:
-                _variant_groups.append(identifiers)
+                mapping[definition_identifier] = identifiers
 
-        return _variant_groups
+        return mapping
 
     def outcoming(self, identifier):
         """Return outcoming node identifiers for node *identifier*."""
