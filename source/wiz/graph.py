@@ -263,7 +263,7 @@ class Resolver(object):
                         )
 
                 # Identify whether some of the newly extracted packages are not
-                # in the list of conflicted nodes to decide if the graoh should
+                # in the list of conflicted nodes to decide if the graph should
                 # be updated.
                 _identifiers = set(identifiers).difference(
                     set([_node.identifier for _node in conflicted_nodes])
