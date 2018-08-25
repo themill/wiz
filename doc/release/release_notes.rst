@@ -19,15 +19,39 @@ Release Notes
     .. change:: fixed
         :tags: API
 
-        Fixed :class:`wiz.graph.Resolver` to better identify conflicts between
-        package requirements. Conflicted packages were compared with each
-        other's requirement to ensure that at least one of them were matching
-        both requirements to ensure their compatibility. However, this strategy
-        could not recognize when two conflicted packages had compatible
-        requirements but none of the versions were matching both of them. For
-        instance, two packages identified as "foo==1.0.0" and
-        "foo==0.5.0" and added to the graph respectively from the
-        requirements "foo!==0.5.0" and "foo<1".
+        Fixed :class:`wiz.graph.Resolver` to keep track of definition
+        identifiers which led to graph divisions to prevent dividing several
+        time the graph with the same package variants when graph is being
+        updated during conflict resolution process.
+
+    .. change:: fixed
+        :tags: API
+
+        Fixed :class:`wiz.graph.Resolver` to better identify compatibility
+        between package requirements during the conflict resolution process.
+        Conflicted packages were compared with each other's requirement to
+        ensure that at least one of them were matching both requirements. For
+        instance::
+
+            - 'foo==0.5.0' is required by 'foo<1';
+            - 'foo==1.0.0' is required by 'foo';
+            - The version '0.5.0' is matching both requirements;
+            - Requirements 'foo<1' and 'foo' are seen as compatible.
+
+        However, this strategy could not recognize when two conflicted packages
+        had compatible requirements even when neither package versions could
+        match both requirements::
+
+            - 'foo==0.5.0' is required by 'foo<1';
+            - 'foo==1.0.0' is required by 'foo!=0.5.0';
+            - Versions '0.5.0' and '1.0.0' cannot match both requirements;
+            - Requirements 'foo<1' and 'foo!=0.5.0' are seen as incompatible.
+
+        The new strategy chosen is to directly attempt to :func:`extract
+        <wiz.package.extract>` packages from the combination of both
+        requirements so that an error could be raised according to the result.
+        As a consequence, the latest example would not fail if a version
+        'foo==0.2.0' can be fetched.
 
 .. release:: 0.16.0
     :date: 2018-08-16
