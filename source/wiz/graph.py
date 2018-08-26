@@ -457,7 +457,7 @@ def combined_requirements(graph, nodes, priority_mapping):
 
 
 def extract_parents(graph, nodes):
-    """Return set of parent identifiers from *nodes*.
+    """Return set of existing parent node identifiers from *nodes*.
 
     *graph* must be an instance of :class:`Graph`.
 

@@ -6,32 +6,41 @@ Release Notes
 
 .. release:: Upcoming
 
-    .. change:: fixed
+    .. change:: new
         :tags: API
 
-        Fixed :class:`wiz.graph.Resolver` to better handle graph division from
-        variant groups added to the graph. As variant groups were simply
-        identified during the package extraction process, a single variant could
-        appear in several groups, which led to unnecessary graph divisions.
-        Variant groups are now organized per definition identifier and updated
-        for each package added to the graph when necessary.
+        Added :func:`wiz.graph.remove_node_and_relink` to remove a node from the
+        graph and connect node's parents to other nodes with a new requirement.
+        This logic was previously part of
+        :meth:`wiz.graph.Resolver.resolve_conflicts`.
 
-    .. change:: fixed
+    .. change:: new
         :tags: API
 
-        Fixed :class:`wiz.graph.Resolver` to keep track of definition
-        identifiers which led to graph divisions to prevent dividing several
-        time the graph with the same package variants when graph is being
-        updated during conflict resolution process.
+        Added :func:`wiz.graph.extract_parents` to extract existing parent node
+        identifiers from a node.
 
-    .. change:: fixed
+    .. change:: changed
         :tags: API
 
-        Fixed :class:`wiz.graph.Resolver` to better identify compatibility
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
+        better handle graph division from variant groups added to the graph. As
+        variant groups were simply identified during the package extraction
+        process, a single variant could appear in several groups, which led to
+        unnecessary graph divisions. Variant groups are now organized per
+        definition identifier and updated for each package added to the graph
+        when necessary.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.graph.Resolver` to better identify compatibility
         between package requirements during the conflict resolution process.
         Conflicted packages were compared with each other's requirement to
         ensure that at least one of them were matching both requirements. For
-        instance::
+        instance:
+
+        .. code-block:: none
 
             - 'foo==0.5.0' is required by 'foo<1';
             - 'foo==1.0.0' is required by 'foo';
@@ -40,7 +49,9 @@ Release Notes
 
         However, this strategy could not recognize when two conflicted packages
         had compatible requirements even when neither package versions could
-        match both requirements::
+        match both requirements:
+
+        .. code-block:: none
 
             - 'foo==0.5.0' is required by 'foo<1';
             - 'foo==1.0.0' is required by 'foo!=0.5.0';
@@ -52,6 +63,26 @@ Release Notes
         requirements so that an error could be raised according to the result.
         As a consequence, the latest example would not fail if a version
         'foo==0.2.0' can be fetched.
+
+    .. change:: changed
+        :tags: API
+
+        Removed :func:`wiz.graph.validate_requirements` as this functionality
+        is not necessary anymore.
+
+    .. change:: changed
+        :tags: API
+
+        Removed :func:`wiz.graph.extract_requirement` as this functionality
+        is not necessary anymore.
+
+    .. change:: fixed
+        :tags: API
+
+        Fixed :class:`wiz.graph.Resolver` to keep track of definition
+        identifiers which led to graph divisions to prevent dividing several
+        time the graph with the same package variants when graph is being
+        updated during conflict resolution process.
 
 .. release:: 0.16.0
     :date: 2018-08-16
