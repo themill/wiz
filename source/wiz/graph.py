@@ -245,22 +245,7 @@ class Resolver(object):
 
             if identifier not in identifiers:
                 self._logger.debug("Remove '{}'".format(identifier))
-                graph.remove_node(identifier)
-
-                # Update the link if necessary.
-                for parent_identifier in node.parent_identifiers:
-                    if not graph.exists(parent_identifier):
-                        continue
-
-                    weight = graph.link_weight(identifier, parent_identifier)
-
-                    for _identifier in identifiers:
-                        graph.create_link(
-                            _identifier,
-                            parent_identifier,
-                            requirement,
-                            weight=weight
-                        )
+                remove_node_and_relink(graph, node, identifiers, requirement)
 
                 # Identify whether some of the newly extracted packages are not
                 # in the list of conflicted nodes to decide if the graph should
@@ -495,6 +480,40 @@ def extract_parents(graph, nodes):
             identifiers.add(parent_identifier)
 
     return identifiers
+
+
+def remove_node_and_relink(graph, node, identifiers, requirement):
+    """Remove *node* from *graph* and relink node's parents to *identifiers*
+
+    When creating the new links, the same weight connecting the *node* to its
+    parents is being used. *requirement* indicate the new requirement link for
+    all new links.
+
+    *graph* must be an instance of :class:`Graph`.
+
+    *node* should be a :class:`Node` instance.
+
+    *identifiers* should be valid node identifiers.
+
+    *requirement* should be a :class:`packaging.requirements.Requirement`
+    instance.
+
+    """
+    graph.remove_node(node.identifier)
+
+    for parent_identifier in node.parent_identifiers:
+        if not graph.exists(parent_identifier):
+            continue
+
+        weight = graph.link_weight(node.identifier, parent_identifier)
+
+        for _identifier in identifiers:
+            graph.create_link(
+                _identifier,
+                parent_identifier,
+                requirement,
+                weight=weight
+            )
 
 
 def extract_ordered_packages(graph, priority_mapping):

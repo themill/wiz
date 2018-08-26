@@ -364,6 +364,51 @@ def test_extract_parents(mocker, mocked_graph):
     assert sorted(parents) == ["E", "F", "G"]
 
 
+def test_remove_node_and_relink(mocker, mocked_graph):
+    """Remove node and relink node's parents."""
+    node = mocker.Mock(
+        identifier="foo", parent_identifiers=["parent1", "parent2", "parent3"]
+    )
+
+    mocked_graph.exists.side_effect = [True, False, True]
+    mocked_graph.link_weight.side_effect = [1, 2]
+
+    wiz.graph.remove_node_and_relink(
+        mocked_graph, node, ["bar", "baz", "bim"], "__REQUIREMENT__"
+    )
+
+    mocked_graph.remove_node.assert_called_once_with("foo")
+
+    assert mocked_graph.exists.call_count == 3
+    mocked_graph.exists.assert_any_call("parent1")
+    mocked_graph.exists.assert_any_call("parent2")
+    mocked_graph.exists.assert_any_call("parent3")
+
+    assert mocked_graph.link_weight.call_count == 2
+    mocked_graph.link_weight.assert_any_call("foo", "parent1")
+    mocked_graph.link_weight.assert_any_call("foo", "parent3")
+
+    assert mocked_graph.create_link.call_count == 6
+    mocked_graph.create_link.assert_any_call(
+        "bar", "parent1", "__REQUIREMENT__", weight=1
+    )
+    mocked_graph.create_link.assert_any_call(
+        "baz", "parent1", "__REQUIREMENT__", weight=1
+    )
+    mocked_graph.create_link.assert_any_call(
+        "bim", "parent1", "__REQUIREMENT__", weight=1
+    )
+    mocked_graph.create_link.assert_any_call(
+        "bar", "parent3", "__REQUIREMENT__", weight=2
+    )
+    mocked_graph.create_link.assert_any_call(
+        "baz", "parent3", "__REQUIREMENT__", weight=2
+    )
+    mocked_graph.create_link.assert_any_call(
+        "bim", "parent3", "__REQUIREMENT__", weight=2
+    )
+
+
 @pytest.mark.parametrize("identifiers, priority_mapping, expected", [
     (
         [],
