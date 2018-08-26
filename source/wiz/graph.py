@@ -2,7 +2,7 @@
 
 import copy
 import uuid
-from collections import deque
+from collections import deque, Counter
 from heapq import heapify, heappush, heappop
 try:
     import queue as _queue
@@ -655,6 +655,11 @@ class Graph(object):
         A variant group list should contain at least more than one node
         identifier which belongs at least to two different variant names.
 
+        The variant group list contains unique identifiers and is sorted
+        following two criteria: First by the number of occurrences of each node
+        identifier in the graph and second by the variant index defined in the
+        package definition.
+
         The mapping should be in the form of::
 
             {
@@ -671,8 +676,14 @@ class Graph(object):
                 for identifier in identifiers
             ])
 
-            if len(variant_names) > 1:
-                mapping[definition_identifier] = identifiers
+            if len(variant_names) <= 1:
+                continue
+
+            count = Counter(identifiers)
+            mapping[definition_identifier] = sorted(
+                set(identifiers),
+                key=lambda _id: (-count[_id], identifiers.index(_id))
+            )
 
         return mapping
 
@@ -857,6 +868,9 @@ class Graph(object):
             node = self.node(package.identifier)
             node.add_parent(parent_identifier or self.ROOT)
 
+            # Update variant mapping if necessary
+            self._update_variant_mapping(package.identifier)
+
             # Create link with requirement and weight.
             self.create_link(
                 node.identifier,
@@ -874,22 +888,28 @@ class Graph(object):
         self._logger.debug("Adding package: {}".format(package.identifier))
         self._node_mapping[package.identifier] = Node(package)
 
-        _definition_id = package.definition_identifier
-
-        # Record variant per unique key identifier if necessary.
-        if package.variant_name is not None:
-            self._variant_mapping.setdefault(_definition_id, [])
-            if package.identifier not in self._variant_mapping[_definition_id]:
-                self._variant_mapping[_definition_id].append(package.identifier)
-
         # Record node identifiers per package to identify conflicts.
+        _definition_id = package.definition_identifier
         self._definition_mapping.setdefault(_definition_id, set())
         self._definition_mapping[_definition_id].add(package.identifier)
+
+        # Record variant per unique key identifier if necessary.
+        self._update_variant_mapping(package.identifier)
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_NODE_CREATION_ACTION,
             graph=self, node=self._node_mapping[package.identifier].identifier
         )
+
+    def _update_variant_mapping(self, identifier):
+        """Update variant mapping according to node *identifier*.
+        """
+        node = self.node(identifier)
+        if node.variant_name is None:
+            return
+
+        self._variant_mapping.setdefault(node.definition, [])
+        self._variant_mapping[node.definition].append(identifier)
 
     def create_link(
         self, identifier, parent_identifier, requirement, weight=1

@@ -34,6 +34,16 @@ Release Notes
     .. change:: changed
         :tags: API
 
+        Updated :class:`wiz.graph.Graph` to record the number of time a node
+        variant has been added to the graph and sort each variant group
+        following two criteria: First by the number of occurrences of each node
+        identifier in the graph and second by the variant index defined in the
+        package definition. This will ensure that a variant called multiple time
+        will have priority over the others during the graph division.
+
+    .. change:: changed
+        :tags: API
+
         Updated :class:`wiz.graph.Resolver` to better identify compatibility
         between package requirements during the conflict resolution process.
         Conflicted packages were compared with each other's requirement to
