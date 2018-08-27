@@ -7,7 +7,13 @@ import wiz.definition
 from wiz.utility import Requirement
 
 
-def test_scenario_1():
+@pytest.fixture()
+def graph_constructor(mocker):
+    """Return spy mocker on 'wiz.graph.Graph'"""
+    return mocker.spy(wiz.graph, "Graph")
+
+
+def test_scenario_1(graph_constructor):
     """Compute packages for the following graph.
 
     Root
@@ -128,6 +134,8 @@ def test_scenario_1():
     assert packages[4] != packages[3]
 
     assert packages[5].identifier == "A==0.2.0"
+
+    assert graph_constructor.call_count == 1
 
 
 def test_scenario_2():
@@ -779,3 +787,291 @@ def test_scenario_10():
     assert packages[0].identifier == "B==0.1.0"
     assert packages[1].identifier == "C[V3]==1.0.0"
     assert packages[2].identifier == "A==0.2.0"
+
+
+def test_scenario_11():
+    """Compute packages for the following graph.
+
+    When a definition variant is present more than other variants from the same
+    definition in the graph, it has priority.
+
+    Root
+     |
+     |--(A): A[V1]==1.0.0
+     |   |
+     |   `--(B >=1, <2): B==1.0.0
+     |
+     |--(A): A[V2]==1.0.0
+     |   |
+     |   `--(B >=2, <3): B==2.0.0
+     |
+     |--(A): A[V3]==1.0.0
+     |   |
+     |   `--(B >=3, <4): B==3.0.0
+     |
+     `--(C): C
+         |
+         `--(A[V2]): A[V2]==1.0.0
+             |
+             `--(B >=2, <3): B==2.0.0
+
+    Expected: C, B==2.0.0, A[V2]==1.0.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["B >=1, <2"]
+                    }
+                ]
+            })
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0"
+            }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+        },
+        "C": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "C",
+                "requirements": ["A[V2]"]
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("C")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].identifier == "C"
+    assert packages[1].identifier == "B==2.0.0"
+    assert packages[2].identifier == "A[V2]==1.0.0"
+
+
+def test_scenario_12():
+    """Compute packages for the following graph.
+
+    When two versions of a definition are added to the graph with all their
+    respective variants, the conflict is resolved for the variant with the
+    highest priority.
+
+    Root
+     |
+     |--(A): A[V1]==1.0.0
+     |   |
+     |   `--(B >=1, <2): B==1.0.0
+     |
+     |--(A): A[V2]==1.0.0
+     |   |
+     |   `--(B >=2, <3): B==2.0.0
+     |
+     |--(A): A[V3]==1.0.0
+     |   |
+     |   `--(B >=3, <4): B==3.0.0
+     |
+     `--(C): C
+         |
+         |--(A==0.5.0): A[V1]==0.5.0
+         |   |
+         |   `--(B >=1, <2): B==1.0.0
+         |
+         |--(A==0.5.0): A[V2]==0.5.0
+         |   |
+         |   `--(B >=1, <2): B==1.0.0
+         |
+         `--(A==0.5.0): A[V3]==0.5.0
+             |
+             `--(B >=1, <2): B==1.0.0
+
+    Expected: B==3.0.0, A[V3]==0.5.0, C
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["B >=1, <2"]
+                    }
+                ]
+            }),
+            "0.5.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.5.0",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["B >=1, <2"]
+                    }
+                ]
+            }),
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0"
+            }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+        },
+        "C": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "C",
+                "requirements": ["A==0.5.0"]
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("C")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].identifier == "B==3.0.0"
+    assert packages[1].identifier == "A[V3]==0.5.0"
+    assert packages[2].identifier == "C"
+
+
+def test_scenario_13():
+    """Compute packages for the following graph.
+
+    Variant has priority over version conflict. When a package is added with
+    all its variants, if this package is required a second time in the tree for
+    a different version, this requirement will be ignored if the variant with
+    the highest priority does not have this version.
+
+    Root
+     |
+     |--(A): A[V1]==1.0.0
+     |   |
+     |   `--(B >=1, <2): B==1.0.0
+     |
+     |--(A): A[V2]==1.0.0
+     |   |
+     |   `--(B >=2, <3): B==2.0.0
+     |
+     |--(A): A[V3]==1.0.0
+     |   |
+     |   `--(B >=3, <4): B==3.0.0
+     |
+     `--(C): C
+         |
+         `--(A==0.5.0): A[V1]==0.5.0
+             |
+             `--(B >=1, <2): B==1.0.0
+
+    Expected: C, B==3.0.0, A[V3]==1.0.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["B >=1, <2"]
+                    }
+                ]
+            }),
+            "0.5.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.5.0",
+                "variants": [
+                    {
+                        "identifier": "V1",
+                        "requirements": ["B >=1, <2"]
+                    }
+                ]
+            }),
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0"
+            }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+        },
+        "C": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "C",
+                "requirements": ["A==0.5.0"]
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("C")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].identifier == "C"
+    assert packages[1].identifier == "B==3.0.0"
+    assert packages[2].identifier == "A[V3]==1.0.0"
