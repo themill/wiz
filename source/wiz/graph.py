@@ -925,7 +925,7 @@ class Graph(object):
                 # Update variant mapping if necessary
                 self._update_variant_mapping(package.identifier)
 
-            node = self.node(package.identifier)
+            node = self._node_mapping[package.identifier]
             node.add_parent(parent_identifier or self.ROOT)
 
             # Create link with requirement and weight.
@@ -961,7 +961,7 @@ class Graph(object):
     def _update_variant_mapping(self, identifier):
         """Update variant mapping according to node *identifier*.
         """
-        node = self.node(identifier)
+        node = self._node_mapping[identifier]
         if node.variant_name is None:
             return
 

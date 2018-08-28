@@ -2,8 +2,10 @@
 
 import pytest
 import mock
+import types
+import re
 
-from wiz.utility import Requirement, Version
+from wiz.utility import Requirement
 import wiz.graph
 import wiz.package
 import wiz.exception
@@ -204,6 +206,119 @@ def test_compute_priority_mapping(mocker, mocked_graph, mapping, expected):
     mocked_graph.outcoming = lambda x: mapping[x]
     mocked_graph.link_weight = lambda x, y: mapping[y].index(x) + 1
     assert wiz.graph.compute_priority_mapping(mocked_graph) == expected
+
+
+@pytest.mark.parametrize("variant_groups, expected", [
+    (
+        [["foo[V2]", "foo[V1]"]],
+        [("foo[V1]",), ("foo[V2]",)]
+    ),
+    (
+        [["foo[V3]", "foo[V2]", "foo[V1]"]],
+        [
+            ("foo[V2]", "foo[V1]"),
+            ("foo[V3]", "foo[V1]"),
+            ("foo[V3]", "foo[V2]")
+        ]
+    ),
+    (
+        [["foo[V4]", "foo[V3]", "foo[V2]", "foo[V1]"]],
+        [
+            ("foo[V3]", "foo[V2]", "foo[V1]"),
+            ("foo[V4]", "foo[V2]", "foo[V1]"),
+            ("foo[V4]", "foo[V3]", "foo[V1]"),
+            ("foo[V4]", "foo[V3]", "foo[V2]")
+        ]
+    ),
+    (
+        [["foo[V3]==1", "foo[V2]==1", "foo[V1]==1", "foo[V1]==2"]],
+        [
+            ("foo[V2]==1", "foo[V1]==1", "foo[V1]==2"),
+            ("foo[V3]==1", "foo[V1]==1", "foo[V1]==2"),
+            ("foo[V3]==1", "foo[V2]==1")
+        ]
+    ),
+    (
+        [["foo[V3]", "foo[V2]", "foo[V1]"], ["bar[V1]", "bar[V2]"]],
+        [
+            ("foo[V2]", "foo[V1]", "bar[V2]"),
+            ("foo[V2]", "foo[V1]", "bar[V1]"),
+            ("foo[V3]", "foo[V1]", "bar[V2]"),
+            ("foo[V3]", "foo[V1]", "bar[V1]"),
+            ("foo[V3]", "foo[V2]", "bar[V2]"),
+            ("foo[V3]", "foo[V2]", "bar[V1]")
+        ]
+    ),
+    (
+        [
+            ["foo[V3]", "foo[V2]", "foo[V1]"],
+            ["bar[V4]", "bar[V3]", "bar[V2]", "bar[V1]"],
+            ["bim[V2]", "bim[V1]"]
+        ],
+        [
+            ("foo[V2]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
+            ("foo[V2]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V2]"),
+            ("foo[V2]", "foo[V1]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V1]"),
+            ("foo[V2]", "foo[V1]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V2]"),
+            ("foo[V2]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V1]"),
+            ("foo[V2]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V2]"),
+            ("foo[V2]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V1]"),
+            ("foo[V2]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V2]"),
+            ("foo[V3]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
+            ("foo[V3]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V2]"),
+            ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V1]"),
+            ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V2]"),
+            ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V1]"),
+            ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V2]"),
+            ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V1]"),
+            ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V2]"),
+            ("foo[V3]", "foo[V2]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
+            ("foo[V3]", "foo[V2]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V2]"),
+            ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V1]"),
+            ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V2]"),
+            ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V1]"),
+            ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V2]"),
+            ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V1]"),
+            ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V2]")
+        ]
+    ),
+    (
+        [
+            ["A[V2]==1", "A[V1]==1", "A[V1]==2"],
+            ["B[V3]==1", "B[V2]==1", "B[V1]==1", "B[V2]==2"]
+        ],
+        [
+            ("A[V1]==1", "A[V1]==2", "B[V2]==1", "B[V1]==1", "B[V2]==2"),
+            ("A[V1]==1", "A[V1]==2", "B[V3]==1", "B[V1]==1"),
+            ("A[V1]==1", "A[V1]==2", "B[V3]==1", "B[V2]==1", "B[V2]==2"),
+            ("A[V2]==1", "B[V2]==1", "B[V1]==1", "B[V2]==2"),
+            ("A[V2]==1", "B[V3]==1", "B[V1]==1"),
+            ("A[V2]==1", "B[V3]==1", "B[V2]==1", "B[V2]==2")
+        ]
+    ),
+], ids=[
+    "one-group-of-2",
+    "one-group-of-3",
+    "one-group-of-4",
+    "one-group-with-conflicts",
+    "two-groups",
+    "three-groups",
+    "multiple-groups-with-conflicts",
+])
+def test_compute_trimming_combinations(
+    mocker, mocked_graph, variant_groups, expected
+):
+    """Return list of node trimming combinations from variants."""
+    # Suppose that variants are always between square brackets in identifier.
+    mocked_graph.node = lambda _id: mocker.Mock(
+        identifier=_id, variant_name=re.search("(?<=\[).+(?=\])", _id).group(0)
+    )
+
+    results = wiz.graph.compute_trimming_combinations(
+        mocked_graph, variant_groups
+    )
+    assert isinstance(results, types.GeneratorType) is True
+    assert list(results) == expected
 
 
 def test_trim_unreachable_from_graph(
@@ -1043,7 +1158,7 @@ def test_graph_update_from_requirement_existing(
     graph = wiz.graph.Graph(mocked_resolver)
     graph.create_link = mocker.Mock()
     graph._create_node_from_package = mocker.Mock()
-    graph.node = mocker.Mock(return_value=node)
+    graph._node_mapping = {"A==0.1.0": node}
     graph.exists = mocker.Mock(return_value=True)
 
     graph._update_from_requirement(requirement, mocked_queue, **options)
@@ -1056,7 +1171,6 @@ def test_graph_update_from_requirement_existing(
         weight=options.get("weight", 1)
     )
 
-    graph.node.assert_called_once_with("A==0.1.0")
     node.add_parent.assert_called_once_with(
         options.get("parent_identifier", "root")
     )
@@ -1090,7 +1204,7 @@ def test_graph_update_from_requirement_non_existing(
     graph = wiz.graph.Graph(mocked_resolver)
     graph.create_link = mocker.Mock()
     graph._create_node_from_package = mocker.Mock()
-    graph.node = mocker.Mock(return_value=node)
+    graph._node_mapping = {"A==0.1.0": node}
     graph.exists = mocker.Mock(return_value=False)
 
     graph._update_from_requirement(requirement, mocked_queue, **options)
@@ -1103,7 +1217,6 @@ def test_graph_update_from_requirement_non_existing(
         weight=options.get("weight", 1)
     )
 
-    graph.node.assert_called_once_with("A==0.1.0")
     node.add_parent.assert_called_once_with(
         options.get("parent_identifier", "root")
     )
@@ -1137,7 +1250,7 @@ def test_graph_update_from_requirement_non_existing_with_requirements(
     graph = wiz.graph.Graph(mocked_resolver)
     graph.create_link = mocker.Mock()
     graph._create_node_from_package = mocker.Mock()
-    graph.node = mocker.Mock(return_value=node)
+    graph._node_mapping = {"A==0.1.0": node}
     graph.exists = mocker.Mock(return_value=False)
 
     graph._update_from_requirement(requirement, mocked_queue, **options)
@@ -1150,7 +1263,6 @@ def test_graph_update_from_requirement_non_existing_with_requirements(
         weight=options.get("weight", 1)
     )
 
-    graph.node.assert_called_once_with("A==0.1.0")
     node.add_parent.assert_called_once_with(
         options.get("parent_identifier", "root")
     )
@@ -1207,7 +1319,11 @@ def test_graph_update_from_requirement_multi_packages(
     graph = wiz.graph.Graph(mocked_resolver)
     graph.create_link = mocker.Mock()
     graph._create_node_from_package = mocker.Mock()
-    graph.node = mocker.Mock(side_effect=nodes)
+    graph._node_mapping = {
+        "A[variant1]==0.1.0": nodes[0],
+        "A[variant2]==0.1.0": nodes[1],
+        "A[variant3]==0.1.0": nodes[2]
+    }
     graph.exists = mocker.Mock(return_value=False)
 
     graph._update_from_requirement(requirement, mocked_queue, **options)
@@ -1224,10 +1340,6 @@ def test_graph_update_from_requirement_multi_packages(
             requirement,
             weight=options.get("weight", 1)
         )
-
-    assert graph.node.call_count == 3
-    for package in packages:
-        graph.node.assert_any_call(package.identifier)
 
     for node in nodes:
         node.add_parent.assert_called_once_with(
