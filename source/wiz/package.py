@@ -324,6 +324,10 @@ def initiate_environ(mapping=None):
         This variable is necessary to open user interface within the current
         X display name.
 
+    * XAUTHORITY:
+        This variable is necessary to indicate the file used to store
+        credentials in cookies used by xauth_ for authentication of X sessions.
+
     * PATH:
         This variable is initialised with default values to have access to the
         basic UNIX commands.
@@ -331,12 +335,17 @@ def initiate_environ(mapping=None):
     *mapping* can be a custom environment mapping which will be added to the
     initial environment.
 
+    .. _xauth:: https://www.x.org/releases/X11R6.8.2/doc/xauth.1.html
+
+    .. _GDM: https://wiki.archlinux.org/index.php/GDM
+
     """
     environ = {
         "USER": os.environ.get("USER"),
         "LOGNAME": os.environ.get("LOGNAME"),
         "HOME": os.environ.get("HOME"),
         "DISPLAY": os.environ.get("DISPLAY"),
+        "XAUTHORITY": os.environ.get("XAUTHORITY"),
         "PATH": os.pathsep.join([
             "/usr/local/sbin",
             "/usr/local/bin",
