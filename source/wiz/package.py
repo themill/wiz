@@ -335,9 +335,7 @@ def initiate_environ(mapping=None):
     *mapping* can be a custom environment mapping which will be added to the
     initial environment.
 
-    .. _xauth:: https://www.x.org/releases/X11R6.8.2/doc/xauth.1.html
-
-    .. _GDM: https://wiki.archlinux.org/index.php/GDM
+    .. _xauth: https://www.x.org/releases/X11R6.8.2/doc/xauth.1.html
 
     """
     environ = {

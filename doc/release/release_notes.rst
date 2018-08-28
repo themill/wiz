@@ -4,6 +4,15 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.package.initiate_environ` to forward the
+        :envvar:`XAUTHORITY` environment variable into the initial environment
+        as it is required by some applications.
+
 .. release:: 0.16.0
     :date: 2018-08-16
 
