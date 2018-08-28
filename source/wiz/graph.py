@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import copy
+import itertools
 import uuid
 from collections import deque, Counter
 from heapq import heapify, heappush, heappop
@@ -36,14 +37,19 @@ class Resolver(object):
         # division
         self._definitions_with_variants = []
 
-        # Stack of all graphs to resolve, sorted from the least important to
-        # the most important.
-        self._graphs_stack = deque()
+        # Stack of tuples containing each a graph to resolve and a list of
+        # variant node identifiers to remove from it before instantiation.
+        self._combination_stack = deque()
 
     @property
     def definition_mapping(self):
         """Return mapping of all available definitions."""
         return self._definition_mapping
+
+    @property
+    def remaining_combinations(self):
+        """Return the number of remaining graph combinations."""
+        return len(self._combination_stack)
 
     def compute_packages(self, requirements):
         """Resolve requirements graphs and return list of packages.
@@ -52,32 +58,17 @@ class Resolver(object):
         class:`packaging.requirements.Requirement` instances.
 
         """
-        graph = Graph(self)
+        self.initiate(requirements)
 
-        # Record the graph creation to the history if necessary.
-        wiz.history.record_action(wiz.symbol.GRAPH_CREATION_ACTION, graph=graph)
-
-        # Update the graph.
-        graph.update_from_requirements(requirements)
-
-        # Initialise stack.
-        self._graphs_stack = deque([graph])
-
-        while len(self._graphs_stack) != 0:
-            graph = self._graphs_stack.pop()
-
-            priority_mapping = compute_priority_mapping(graph)
-
-            # Check if the graph must be divided.
-            if self.divide(graph, priority_mapping) > 0:
-                continue
+        while self.remaining_combinations > 0:
+            graph = self.extract_next_graph()
 
             try:
                 self.resolve_conflicts(graph)
 
             except wiz.exception.WizError as error:
-                # If no more graphs is left to resolve, raise an error.
-                if len(self._graphs_stack) == 0:
+                # If no more combination is left to resolve, raise an error.
+                if self.remaining_combinations == 0:
                     raise
                 self._logger.debug("Failed to resolve graph: {}".format(error))
 
@@ -85,31 +76,66 @@ class Resolver(object):
                 priority_mapping = compute_priority_mapping(graph)
                 return extract_ordered_packages(graph, priority_mapping)
 
-    def divide(self, graph, priority_mapping):
-        """Divide *graph* if necessary and return number of graphs created.
+    def initiate(self, requirements):
+        """Initialize combination stack with a graph created from *requirement*.
 
-        A *graph* must be divided when it contains at least one definition
-        version with more than one variant. The total number of graphs created
-        will be equal to the multiplication of each variant number.
+        *requirements* should be a list of
+        class:`packaging.requirements.Requirement` instances.
 
-        The nearest nodes are computed first, and the order of variants within
-        each package version is preserved so that the graphs created are
-        added to the stack from the most important to the least important.
+        """
+        graph = Graph(self)
+
+        # Update the graph.
+        graph.update_from_requirements(requirements)
+
+        # Clear the combination stack.
+        self._combination_stack = deque()
+
+        # Initialise stack.
+        if not self.generate_combinations(graph):
+            self._combination_stack.append((graph, []))
+
+    def extract_next_graph(self):
+        """Extract a graph from the combination stack.
+
+
+        """
+        print(self._combination_stack)
+        try:
+            graph, nodes_to_remove = self._combination_stack.popleft()
+        except IndexError:
+            raise wiz.exception.GraphResolutionError(
+                "No more graph to resolve in the combination stack."
+            )
+
+        # To prevent mutating any copy of the instance.
+        _graph = copy.deepcopy(graph)
+
+        for identifier in nodes_to_remove:
+            _graph.remove_node(identifier, record=False)
+
+        return _graph
+
+    def generate_combinations(self, graph):
+        """Extract possible combinations from variant conflicts in *graph*.
+
+        Return a boolean value indicating whether combinations have been added
+        to the stack.
 
         *graph* must be an instance of :class:`Graph`.
-
-        *priority_mapping* is a mapping indicating the lowest possible priority
-        of each node identifier from the root level of the graph with its
-        corresponding parent node identifier.
 
         """
         variant_mapping = graph.variant_mapping()
         if len(variant_mapping) == 0:
-            self._logger.debug("No alternative graphs created.")
-            return 0
+            self._logger.debug(
+                "No package variants are conflicting in the graph."
+            )
+            return False
 
         # Record all definition identifiers which led to graph division.
         self._definitions_with_variants.extend(variant_mapping.keys())
+
+        priority_mapping = compute_priority_mapping(graph)
 
         # Order the variant groups per priority to compute those nearest to the
         # top-level first. We can assume that the first identifier of each group
@@ -120,58 +146,26 @@ class Resolver(object):
             key=lambda _group: priority_mapping[_group[0]].get("priority"),
         )
 
-        graph_list = [graph.copy()]
-
-        for variant_group in variant_groups:
-            mapping = {}
-            variant_names = []
-
-            # Regroup corresponding nodes per variant to prevent treating
-            # conflicts as variants.
-            for node_identifier in variant_group:
-                node = graph.node(node_identifier)
-                mapping.setdefault(node.variant_name, [])
-                mapping[node.variant_name].append(node_identifier)
-
-                # Record variant in list to preserve order
-                if node.variant_name not in variant_names:
-                    variant_names.append(node.variant_name)
-
-            new_graph_list = []
-
-            # For each graph in list, create an alternative graph containing
-            # only node with common variant from this group
-            for _graph in graph_list:
-                for variant_name in variant_names:
-                    identifiers = mapping[variant_name]
-                    copied_graph = _graph.copy()
-                    other_identifiers = (
-                        node_identifier for node_identifier in variant_group
-                        if node_identifier not in identifiers
-                    )
-
-                    # Remove all other variant from the variant graph.
-                    for _identifier in other_identifiers:
-                        copied_graph.remove_node(_identifier, record=False)
-
-                    new_graph_list.append(copied_graph)
-
-            # Re-initiate the graph list with the new graph divisions.
-            graph_list = new_graph_list
-
-        # Add new graph to the stack.
-        for _graph in reversed(graph_list):
-            _graph.reset_variants()
-            self._graphs_stack.append(_graph)
-
-            # Record the graph creation to the history if necessary.
-            wiz.history.record_action(
-                wiz.symbol.GRAPH_DIVISION_ACTION, origin=graph, graph=_graph
+        self._logger.debug(
+            "The following variant groups are conflicting: {!r}".format(
+                variant_groups
             )
+        )
 
-        number = len(graph_list)
-        self._logger.debug("graph divided into {} new graphs.".format(number))
-        return number
+        combinations = []
+        for identifiers in compute_trimming_combinations(graph, variant_groups):
+            combinations.append((graph, identifiers))
+
+        self._logger.debug(
+            "{} combination generated from graph division".format(
+                len(combinations)
+            )
+        )
+
+        # Append on the left so that latest combinations have priority over
+        # previous combinations generated.
+        self._combination_stack.extendleft(reversed(combinations))
+        return True
 
     def resolve_conflicts(self, graph):
         """Attempt to resolve all conflicts in *graph*.
@@ -270,13 +264,12 @@ class Resolver(object):
                     # Update conflict list if necessary.
                     conflicts = list(set(conflicts + graph.conflicts()))
 
-                    # Check if the graph must be divided. If this is the case,
-                    # the current graph cannot be resolved.
-                    priority_mapping = compute_priority_mapping(graph)
-
-                    if self.divide(graph, priority_mapping) > 0:
+                    # If the updated graph contains variants, it must be
+                    # divided into combination before attempting to resolve
+                    # conflicts.
+                    if self.generate_combinations(graph):
                         raise wiz.exception.GraphResolutionError(
-                            "The current graph has been divided."
+                            "The current graph needs to be divided."
                         )
 
 
@@ -351,6 +344,69 @@ def compute_priority_mapping(graph):
     )
 
     return priority_mapping
+
+
+def compute_trimming_combinations(graph, variant_groups):
+    """Yield combinations of nodes identifiers to remove from *graph*.
+
+    *graph* must be an instance of :class:`Graph`.
+
+    *variant_groups* should be a list of node identifier lists. Each list
+    contains node identifiers added to the *graph* in the order of importance
+    which share the same definition identifier and variant identifier.
+
+    After identifying and grouping version conflicts in each group, a cartesian
+    product is performed on all groups in order to extract combinations of node
+    variant that should be present in the graph at the same time.
+
+    The trimming combination represents the inverse of this product, so that it
+    identify the nodes to remove at each graph division.
+
+    .. code-block::
+
+        >>> variant_groups = [
+        ...     ["foo[V3]", "foo[V2]", "foo[V1]"],
+        ...     ["bar[V1]==1", "bar[V2]==1", "bar[V2]==2"]
+        ... ]
+        >>> list(compute_trimming_combinations(graph, variant_groups))
+
+        [
+            ("foo[V2]", "foo[V1]", "bar[V2]==1", "bar[V2]==2"),
+            ("foo[V2]", "foo[V1]", "bar[V1]==1"),
+            ("foo[V3]", "foo[V1]", "bar[V2]==1", "bar[V2]==2"),
+            ("foo[V3]", "foo[V1]", "bar[V1]==1"),
+            ("foo[V3]", "foo[V2]", "bar[V2]==1", "bar[V2]==2"),
+            ("foo[V3]", "foo[V2]", "bar[V1]==1")
+        ]
+
+    """
+    # Flatten list of identifiers
+    identifiers = [_id for _group in variant_groups for _id in _group]
+
+    # Convert each variant group into list of lists regrouping conflicted nodes.
+    # e.g. [A[V2]==1, A[V1]==1, A[V1]==2] -> [[A[V2]==1], [A[V1]==1, A[V1]==2]]
+    _groups = []
+
+    for _group in variant_groups:
+        variant_mapping = {}
+
+        for node_identifier in _group:
+            node = graph.node(node_identifier)
+            variant_mapping.setdefault(node.variant_name, [])
+            variant_mapping[node.variant_name].append(node_identifier)
+            variant_mapping[node.variant_name].sort(
+                key=lambda _id: _group.index(_id)
+            )
+
+        _tuple_group = sorted(
+            variant_mapping.values(),
+            key=lambda group: _group.index(group[0])
+        )
+        _groups.append(_tuple_group)
+
+    for combination in itertools.product(*_groups):
+        _identifiers = [_id for _group in combination for _id in _group]
+        yield tuple([_id for _id in identifiers if _id not in _identifiers])
 
 
 def trim_unreachable_from_graph(graph, priority_mapping):
