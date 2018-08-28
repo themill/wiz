@@ -96,11 +96,7 @@ class Resolver(object):
             self._combination_stack.append((graph, []))
 
     def extract_next_graph(self):
-        """Extract a graph from the combination stack.
-
-
-        """
-        print(self._combination_stack)
+        """Extract a graph from the combination stack."""
         try:
             graph, nodes_to_remove = self._combination_stack.popleft()
         except IndexError:

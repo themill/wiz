@@ -8,12 +8,94 @@ from wiz.utility import Requirement
 
 
 @pytest.fixture()
-def graph_constructor(mocker):
-    """Return spy mocker on 'wiz.graph.Graph'"""
-    return mocker.spy(wiz.graph, "Graph")
+def spied_extract_next_graph(mocker):
+    """Return spy mocker on 'wiz.graph.Resolver.extract_next_graph'."""
+    return mocker.spy(wiz.graph.Resolver, "extract_next_graph")
 
 
-def test_scenario_1(graph_constructor):
+@pytest.fixture()
+def spied_generate_combinations(mocker):
+    """Return spy mocker on 'wiz.graph.Resolver.generate_combinations'."""
+    return mocker.spy(wiz.graph.Resolver, "generate_combinations")
+
+
+@pytest.fixture()
+def spied_resolve_conflicts(mocker):
+    """Return spy mocker on 'wiz.graph.Resolver.resolve_conflicts'."""
+    return mocker.spy(wiz.graph.Resolver, "resolve_conflicts")
+
+
+@pytest.fixture()
+def spied_compute_priority_mapping(mocker):
+    """Return spy mocker on 'wiz.graph.resolve_conflicts'."""
+    return mocker.spy(wiz.graph, "compute_priority_mapping")
+
+
+@pytest.fixture()
+def spied_compute_trimming_combinations(mocker):
+    """Return spy mocker on 'wiz.graph.compute_trimming_combinations'.
+    """
+    return mocker.spy(wiz.graph, "compute_trimming_combinations")
+
+
+@pytest.fixture()
+def spied_trim_unreachable_from_graph(mocker):
+    """Return spy mocker on 'wiz.graph.trim_unreachable_from_graph'.
+    """
+    return mocker.spy(wiz.graph, "trim_unreachable_from_graph")
+
+
+@pytest.fixture()
+def spied_sorted_from_priority(mocker):
+    """Return spy mocker on 'wiz.graph.sorted_from_priority'."""
+    return mocker.spy(wiz.graph, "sorted_from_priority")
+
+
+@pytest.fixture()
+def spied_extract_conflicted_nodes(mocker):
+    """Return spy mocker on 'wiz.graph.extract_conflicted_nodes'."""
+    return mocker.spy(wiz.graph, "extract_conflicted_nodes")
+
+
+@pytest.fixture()
+def spied_combined_requirements(mocker):
+    """Return spy mocker on 'wiz.graph.combined_requirements'."""
+    return mocker.spy(wiz.graph, "combined_requirements")
+
+
+@pytest.fixture()
+def spied_extract_parents(mocker):
+    """Return spy mocker on 'wiz.graph.extract_parents'."""
+    return mocker.spy(wiz.graph, "extract_parents")
+
+
+@pytest.fixture()
+def spied_remove_node_and_relink(mocker):
+    """Return spy mocker on 'wiz.graph.remove_node_and_relink'."""
+    return mocker.spy(wiz.graph, "remove_node_and_relink")
+
+
+@pytest.fixture()
+def spied_extract_ordered_packages(mocker):
+    """Return spy mocker on 'wiz.graph.extract_ordered_packages'."""
+    return mocker.spy(wiz.graph, "extract_ordered_packages")
+
+
+def test_scenario_1(
+    mocker,
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     Root
@@ -135,10 +217,74 @@ def test_scenario_1(graph_constructor):
 
     assert packages[5].identifier == "A==0.2.0"
 
-    assert graph_constructor.call_count == 1
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 4
+    assert spied_compute_trimming_combinations.call_count == 0
+
+    assert spied_trim_unreachable_from_graph.call_count == 3
+    spied_trim_unreachable_from_graph.assert_any_call(
+        mocker.ANY, {
+            "root": {"priority": 0, "parent": "root"},
+            "A==0.2.0": {"priority": 1, "parent": "root"},
+            "G==2.0.2": {"priority": 2, "parent": "root"},
+            "C==0.3.2": {"priority": 2, "parent": "A==0.2.0"},
+            "B==0.1.0": {"priority": 3, "parent": "G==2.0.2"},
+            "D==0.1.4": {"priority": 4, "parent": "B==0.1.0"},
+            "D==0.1.0": {"priority": 3, "parent": "C==0.3.2"},
+            "F==1.0.0": {"priority": 5, "parent": "B==0.1.0"},
+            "E==2.3.0": {"priority": 5, "parent": "D==0.1.4"},
+        }
+    )
+    spied_trim_unreachable_from_graph.assert_any_call(
+        mocker.ANY, {
+            "root": {"priority": 0, "parent": "root"},
+            "A==0.2.0": {"priority": 1, "parent": "root"},
+            "G==2.0.2": {"priority": 2, "parent": "root"},
+            "C==0.3.2": {"priority": 2, "parent": "A==0.2.0"},
+            "B==0.1.0": {"priority": 3, "parent": "G==2.0.2"},
+            "D==0.1.0": {"priority": 3, "parent": "C==0.3.2"},
+            "F==1.0.0": {"priority": 5, "parent": "B==0.1.0"},
+            "E==2.3.0": {"priority": None, "parent": None},
+        }
+    )
+    spied_trim_unreachable_from_graph.assert_any_call(
+        mocker.ANY, {
+            "root": {"priority": 0, "parent": "root"},
+            "A==0.2.0": {"priority": 1, "parent": "root"},
+            "G==2.0.2": {"priority": 2, "parent": "root"},
+            "C==0.3.2": {"priority": 2, "parent": "A==0.2.0"},
+            "B==0.1.0": {"priority": 3, "parent": "G==2.0.2"},
+            "D==0.1.0": {"priority": 3, "parent": "C==0.3.2"},
+            "F==1.0.0": {"priority": 5, "parent": "B==0.1.0"}
+        }
+    )
+
+    assert spied_sorted_from_priority.call_count == 3
+    assert spied_extract_conflicted_nodes.call_count == 2
+    assert spied_combined_requirements.call_count == 2
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_extract_ordered_packages.call_count == 1
 
 
-def test_scenario_2():
+def test_scenario_2(
+    mocker,
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Fail to compute packages for the following graph.
 
     Root
@@ -250,8 +396,51 @@ def test_scenario_2():
         "from the following packages: ['B==0.1.0', 'C==0.3.2']."
     ) in str(error)
 
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 1
+    assert spied_compute_trimming_combinations.call_count == 0
 
-def test_scenario_3():
+    assert spied_trim_unreachable_from_graph.call_count == 1
+    spied_trim_unreachable_from_graph.assert_any_call(
+        mocker.ANY, {
+            "root": {"priority": 0, "parent": "root"},
+            "A==0.2.0": {"priority": 1, "parent": "root"},
+            "G==2.0.2": {"priority": 2, "parent": "root"},
+            "C==0.3.2": {"priority": 2, "parent": "A==0.2.0"},
+            "B==0.1.0": {"priority": 3, "parent": "G==2.0.2"},
+            "D==0.1.4": {"priority": 4, "parent": "B==0.1.0"},
+            "D==0.1.0": {"priority": 3, "parent": "C==0.3.2"},
+            "F==1.0.0": {"priority": 5, "parent": "B==0.1.0"},
+            "E==2.3.0": {"priority": 5, "parent": "D==0.1.4"},
+        }
+    )
+
+    assert spied_sorted_from_priority.call_count == 1
+    assert spied_extract_conflicted_nodes.call_count == 1
+    assert spied_combined_requirements.call_count == 1
+    assert spied_extract_parents.call_count == 1
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 0
+
+
+def test_scenario_3(
+    mocker,
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     In a situation with several solutions, the solution which guaranty the
@@ -301,6 +490,13 @@ def test_scenario_3():
     assert len(packages) == 2
     assert packages[0].identifier == "B==0.9.0"
     assert packages[1].identifier == "A==1.0.0"
+
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 6
+    assert spied_compute_trimming_combinations.call_count == 0
 
 
 def test_scenario_4():
@@ -985,9 +1181,9 @@ def test_scenario_12():
 def test_scenario_13():
     """Compute packages for the following graph.
 
-    Variant has priority over version conflict. When a package is added with
-    all its variants, if this package is required a second time in the tree for
-    a different version, this requirement will be ignored if the variant with
+    Variant has priority over version. When a package is added with all its
+    variants, if this package is required a second time in the tree for a
+    different version, this requirement will be ignored if the variant with
     the highest priority does not have this version.
 
     Root
@@ -1075,3 +1271,95 @@ def test_scenario_13():
     assert packages[0].identifier == "C"
     assert packages[1].identifier == "B==3.0.0"
     assert packages[2].identifier == "A[V3]==1.0.0"
+
+
+def test_scenario_14():
+    """Compute packages for the following graph.
+
+    When several packages with variants are added to the graph, the variant
+    with the highest priority is returned for each package if no conflict
+    appear.
+
+    Root
+     |
+     |--(A): A[V1]
+     |
+     |--(A): A[V2]
+     |
+     |--(A): A[V3]
+     |
+     |--(B): B[V1]
+     |
+     |--(B): B[V2]
+     |
+     |--(B): B[V3]
+     |
+     |--(B): B[V4]
+     |
+     |--(C): C[V1]
+     |
+     `--(C): C[V2]
+
+    Expected: C[V2], B[V4], A[V3]
+
+    """
+    definition_mapping = {
+        "A": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "A",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                    },
+                    {
+                        "identifier": "V2",
+                    },
+                    {
+                        "identifier": "V1",
+                    }
+                ]
+            })
+        },
+        "B": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "B",
+                "variants": [
+                    {
+                        "identifier": "V4",
+                    },
+                    {
+                        "identifier": "V3",
+                    },
+                    {
+                        "identifier": "V2",
+                    },
+                    {
+                        "identifier": "V1",
+                    }
+                ]
+            })
+        },
+        "C": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "C",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                    },
+                    {
+                        "identifier": "V1",
+                    }
+                ]
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("B"), Requirement("C")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].identifier == "C[V2]"
+    assert packages[1].identifier == "B[V4]"
+    assert packages[2].identifier == "A[V3]"
