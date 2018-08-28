@@ -628,12 +628,14 @@ def test_initiate_data(monkeypatch):
     monkeypatch.setenv("LOGNAME", "someone")
     monkeypatch.setenv("HOME", "/path/to/somewhere")
     monkeypatch.setenv("DISPLAY", "localhost:0.0")
+    monkeypatch.setenv("XAUTHORITY", "/run/gdm/auth/database")
 
     assert wiz.package.initiate_environ() == {
         "USER": "someone",
         "LOGNAME": "someone",
         "HOME": "/path/to/somewhere",
         "DISPLAY": "localhost:0.0",
+        "XAUTHORITY": "/run/gdm/auth/database",
         "PATH": os.pathsep.join([
             "/usr/local/sbin",
             "/usr/local/bin",
@@ -651,6 +653,7 @@ def test_initiate_data_with_initial_data(monkeypatch):
     monkeypatch.setenv("LOGNAME", "someone")
     monkeypatch.setenv("HOME", "/path/to/somewhere")
     monkeypatch.setenv("DISPLAY", "localhost:0.0")
+    monkeypatch.setenv("XAUTHORITY", "/run/gdm/auth/database")
 
     assert wiz.package.initiate_environ(
         mapping={
@@ -662,6 +665,7 @@ def test_initiate_data_with_initial_data(monkeypatch):
         "LOGNAME": "someone-else",
         "HOME": "/path/to/somewhere",
         "DISPLAY": "localhost:0.0",
+        "XAUTHORITY": "/run/gdm/auth/database",
         "PATH": os.pathsep.join([
             "/usr/local/sbin",
             "/usr/local/bin",
