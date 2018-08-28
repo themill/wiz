@@ -921,11 +921,12 @@ class Graph(object):
                         )
                     )
 
+            else:
+                # Update variant mapping if necessary
+                self._update_variant_mapping(package.identifier)
+
             node = self.node(package.identifier)
             node.add_parent(parent_identifier or self.ROOT)
-
-            # Update variant mapping if necessary
-            self._update_variant_mapping(package.identifier)
 
             # Create link with requirement and weight.
             self.create_link(
