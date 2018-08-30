@@ -623,17 +623,18 @@ class Graph(object):
         # All nodes created per node identifier.
         self._node_mapping = {}
 
-        # Set of node identifiers organised per definition identifier.
-        self._definition_mapping = {}
-
-        # List of constraint instances organised per definition identifier.
-        self._constraint_mapping = {}
-
-        # List of identifiers with variant organised per definition identifier.
-        self._variant_mapping = {}
-
         # Record the weight of each link in the graph.
         self._link_mapping = {}
+
+        # Set of node identifiers organised per definition identifier.
+        self._identifiers_per_definition = {}
+
+        # List of constraint instances organised per definition identifier.
+        self._constraints_per_definition = {}
+
+        # List of node identifiers with variant organised per definition
+        # identifier.
+        self._variants_per_definition = {}
 
     @property
     def identifier(self):
@@ -644,20 +645,20 @@ class Graph(object):
         """Return corresponding dictionary."""
         return {
             "identifier": self.identifier,
-            "node": {
+            "node_mapping": {
                 _id: node.to_dict() for _id, node
                 in self._node_mapping.items()
             },
-            "definition": {
+            "link_mapping": copy.deepcopy(self._link_mapping),
+            "identifiers_per_definition": {
                 _id: sorted(node_ids) for _id, node_ids
-                in self._definition_mapping.items()
+                in self._identifiers_per_definition.items()
             },
-            "link": copy.deepcopy(self._link_mapping),
-            "variants": self._variant_mapping.values(),
-            "constraint": {
+            "constraints_per_definition": {
                 _id: [constraint.to_dict() for constraint in constraints]
-                for _id, constraints in self._constraint_mapping.items()
-            }
+                for _id, constraints in self._constraints_per_definition.items()
+            },
+            "variants_per_definition": self._variants_per_definition,
         }
 
     def node(self, identifier):
@@ -693,7 +694,8 @@ class Graph(object):
         """
         mapping = {}
 
-        for definition_identifier, identifiers in self._variant_mapping.items():
+        for definition_identifier in self._variants_per_definition.keys():
+            identifiers = self._variants_per_definition[definition_identifier]
             variant_names = set([
                 self._node_mapping[identifier].variant_name
                 for identifier in identifiers
@@ -741,7 +743,7 @@ class Graph(object):
         """
         conflicted = []
 
-        for identifiers in self._definition_mapping.values():
+        for identifiers in self._identifiers_per_definition.values():
             _identifiers = [
                 identifier for identifier in identifiers
                 if self.exists(identifier)
@@ -812,10 +814,10 @@ class Graph(object):
         """
         constraints = []
 
-        for identifier in self._constraint_mapping.keys():
-            if identifier in self._definition_mapping.keys():
-                constraints += self._constraint_mapping[identifier]
-                del self._constraint_mapping[identifier]
+        for identifier in self._constraints_per_definition.keys():
+            if identifier in self._identifiers_per_definition.keys():
+                constraints += self._constraints_per_definition[identifier]
+                del self._constraints_per_definition[identifier]
 
         self._logger.debug(
             "Constraints which needs to be added to the graph: {}".format(
@@ -881,8 +883,9 @@ class Graph(object):
                 # Record constraints so that it could be added later to the
                 # graph as nodes if necessary.
                 for index, _requirement in enumerate(package.constraints):
-                    self._constraint_mapping.setdefault(_requirement.name, [])
-                    self._constraint_mapping[_requirement.name].append(
+                    _identifier = _requirement.name
+                    self._constraints_per_definition.setdefault(_identifier, [])
+                    self._constraints_per_definition[_identifier].append(
                         Constraint(
                             _requirement, package.identifier, weight=index + 1
                         )
@@ -914,8 +917,8 @@ class Graph(object):
 
         # Record node identifiers per package to identify conflicts.
         _definition_id = package.definition_identifier
-        self._definition_mapping.setdefault(_definition_id, set())
-        self._definition_mapping[_definition_id].add(package.identifier)
+        self._identifiers_per_definition.setdefault(_definition_id, set())
+        self._identifiers_per_definition[_definition_id].add(package.identifier)
 
         # Record variant per unique key identifier if necessary.
         self._update_variant_mapping(package.identifier)
@@ -932,8 +935,8 @@ class Graph(object):
         if node.variant_name is None:
             return
 
-        self._variant_mapping.setdefault(node.definition, [])
-        self._variant_mapping[node.definition].append(identifier)
+        self._variants_per_definition.setdefault(node.definition, [])
+        self._variants_per_definition[node.definition].append(identifier)
 
     def create_link(
         self, identifier, parent_identifier, requirement, weight=1
@@ -1015,7 +1018,7 @@ class Graph(object):
             deleted, but not the nodes themselves.
 
         """
-        self._variant_mapping = {}
+        self._variants_per_definition = {}
 
 
 class Node(object):

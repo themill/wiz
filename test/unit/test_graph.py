@@ -639,7 +639,7 @@ def test_graph_variant_mapping(mocker):
         "D[V1]==0.1.0": mocker.Mock(variant_name="V1"),
         "D[V1]==0.2.0": mocker.Mock(variant_name="V1")
     }
-    graph._variant_mapping = {
+    graph._variants_per_definition = {
         "A": ["A[V1]==0.1.0", "A[V2]==0.1.0"],
         "B": ["B[V1]==0.1.0", "B[V2]==0.1.0", "B[V1]==0.2.0"],
         "C": ["C[V1]==0.1.0"],
@@ -727,7 +727,7 @@ def test_graph_conflicts(definition_mapping, node_mapping, expected):
     """Extract conflicted nodes from graph."""
     graph = wiz.graph.Graph(None)
     graph._node_mapping = node_mapping
-    graph._definition_mapping = definition_mapping
+    graph._identifiers_per_definition = definition_mapping
 
     assert graph.conflicts() == expected
 
@@ -766,22 +766,22 @@ def test_graph_update_from_requirements(
 
     assert graph.to_dict() == {
         "identifier": mock.ANY,
-        "definition": {
-            "A": ["A==0.2.0"],
-            "B": ["B==2.1.1"],
-        },
-        "node": {
+        "node_mapping": {
             "A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
             "B==2.1.1": {"package": "_B==2.1.1", "parents": ["root"]}
         },
-        "link": {
+        "link_mapping": {
             "root": {
                 "A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
                 "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2}
             }
         },
-        "variants": [],
-        "constraint": {}
+        "identifiers_per_definition": {
+            "A": ["A==0.2.0"],
+            "B": ["B==2.1.1"],
+        },
+        "variants_per_definition": {},
+        "constraints_per_definition": {}
     }
 
 
@@ -846,21 +846,14 @@ def test_graph_update_from_requirements_with_dependencies(
 
     assert graph.to_dict() == {
         "identifier": mock.ANY,
-        "definition": {
-            "A": ["A==0.1.0"],
-            "B": ["B==3.0.0"],
-            "C": ["C==1.2.3"],
-            "D": ["D==0.1.0"],
-            "E": ["E==0.2.0"]
-        },
-        "node": {
+        "node_mapping": {
             "A==0.1.0": {"package": "_A==0.1.0", "parents": ["root"]},
             "B==3.0.0": {"package": "_B==3.0.0", "parents": ["A==0.1.0"]},
             "C==1.2.3": {"package": "_C==1.2.3", "parents": ["A==0.1.0"]},
             "D==0.1.0": {"package": "_D==0.1.0", "parents": ["C==1.2.3"]},
             "E==0.2.0": {"package": "_E==0.2.0", "parents": ["D==0.1.0"]}
         },
-        "link": {
+        "link_mapping": {
             "root": {
                 "A==0.1.0": {"requirement": Requirement("A"), "weight": 1}
             },
@@ -875,8 +868,15 @@ def test_graph_update_from_requirements_with_dependencies(
                 "E==0.2.0": {"requirement": Requirement("E"), "weight": 1},
             }
         },
-        "variants": [],
-        "constraint": {}
+        "identifiers_per_definition": {
+            "A": ["A==0.1.0"],
+            "B": ["B==3.0.0"],
+            "C": ["C==1.2.3"],
+            "D": ["D==0.1.0"],
+            "E": ["E==0.2.0"]
+        },
+        "variants_per_definition": {},
+        "constraints_per_definition": {}
     }
 
 
@@ -925,23 +925,25 @@ def test_graph_update_from_requirements_with_variants(
 
     assert graph.to_dict() == {
         "identifier": mock.ANY,
-        "definition": {
-            "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"],
-        },
-        "node": {
+        "node_mapping": {
             "A[V1]==0.2.0": {"package": "_A[V1]==0.2.0", "parents": ["root"]},
             "A[V2]==0.2.0": {"package": "_A[V2]==0.2.0", "parents": ["root"]},
             "A[V3]==0.2.0": {"package": "_A[V3]==0.2.0", "parents": ["root"]},
         },
-        "link": {
+        "link_mapping": {
             "root": {
                 "A[V1]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
                 "A[V2]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
                 "A[V3]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
             },
         },
-        "variants": [["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"]],
-        "constraint": {}
+        "identifiers_per_definition": {
+            "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"],
+        },
+        "variants_per_definition": {
+            "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"]
+        },
+        "constraints_per_definition": {}
     }
 
 
@@ -979,22 +981,21 @@ def test_graph_update_from_requirements_with_unused_constraints(
 
     assert graph.to_dict() == {
         "identifier": mock.ANY,
-        "definition": {
-            "A": ["A==0.2.0"],
-            "B": ["B==2.1.1"],
-        },
-        "node": {
+        "node_mapping": {
             "A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
             "B==2.1.1": {"package": "_B==2.1.1", "parents": ["root"]}
         },
-        "link": {
+        "link_mapping": {
             "root": {
                 "A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
                 "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2}
             }
         },
-        "variants": [],
-        "constraint": {
+        "identifiers_per_definition": {
+            "A": ["A==0.2.0"],
+            "B": ["B==2.1.1"],
+        },
+        "constraints_per_definition": {
             "C": [
                 {
                     "requirement": Requirement("C==2.0.4"),
@@ -1002,7 +1003,8 @@ def test_graph_update_from_requirements_with_unused_constraints(
                     "weight": 1
                 }
             ]
-        }
+        },
+        "variants_per_definition": {}
     }
 
 
@@ -1060,18 +1062,13 @@ def test_graph_update_from_requirements_with_used_constraints(
 
     assert graph.to_dict() == {
         "identifier": mock.ANY,
-        "definition": {
-            "A": ["A==0.2.0"],
-            "B": ["B==2.1.1"],
-            "C": ["C==2.0.4", "C==3.0.0"]
-        },
-        "node": {
+        "node_mapping": {
             "A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
             "B==2.1.1": {"package": "_B==2.1.1", "parents": ["root"]},
             "C==2.0.4": {"package": "_C==2.0.4", "parents": ["B==2.1.1"]},
             "C==3.0.0": {"package": "_C==3.0.0", "parents": ["root"]}
         },
-        "link": {
+        "link_mapping": {
             "root": {
                 "A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
                 "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2},
@@ -1083,8 +1080,13 @@ def test_graph_update_from_requirements_with_used_constraints(
                 },
             }
         },
-        "variants": [],
-        "constraint": {}
+        "identifiers_per_definition": {
+            "A": ["A==0.2.0"],
+            "B": ["B==2.1.1"],
+            "C": ["C==2.0.4", "C==3.0.0"]
+        },
+        "constraints_per_definition": {},
+        "variants_per_definition": {},
     }
 
 
@@ -1314,7 +1316,7 @@ def test_graph_create_node_from_package(mocker):
     graph = wiz.graph.Graph(None)
     graph._create_node_from_package(package)
 
-    assert graph._definition_mapping == {"defA": {"A==0.1.0"}}
+    assert graph._identifiers_per_definition == {"defA": {"A==0.1.0"}}
     assert graph._node_mapping.keys() == ["A==0.1.0"]
     assert isinstance(graph._node_mapping["A==0.1.0"], wiz.graph.Node)
 
@@ -1360,27 +1362,27 @@ def test_graph_remove_node():
     """Remove nodes from graph."""
     graph = wiz.graph.Graph(None)
     graph._node_mapping = {"A1": "_A1", "A2": "_A2", "B": "B"}
-    graph._definition_mapping = {"defA": ["A1", "A2"], "defB": ["B"]}
-    graph._variant_mapping = {"_id": ["A1", "A2"]}
+    graph._identifiers_per_definition = {"defA": ["A1", "A2"], "defB": ["B"]}
+    graph._variants_per_definition = {"_id": ["A1", "A2"]}
     graph._link_mapping = {"A1": {"B": "LINK"}}
 
     graph.remove_node("A1")
 
     assert graph._node_mapping == {"A2": "_A2", "B": "B"}
-    assert graph._definition_mapping == {"defA": ["A1", "A2"], "defB": ["B"]}
-    assert graph._variant_mapping == {"_id": ["A1", "A2"]}
+    assert graph._identifiers_per_definition == {"defA": ["A1", "A2"], "defB": ["B"]}
+    assert graph._variants_per_definition == {"_id": ["A1", "A2"]}
     assert graph._link_mapping == {"A1": {"B": "LINK"}}
 
 
 def test_graph_reset_variants():
     """Reset variant groups in graph."""
     graph = wiz.graph.Graph(None)
-    graph._variant_mapping = {"_id": ["A1", "A2"]}
-    assert graph._variant_mapping == {"_id": ["A1", "A2"]}
+    graph._variants_per_definition = {"_id": ["A1", "A2"]}
+    assert graph._variants_per_definition == {"_id": ["A1", "A2"]}
 
     graph.reset_variants()
 
-    assert graph._variant_mapping == {}
+    assert graph._variants_per_definition == {}
 
 
 def test_node(mocker):
