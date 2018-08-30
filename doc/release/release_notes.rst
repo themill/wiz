@@ -86,6 +86,12 @@ Release Notes
         Removed :func:`wiz.graph.extract_requirement` as this functionality
         is not necessary anymore.
 
+    .. change:: changed
+        :tags: API
+
+        Removed :meth:`wiz.graph.Graph.copy` as this functionality
+        is not necessary anymore.
+
     .. change:: fixed
         :tags: API
 
