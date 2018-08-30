@@ -599,9 +599,8 @@ def test_extract_ordered_packages(
 
 def test_graph_node():
     """Return node from graph via identifier."""
-    graph = wiz.graph.Graph(
-        None, node_mapping={"A": "_nodeA"},
-    )
+    graph = wiz.graph.Graph(None)
+    graph._node_mapping = {"A": "_nodeA"}
 
     assert graph.node("A") == "_nodeA"
     assert graph.node("B") is None
@@ -609,18 +608,16 @@ def test_graph_node():
 
 def test_graph_nodes():
     """Return nodes from graph."""
-    graph = wiz.graph.Graph(
-        None, node_mapping={"A": "_nodeA", "B": "_nodeB", "C": "_nodeC"},
-    )
+    graph = wiz.graph.Graph(None)
+    graph._node_mapping = {"A": "_nodeA", "B": "_nodeB", "C": "_nodeC"}
 
     assert sorted(graph.nodes()) == ["_nodeA", "_nodeB", "_nodeC"]
 
 
 def test_graph_exists():
     """Indicate whether node exists in graph."""
-    graph = wiz.graph.Graph(
-        None, node_mapping={"A": "_nodeA"},
-    )
+    graph = wiz.graph.Graph(None)
+    graph._node_mapping = {"A": "_nodeA"}
 
     assert graph.exists("A") is True
     assert graph.exists("B") is False
@@ -631,25 +628,23 @@ def test_graph_variant_mapping(mocker):
     graph = wiz.graph.Graph(None)
     assert graph.variant_mapping() == {}
 
-    graph = wiz.graph.Graph(
-        None,
-        node_mapping={
-            "A[V1]==0.1.0": mocker.Mock(variant_name="V1"),
-            "A[V2]==0.1.0": mocker.Mock(variant_name="V2"),
-            "B[V1]==0.1.0": mocker.Mock(variant_name="V1"),
-            "B[V1]==0.2.0": mocker.Mock(variant_name="V1"),
-            "B[V2]==0.1.0": mocker.Mock(variant_name="V2"),
-            "C[V1]==0.1.0": mocker.Mock(variant_name="V1"),
-            "D[V1]==0.1.0": mocker.Mock(variant_name="V1"),
-            "D[V1]==0.2.0": mocker.Mock(variant_name="V1")
-        },
-        variant_mapping={
-            "A": ["A[V1]==0.1.0", "A[V2]==0.1.0"],
-            "B": ["B[V1]==0.1.0", "B[V2]==0.1.0", "B[V1]==0.2.0"],
-            "C": ["C[V1]==0.1.0"],
-            "D": ["D[V1]==0.1.0", "D[V1]==0.2.0"]
-        }
-    )
+    graph = wiz.graph.Graph(None)
+    graph._node_mapping = {
+        "A[V1]==0.1.0": mocker.Mock(variant_name="V1"),
+        "A[V2]==0.1.0": mocker.Mock(variant_name="V2"),
+        "B[V1]==0.1.0": mocker.Mock(variant_name="V1"),
+        "B[V1]==0.2.0": mocker.Mock(variant_name="V1"),
+        "B[V2]==0.1.0": mocker.Mock(variant_name="V2"),
+        "C[V1]==0.1.0": mocker.Mock(variant_name="V1"),
+        "D[V1]==0.1.0": mocker.Mock(variant_name="V1"),
+        "D[V1]==0.2.0": mocker.Mock(variant_name="V1")
+    }
+    graph._variant_mapping = {
+        "A": ["A[V1]==0.1.0", "A[V2]==0.1.0"],
+        "B": ["B[V1]==0.1.0", "B[V2]==0.1.0", "B[V1]==0.2.0"],
+        "C": ["C[V1]==0.1.0"],
+        "D": ["D[V1]==0.1.0", "D[V1]==0.2.0"]
+    }
     assert graph.variant_mapping() == {
         "A": ["A[V1]==0.1.0", "A[V2]==0.1.0"],
         "B": ["B[V1]==0.1.0", "B[V2]==0.1.0", "B[V1]==0.2.0"]
@@ -661,39 +656,30 @@ def test_graph_outcoming():
     graph = wiz.graph.Graph(None)
     assert graph.outcoming("A") == []
 
-    graph = wiz.graph.Graph(
-        None,
-        link_mapping={"A": {"B": "LINK"}}
-    )
+    graph = wiz.graph.Graph(None)
+    graph._link_mapping = {"A": {"B": "LINK"}}
     assert graph.outcoming("A") == []
 
-    graph = wiz.graph.Graph(
-        None,
-        node_mapping={"A": "_A"},
-        link_mapping={"A": {"B": "LINK"}}
-    )
+    graph = wiz.graph.Graph(None)
+    graph._node_mapping = {"A": "_A"}
+    graph._link_mapping = {"A": {"B": "LINK"}}
     assert graph.outcoming("A") == []
 
-    graph = wiz.graph.Graph(
-        None,
-        node_mapping={"A": "_A", "B": "_B"},
-        link_mapping={"A": {"B": "LINK"}}
-    )
+    graph = wiz.graph.Graph(None)
+    graph._node_mapping = {"A": "_A", "B": "_B"}
+    graph._link_mapping = {"A": {"B": "LINK"}}
     assert graph.outcoming("A") == ["B"]
 
 
 def test_graph_link_weight():
     """Fetch weight from nodes link."""
-    graph = wiz.graph.Graph(
-        None,
-        link_mapping={
-            "A": {
-                "B": {"requirement": Requirement("A"), "weight": 3},
-                "C": {"requirement": Requirement("A>2"), "weight": 2}
-            }
+    graph = wiz.graph.Graph(None)
+    graph._link_mapping = {
+        "A": {
+            "B": {"requirement": Requirement("A"), "weight": 3},
+            "C": {"requirement": Requirement("A>2"), "weight": 2}
         }
-    )
-
+    }
     assert graph.link_weight("B", "A") == 3
     assert graph.link_weight("C", "A") == 2
 
@@ -704,15 +690,13 @@ def test_graph_requirement_weight():
         Requirement("A"), Requirement("A>2")
     ]
 
-    graph = wiz.graph.Graph(
-        None,
-        link_mapping={
-            "A": {
-                "B": {"requirement": requirements[0], "weight": 3},
-                "C": {"requirement": requirements[1], "weight": 2}
-            }
+    graph = wiz.graph.Graph(None)
+    graph._link_mapping = {
+        "A": {
+            "B": {"requirement": requirements[0], "weight": 3},
+            "C": {"requirement": requirements[1], "weight": 2}
         }
-    )
+    }
 
     assert graph.link_requirement("B", "A") == requirements[0]
     assert graph.link_requirement("C", "A") == requirements[1]
@@ -741,11 +725,9 @@ def test_graph_requirement_weight():
 ])
 def test_graph_conflicts(definition_mapping, node_mapping, expected):
     """Extract conflicted nodes from graph."""
-    graph = wiz.graph.Graph(
-        None,
-        node_mapping=node_mapping,
-        definition_mapping=definition_mapping
-    )
+    graph = wiz.graph.Graph(None)
+    graph._node_mapping = node_mapping
+    graph._definition_mapping = definition_mapping
 
     assert graph.conflicts() == expected
 
@@ -1365,11 +1347,10 @@ def test_graph_create_link_error():
     """Fail to create link between two nodes when one already exists."""
     requirement = Requirement("A")
 
-    graph = wiz.graph.Graph(
-        None, link_mapping={
-            "parent": {"child": {"requirement": requirement, "weight": 1}}
-        }
-    )
+    graph = wiz.graph.Graph(None)
+    graph._link_mapping = {
+        "parent": {"child": {"requirement": requirement, "weight": 1}}
+    }
 
     with pytest.raises(wiz.exception.IncorrectDefinition):
         graph.create_link("child", "parent", Requirement("A"))
@@ -1377,13 +1358,11 @@ def test_graph_create_link_error():
 
 def test_graph_remove_node():
     """Remove nodes from graph."""
-    graph = wiz.graph.Graph(
-        None,
-        node_mapping={"A1": "_A1", "A2": "_A2", "B": "B"},
-        definition_mapping={"defA": ["A1", "A2"], "defB": ["B"]},
-        variant_mapping={"_id": ["A1", "A2"]},
-        link_mapping={"A1": {"B": "LINK"}}
-    )
+    graph = wiz.graph.Graph(None)
+    graph._node_mapping = {"A1": "_A1", "A2": "_A2", "B": "B"}
+    graph._definition_mapping = {"defA": ["A1", "A2"], "defB": ["B"]}
+    graph._variant_mapping = {"_id": ["A1", "A2"]}
+    graph._link_mapping = {"A1": {"B": "LINK"}}
 
     graph.remove_node("A1")
 
@@ -1395,11 +1374,8 @@ def test_graph_remove_node():
 
 def test_graph_reset_variants():
     """Reset variant groups in graph."""
-    graph = wiz.graph.Graph(
-        None,
-        variant_mapping={"_id": ["A1", "A2"]},
-    )
-
+    graph = wiz.graph.Graph(None)
+    graph._variant_mapping = {"_id": ["A1", "A2"]}
     assert graph._variant_mapping == {"_id": ["A1", "A2"]}
 
     graph.reset_variants()

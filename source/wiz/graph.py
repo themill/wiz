@@ -610,28 +610,10 @@ class Graph(object):
     #: Identify the root of the graph
     ROOT = "root"
 
-    def __init__(
-        self, resolver, node_mapping=None, definition_mapping=None,
-        constraint_mapping=None, variant_mapping=None, link_mapping=None
-    ):
+    def __init__(self, resolver):
         """Initialise Graph.
 
         *resolver* should be an instance of :class:`Resolver`.
-
-        *node_mapping* can be an initial mapping of nodes organised node
-        identifier.
-
-        *definition_mapping* can be an initial mapping of node identifier sets
-        organised per definition identifier.
-
-        *constraint_mapping* can be an initial mapping of :class:`Constraint`
-        instances organised per definition identifier.
-
-        *variant_mapping* can be an initial mapping of node identifiers with
-        variant organised per definition identifier.
-
-        *link_mapping* can be an initial mapping of node identifiers
-        association.
 
         """
         self._logger = mlog.Logger(__name__ + ".Graph")
@@ -639,19 +621,19 @@ class Graph(object):
         self._identifier = uuid.uuid4().hex
 
         # All nodes created per node identifier.
-        self._node_mapping = node_mapping or {}
+        self._node_mapping = {}
 
         # Set of node identifiers organised per definition identifier.
-        self._definition_mapping = definition_mapping or {}
+        self._definition_mapping = {}
 
         # List of constraint instances organised per definition identifier.
-        self._constraint_mapping = constraint_mapping or {}
+        self._constraint_mapping = {}
 
         # List of identifiers with variant organised per definition identifier.
-        self._variant_mapping = variant_mapping or {}
+        self._variant_mapping = {}
 
         # Record the weight of each link in the graph.
-        self._link_mapping = link_mapping or {}
+        self._link_mapping = {}
 
     @property
     def identifier(self):
