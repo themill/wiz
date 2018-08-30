@@ -82,7 +82,6 @@ def spied_extract_ordered_packages(mocker):
 
 
 def test_scenario_1(
-    mocker,
     spied_extract_next_graph,
     spied_generate_combinations,
     spied_resolve_conflicts,
@@ -223,45 +222,7 @@ def test_scenario_1(
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_priority_mapping.call_count == 4
     assert spied_compute_trimming_combinations.call_count == 0
-
     assert spied_trim_unreachable_from_graph.call_count == 3
-    spied_trim_unreachable_from_graph.assert_any_call(
-        mocker.ANY, {
-            "root": {"priority": 0, "parent": "root"},
-            "A==0.2.0": {"priority": 1, "parent": "root"},
-            "G==2.0.2": {"priority": 2, "parent": "root"},
-            "C==0.3.2": {"priority": 2, "parent": "A==0.2.0"},
-            "B==0.1.0": {"priority": 3, "parent": "G==2.0.2"},
-            "D==0.1.4": {"priority": 4, "parent": "B==0.1.0"},
-            "D==0.1.0": {"priority": 3, "parent": "C==0.3.2"},
-            "F==1.0.0": {"priority": 5, "parent": "B==0.1.0"},
-            "E==2.3.0": {"priority": 5, "parent": "D==0.1.4"},
-        }
-    )
-    spied_trim_unreachable_from_graph.assert_any_call(
-        mocker.ANY, {
-            "root": {"priority": 0, "parent": "root"},
-            "A==0.2.0": {"priority": 1, "parent": "root"},
-            "G==2.0.2": {"priority": 2, "parent": "root"},
-            "C==0.3.2": {"priority": 2, "parent": "A==0.2.0"},
-            "B==0.1.0": {"priority": 3, "parent": "G==2.0.2"},
-            "D==0.1.0": {"priority": 3, "parent": "C==0.3.2"},
-            "F==1.0.0": {"priority": 5, "parent": "B==0.1.0"},
-            "E==2.3.0": {"priority": None, "parent": None},
-        }
-    )
-    spied_trim_unreachable_from_graph.assert_any_call(
-        mocker.ANY, {
-            "root": {"priority": 0, "parent": "root"},
-            "A==0.2.0": {"priority": 1, "parent": "root"},
-            "G==2.0.2": {"priority": 2, "parent": "root"},
-            "C==0.3.2": {"priority": 2, "parent": "A==0.2.0"},
-            "B==0.1.0": {"priority": 3, "parent": "G==2.0.2"},
-            "D==0.1.0": {"priority": 3, "parent": "C==0.3.2"},
-            "F==1.0.0": {"priority": 5, "parent": "B==0.1.0"}
-        }
-    )
-
     assert spied_sorted_from_priority.call_count == 3
     assert spied_extract_conflicted_nodes.call_count == 2
     assert spied_combined_requirements.call_count == 2
@@ -271,7 +232,6 @@ def test_scenario_1(
 
 
 def test_scenario_2(
-    mocker,
     spied_extract_next_graph,
     spied_generate_combinations,
     spied_resolve_conflicts,
@@ -402,22 +362,7 @@ def test_scenario_2(
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_priority_mapping.call_count == 1
     assert spied_compute_trimming_combinations.call_count == 0
-
     assert spied_trim_unreachable_from_graph.call_count == 1
-    spied_trim_unreachable_from_graph.assert_any_call(
-        mocker.ANY, {
-            "root": {"priority": 0, "parent": "root"},
-            "A==0.2.0": {"priority": 1, "parent": "root"},
-            "G==2.0.2": {"priority": 2, "parent": "root"},
-            "C==0.3.2": {"priority": 2, "parent": "A==0.2.0"},
-            "B==0.1.0": {"priority": 3, "parent": "G==2.0.2"},
-            "D==0.1.4": {"priority": 4, "parent": "B==0.1.0"},
-            "D==0.1.0": {"priority": 3, "parent": "C==0.3.2"},
-            "F==1.0.0": {"priority": 5, "parent": "B==0.1.0"},
-            "E==2.3.0": {"priority": 5, "parent": "D==0.1.4"},
-        }
-    )
-
     assert spied_sorted_from_priority.call_count == 1
     assert spied_extract_conflicted_nodes.call_count == 1
     assert spied_combined_requirements.call_count == 1
@@ -427,7 +372,6 @@ def test_scenario_2(
 
 
 def test_scenario_3(
-    mocker,
     spied_extract_next_graph,
     spied_generate_combinations,
     spied_resolve_conflicts,
@@ -497,9 +441,29 @@ def test_scenario_3(
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_priority_mapping.call_count == 6
     assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 5
+    assert spied_sorted_from_priority.call_count == 5
+    assert spied_extract_conflicted_nodes.call_count == 4
+    assert spied_combined_requirements.call_count == 4
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_extract_ordered_packages.call_count == 1
 
 
-def test_scenario_4():
+def test_scenario_4(
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     When only the identifier of a definition with several variants is required,
@@ -580,8 +544,35 @@ def test_scenario_4():
     assert packages[0].identifier == "B==4.0.0"
     assert packages[1].identifier == "A[V4]==1.0.0"
 
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 4
+    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_sorted_from_priority.call_count == 2
+    assert spied_extract_conflicted_nodes.call_count == 1
+    assert spied_combined_requirements.call_count == 1
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
 
-def test_scenario_5():
+
+def test_scenario_5(
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     When a specific variant of a definition is required, only one graph with
@@ -648,8 +639,35 @@ def test_scenario_5():
     assert packages[0].identifier == "B==1.0.0"
     assert packages[1].identifier == "A[V1]==1.0.0"
 
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 1
+    assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_sorted_from_priority.call_count == 0
+    assert spied_extract_conflicted_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
 
-def test_scenario_6():
+
+def test_scenario_6(
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     Like the scenario 4, we end up with as many graph as there are variants. But
@@ -733,8 +751,35 @@ def test_scenario_6():
     assert packages[0].identifier == "B==2.0.0"
     assert packages[1].identifier == "A[V2]==1.0.0"
 
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 3
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 3
+    assert spied_compute_priority_mapping.call_count == 6
+    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_trim_unreachable_from_graph.call_count == 4
+    assert spied_sorted_from_priority.call_count == 4
+    assert spied_extract_conflicted_nodes.call_count == 3
+    assert spied_combined_requirements.call_count == 3
+    assert spied_extract_parents.call_count == 2
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
 
-def test_scenario_7():
+
+def test_scenario_7(
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     The combined requirement of packages can lead to the addition of a different
@@ -784,8 +829,35 @@ def test_scenario_7():
     assert packages[0].identifier == "B==0.1.0"
     assert packages[1].identifier == "A==0.2.0"
 
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 2
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 5
+    assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 4
+    assert spied_sorted_from_priority.call_count == 4
+    assert spied_extract_conflicted_nodes.call_count == 3
+    assert spied_combined_requirements.call_count == 3
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 2
+    assert spied_extract_ordered_packages.call_count == 1
 
-def test_scenario_8():
+
+def test_scenario_8(
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     When conflicts parents are themselves conflicting, they should be discarded
@@ -849,8 +921,35 @@ def test_scenario_8():
     assert packages[1].identifier == "A==0.9.0"
     assert packages[2].identifier == "B==0.1.0"
 
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 6
+    assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 5
+    assert spied_sorted_from_priority.call_count == 5
+    assert spied_extract_conflicted_nodes.call_count == 4
+    assert spied_combined_requirements.call_count == 4
+    assert spied_extract_parents.call_count == 2
+    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_extract_ordered_packages.call_count == 1
 
-def test_scenario_9():
+
+def test_scenario_9(
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     Like the scenario 8 with different order in the graph.
@@ -913,8 +1012,35 @@ def test_scenario_9():
     assert packages[1].identifier == "C==0.9.0"
     assert packages[2].identifier == "A==0.9.0"
 
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 6
+    assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 5
+    assert spied_sorted_from_priority.call_count == 5
+    assert spied_extract_conflicted_nodes.call_count == 4
+    assert spied_combined_requirements.call_count == 4
+    assert spied_extract_parents.call_count == 1
+    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_extract_ordered_packages.call_count == 1
 
-def test_scenario_10():
+
+def test_scenario_10(
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     Like the scenario 7, a new node is added to the graph during the conflict
@@ -984,8 +1110,35 @@ def test_scenario_10():
     assert packages[1].identifier == "C[V3]==1.0.0"
     assert packages[2].identifier == "A==0.2.0"
 
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 2
+    assert spied_generate_combinations.call_count == 2
+    assert spied_resolve_conflicts.call_count == 2
+    assert spied_compute_priority_mapping.call_count == 6
+    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_trim_unreachable_from_graph.call_count == 4
+    assert spied_sorted_from_priority.call_count == 4
+    assert spied_extract_conflicted_nodes.call_count == 3
+    assert spied_combined_requirements.call_count == 3
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 2
+    assert spied_extract_ordered_packages.call_count == 1
 
-def test_scenario_11():
+
+def test_scenario_11(
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     When a definition variant is present more than other variants from the same
@@ -1067,8 +1220,35 @@ def test_scenario_11():
     assert packages[1].identifier == "B==2.0.0"
     assert packages[2].identifier == "A[V2]==1.0.0"
 
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 4
+    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_sorted_from_priority.call_count == 2
+    assert spied_extract_conflicted_nodes.call_count == 1
+    assert spied_combined_requirements.call_count == 1
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
 
-def test_scenario_12():
+
+def test_scenario_12(
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     When two versions of a definition are added to the graph with all their
@@ -1177,8 +1357,35 @@ def test_scenario_12():
     assert packages[1].identifier == "A[V3]==0.5.0"
     assert packages[2].identifier == "C"
 
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 6
+    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_trim_unreachable_from_graph.call_count == 4
+    assert spied_sorted_from_priority.call_count == 4
+    assert spied_extract_conflicted_nodes.call_count == 3
+    assert spied_combined_requirements.call_count == 3
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_extract_ordered_packages.call_count == 1
 
-def test_scenario_13():
+
+def test_scenario_13(
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     Variant has priority over version. When a package is added with all its
@@ -1272,8 +1479,35 @@ def test_scenario_13():
     assert packages[1].identifier == "B==3.0.0"
     assert packages[2].identifier == "A[V3]==1.0.0"
 
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 4
+    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_sorted_from_priority.call_count == 2
+    assert spied_extract_conflicted_nodes.call_count == 1
+    assert spied_combined_requirements.call_count == 1
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
 
-def test_scenario_14():
+
+def test_scenario_14(
+    spied_extract_next_graph,
+    spied_generate_combinations,
+    spied_resolve_conflicts,
+    spied_compute_priority_mapping,
+    spied_compute_trimming_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_sorted_from_priority,
+    spied_extract_conflicted_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
     """Compute packages for the following graph.
 
     When several packages with variants are added to the graph, the variant
@@ -1363,3 +1597,17 @@ def test_scenario_14():
     assert packages[0].identifier == "C[V2]"
     assert packages[1].identifier == "B[V4]"
     assert packages[2].identifier == "A[V3]"
+
+    # Check spied functions / methods
+    assert spied_extract_next_graph.call_count == 1
+    assert spied_generate_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_priority_mapping.call_count == 2
+    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_sorted_from_priority.call_count == 0
+    assert spied_extract_conflicted_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
