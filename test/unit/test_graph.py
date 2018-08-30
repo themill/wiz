@@ -597,34 +597,6 @@ def test_extract_ordered_packages(
     assert result == [package_mapping[_id] for _id in expected]
 
 
-def test_graph_copy():
-    """Copy a graph."""
-    graph = wiz.graph.Graph(
-        "RESOLVER",
-        node_mapping={"A1": "_A1", "A2": "_A2", "B": "B"},
-        definition_mapping={"defA": ["A1", "A2"], "defB": ["B"]},
-        variant_mapping={"_id": ["A1", "A2"]},
-        link_mapping={"A1": {"B": "LINK"}}
-    )
-
-    _graph = graph.copy()
-
-    assert graph._resolver == _graph._resolver
-    assert id(graph._resolver) == id(_graph._resolver)
-
-    assert graph._node_mapping == _graph._node_mapping
-    assert id(graph._node_mapping) != id(_graph._node_mapping)
-
-    assert graph._definition_mapping == _graph._definition_mapping
-    assert id(graph._definition_mapping) != id(_graph._definition_mapping)
-
-    assert graph._variant_mapping == _graph._variant_mapping
-    assert id(graph._variant_mapping) != id(_graph._variant_mapping)
-
-    assert graph._link_mapping == _graph._link_mapping
-    assert id(graph._link_mapping) != id(_graph._link_mapping)
-
-
 def test_graph_node():
     """Return node from graph via identifier."""
     graph = wiz.graph.Graph(

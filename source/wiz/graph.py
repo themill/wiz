@@ -678,17 +678,6 @@ class Graph(object):
             }
         }
 
-    def copy(self):
-        """Return a copy of the graph."""
-        return Graph(
-            self._resolver,
-            node_mapping=copy.deepcopy(self._node_mapping),
-            definition_mapping=copy.deepcopy(self._definition_mapping),
-            constraint_mapping=copy.deepcopy(self._constraint_mapping),
-            variant_mapping=copy.deepcopy(self._variant_mapping),
-            link_mapping=copy.deepcopy(self._link_mapping)
-        )
-
     def node(self, identifier):
         """Return node from *identifier*."""
         return self._node_mapping.get(identifier)
