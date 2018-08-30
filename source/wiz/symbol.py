@@ -26,8 +26,8 @@ DEFINITIONS_COLLECTION_ACTION = "FETCH_DEFINITIONS"
 #: History action for requirement graph creation.
 GRAPH_CREATION_ACTION = "CREATE_GRAPH"
 
-#: History action for computation of graph priority mapping.
-GRAPH_PRIORITY_COMPUTATION_ACTION = "CREATE_PRIORITY_MAPPING"
+#: History action for computation of graph distance mapping.
+GRAPH_DISTANCE_COMPUTATION_ACTION = "CREATE_DISTANCE_MAPPING"
 
 #: History action for node creation within requirement graph.
 GRAPH_NODE_CREATION_ACTION = "CREATE_NODE"

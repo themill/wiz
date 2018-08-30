@@ -73,8 +73,8 @@ class Resolver(object):
                 self._logger.debug("Failed to resolve graph: {}".format(error))
 
             else:
-                priority_mapping = compute_priority_mapping(graph)
-                return extract_ordered_packages(graph, priority_mapping)
+                distance_mapping = compute_distance_mapping(graph)
+                return extract_ordered_packages(graph, distance_mapping)
 
     def initiate(self, requirements):
         """Initialize combination stack with a graph created from *requirement*.
@@ -131,15 +131,15 @@ class Resolver(object):
         # Record all definition identifiers which led to graph division.
         self._definitions_with_variants.extend(variant_mapping.keys())
 
-        priority_mapping = compute_priority_mapping(graph)
+        distance_mapping = compute_distance_mapping(graph)
 
-        # Order the variant groups per priority to compute those nearest to the
-        # top-level first. We can assume that the first identifier of each group
-        # is the node with the highest priority as the graph has been updated
-        # using a Breadth First Search algorithm.
+        # Order the variant groups in ascending order of distance from the root
+        # level of the graph. We can assume that the first identifier of each
+        # group is the node with the shortest distance as the graph has been
+        # updated using a Breadth First Search algorithm.
         variant_groups = sorted(
             variant_mapping.values(),
-            key=lambda _group: priority_mapping[_group[0]].get("priority"),
+            key=lambda _group: distance_mapping[_group[0]].get("distance"),
         )
 
         self._logger.debug(
@@ -189,11 +189,11 @@ class Resolver(object):
         )
 
         while True:
-            priority_mapping = compute_priority_mapping(graph)
+            distance_mapping = compute_distance_mapping(graph)
 
             # Update graph and conflicts to remove all unreachable nodes.
-            trim_unreachable_from_graph(graph, priority_mapping)
-            conflicts = sorted_from_priority(conflicts, priority_mapping)
+            trim_unreachable_from_graph(graph, distance_mapping)
+            conflicts = sorted_from_distance(conflicts, distance_mapping)
 
             # If no nodes are left in the queue, exit the loop. The graph
             # is officially resolved. Hooray!
@@ -209,7 +209,7 @@ class Resolver(object):
 
             # Compute valid node identifier from combined requirements.
             requirement = combined_requirements(
-                graph, [node] + conflicted_nodes, priority_mapping
+                graph, [node] + conflicted_nodes, distance_mapping
             )
 
             # Query packages from combined requirement.
@@ -269,15 +269,15 @@ class Resolver(object):
                         )
 
 
-def compute_priority_mapping(graph):
-    """Return priority mapping for each node of *graph*.
+def compute_distance_mapping(graph):
+    """Return distance mapping for each node of *graph*.
 
-    The mapping indicates the lowest possible priority of each node
-    identifier from the root level of the graph with its corresponding
-    parent node identifier.
+    The mapping indicates the shortest possible distance of each node
+    identifier from the :attr:`root <Graph.ROOT>` level of the *graph* with
+    corresponding parent node identifier.
 
-    The priority is defined by the sum of the weights from each node to the
-    root level.
+    The distance is defined by the sum of the weights from each node to the
+    :attr:`root <Graph.ROOT>` level of the *graph*.
 
     *graph* must be an instance of :class:`Graph`.
 
@@ -286,60 +286,60 @@ def compute_priority_mapping(graph):
 
     .. note::
 
-        When a node is being visited twice, the path with the smallest
-        priority is being kept.
+        When a node is being visited twice, the path with the shortest
+        distance is being kept.
 
     """
-    logger = mlog.Logger(__name__ + ".compute_priority_mapping")
-    logger.debug("Compute priority mapping...")
+    logger = mlog.Logger(__name__ + ".compute_distance_mapping")
+    logger.debug("Compute distance mapping...")
 
     # Initiate mapping
-    priority_mapping = {
-        node.identifier: {"priority": None, "parent": None}
+    distance_mapping = {
+        node.identifier: {"distance": None, "parent": None}
         for node in graph.nodes()
     }
 
-    priority_mapping[graph.ROOT] = {"priority": 0, "parent": graph.ROOT}
+    distance_mapping[graph.ROOT] = {"distance": 0, "parent": graph.ROOT}
 
-    queue = _PriorityQueue()
+    queue = _DistanceQueue()
     queue[graph.ROOT] = 0
 
     while not queue.empty():
         identifier = queue.pop_smallest()
-        current_priority = priority_mapping[identifier]["priority"]
+        current_distance = distance_mapping[identifier]["distance"]
 
         for child_identifier in graph.outcoming(identifier):
-            priority = current_priority + graph.link_weight(
+            distance = current_distance + graph.link_weight(
                 child_identifier, identifier
             )
 
-            # The last recorded priority of this node from the source
-            last_priority = priority_mapping[child_identifier]["priority"]
+            # The last recorded distance of this node from the source
+            last_distance = distance_mapping[child_identifier]["distance"]
 
-            # If there is a currently recorded priority from the source and
-            # this is superior than the priority of the node found, update
-            # the current priority with the new one.
-            if last_priority is None or last_priority > priority:
-                priority_mapping[child_identifier] = {
-                    "priority": priority, "parent": identifier
+            # If there is a currently recorded distance from the source and
+            # this is superior than the distance of the node found, update
+            # the current distance with the new one.
+            if last_distance is None or last_distance > distance:
+                distance_mapping[child_identifier] = {
+                    "distance": distance, "parent": identifier
                 }
-                queue[child_identifier] = priority
+                queue[child_identifier] = distance
 
                 logger.debug(
-                    "Priority {priority} set to '{node}' from '{parent}'"
+                    "Distance {distance} set to '{node}' from '{parent}'"
                     .format(
-                        priority=priority,
+                        distance=distance,
                         node=child_identifier,
                         parent=identifier
                     )
                 )
 
     wiz.history.record_action(
-        wiz.symbol.GRAPH_PRIORITY_COMPUTATION_ACTION,
-        graph=graph, priority_mapping=priority_mapping
+        wiz.symbol.GRAPH_DISTANCE_COMPUTATION_ACTION,
+        graph=graph, distance_mapping=distance_mapping
     )
 
-    return priority_mapping
+    return distance_mapping
 
 
 def compute_trimming_combinations(graph, variant_groups):
@@ -405,47 +405,51 @@ def compute_trimming_combinations(graph, variant_groups):
         yield tuple([_id for _id in identifiers if _id not in _identifiers])
 
 
-def trim_unreachable_from_graph(graph, priority_mapping):
-    """Remove unreachable nodes from *graph* based on *priority_mapping*.
+def trim_unreachable_from_graph(graph, distance_mapping):
+    """Remove unreachable nodes from *graph* based on *distance_mapping*.
 
-    If a node within the *graph* does not have a priority, it means that it
-    cannot be reached from the root level. It will then be lazily removed
-    from the graph (the links are preserved to save on computing time).
+    If a node within the *graph* does not have a distance, it means that it
+    cannot be reached from the :attr:`root <Graph.ROOT>` level of the *graph*.
+    It will then be lazily removed from the graph (the links are preserved to
+    save on computing time).
 
     *graph* must be an instance of :class:`Graph`.
 
-    *priority_mapping* is a mapping indicating the lowest possible priority
-    of each node identifier from the root level of the graph with its
-    corresponding parent node identifier.
+    *distance_mapping* is a mapping indicating the shortest possible distance
+    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+    *graph* with its corresponding parent node identifier.
 
     """
     logger = mlog.Logger(__name__ + ".trim_unreachable_from_graph")
 
     for node in graph.nodes():
-        if priority_mapping[node.identifier].get("priority") is None:
+        if distance_mapping[node.identifier].get("distance") is None:
             logger.debug("Remove '{}'".format(node.identifier))
             graph.remove_node(node.identifier)
 
 
-def sorted_from_priority(identifiers, priority_mapping):
-    """Return sorted node *identifiers* based on *priority_mapping*.
+def sorted_from_distance(identifiers, distance_mapping):
+    """Return sorted node *identifiers* in ascending order of distance.
 
-    If a node identifier does not have a priority, it means that it cannot be
+    The node identifier list returned is sorted in ascending order of distance
+    from the :attr:`root <Graph.ROOT>` level of the graph.
+
+    If a node identifier does not have a distance, it means that it cannot be
     reached from the root level. It will then not be included in the list
     returned.
 
     *identifiers* should be valid node identifiers.
 
-    *priority_mapping* is a mapping indicating the lowest possible priority
-    of each node identifier from the root level of the graph with its
-    corresponding parent node identifier.
+    *distance_mapping* is a mapping indicating the shortest possible distance
+    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+    graph with its corresponding parent node identifier.
 
     """
     _identifiers = filter(
-        lambda _id: priority_mapping.get(_id, {}).get("priority"), identifiers
+        lambda _id: distance_mapping.get(_id, {}).get("distance"), identifiers
     )
     return sorted(
-        _identifiers, key=lambda _id: priority_mapping[_id]["priority"]
+        _identifiers, key=lambda _id: distance_mapping[_id]["distance"]
     )
 
 
@@ -469,16 +473,16 @@ def extract_conflicted_nodes(graph, node):
     ]
 
 
-def combined_requirements(graph, nodes, priority_mapping):
+def combined_requirements(graph, nodes, distance_mapping):
     """Return combined requirements from *nodes* in *graph*.
 
     *graph* must be an instance of :class:`Graph`.
 
     *nodes* should be a list of :class:`Node` instances.
 
-    *priority_mapping* is a mapping indicating the lowest possible priority
-    of each node identifier from the root level of the graph with its
-    corresponding parent node identifier.
+    *distance_mapping* is a mapping indicating the shortest possible distance
+    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+    graph with its corresponding parent node identifier.
 
     Raise :exc:`wiz.exception.GraphResolutionError` if requirements cannot
     be combined.
@@ -488,7 +492,7 @@ def combined_requirements(graph, nodes, priority_mapping):
 
     for node in nodes:
         _requirement = graph.link_requirement(
-            node.identifier, priority_mapping[node.identifier]["parent"]
+            node.identifier, distance_mapping[node.identifier]["parent"]
         )
 
         if requirement is None:
@@ -568,15 +572,15 @@ def remove_node_and_relink(graph, node, identifiers, requirement):
             )
 
 
-def extract_ordered_packages(graph, priority_mapping):
+def extract_ordered_packages(graph, distance_mapping):
     """Return sorted list of packages from *graph*.
 
     Best matching :class:`~wiz.package.Package` instances are
     extracted from each node instance and added to the list.
 
-    *priority_mapping* is a mapping indicating the lowest possible priority
-    of each node identifier from the root level of the graph with its
-    corresponding parent node identifier.
+    *distance_mapping* is a mapping indicating the shortest possible distance
+    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+    graph with its corresponding parent node identifier.
 
     """
     logger = mlog.Logger(__name__ + ".extract_ordered_packages")
@@ -585,7 +589,7 @@ def extract_ordered_packages(graph, priority_mapping):
 
     for node in sorted(
         graph.nodes(),
-        key=lambda n: priority_mapping[n.identifier].items(),
+        key=lambda n: distance_mapping[n.identifier].items(),
         reverse=True
     ):
         packages.append(node.package)
@@ -1143,16 +1147,17 @@ class Constraint(object):
         }
 
 
-class _PriorityQueue(dict):
-    """Priority mapping which can be used as a priority queue.
+class _DistanceQueue(dict):
+    """Distance mapping which can be used as a queue.
 
-    Keys of the dictionary are node identifiers to be put into the queue, and
-    values are their respective priorities. All dictionary methods work as
-    expected.
+    Distances are cumulated weights computed between each node and the
+    :attr:`root of the graph <Graph.ROOT>`.
 
-    The advantage over a standard heapq-based priority queue is that priorities
-    of node identifiers can be efficiently updated (amortized O(1)) using code
-    as 'priority_stack[node] = new_priority.'
+    Keys of the dictionary are node identifiers added into a queue, and
+    values are their respective distances.
+
+    The advantage over a standard heapq-based distance queue is that distances
+    of node identifiers can be efficiently updated (amortized O(1)).
 
     .. note::
 
@@ -1163,33 +1168,35 @@ class _PriorityQueue(dict):
 
     def __init__(self, *args, **kwargs):
         """Initialise mapping and build heap."""
-        super(_PriorityQueue, self).__init__(*args, **kwargs)
+        super(_DistanceQueue, self).__init__(*args, **kwargs)
         self._build_heap()
 
     def _build_heap(self):
         """Build the heap from mapping's keys and values."""
         self._heap = [
-            (priority, identifier) for identifier, priority in self.items()
+            (distance, identifier) for identifier, distance in self.items()
         ]
         heapify(self._heap)
 
-    def __setitem__(self, identifier, priority):
-        """Set *priority* value for *identifier* item.
+    def __setitem__(self, identifier, distance):
+        """Set *distance* value for *identifier* item.
 
         *identifier* should be a node identifier.
 
-        *priority* should be a number indicating the importance of the node.
+        *distance* should be a number indicating the importance of the node. A
+        shorter distance from the graph root means that the node has a higher
+        importance than nodes with longer distances.
 
         .. note::
 
-            The priority is not removed from the heap since this would have a
+            The distance is not removed from the heap since this would have a
             cost of O(n).
 
         """
-        super(_PriorityQueue, self).__setitem__(identifier, priority)
+        super(_DistanceQueue, self).__setitem__(identifier, distance)
 
         if len(self._heap) < 2 * len(self):
-            heappush(self._heap, (priority, identifier))
+            heappush(self._heap, (distance, identifier))
         else:
             # When the heap grows larger than 2 * len(self), we rebuild it
             # from scratch to avoid wasting too much memory.
@@ -1200,17 +1207,17 @@ class _PriorityQueue(dict):
         return len(self.keys()) == 0
 
     def pop_smallest(self):
-        """Return the item with the lowest priority and remove it.
+        """Return item with the shortest distance from graph root and remove it.
 
         Raises :exc:`IndexError` if the object is empty.
 
         """
 
         heap = self._heap
-        priority, identifier = heappop(heap)
+        distance, identifier = heappop(heap)
 
-        while identifier not in self or self[identifier] != priority:
-            priority, identifier = heappop(heap)
+        while identifier not in self or self[identifier] != distance:
+            distance, identifier = heappop(heap)
 
         del self[identifier]
         return identifier

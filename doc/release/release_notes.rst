@@ -92,6 +92,21 @@ Release Notes
         Removed :meth:`wiz.graph.Graph.copy` as this functionality
         is not necessary anymore.
 
+    .. change:: changed
+        :tags: API
+
+        Renamed :func:`wiz.graph.compute_priority_mapping` to
+        :func:`wiz.graph.compute_distance_mapping` to prevent confusion as a
+        shortest path algorithm (Dijkstra's algorithm) is being used to define
+        the "priorities" which are the shortest possible paths from nodes to the
+        root of the graph.
+
+    .. change:: changed
+        :tags: API
+
+        Renamed :func:`wiz.graph.sorted_from_priority` to
+        :func:`wiz.graph.sorted_from_distance` for clarity.
+
     .. change:: fixed
         :tags: API
 

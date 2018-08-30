@@ -71,55 +71,55 @@ def test_resolver():
 @pytest.mark.parametrize("mapping, expected", [
     (
         {"root": []},
-        {"root": {"priority": 0, "parent": "root"}}
+        {"root": {"distance": 0, "parent": "root"}}
     ),
     (
         {"root": ["A"], "A": []},
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"}
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"}
         }
     ),
     (
         {"root": ["A", "B"], "A": [], "B": []},
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"},
-            "B": {"priority": 2, "parent": "root"}
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"}
         }
     ),
     (
         {"root": ["A", "B", "C"], "A": [], "B": [], "C": []},
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"},
-            "B": {"priority": 2, "parent": "root"},
-            "C": {"priority": 3, "parent": "root"}
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"},
+            "C": {"distance": 3, "parent": "root"}
         }
     ),
     (
         {"root": ["A"], "A": ["B"], "B": []},
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"},
-            "B": {"priority": 2, "parent": "A"}
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "A"}
         }
     ),
     (
         {"root": ["A"], "A": ["B"], "B": ["C"], "C": []},
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"},
-            "B": {"priority": 2, "parent": "A"},
-            "C": {"priority": 3, "parent": "B"}
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "A"},
+            "C": {"distance": 3, "parent": "B"}
         }
     ),
     (
         {"root": ["A", "B"], "A": ["B"], "B": ["A"]},
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"},
-            "B": {"priority": 2, "parent": "root"}
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"}
         }
     ),
     (
@@ -134,14 +134,14 @@ def test_resolver():
             "G": []
         },
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"},
-            "B": {"priority": 2, "parent": "root"},
-            "C": {"priority": 2, "parent": "A"},
-            "D": {"priority": 3, "parent": "A"},
-            "E": {"priority": 4, "parent": "D"},
-            "F": {"priority": 4, "parent": "B"},
-            "G": {"priority": 5, "parent": "B"},
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"},
+            "C": {"distance": 2, "parent": "A"},
+            "D": {"distance": 3, "parent": "A"},
+            "E": {"distance": 4, "parent": "D"},
+            "F": {"distance": 4, "parent": "B"},
+            "G": {"distance": 5, "parent": "B"},
         }
     ),
     (
@@ -155,13 +155,13 @@ def test_resolver():
             "F": []
         },
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"},
-            "B": {"priority": None, "parent": None},
-            "C": {"priority": 2, "parent": "A"},
-            "D": {"priority": None, "parent": None},
-            "E": {"priority": 3, "parent": "A"},
-            "F": {"priority": 4, "parent": "A"},
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": None, "parent": None},
+            "C": {"distance": 2, "parent": "A"},
+            "D": {"distance": None, "parent": None},
+            "E": {"distance": 3, "parent": "A"},
+            "F": {"distance": 4, "parent": "A"},
         }
 
     ),
@@ -177,14 +177,14 @@ def test_resolver():
             "G": ["B"],
         },
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"},
-            "B": {"priority": 2, "parent": "root"},
-            "C": {"priority": 2, "parent": "A"},
-            "D": {"priority": 3, "parent": "A"},
-            "E": {"priority": 4, "parent": "D"},
-            "F": {"priority": 3, "parent": "root"},
-            "G": {"priority": 3, "parent": "C"},
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"},
+            "C": {"distance": 2, "parent": "A"},
+            "D": {"distance": 3, "parent": "A"},
+            "E": {"distance": 4, "parent": "D"},
+            "F": {"distance": 3, "parent": "root"},
+            "G": {"distance": 3, "parent": "C"},
         }
     )
 ], ids=[
@@ -199,13 +199,13 @@ def test_resolver():
     "multi-levels-with-unreachable-nodes",
     "complex-multi-levels"
 ])
-def test_compute_priority_mapping(mocker, mocked_graph, mapping, expected):
-    """Compute priority mapping from Graph."""
+def test_compute_distance_mapping(mocker, mocked_graph, mapping, expected):
+    """Compute distance mapping from Graph."""
     nodes = [mocker.Mock(identifier=_id) for _id in mapping.keys()]
     mocked_graph.nodes.return_value = nodes
     mocked_graph.outcoming = lambda x: mapping[x]
     mocked_graph.link_weight = lambda x, y: mapping[y].index(x) + 1
-    assert wiz.graph.compute_priority_mapping(mocked_graph) == expected
+    assert wiz.graph.compute_distance_mapping(mocked_graph) == expected
 
 
 @pytest.mark.parametrize("variant_groups, expected", [
@@ -324,43 +324,43 @@ def test_compute_trimming_combinations(
 def test_trim_unreachable_from_graph(
     mocker, mocked_graph, mocked_graph_remove_node
 ):
-    """Remove unreachable nodes from graph based on priority mapping."""
+    """Remove unreachable nodes from graph based on distance mapping."""
     identifiers = ["A", "B", "C", "D", "E", "F"]
     nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
     mocked_graph.nodes.return_value = nodes
 
-    priority_mapping = {
-        "root": {"priority": 0, "parent": "root"},
-        "A": {"priority": 1, "parent": "root"},
-        "B": {"priority": None, "parent": None},
-        "C": {"priority": 2, "parent": "A"},
-        "D": {"priority": None, "parent": None},
-        "E": {"priority": 3, "parent": "A"},
-        "F": {"priority": 4, "parent": "A"},
+    distance_mapping = {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": None, "parent": None},
+        "C": {"distance": 2, "parent": "A"},
+        "D": {"distance": None, "parent": None},
+        "E": {"distance": 3, "parent": "A"},
+        "F": {"distance": 4, "parent": "A"},
     }
 
-    wiz.graph.trim_unreachable_from_graph(mocked_graph, priority_mapping)
+    wiz.graph.trim_unreachable_from_graph(mocked_graph, distance_mapping)
 
     assert mocked_graph_remove_node.call_count == 2
     mocked_graph_remove_node.assert_any_call("B")
     mocked_graph_remove_node.assert_any_call("D")
 
 
-def test_sorted_from_priority():
-    """Sort node based on priority mapping."""
+def test_sorted_from_distance():
+    """Sort node based on distance mapping."""
     identifiers = ["F", "E", "D", "C", "B", "A"]
 
-    priority_mapping = {
-        "root": {"priority": 0, "parent": "root"},
-        "A": {"priority": 1, "parent": "root"},
-        "B": {"priority": None, "parent": None},
-        "C": {"priority": 2, "parent": "A"},
-        "D": {"priority": None, "parent": None},
-        "E": {"priority": 3, "parent": "A"},
-        "F": {"priority": 4, "parent": "A"},
+    distance_mapping = {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": None, "parent": None},
+        "C": {"distance": 2, "parent": "A"},
+        "D": {"distance": None, "parent": None},
+        "E": {"distance": 3, "parent": "A"},
+        "F": {"distance": 4, "parent": "A"},
     }
 
-    result = wiz.graph.sorted_from_priority(identifiers, priority_mapping)
+    result = wiz.graph.sorted_from_distance(identifiers, distance_mapping)
     assert result == ["A", "C", "E", "F"]
 
 
@@ -405,16 +405,16 @@ def test_combined_requirements(mocker, mocked_graph):
         mocker.Mock(identifier="A==1.2.3")
     ]
 
-    priority_mapping = {
-        "A==3": {"priority": 1, "parent": "B"},
-        "A==1.9": {"priority": 2, "parent": "C"},
-        "A==1.2.3": {"priority": 3, "parent": "D"},
+    distance_mapping = {
+        "A==3": {"distance": 1, "parent": "B"},
+        "A==1.9": {"distance": 2, "parent": "C"},
+        "A==1.2.3": {"distance": 3, "parent": "D"},
     }
 
     mocked_graph.link_requirement.side_effect = requirements
 
     requirement = wiz.graph.combined_requirements(
-        mocked_graph, nodes, priority_mapping
+        mocked_graph, nodes, distance_mapping
     )
 
     assert str(requirement) == "A >=1, ==1.2.3, <2"
@@ -439,17 +439,17 @@ def test_combined_requirements_error(mocker, mocked_graph):
         mocker.Mock(identifier="A==1.2.3")
     ]
 
-    priority_mapping = {
-        "A==3": {"priority": 1, "parent": "B"},
-        "Z==1.9": {"priority": 2, "parent": "C"},
-        "A==1.2.3": {"priority": 3, "parent": "D"},
+    distance_mapping = {
+        "A==3": {"distance": 1, "parent": "B"},
+        "Z==1.9": {"distance": 2, "parent": "C"},
+        "A==1.2.3": {"distance": 3, "parent": "D"},
     }
 
     mocked_graph.link_requirement.side_effect = requirements
 
     with pytest.raises(wiz.exception.GraphResolutionError):
         wiz.graph.combined_requirements(
-            mocked_graph, nodes, priority_mapping
+            mocked_graph, nodes, distance_mapping
         )
 
     assert mocked_graph.link_requirement.call_count == 2
@@ -524,50 +524,50 @@ def test_remove_node_and_relink(mocker, mocked_graph):
     )
 
 
-@pytest.mark.parametrize("identifiers, priority_mapping, expected", [
+@pytest.mark.parametrize("identifiers, distance_mapping, expected", [
     (
         [],
-        {"root": {"priority": 0, "parent": "root"}},
+        {"root": {"distance": 0, "parent": "root"}},
         []
     ),
     (
         ["A"],
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"}
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"}
         },
         ["A"]
     ),
     (
         ["A", "B"],
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"},
-            "B": {"priority": 2, "parent": "root"}
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"}
         },
         ["B", "A"],
     ),
     (
         ["A", "B", "C"],
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"},
-            "B": {"priority": 2, "parent": "root"},
-            "C": {"priority": 3, "parent": "root"}
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"},
+            "C": {"distance": 3, "parent": "root"}
         },
         ["C", "B", "A"]
     ),
     (
         ["A", "B", "C", "D", "E", "F", "G"],
         {
-            "root": {"priority": 0, "parent": "root"},
-            "A": {"priority": 1, "parent": "root"},
-            "B": {"priority": 2, "parent": "root"},
-            "C": {"priority": 2, "parent": "A"},
-            "D": {"priority": 3, "parent": "A"},
-            "E": {"priority": 4, "parent": "D"},
-            "F": {"priority": 4, "parent": "B"},
-            "G": {"priority": 5, "parent": "B"},
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"},
+            "C": {"distance": 2, "parent": "A"},
+            "D": {"distance": 3, "parent": "A"},
+            "E": {"distance": 4, "parent": "D"},
+            "F": {"distance": 4, "parent": "B"},
+            "G": {"distance": 5, "parent": "B"},
         },
         ["G", "E", "F", "D", "B", "C", "A"]
     ),
@@ -579,7 +579,7 @@ def test_remove_node_and_relink(mocker, mocked_graph):
     "multi-levels"
 ])
 def test_extract_ordered_packages(
-    mocker, mocked_graph, identifiers, priority_mapping, expected
+    mocker, mocked_graph, identifiers, distance_mapping, expected
 ):
     """Extract ordered packages from graph."""
     package_mapping = {
@@ -593,7 +593,7 @@ def test_extract_ordered_packages(
     ]
     mocked_graph.nodes.return_value = nodes
 
-    result = wiz.graph.extract_ordered_packages(mocked_graph, priority_mapping)
+    result = wiz.graph.extract_ordered_packages(mocked_graph, distance_mapping)
     assert result == [package_mapping[_id] for _id in expected]
 
 
@@ -1407,9 +1407,9 @@ def test_node(mocker):
     assert node.parent_identifiers == {"parent1", "parent2"}
 
 
-def test_priority_queue():
-    """Create and use priority queue."""
-    queue = wiz.graph._PriorityQueue()
+def test_distance_queue():
+    """Create and use distance queue."""
+    queue = wiz.graph._DistanceQueue()
     assert queue.empty() is True
 
     # Add element to the queue. This will also be pushed to the heap.
