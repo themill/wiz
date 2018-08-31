@@ -208,8 +208,6 @@ def test_scenario_1(
     resolver = wiz.graph.Resolver(definition_mapping)
     packages = resolver.compute_packages([Requirement("A"), Requirement("G")])
 
-    assert resolver.remaining_combinations == 0
-
     assert len(packages) == 6
     assert packages[0].identifier == "F==1.0.0"
 
@@ -362,15 +360,13 @@ def test_scenario_2(
     with pytest.raises(wiz.exception.GraphResolutionError) as error:
         resolver.compute_packages([Requirement("A"), Requirement("G")])
 
-    assert resolver.remaining_combinations == 0
-
     assert (
         "The combined requirement 'D >0.1.0, ==0.1.0' could not be resolved "
         "from the following packages: ['B==0.1.0', 'C==0.3.2']."
     ) in str(error)
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_graph.call_count == 2
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
@@ -445,8 +441,6 @@ def test_scenario_3(
 
     resolver = wiz.graph.Resolver(definition_mapping)
     packages = resolver.compute_packages([Requirement("A"), Requirement("B")])
-
-    assert resolver.remaining_combinations == 0
 
     assert len(packages) == 2
     assert packages[0].identifier == "B==0.9.0"
@@ -559,8 +553,6 @@ def test_scenario_4(
     resolver = wiz.graph.Resolver(definition_mapping)
     packages = resolver.compute_packages([Requirement("A")])
 
-    assert resolver.remaining_combinations == 3
-
     assert len(packages) == 2
     assert packages[0].identifier == "B==4.0.0"
     assert packages[1].identifier == "A[V4]==1.0.0"
@@ -657,8 +649,6 @@ def test_scenario_5(
 
     resolver = wiz.graph.Resolver(definition_mapping)
     packages = resolver.compute_packages([Requirement("A[V1]")])
-
-    assert resolver.remaining_combinations == 0
 
     assert len(packages) == 2
     assert packages[0].identifier == "B==1.0.0"
@@ -774,8 +764,6 @@ def test_scenario_6(
         Requirement("A"), Requirement("B==2.*")
     ])
 
-    assert resolver.remaining_combinations == 1
-
     assert len(packages) == 2
     assert packages[0].identifier == "B==2.0.0"
     assert packages[1].identifier == "A[V2]==1.0.0"
@@ -855,8 +843,6 @@ def test_scenario_7(
     packages = resolver.compute_packages([
         Requirement("A<=0.3.0"), Requirement("B")
     ])
-
-    assert resolver.remaining_combinations == 0
 
     assert len(packages) == 2
     assert packages[0].identifier == "B==0.1.0"
@@ -951,8 +937,6 @@ def test_scenario_8(
         Requirement("A"), Requirement("B")
     ])
 
-    assert resolver.remaining_combinations == 0
-
     assert len(packages) == 3
     assert packages[0].identifier == "C==0.9.0"
     assert packages[1].identifier == "A==0.9.0"
@@ -1045,8 +1029,6 @@ def test_scenario_9(
     packages = resolver.compute_packages([
         Requirement("A <1"), Requirement("B")
     ])
-
-    assert resolver.remaining_combinations == 0
 
     assert len(packages) == 3
     assert packages[0].identifier == "B==0.1.0"
@@ -1147,8 +1129,6 @@ def test_scenario_10(
     packages = resolver.compute_packages([
         Requirement("A<=0.3.0"), Requirement("B")
     ])
-
-    assert resolver.remaining_combinations == 2
 
     assert len(packages) == 3
     assert packages[0].identifier == "B==0.1.0"
@@ -1261,8 +1241,6 @@ def test_scenario_11(
     packages = resolver.compute_packages([
         Requirement("A"), Requirement("C")
     ])
-
-    assert resolver.remaining_combinations == 2
 
     assert len(packages) == 3
     assert packages[0].identifier == "C"
@@ -1403,8 +1381,6 @@ def test_scenario_12(
         Requirement("A"), Requirement("C")
     ])
 
-    assert resolver.remaining_combinations == 2
-
     assert len(packages) == 3
     assert packages[0].identifier == "B==3.0.0"
     assert packages[1].identifier == "A[V3]==0.5.0"
@@ -1529,8 +1505,6 @@ def test_scenario_13(
         Requirement("A"), Requirement("C")
     ])
 
-    assert resolver.remaining_combinations == 2
-
     assert len(packages) == 3
     assert packages[0].identifier == "C"
     assert packages[1].identifier == "B==3.0.0"
@@ -1651,8 +1625,6 @@ def test_scenario_14(
     packages = resolver.compute_packages([
         Requirement("A"), Requirement("B"), Requirement("C")
     ])
-
-    assert resolver.remaining_combinations == 23
 
     assert len(packages) == 3
     assert packages[0].identifier == "C[V2]"

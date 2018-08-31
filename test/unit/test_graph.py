@@ -3,6 +3,7 @@
 import pytest
 import mock
 import types
+import itertools
 import re
 
 from wiz.utility import Requirement
@@ -318,7 +319,9 @@ def test_compute_trimming_combinations(
         mocked_graph, variant_groups
     )
     assert isinstance(results, types.GeneratorType) is True
-    assert list(results) == expected
+    for combination, _expected in itertools.izip_longest(results, expected):
+        assert combination[0] == mocked_graph
+        assert combination[1] == _expected
 
 
 def test_trim_unreachable_from_graph(

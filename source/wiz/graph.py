@@ -3,7 +3,7 @@
 import copy
 import itertools
 import uuid
-from collections import deque, Counter
+from collections import Counter
 from heapq import heapify, heappush, heappop
 try:
     import queue as _queue
@@ -52,7 +52,7 @@ class Resolver(object):
         }
 
     Instead of directly dividing the graph 24 times, a list of trimming
-    combination is computed to figure out the order of the graph division and
+    combination is generated to figure out the order of the graph division and
     the node identifiers which should be remove during each division. For
     the example above, the first graph will be computed with "foo[V3]",
     "bar[V2]" and "baz[V4]" so all other variant conflicts should be removed.
@@ -101,19 +101,14 @@ class Resolver(object):
         # parent node identifier.
         self._distance_mapping = None
 
-        # Stack of tuples containing each a graph to resolve and a list of
-        # variant node identifiers to remove from it before instantiation.
-        self._combination_stack = deque()
+        # Iterator which yield the next graph to resolve with a list of
+        # conflicting variant node identifiers to remove before instantiation.
+        self._iterator = iter([])
 
     @property
     def definition_mapping(self):
         """Return mapping of all available definitions."""
         return self._definition_mapping
-
-    @property
-    def remaining_combinations(self):
-        """Return the number of remaining graph combinations."""
-        return len(self._combination_stack)
 
     def compute_packages(self, requirements):
         """Resolve requirements graphs and return list of packages.
@@ -124,24 +119,27 @@ class Resolver(object):
         """
         self._initiate(requirements)
 
-        while self.remaining_combinations > 0:
+        # Store latest exception to raise if necessary.
+        latest_error = None
+
+        while True:
             graph = self._fetch_next_graph()
+            if graph is None:
+                raise latest_error
 
             try:
                 self._resolve_conflicts(graph)
 
             except wiz.exception.WizError as error:
-                # If no more combination is left to resolve, raise an error.
-                if self.remaining_combinations == 0:
-                    raise
                 self._logger.debug("Failed to resolve graph: {}".format(error))
+                latest_error = error
 
             else:
                 distance_mapping, _ = self._fetch_distance_mapping(graph)
                 return extract_ordered_packages(graph, distance_mapping)
 
     def _initiate(self, requirements):
-        """Initialize combination stack with a graph created from *requirement*.
+        """Initialize iterator with a graph created from *requirement*.
 
         *requirements* should be a list of
         class:`packaging.requirements.Requirement` instances.
@@ -152,12 +150,12 @@ class Resolver(object):
         # Update the graph.
         graph.update_from_requirements(requirements)
 
-        # Clear the combination stack.
-        self._combination_stack = deque()
+        # Reset the iterator.
+        self._iterator = iter([])
 
-        # Initialise stack.
+        # Initialize combinations or simply add graph to iterator.
         if not self._extract_combinations(graph):
-            self._combination_stack.append((graph, []))
+            self._iterator = iter([(graph, [])])
 
     def _fetch_distance_mapping(self, graph):
         """Return tuple with distance mapping and boolean update indicator.
@@ -176,13 +174,11 @@ class Resolver(object):
         return self._distance_mapping, updated
 
     def _fetch_next_graph(self):
-        """Generate a graph from the combination stack."""
+        """Return next graph computed from the iterator."""
         try:
-            graph, nodes_to_remove = self._combination_stack.popleft()
-        except IndexError:
-            raise wiz.exception.GraphResolutionError(
-                "No more graph to resolve in the combination stack."
-            )
+            graph, nodes_to_remove = next(self._iterator)
+        except StopIteration:
+            return
 
         # To prevent mutating any copy of the instance.
         _graph = copy.deepcopy(graph)
@@ -198,8 +194,8 @@ class Resolver(object):
     def _extract_combinations(self, graph):
         """Extract possible combinations from variant conflicts in *graph*.
 
-        Return a boolean value indicating whether combinations have been added
-        to the stack.
+        Return a boolean value indicating whether combination generator has been
+        added to the iterator.
 
         *graph* must be an instance of :class:`Graph`.
 
@@ -231,19 +227,10 @@ class Resolver(object):
             )
         )
 
-        combinations = []
-        for identifiers in compute_trimming_combinations(graph, variant_groups):
-            combinations.append((graph, identifiers))
-
-        self._logger.debug(
-            "{} combination generated from graph division".format(
-                len(combinations)
-            )
+        self._iterator = itertools.chain(
+            compute_trimming_combinations(graph, variant_groups),
+            self._iterator
         )
-
-        # Append on the left so that latest combinations have priority over
-        # previous combinations generated.
-        self._combination_stack.extendleft(reversed(combinations))
         return True
 
     def _resolve_conflicts(self, graph):
@@ -454,12 +441,12 @@ def compute_trimming_combinations(graph, variant_groups):
         >>> list(compute_trimming_combinations(graph, variant_groups))
 
         [
-            ("foo[V2]", "foo[V1]", "bar[V2]==1", "bar[V2]==2"),
-            ("foo[V2]", "foo[V1]", "bar[V1]==1"),
-            ("foo[V3]", "foo[V1]", "bar[V2]==1", "bar[V2]==2"),
-            ("foo[V3]", "foo[V1]", "bar[V1]==1"),
-            ("foo[V3]", "foo[V2]", "bar[V2]==1", "bar[V2]==2"),
-            ("foo[V3]", "foo[V2]", "bar[V1]==1")
+            (graph, ("foo[V2]", "foo[V1]", "bar[V2]==1", "bar[V2]==2")),
+            (graph, ("foo[V2]", "foo[V1]", "bar[V1]==1")),
+            (graph, ("foo[V3]", "foo[V1]", "bar[V2]==1", "bar[V2]==2")),
+            (graph, ("foo[V3]", "foo[V1]", "bar[V1]==1")),
+            (graph, ("foo[V3]", "foo[V2]", "bar[V2]==1", "bar[V2]==2")),
+            (graph, ("foo[V3]", "foo[V2]", "bar[V1]==1"))
         ]
 
     """
@@ -489,7 +476,10 @@ def compute_trimming_combinations(graph, variant_groups):
 
     for combination in itertools.product(*_groups):
         _identifiers = [_id for _group in combination for _id in _group]
-        yield tuple([_id for _id in identifiers if _id not in _identifiers])
+        yield (
+            graph,
+            tuple([_id for _id in identifiers if _id not in _identifiers])
+        )
 
 
 def trim_unreachable_from_graph(graph, distance_mapping):
@@ -726,6 +716,24 @@ class Graph(object):
         # List of node identifiers with variant organised per definition
         # identifier.
         self._variants_per_definition = {}
+
+    def __deepcopy__(self, memo):
+        """Ensure that only necessary element are copied in the new graph."""
+        result = Graph(self._resolver)
+        result._node_mapping = copy.deepcopy(self._node_mapping)
+        result._link_mapping = copy.deepcopy(self._link_mapping)
+        result._identifiers_per_definition = (
+            copy.deepcopy(self._identifiers_per_definition)
+        )
+        result._constraints_per_definition = (
+            copy.deepcopy(self._constraints_per_definition)
+        )
+        result._variants_per_definition = (
+            copy.deepcopy(self._variants_per_definition)
+        )
+
+        memo[id(self)] = result
+        return result
 
     @property
     def identifier(self):
