@@ -20,6 +20,64 @@ import wiz.history
 
 class Resolver(object):
     """Graph resolver class.
+
+    Compute a ordered list of packages from an initial list of
+    :class:`packaging.requirements.Requirement` instances::
+
+        >>> from packaging.requirements import Requirement
+        >>> resolver = Resolver()
+        >>> resolver.compute_packages(Requirement("foo"), Requirement("bar"))
+
+        [Package("foo"), Package("bar"), Package("bim"), Package("baz")]
+
+    A :class:`Graph` is instantiated with dependent requirements from initial
+    requirements (e.g. "foo" requires "bim" and "bim" requires "bar").
+
+    If several variants of one package definition are in the graph, the graph
+    must be divided in as many graphs as there are variants. If several
+    conflicting variant groups are in the graph, the number of graph division
+    is equal to the multiplication of each variant group size. For instance, 24
+    graph divisions would be necessary for the following example (3 x 2 x 4)::
+
+        >>> graph = Graph(resolver)
+        >>> graph.update_from_requirements(
+        ...     Requirement("foo"), Requirement("bar"), Requirement("baz")
+        ... )
+        >>> graph.variant_mapping()
+
+        {
+            "foo": ["foo[V3]", "foo[V2]", "foo[V1]"],
+            "bar": ["bar[V2]", "bar[V1]"],
+            "foo": ["baz[V4]", "baz[V3]", "baz[V2]", "baz[V1]"],
+        }
+
+    Instead of directly dividing the graph 24 times, a list of trimming
+    combination is computed to figure out the order of the graph division and
+    the node identifiers which should be remove during each division. For
+    the example above, the first graph will be computed with "foo[V3]",
+    "bar[V2]" and "baz[V4]" so all other variant conflicts should be removed.
+    The second graph is generated with "foo[V3]", "bar[V2]" and "baz[V3]" only
+    if the first graph cannot be resolved.
+
+    The resolution process of the graph ensure that only one version of each
+    package definition is kept. If several versions of one package definition
+    are in a graph, their corresponding requirement will be analyzed to ensure
+    that they are compatible.
+
+    .. code-block:: none
+
+        - 'foo==0.5.0' is required by 'foo<1';
+        - 'foo==1.0.0' is required by 'foo';
+        - The version '0.5.0' is matching both requirements;
+        - Requirements 'foo<1' and 'foo' are seen as compatible.
+
+    The graph cannot be resolved if two requirements are incompatibles.
+
+    If the requirements are compatibles, they will be combined to figure out
+    which nodes should be removed from the graph. The requirement combination
+    can lead to the addition of new nodes to the graph which can lead to further
+    graph divisions.
+
     """
 
     def __init__(self, definition_mapping):
@@ -61,7 +119,7 @@ class Resolver(object):
         """Resolve requirements graphs and return list of packages.
 
         *requirements* should be a list of
-        class:`packaging.requirements.Requirement` instances.
+        :class:`packaging.requirements.Requirement` instances.
 
         """
         self._initiate(requirements)
@@ -387,7 +445,7 @@ def compute_trimming_combinations(graph, variant_groups):
     variant that should be present in the graph at the same time.
 
     The trimming combination represents the inverse of this product, so that it
-    identify the nodes to remove at each graph division.::
+    identify the nodes to remove at each graph division::
 
         >>> variant_groups = [
         ...     ["foo[V3]", "foo[V2]", "foo[V1]"],
