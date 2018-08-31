@@ -19,7 +19,8 @@ import wiz.history
 
 
 class Resolver(object):
-    """Graph resolver class."""
+    """Graph resolver class.
+    """
 
     def __init__(self, definition_mapping):
         """Initialise Resolver with *requirements*.
@@ -36,6 +37,11 @@ class Resolver(object):
         # List of definition identifiers with variants which required graph
         # division
         self._definitions_with_variants = []
+
+        # Record mapping indicating the shortest possible distance of each node
+        # identifier from the root level of the graph with corresponding
+        # parent node identifier.
+        self._distance_mapping = None
 
         # Stack of tuples containing each a graph to resolve and a list of
         # variant node identifiers to remove from it before instantiation.
@@ -58,13 +64,13 @@ class Resolver(object):
         class:`packaging.requirements.Requirement` instances.
 
         """
-        self.initiate(requirements)
+        self._initiate(requirements)
 
         while self.remaining_combinations > 0:
-            graph = self.extract_next_graph()
+            graph = self._fetch_next_graph()
 
             try:
-                self.resolve_conflicts(graph)
+                self._resolve_conflicts(graph)
 
             except wiz.exception.WizError as error:
                 # If no more combination is left to resolve, raise an error.
@@ -73,10 +79,10 @@ class Resolver(object):
                 self._logger.debug("Failed to resolve graph: {}".format(error))
 
             else:
-                distance_mapping = compute_distance_mapping(graph)
+                distance_mapping, _ = self._fetch_distance_mapping(graph)
                 return extract_ordered_packages(graph, distance_mapping)
 
-    def initiate(self, requirements):
+    def _initiate(self, requirements):
         """Initialize combination stack with a graph created from *requirement*.
 
         *requirements* should be a list of
@@ -92,11 +98,27 @@ class Resolver(object):
         self._combination_stack = deque()
 
         # Initialise stack.
-        if not self.generate_combinations(graph):
+        if not self._extract_combinations(graph):
             self._combination_stack.append((graph, []))
 
-    def extract_next_graph(self):
-        """Extract a graph from the combination stack."""
+    def _fetch_distance_mapping(self, graph):
+        """Return tuple with distance mapping and boolean update indicator.
+
+        If no distance mapping is available, a new one is generated from
+        *graph*. The boolean update indicator is True only if a new distance
+        mapping is generated.
+
+        """
+        updated = False
+
+        if self._distance_mapping is None:
+            self._distance_mapping = compute_distance_mapping(graph)
+            updated = True
+
+        return self._distance_mapping, updated
+
+    def _fetch_next_graph(self):
+        """Generate a graph from the combination stack."""
         try:
             graph, nodes_to_remove = self._combination_stack.popleft()
         except IndexError:
@@ -107,12 +129,15 @@ class Resolver(object):
         # To prevent mutating any copy of the instance.
         _graph = copy.deepcopy(graph)
 
+        # Reset the distance mapping for new graph.
+        self._distance_mapping = None
+
         for identifier in nodes_to_remove:
             _graph.remove_node(identifier, record=False)
 
         return _graph
 
-    def generate_combinations(self, graph):
+    def _extract_combinations(self, graph):
         """Extract possible combinations from variant conflicts in *graph*.
 
         Return a boolean value indicating whether combinations have been added
@@ -131,7 +156,7 @@ class Resolver(object):
         # Record all definition identifiers which led to graph division.
         self._definitions_with_variants.extend(variant_mapping.keys())
 
-        distance_mapping = compute_distance_mapping(graph)
+        distance_mapping, _ = self._fetch_distance_mapping(graph)
 
         # Order the variant groups in ascending order of distance from the root
         # level of the graph. We can assume that the first identifier of each
@@ -163,7 +188,7 @@ class Resolver(object):
         self._combination_stack.extendleft(reversed(combinations))
         return True
 
-    def resolve_conflicts(self, graph):
+    def _resolve_conflicts(self, graph):
         """Attempt to resolve all conflicts in *graph*.
 
         *graph* must be an instance of :class:`Graph`.
@@ -189,11 +214,13 @@ class Resolver(object):
         )
 
         while True:
-            distance_mapping = compute_distance_mapping(graph)
+            distance_mapping, updated = self._fetch_distance_mapping(graph)
 
-            # Update graph and conflicts to remove all unreachable nodes.
-            trim_unreachable_from_graph(graph, distance_mapping)
-            conflicts = sorted_from_distance(conflicts, distance_mapping)
+            # Update graph and conflicts to remove all unreachable nodes if
+            # distance mapping have been updated.
+            if updated:
+                trim_unreachable_from_graph(graph, distance_mapping)
+                conflicts = updated_from_distance(conflicts, distance_mapping)
 
             # If no nodes are left in the queue, exit the loop. The graph
             # is officially resolved. Hooray!
@@ -237,6 +264,10 @@ class Resolver(object):
                 self._logger.debug("Remove '{}'".format(identifier))
                 remove_node_and_relink(graph, node, identifiers, requirement)
 
+                # The graph changed in a way that can affect the distances of
+                # other nodes, so the distance mapping is discarded.
+                self._distance_mapping = None
+
                 # Identify whether some of the newly extracted packages are not
                 # in the list of conflicted nodes to decide if the graph should
                 # be updated.
@@ -263,7 +294,7 @@ class Resolver(object):
                     # If the updated graph contains variants, it must be
                     # divided into combination before attempting to resolve
                     # conflicts.
-                    if self.generate_combinations(graph):
+                    if self._extract_combinations(graph):
                         raise wiz.exception.GraphResolutionError(
                             "The current graph needs to be divided."
                         )
@@ -356,9 +387,7 @@ def compute_trimming_combinations(graph, variant_groups):
     variant that should be present in the graph at the same time.
 
     The trimming combination represents the inverse of this product, so that it
-    identify the nodes to remove at each graph division.
-
-    .. code-block::
+    identify the nodes to remove at each graph division.::
 
         >>> variant_groups = [
         ...     ["foo[V3]", "foo[V2]", "foo[V1]"],
@@ -428,8 +457,8 @@ def trim_unreachable_from_graph(graph, distance_mapping):
             graph.remove_node(node.identifier)
 
 
-def sorted_from_distance(identifiers, distance_mapping):
-    """Return sorted node *identifiers* in ascending order of distance.
+def updated_from_distance(identifiers, distance_mapping):
+    """Return updated node *identifiers* according to *distance_mapping*.
 
     The node identifier list returned is sorted in ascending order of distance
     from the :attr:`root <Graph.ROOT>` level of the graph.

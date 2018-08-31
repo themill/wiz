@@ -8,21 +8,27 @@ from wiz.utility import Requirement
 
 
 @pytest.fixture()
-def spied_extract_next_graph(mocker):
-    """Return spy mocker on 'wiz.graph.Resolver.extract_next_graph'."""
-    return mocker.spy(wiz.graph.Resolver, "extract_next_graph")
+def spied_fetch_next_graph(mocker):
+    """Return spy mocker on 'wiz.graph.Resolver._fetch_next_graph'."""
+    return mocker.spy(wiz.graph.Resolver, "_fetch_next_graph")
 
 
 @pytest.fixture()
-def spied_generate_combinations(mocker):
-    """Return spy mocker on 'wiz.graph.Resolver.generate_combinations'."""
-    return mocker.spy(wiz.graph.Resolver, "generate_combinations")
+def spied_fetch_distance_mapping(mocker):
+    """Return spy mocker on 'wiz.graph.Resolver._fetch_distance_mapping'."""
+    return mocker.spy(wiz.graph.Resolver, "_fetch_distance_mapping")
+
+
+@pytest.fixture()
+def spied_extract_combinations(mocker):
+    """Return spy mocker on 'wiz.graph.Resolver._extract_combinations'."""
+    return mocker.spy(wiz.graph.Resolver, "_extract_combinations")
 
 
 @pytest.fixture()
 def spied_resolve_conflicts(mocker):
-    """Return spy mocker on 'wiz.graph.Resolver.resolve_conflicts'."""
-    return mocker.spy(wiz.graph.Resolver, "resolve_conflicts")
+    """Return spy mocker on 'wiz.graph.Resolver._resolve_conflicts'."""
+    return mocker.spy(wiz.graph.Resolver, "_resolve_conflicts")
 
 
 @pytest.fixture()
@@ -46,9 +52,9 @@ def spied_trim_unreachable_from_graph(mocker):
 
 
 @pytest.fixture()
-def spied_sorted_from_distance(mocker):
-    """Return spy mocker on 'wiz.graph.sorted_from_distance'."""
-    return mocker.spy(wiz.graph, "sorted_from_distance")
+def spied_updated_from_distance(mocker):
+    """Return spy mocker on 'wiz.graph.updated_from_distance'."""
+    return mocker.spy(wiz.graph, "updated_from_distance")
 
 
 @pytest.fixture()
@@ -82,13 +88,14 @@ def spied_extract_ordered_packages(mocker):
 
 
 def test_scenario_1(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -201,6 +208,8 @@ def test_scenario_1(
     resolver = wiz.graph.Resolver(definition_mapping)
     packages = resolver.compute_packages([Requirement("A"), Requirement("G")])
 
+    assert resolver.remaining_combinations == 0
+
     assert len(packages) == 6
     assert packages[0].identifier == "F==1.0.0"
 
@@ -217,13 +226,14 @@ def test_scenario_1(
     assert packages[5].identifier == "A==0.2.0"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 4
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
-    assert spied_compute_distance_mapping.call_count == 4
+    assert spied_compute_distance_mapping.call_count == 2
     assert spied_compute_trimming_combinations.call_count == 0
-    assert spied_trim_unreachable_from_graph.call_count == 3
-    assert spied_sorted_from_distance.call_count == 3
+    assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_updated_from_distance.call_count == 2
     assert spied_extract_conflicted_nodes.call_count == 2
     assert spied_combined_requirements.call_count == 2
     assert spied_extract_parents.call_count == 0
@@ -232,13 +242,14 @@ def test_scenario_1(
 
 
 def test_scenario_2(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -351,19 +362,22 @@ def test_scenario_2(
     with pytest.raises(wiz.exception.GraphResolutionError) as error:
         resolver.compute_packages([Requirement("A"), Requirement("G")])
 
+    assert resolver.remaining_combinations == 0
+
     assert (
         "The combined requirement 'D >0.1.0, ==0.1.0' could not be resolved "
         "from the following packages: ['B==0.1.0', 'C==0.3.2']."
     ) in str(error)
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 1
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_compute_trimming_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 1
-    assert spied_sorted_from_distance.call_count == 1
+    assert spied_updated_from_distance.call_count == 1
     assert spied_extract_conflicted_nodes.call_count == 1
     assert spied_combined_requirements.call_count == 1
     assert spied_extract_parents.call_count == 1
@@ -372,13 +386,14 @@ def test_scenario_2(
 
 
 def test_scenario_3(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -431,18 +446,21 @@ def test_scenario_3(
     resolver = wiz.graph.Resolver(definition_mapping)
     packages = resolver.compute_packages([Requirement("A"), Requirement("B")])
 
+    assert resolver.remaining_combinations == 0
+
     assert len(packages) == 2
     assert packages[0].identifier == "B==0.9.0"
     assert packages[1].identifier == "A==1.0.0"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 6
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
-    assert spied_compute_distance_mapping.call_count == 6
+    assert spied_compute_distance_mapping.call_count == 2
     assert spied_compute_trimming_combinations.call_count == 0
-    assert spied_trim_unreachable_from_graph.call_count == 5
-    assert spied_sorted_from_distance.call_count == 5
+    assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_updated_from_distance.call_count == 2
     assert spied_extract_conflicted_nodes.call_count == 4
     assert spied_combined_requirements.call_count == 4
     assert spied_extract_parents.call_count == 0
@@ -451,13 +469,14 @@ def test_scenario_3(
 
 
 def test_scenario_4(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -540,18 +559,21 @@ def test_scenario_4(
     resolver = wiz.graph.Resolver(definition_mapping)
     packages = resolver.compute_packages([Requirement("A")])
 
+    assert resolver.remaining_combinations == 3
+
     assert len(packages) == 2
     assert packages[0].identifier == "B==4.0.0"
     assert packages[1].identifier == "A[V4]==1.0.0"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 4
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
-    assert spied_compute_distance_mapping.call_count == 4
+    assert spied_compute_distance_mapping.call_count == 2
     assert spied_compute_trimming_combinations.call_count == 1
-    assert spied_trim_unreachable_from_graph.call_count == 2
-    assert spied_sorted_from_distance.call_count == 2
+    assert spied_trim_unreachable_from_graph.call_count == 1
+    assert spied_updated_from_distance.call_count == 1
     assert spied_extract_conflicted_nodes.call_count == 1
     assert spied_combined_requirements.call_count == 1
     assert spied_extract_parents.call_count == 0
@@ -560,13 +582,14 @@ def test_scenario_4(
 
 
 def test_scenario_5(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -635,18 +658,21 @@ def test_scenario_5(
     resolver = wiz.graph.Resolver(definition_mapping)
     packages = resolver.compute_packages([Requirement("A[V1]")])
 
+    assert resolver.remaining_combinations == 0
+
     assert len(packages) == 2
     assert packages[0].identifier == "B==1.0.0"
     assert packages[1].identifier == "A[V1]==1.0.0"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 1
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_compute_trimming_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
-    assert spied_sorted_from_distance.call_count == 0
+    assert spied_updated_from_distance.call_count == 0
     assert spied_extract_conflicted_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
@@ -655,13 +681,14 @@ def test_scenario_5(
 
 
 def test_scenario_6(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -747,18 +774,21 @@ def test_scenario_6(
         Requirement("A"), Requirement("B==2.*")
     ])
 
+    assert resolver.remaining_combinations == 1
+
     assert len(packages) == 2
     assert packages[0].identifier == "B==2.0.0"
     assert packages[1].identifier == "A[V2]==1.0.0"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 3
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 3
+    assert spied_fetch_distance_mapping.call_count == 6
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 3
-    assert spied_compute_distance_mapping.call_count == 6
+    assert spied_compute_distance_mapping.call_count == 4
     assert spied_compute_trimming_combinations.call_count == 1
-    assert spied_trim_unreachable_from_graph.call_count == 4
-    assert spied_sorted_from_distance.call_count == 4
+    assert spied_trim_unreachable_from_graph.call_count == 3
+    assert spied_updated_from_distance.call_count == 3
     assert spied_extract_conflicted_nodes.call_count == 3
     assert spied_combined_requirements.call_count == 3
     assert spied_extract_parents.call_count == 2
@@ -767,13 +797,14 @@ def test_scenario_6(
 
 
 def test_scenario_7(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -825,18 +856,21 @@ def test_scenario_7(
         Requirement("A<=0.3.0"), Requirement("B")
     ])
 
+    assert resolver.remaining_combinations == 0
+
     assert len(packages) == 2
     assert packages[0].identifier == "B==0.1.0"
     assert packages[1].identifier == "A==0.2.0"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 2
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 5
+    assert spied_extract_combinations.call_count == 2
     assert spied_resolve_conflicts.call_count == 1
-    assert spied_compute_distance_mapping.call_count == 5
+    assert spied_compute_distance_mapping.call_count == 3
     assert spied_compute_trimming_combinations.call_count == 0
-    assert spied_trim_unreachable_from_graph.call_count == 4
-    assert spied_sorted_from_distance.call_count == 4
+    assert spied_trim_unreachable_from_graph.call_count == 3
+    assert spied_updated_from_distance.call_count == 3
     assert spied_extract_conflicted_nodes.call_count == 3
     assert spied_combined_requirements.call_count == 3
     assert spied_extract_parents.call_count == 0
@@ -845,13 +879,14 @@ def test_scenario_7(
 
 
 def test_scenario_8(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -916,19 +951,22 @@ def test_scenario_8(
         Requirement("A"), Requirement("B")
     ])
 
+    assert resolver.remaining_combinations == 0
+
     assert len(packages) == 3
     assert packages[0].identifier == "C==0.9.0"
     assert packages[1].identifier == "A==0.9.0"
     assert packages[2].identifier == "B==0.1.0"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 6
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
-    assert spied_compute_distance_mapping.call_count == 6
+    assert spied_compute_distance_mapping.call_count == 2
     assert spied_compute_trimming_combinations.call_count == 0
-    assert spied_trim_unreachable_from_graph.call_count == 5
-    assert spied_sorted_from_distance.call_count == 5
+    assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_updated_from_distance.call_count == 2
     assert spied_extract_conflicted_nodes.call_count == 4
     assert spied_combined_requirements.call_count == 4
     assert spied_extract_parents.call_count == 2
@@ -937,13 +975,14 @@ def test_scenario_8(
 
 
 def test_scenario_9(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -1007,19 +1046,22 @@ def test_scenario_9(
         Requirement("A <1"), Requirement("B")
     ])
 
+    assert resolver.remaining_combinations == 0
+
     assert len(packages) == 3
     assert packages[0].identifier == "B==0.1.0"
     assert packages[1].identifier == "C==0.9.0"
     assert packages[2].identifier == "A==0.9.0"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 6
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
-    assert spied_compute_distance_mapping.call_count == 6
+    assert spied_compute_distance_mapping.call_count == 2
     assert spied_compute_trimming_combinations.call_count == 0
-    assert spied_trim_unreachable_from_graph.call_count == 5
-    assert spied_sorted_from_distance.call_count == 5
+    assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_updated_from_distance.call_count == 2
     assert spied_extract_conflicted_nodes.call_count == 4
     assert spied_combined_requirements.call_count == 4
     assert spied_extract_parents.call_count == 1
@@ -1028,13 +1070,14 @@ def test_scenario_9(
 
 
 def test_scenario_10(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -1105,19 +1148,22 @@ def test_scenario_10(
         Requirement("A<=0.3.0"), Requirement("B")
     ])
 
+    assert resolver.remaining_combinations == 2
+
     assert len(packages) == 3
     assert packages[0].identifier == "B==0.1.0"
     assert packages[1].identifier == "C[V3]==1.0.0"
     assert packages[2].identifier == "A==0.2.0"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 2
-    assert spied_generate_combinations.call_count == 2
+    assert spied_fetch_next_graph.call_count == 2
+    assert spied_fetch_distance_mapping.call_count == 6
+    assert spied_extract_combinations.call_count == 2
     assert spied_resolve_conflicts.call_count == 2
-    assert spied_compute_distance_mapping.call_count == 6
+    assert spied_compute_distance_mapping.call_count == 4
     assert spied_compute_trimming_combinations.call_count == 1
-    assert spied_trim_unreachable_from_graph.call_count == 4
-    assert spied_sorted_from_distance.call_count == 4
+    assert spied_trim_unreachable_from_graph.call_count == 3
+    assert spied_updated_from_distance.call_count == 3
     assert spied_extract_conflicted_nodes.call_count == 3
     assert spied_combined_requirements.call_count == 3
     assert spied_extract_parents.call_count == 0
@@ -1126,13 +1172,14 @@ def test_scenario_10(
 
 
 def test_scenario_11(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -1215,19 +1262,22 @@ def test_scenario_11(
         Requirement("A"), Requirement("C")
     ])
 
+    assert resolver.remaining_combinations == 2
+
     assert len(packages) == 3
     assert packages[0].identifier == "C"
     assert packages[1].identifier == "B==2.0.0"
     assert packages[2].identifier == "A[V2]==1.0.0"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 4
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
-    assert spied_compute_distance_mapping.call_count == 4
+    assert spied_compute_distance_mapping.call_count == 2
     assert spied_compute_trimming_combinations.call_count == 1
-    assert spied_trim_unreachable_from_graph.call_count == 2
-    assert spied_sorted_from_distance.call_count == 2
+    assert spied_trim_unreachable_from_graph.call_count == 1
+    assert spied_updated_from_distance.call_count == 1
     assert spied_extract_conflicted_nodes.call_count == 1
     assert spied_combined_requirements.call_count == 1
     assert spied_extract_parents.call_count == 0
@@ -1236,13 +1286,14 @@ def test_scenario_11(
 
 
 def test_scenario_12(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -1352,19 +1403,22 @@ def test_scenario_12(
         Requirement("A"), Requirement("C")
     ])
 
+    assert resolver.remaining_combinations == 2
+
     assert len(packages) == 3
     assert packages[0].identifier == "B==3.0.0"
     assert packages[1].identifier == "A[V3]==0.5.0"
     assert packages[2].identifier == "C"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 6
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
-    assert spied_compute_distance_mapping.call_count == 6
+    assert spied_compute_distance_mapping.call_count == 3
     assert spied_compute_trimming_combinations.call_count == 1
-    assert spied_trim_unreachable_from_graph.call_count == 4
-    assert spied_sorted_from_distance.call_count == 4
+    assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_updated_from_distance.call_count == 2
     assert spied_extract_conflicted_nodes.call_count == 3
     assert spied_combined_requirements.call_count == 3
     assert spied_extract_parents.call_count == 0
@@ -1373,13 +1427,14 @@ def test_scenario_12(
 
 
 def test_scenario_13(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -1474,19 +1529,22 @@ def test_scenario_13(
         Requirement("A"), Requirement("C")
     ])
 
+    assert resolver.remaining_combinations == 2
+
     assert len(packages) == 3
     assert packages[0].identifier == "C"
     assert packages[1].identifier == "B==3.0.0"
     assert packages[2].identifier == "A[V3]==1.0.0"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 4
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
-    assert spied_compute_distance_mapping.call_count == 4
+    assert spied_compute_distance_mapping.call_count == 2
     assert spied_compute_trimming_combinations.call_count == 1
-    assert spied_trim_unreachable_from_graph.call_count == 2
-    assert spied_sorted_from_distance.call_count == 2
+    assert spied_trim_unreachable_from_graph.call_count == 1
+    assert spied_updated_from_distance.call_count == 1
     assert spied_extract_conflicted_nodes.call_count == 1
     assert spied_combined_requirements.call_count == 1
     assert spied_extract_parents.call_count == 0
@@ -1495,13 +1553,14 @@ def test_scenario_13(
 
 
 def test_scenario_14(
-    spied_extract_next_graph,
-    spied_generate_combinations,
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_compute_trimming_combinations,
     spied_trim_unreachable_from_graph,
-    spied_sorted_from_distance,
+    spied_updated_from_distance,
     spied_extract_conflicted_nodes,
     spied_combined_requirements,
     spied_extract_parents,
@@ -1593,19 +1652,22 @@ def test_scenario_14(
         Requirement("A"), Requirement("B"), Requirement("C")
     ])
 
+    assert resolver.remaining_combinations == 23
+
     assert len(packages) == 3
     assert packages[0].identifier == "C[V2]"
     assert packages[1].identifier == "B[V4]"
     assert packages[2].identifier == "A[V3]"
 
     # Check spied functions / methods
-    assert spied_extract_next_graph.call_count == 1
-    assert spied_generate_combinations.call_count == 1
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 2
+    assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
     assert spied_compute_trimming_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 0
-    assert spied_sorted_from_distance.call_count == 0
+    assert spied_updated_from_distance.call_count == 0
     assert spied_extract_conflicted_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0

@@ -105,7 +105,7 @@ Release Notes
         :tags: API
 
         Renamed :func:`wiz.graph.sorted_from_priority` to
-        :func:`wiz.graph.sorted_from_distance` for clarity.
+        :func:`wiz.graph.updated_from_distance` for clarity.
 
     .. change:: fixed
         :tags: API
