@@ -9,6 +9,15 @@ Release Notes
     .. change:: new
         :tags: API
 
+        Added :func:`wiz.graph.generate_variant_combinations` to create a
+        :term:`generator iterator` with all graph combinations from a list of
+        conflicting variant groups. Implemented it within
+        :class:`wiz.graph.Resolver` instance instead of dividing the graph with
+        all possible combinations to optimize the resolution process.
+
+    .. change:: new
+        :tags: API
+
         Added :func:`wiz.graph.remove_node_and_relink` to remove a node from the
         graph and connect node's parents to other nodes with a new requirement.
         This logic was previously part of

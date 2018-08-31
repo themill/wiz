@@ -38,10 +38,10 @@ def spied_compute_distance_mapping(mocker):
 
 
 @pytest.fixture()
-def spied_compute_trimming_combinations(mocker):
-    """Return spy mocker on 'wiz.graph.compute_trimming_combinations'.
+def spied_generate_variant_combinations(mocker):
+    """Return spy mocker on 'wiz.graph.generate_variant_combinations'.
     """
-    return mocker.spy(wiz.graph, "compute_trimming_combinations")
+    return mocker.spy(wiz.graph, "generate_variant_combinations")
 
 
 @pytest.fixture()
@@ -93,7 +93,7 @@ def test_scenario_1(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -229,7 +229,7 @@ def test_scenario_1(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
-    assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 2
     assert spied_updated_from_distance.call_count == 2
     assert spied_extract_conflicted_nodes.call_count == 2
@@ -245,7 +245,7 @@ def test_scenario_2(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -371,7 +371,7 @@ def test_scenario_2(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
-    assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 1
     assert spied_updated_from_distance.call_count == 1
     assert spied_extract_conflicted_nodes.call_count == 1
@@ -387,7 +387,7 @@ def test_scenario_3(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -452,7 +452,7 @@ def test_scenario_3(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
-    assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 2
     assert spied_updated_from_distance.call_count == 2
     assert spied_extract_conflicted_nodes.call_count == 4
@@ -468,7 +468,7 @@ def test_scenario_4(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -563,7 +563,7 @@ def test_scenario_4(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
-    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 1
     assert spied_updated_from_distance.call_count == 1
     assert spied_extract_conflicted_nodes.call_count == 1
@@ -579,7 +579,7 @@ def test_scenario_5(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -660,7 +660,7 @@ def test_scenario_5(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
-    assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
     assert spied_updated_from_distance.call_count == 0
     assert spied_extract_conflicted_nodes.call_count == 0
@@ -676,7 +676,7 @@ def test_scenario_6(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -774,7 +774,7 @@ def test_scenario_6(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 3
     assert spied_compute_distance_mapping.call_count == 4
-    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 3
     assert spied_updated_from_distance.call_count == 3
     assert spied_extract_conflicted_nodes.call_count == 3
@@ -790,7 +790,7 @@ def test_scenario_7(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -854,7 +854,7 @@ def test_scenario_7(
     assert spied_extract_combinations.call_count == 2
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 3
-    assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 3
     assert spied_updated_from_distance.call_count == 3
     assert spied_extract_conflicted_nodes.call_count == 3
@@ -870,7 +870,7 @@ def test_scenario_8(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -948,7 +948,7 @@ def test_scenario_8(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
-    assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 2
     assert spied_updated_from_distance.call_count == 2
     assert spied_extract_conflicted_nodes.call_count == 4
@@ -964,7 +964,7 @@ def test_scenario_9(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -1041,7 +1041,7 @@ def test_scenario_9(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
-    assert spied_compute_trimming_combinations.call_count == 0
+    assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 2
     assert spied_updated_from_distance.call_count == 2
     assert spied_extract_conflicted_nodes.call_count == 4
@@ -1057,7 +1057,7 @@ def test_scenario_10(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -1141,7 +1141,7 @@ def test_scenario_10(
     assert spied_extract_combinations.call_count == 2
     assert spied_resolve_conflicts.call_count == 2
     assert spied_compute_distance_mapping.call_count == 4
-    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 3
     assert spied_updated_from_distance.call_count == 3
     assert spied_extract_conflicted_nodes.call_count == 3
@@ -1157,7 +1157,7 @@ def test_scenario_11(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -1253,7 +1253,7 @@ def test_scenario_11(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
-    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 1
     assert spied_updated_from_distance.call_count == 1
     assert spied_extract_conflicted_nodes.call_count == 1
@@ -1269,7 +1269,7 @@ def test_scenario_12(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -1392,7 +1392,7 @@ def test_scenario_12(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 3
-    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 2
     assert spied_updated_from_distance.call_count == 2
     assert spied_extract_conflicted_nodes.call_count == 3
@@ -1408,7 +1408,7 @@ def test_scenario_13(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -1516,7 +1516,7 @@ def test_scenario_13(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
-    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 1
     assert spied_updated_from_distance.call_count == 1
     assert spied_extract_conflicted_nodes.call_count == 1
@@ -1532,7 +1532,7 @@ def test_scenario_14(
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
-    spied_compute_trimming_combinations,
+    spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
     spied_updated_from_distance,
     spied_extract_conflicted_nodes,
@@ -1637,7 +1637,7 @@ def test_scenario_14(
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
-    assert spied_compute_trimming_combinations.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 0
     assert spied_updated_from_distance.call_count == 0
     assert spied_extract_conflicted_nodes.call_count == 0

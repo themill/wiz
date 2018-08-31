@@ -180,6 +180,12 @@ class Resolver(object):
         except StopIteration:
             return
 
+        self._logger.debug(
+            "Generate graph without following nodes: {!r}".format(
+                nodes_to_remove
+            )
+        )
+
         # To prevent mutating any copy of the instance.
         _graph = copy.deepcopy(graph)
 
@@ -228,7 +234,7 @@ class Resolver(object):
         )
 
         self._iterator = itertools.chain(
-            compute_trimming_combinations(graph, variant_groups),
+            generate_variant_combinations(graph, variant_groups),
             self._iterator
         )
         return True
@@ -418,7 +424,7 @@ def compute_distance_mapping(graph):
     return distance_mapping
 
 
-def compute_trimming_combinations(graph, variant_groups):
+def generate_variant_combinations(graph, variant_groups):
     """Yield combinations of nodes identifiers to remove from *graph*.
 
     *graph* must be an instance of :class:`Graph`.
@@ -438,7 +444,7 @@ def compute_trimming_combinations(graph, variant_groups):
         ...     ["foo[V3]", "foo[V2]", "foo[V1]"],
         ...     ["bar[V1]==1", "bar[V2]==1", "bar[V2]==2"]
         ... ]
-        >>> list(compute_trimming_combinations(graph, variant_groups))
+        >>> list(generate_variant_combinations(graph, variant_groups))
 
         [
             (graph, ("foo[V2]", "foo[V1]", "bar[V2]==1", "bar[V2]==2")),

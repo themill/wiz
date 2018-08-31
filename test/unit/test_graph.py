@@ -306,7 +306,7 @@ def test_compute_distance_mapping(mocker, mocked_graph, mapping, expected):
     "three-groups",
     "multiple-groups-with-conflicts",
 ])
-def test_compute_trimming_combinations(
+def test_generate_variant_combinations(
     mocker, mocked_graph, variant_groups, expected
 ):
     """Return list of node trimming combinations from variants."""
@@ -315,7 +315,7 @@ def test_compute_trimming_combinations(
         identifier=_id, variant_name=re.search("(?<=\[).+(?=\])", _id).group(0)
     )
 
-    results = wiz.graph.compute_trimming_combinations(
+    results = wiz.graph.generate_variant_combinations(
         mocked_graph, variant_groups
     )
     assert isinstance(results, types.GeneratorType) is True
