@@ -122,6 +122,16 @@ Release Notes
         time the graph with the same package variants when graph is being
         updated during conflict resolution process.
 
+.. release:: 0.17.0
+    :date: 2018-08-28
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.package.initiate_environ` to forward the
+        :envvar:`XAUTHORITY` environment variable into the initial environment
+        as it is required by some applications.
+
 .. release:: 0.16.0
     :date: 2018-08-16
 
