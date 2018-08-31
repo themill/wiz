@@ -131,6 +131,11 @@ class Resolver(object):
                 self._resolve_conflicts(graph)
 
             except wiz.exception.WizError as error:
+                wiz.history.record_action(
+                    wiz.symbol.GRAPH_RESOLUTION_FAILURE_ACTION,
+                    graph=graph, error=error
+                )
+
                 self._logger.debug("Failed to resolve graph: {}".format(error))
                 latest_error = error
 
@@ -195,6 +200,11 @@ class Resolver(object):
         for identifier in nodes_to_remove:
             _graph.remove_node(identifier, record=False)
 
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_GENERATE_ACTION,
+            graph=graph, removed_nodes=nodes_to_remove
+        )
+
         return _graph
 
     def _extract_combinations(self, graph):
@@ -233,6 +243,11 @@ class Resolver(object):
             )
         )
 
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_VARIANT_CONFLICTS_IDENTIFICATION_ACTION,
+            graph=graph, variant_groups=variant_groups
+        )
+
         self._iterator = itertools.chain(
             generate_variant_combinations(graph, variant_groups),
             self._iterator
@@ -260,7 +275,7 @@ class Resolver(object):
         self._logger.debug("Conflicts: {}".format(", ".join(conflicts)))
 
         wiz.history.record_action(
-            wiz.symbol.GRAPH_CONFLICTS_IDENTIFICATION_ACTION,
+            wiz.symbol.GRAPH_VERSION_CONFLICTS_IDENTIFICATION_ACTION,
             graph=graph, conflicted_nodes=conflicts
         )
 
@@ -882,6 +897,11 @@ class Graph(object):
 
         """
         queue = _queue.Queue()
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_UPDATE_ACTION,
+            graph=self, requirements=requirements
+        )
 
         # Fill up queue from constraint and update the graph accordingly.
         for index, requirement in enumerate(requirements):
