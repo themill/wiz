@@ -33,31 +33,31 @@ Release Notes
         :tags: API
 
         Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
-        better handle graph division from variant groups added to the graph. As
-        variant groups were simply identified during the package extraction
-        process, a single variant could appear in several groups, which led to
-        unnecessary graph divisions. Variant groups are now organized per
-        definition identifier and updated for each package added to the graph
-        when necessary.
+        better handle graph division from variant groups added to the graph.
+        Previously variant groups were simply identified during the package
+        extraction process so a single variant could appear in several groups,
+        which led to unnecessary graph divisions. Variant groups are now
+        organized per definition identifier and updated for each package added
+        to the graph when necessary.
 
     .. change:: changed
         :tags: API
 
-        Updated :class:`wiz.graph.Graph` to record the number of time a node
+        Updated :class:`wiz.graph.Graph` to record the number of times a node
         variant has been added to the graph and sort each variant group
         following two criteria: First by the number of occurrences of each node
         identifier in the graph and second by the variant index defined in the
-        package definition. This will ensure that a variant called multiple time
-        will have priority over the others during the graph division.
+        package definition. This will ensure that a variant called multiple
+        times will have priority over the others during the graph division.
 
     .. change:: changed
         :tags: API
 
         Updated :class:`wiz.graph.Resolver` to better identify compatibility
         between package requirements during the conflict resolution process.
-        Conflicted packages were compared with each other's requirement to
-        ensure that at least one of them were matching both requirements. For
-        instance:
+        Previously conflicting packages were compared with each other's
+        requirement to ensure that at least one of them were matching both
+        requirements. For instance:
 
         .. code-block:: none
 
@@ -66,7 +66,7 @@ Release Notes
             - The version '0.5.0' is matching both requirements;
             - Requirements 'foo<1' and 'foo' are seen as compatible.
 
-        However, this strategy could not recognize when two conflicted packages
+        However, this strategy could not recognize when two conflicting packages
         had compatible requirements even when neither package versions could
         match both requirements:
 
