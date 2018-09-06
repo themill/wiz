@@ -349,7 +349,7 @@ def test_trim_unreachable_from_graph(
     mocked_graph_remove_node.assert_any_call("D")
 
 
-def test_updated_from_distance():
+def test_updated_by_distance():
     """Update nodes based on distance mapping."""
     identifiers = ["F", "E", "D", "C", "B", "A"]
 
@@ -363,7 +363,7 @@ def test_updated_from_distance():
         "F": {"distance": 4, "parent": "A"},
     }
 
-    result = wiz.graph.updated_from_distance(identifiers, distance_mapping)
+    result = wiz.graph.updated_by_distance(identifiers, distance_mapping)
     assert result == ["A", "C", "E", "F"]
 
 

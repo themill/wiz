@@ -286,7 +286,7 @@ class Resolver(object):
             # distance mapping have been updated.
             if updated:
                 trim_unreachable_from_graph(graph, distance_mapping)
-                conflicts = updated_from_distance(conflicts, distance_mapping)
+                conflicts = updated_by_distance(conflicts, distance_mapping)
 
             # If no nodes are left in the queue, exit the loop. The graph
             # is officially resolved. Hooray!
@@ -527,7 +527,7 @@ def trim_unreachable_from_graph(graph, distance_mapping):
             graph.remove_node(node.identifier)
 
 
-def updated_from_distance(identifiers, distance_mapping):
+def updated_by_distance(identifiers, distance_mapping):
     """Return updated node *identifiers* according to *distance_mapping*.
 
     The node identifier list returned is sorted in ascending order of distance
