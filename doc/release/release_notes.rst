@@ -96,7 +96,13 @@ Release Notes
         :tags: API
 
         Renamed :func:`wiz.graph.sorted_from_priority` to
-        :func:`wiz.graph.updated_from_distance` for clarity.
+        :func:`wiz.graph.updated_by_distance` for clarity.
+
+    .. change:: changed
+        :tags: API
+
+        Renamed :func:`wiz.graph.extract_conflicted_nodes` to
+        :func:`wiz.graph.extract_conflicting_nodes` for clarity.
 
     .. change:: changed
         :tags: API

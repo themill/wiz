@@ -30,7 +30,11 @@ Therefore the term "priority" has been replaced by "distance". The following
 functions have been renamed accordingly:
 
 * :func:`wiz.graph.compute_priority_mapping` → :func:`wiz.graph.compute_distance_mapping`
-* :func:`wiz.graph.sorted_from_priority` → :func:`wiz.graph.updated_from_distance`
+* :func:`wiz.graph.sorted_from_priority` → :func:`wiz.graph.updated_by_distance`
+
+The following function has also be renamed for clarity:
+
+* :func:`wiz.graph.extract_conflicted_nodes` → :func:`wiz.graph.extract_conflicting_nodes`
 
 The graph division process has been replaced by a function which creates a
 :term:`generator iterator` for each graph combination in order to optimize the
