@@ -4,6 +4,139 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.graph.generate_variant_combinations` to create a
+        :term:`generator iterator` with all graph combinations from a list of
+        conflicting variant groups. Implemented it within
+        :class:`wiz.graph.Resolver` instance instead of dividing the graph with
+        all possible combinations to optimize the resolution process.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.graph.remove_node_and_relink` to remove a node from the
+        graph and connect node's parents to other nodes with a new requirement.
+        This logic was previously part of
+        :meth:`wiz.graph.Resolver.resolve_conflicts`.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.graph.extract_parents` to extract existing parent node
+        identifiers from a node.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
+        better handle graph division from variant groups added to the graph.
+        Previously variant groups were simply identified during the package
+        extraction process so a single variant could appear in several groups,
+        which led to unnecessary graph divisions. Variant groups are now
+        organized per definition identifier and updated for each package added
+        to the graph when necessary.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.graph.Graph` to record the number of times a node
+        variant has been added to the graph and sort each variant group
+        following two criteria: First by the number of occurrences of each node
+        identifier in the graph and second by the variant index defined in the
+        package definition. This will ensure that a variant called multiple
+        times will have priority over the others during the graph division.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.graph.Resolver` to better identify compatibility
+        between package requirements during the conflict resolution process.
+        Previously conflicting packages were compared with each other's
+        requirement to ensure that at least one of them were matching both
+        requirements. For instance:
+
+        .. code-block:: none
+
+            - 'foo==0.5.0' is required by 'foo<1';
+            - 'foo==1.0.0' is required by 'foo';
+            - The version '0.5.0' is matching both requirements;
+            - Requirements 'foo<1' and 'foo' are seen as compatible.
+
+        However, this strategy could not recognize when two conflicting packages
+        had compatible requirements even when neither package versions could
+        match both requirements:
+
+        .. code-block:: none
+
+            - 'foo==0.5.0' is required by 'foo<1';
+            - 'foo==1.0.0' is required by 'foo!=0.5.0';
+            - Versions '0.5.0' and '1.0.0' cannot match both requirements;
+            - Requirements 'foo<1' and 'foo!=0.5.0' are seen as incompatible.
+
+        The new strategy chosen is to directly attempt to :func:`extract
+        <wiz.package.extract>` packages from the combination of both
+        requirements so that an error could be raised according to the result.
+        As a consequence, the latest example would not fail if a version
+        'foo==0.2.0' can be fetched.
+
+    .. change:: changed
+        :tags: API
+
+        Renamed :func:`wiz.graph.compute_priority_mapping` to
+        :func:`wiz.graph.compute_distance_mapping` to prevent confusion as a
+        shortest path algorithm (Dijkstra's algorithm) is being used to define
+        the "priorities" which are the shortest possible paths from nodes to the
+        root of the graph.
+
+    .. change:: changed
+        :tags: API
+
+        Renamed :func:`wiz.graph.sorted_from_priority` to
+        :func:`wiz.graph.updated_by_distance` for clarity.
+
+    .. change:: changed
+        :tags: API
+
+        Renamed :func:`wiz.graph.extract_conflicted_nodes` to
+        :func:`wiz.graph.extract_conflicting_nodes` for clarity.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.graph.Resolver` to keep track of updates in the
+        graph during the conflict resolution process in order to compute a new
+        distance mapping only when necessary.
+
+    .. change:: changed
+        :tags: API
+
+        Removed :func:`wiz.graph.validate_requirements` as this functionality
+        is not necessary anymore.
+
+    .. change:: changed
+        :tags: API
+
+        Removed :func:`wiz.graph.extract_requirement` as this functionality
+        is not necessary anymore.
+
+    .. change:: changed
+        :tags: API
+
+        Removed :meth:`wiz.graph.Graph.copy` as this functionality
+        is not necessary anymore.
+
+    .. change:: fixed
+        :tags: API
+
+        Fixed :class:`wiz.graph.Resolver` to keep track of definition
+        identifiers which led to graph divisions to prevent dividing several
+        time the graph with the same package variants when graph is being
+        updated during conflict resolution process.
+
 .. release:: 0.17.0
     :date: 2018-08-28
 
