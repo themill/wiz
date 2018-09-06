@@ -367,8 +367,8 @@ def test_updated_from_distance():
     assert result == ["A", "C", "E", "F"]
 
 
-def test_extract_conflicted_nodes(mocker, mocked_graph):
-    """Extract conflicted nodes for a specific node."""
+def test_extract_conflicting_nodes(mocker, mocked_graph):
+    """Extract conflicting nodes for a specific node."""
     node_mapping = {
         "A": mocker.Mock(identifier="A", definition="defB"),
         "B": mocker.Mock(identifier="B", definition="defB"),
@@ -381,15 +381,15 @@ def test_extract_conflicted_nodes(mocker, mocked_graph):
     mocked_graph.node = lambda _id: node_mapping[_id]
     mocked_graph.conflicts.return_value = sorted(node_mapping.keys())
 
-    assert wiz.graph.extract_conflicted_nodes(
+    assert wiz.graph.extract_conflicting_nodes(
         mocked_graph, node_mapping["F"]
     ) == [node_mapping["D"], node_mapping["E"]]
 
-    assert wiz.graph.extract_conflicted_nodes(
+    assert wiz.graph.extract_conflicting_nodes(
         mocked_graph, node_mapping["E"]
     ) == [node_mapping["D"], node_mapping["F"]]
 
-    assert wiz.graph.extract_conflicted_nodes(
+    assert wiz.graph.extract_conflicting_nodes(
         mocked_graph, node_mapping["C"]
     ) == [node_mapping["A"], node_mapping["B"]]
 
@@ -724,10 +724,10 @@ def test_graph_requirement_weight():
 ], ids=[
     "without-conflicts",
     "with-two-conflicts",
-    "with-conflicted-node-removed"
+    "with-conflicting-node-removed"
 ])
 def test_graph_conflicts(definition_mapping, node_mapping, expected):
-    """Extract conflicted nodes from graph."""
+    """Extract conflicting nodes from graph."""
     graph = wiz.graph.Graph(None)
     graph._node_mapping = node_mapping
     graph._identifiers_per_definition = definition_mapping

@@ -276,7 +276,7 @@ class Resolver(object):
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_VERSION_CONFLICTS_IDENTIFICATION_ACTION,
-            graph=graph, conflicted_nodes=conflicts
+            graph=graph, conflicting=conflicts
         )
 
         while True:
@@ -293,16 +293,16 @@ class Resolver(object):
             if len(conflicts) == 0:
                 return
 
-            # Pick up the nearest conflicted node identifier.
+            # Pick up the nearest conflicting node identifier.
             identifier = conflicts.pop()
             node = graph.node(identifier)
 
             # Identify nodes conflicting with this node.
-            conflicted_nodes = extract_conflicted_nodes(graph, node)
+            conflicting_nodes = extract_conflicting_nodes(graph, node)
 
             # Compute valid node identifier from combined requirements.
             requirement = combined_requirements(
-                graph, [node] + conflicted_nodes, distance_mapping
+                graph, [node] + conflicting_nodes, distance_mapping
             )
 
             # Query packages from combined requirement.
@@ -311,9 +311,10 @@ class Resolver(object):
                     requirement, self._definition_mapping
                 )
             except wiz.exception.RequestNotFound:
-                _parents = extract_parents(graph, [node] + conflicted_nodes)
+                _parents = extract_parents(graph, [node] + conflicting_nodes)
 
-                # Discard conflicted node if parents are themselves conflicting.
+                # Discard conflicting nodes if parents are themselves
+                # conflicting.
                 if len(_parents.intersection(conflicts)) > 0:
                     continue
 
@@ -335,10 +336,10 @@ class Resolver(object):
                 self._distance_mapping = None
 
                 # Identify whether some of the newly extracted packages are not
-                # in the list of conflicted nodes to decide if the graph should
+                # in the list of conflicting nodes to decide if the graph should
                 # be updated.
                 _identifiers = set(identifiers).difference(
-                    set([_node.identifier for _node in conflicted_nodes])
+                    set([_node.identifier for _node in conflicting_nodes])
                 )
 
                 # If not all extracted packages are identified as conflicts, it
@@ -346,7 +347,7 @@ class Resolver(object):
                 # variants from this definition identifier have  already been
                 # processed, the update is skipped.
                 if (
-                    len(_identifiers) == len(conflicted_nodes) and
+                    len(_identifiers) == len(conflicting_nodes) and
                     node.definition not in self._definitions_with_variants
                 ):
                     self._logger.debug(
@@ -474,7 +475,7 @@ def generate_variant_combinations(graph, variant_groups):
     # Flatten list of identifiers
     identifiers = [_id for _group in variant_groups for _id in _group]
 
-    # Convert each variant group into list of lists regrouping conflicted nodes.
+    # Convert each variant group into list of lists grouping conflicting nodes.
     # e.g. [A[V2]==1, A[V1]==1, A[V1]==2] -> [[A[V2]==1], [A[V1]==1, A[V1]==2]]
     _groups = []
 
@@ -551,7 +552,7 @@ def updated_from_distance(identifiers, distance_mapping):
     )
 
 
-def extract_conflicted_nodes(graph, node):
+def extract_conflicting_nodes(graph, node):
     """Return all nodes from *graph* conflicting with *node*.
 
     A node from the *graph* is in conflict with the node *identifier* when
@@ -861,7 +862,7 @@ class Graph(object):
         definition identifier.
 
         """
-        conflicted = []
+        conflicting = []
 
         for identifiers in self._identifiers_per_definition.values():
             _identifiers = [
@@ -870,9 +871,9 @@ class Graph(object):
             ]
 
             if len(_identifiers) > 1:
-                conflicted += _identifiers
+                conflicting += _identifiers
 
-        return conflicted
+        return conflicting
 
     def update_from_requirements(self, requirements):
         """Update graph from *requirements*.
