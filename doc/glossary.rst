@@ -26,6 +26,18 @@ Glossary
 
         .. seealso:: https://en.wikipedia.org/wiki/C_shell
 
+    Chore
+        Tool to create a :term:`Wiz` structure in a job project. Creates a
+        registry structure hierachy and adds definitions to each level of the
+        hierarchy, setting up a job with certain environment variables.
+
+        .. seealso:: http://rtd.themill.com/docs/chore/en/stable/
+
+    Jobman
+        Tool to set up a job with certain environment variables.
+
+        .. seealso:: http://rtd.themill.com/docs/chore/en/stable/
+
     JSON
         JavaScript Object Notation is a lightweight data-interchange format.
 
