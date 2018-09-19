@@ -202,7 +202,7 @@ class Resolver(object):
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_GENERATE_ACTION,
-            graph=graph, removed_nodes=nodes_to_remove
+            graph=_graph, removed_nodes=nodes_to_remove
         )
 
         return _graph
