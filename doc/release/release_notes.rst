@@ -4,6 +4,16 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: debug
+
+        Fixed :func:`wiz.graph.Resolver` to store the extracted graph in the
+        history mapping instead of the original one when recording the graph
+        combination extraction action (identified with
+        :data:`~wiz.symbol.GRAPH_COMBINATION_EXTRACTION_ACTION`).
+
 .. release:: 1.0.0
     :date: 2018-09-05
 
