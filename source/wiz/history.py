@@ -89,7 +89,10 @@ def record_action(identifier, **kwargs):
     action = {"identifier": identifier}
     action.update(**kwargs)
 
-    if identifier == wiz.symbol.EXCEPTION_RAISE_ACTION:
+    if (
+        identifier == wiz.symbol.EXCEPTION_RAISE_ACTION or
+        identifier == wiz.symbol.GRAPH_RESOLUTION_FAILURE_ACTION
+    ):
         action["traceback"] = traceback.format_exc().splitlines()
 
     global _HISTORY
