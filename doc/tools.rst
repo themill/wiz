@@ -25,7 +25,7 @@ be called here and recorded into a dump file, i.e:
 
 To launch the Wiz Explorer, open a browser and navigate to::
 
-    http://charlotte-staging/staging/wiz-explorer/default/
+    http://wiz.themill.com/explorer/
 
 Here upload the dump file.
 
