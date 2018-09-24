@@ -592,7 +592,7 @@ def _resolve_and_use_context(
         logger.error(str(error), traceback=True)
 
         wiz.history.record_action(
-            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
         )
 
 
@@ -656,7 +656,7 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
         logger.error(str(error), traceback=True)
 
         wiz.history.record_action(
-            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
         )
 
 
@@ -736,7 +736,7 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
         logger.error(str(error), traceback=True)
 
         wiz.history.record_action(
-            wiz.symbol.EXCEPTION_RAISE_ACTION, error=str(error)
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
         )
 
     except KeyboardInterrupt:
