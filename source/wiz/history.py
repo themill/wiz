@@ -9,7 +9,6 @@ import traceback
 
 from wiz import __version__
 from wiz.utility import Requirement, Version
-import wiz.symbol
 
 
 #: Indicate whether the history should be recorded.
