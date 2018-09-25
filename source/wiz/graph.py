@@ -152,6 +152,11 @@ class Resolver(object):
         """
         graph = Graph(self)
 
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_CREATION_ACTION,
+            graph=graph, requirements=requirements
+        )
+
         # Update the graph.
         graph.update_from_requirements(requirements)
 
@@ -201,8 +206,8 @@ class Resolver(object):
             _graph.remove_node(identifier, record=False)
 
         wiz.history.record_action(
-            wiz.symbol.GRAPH_GENERATE_ACTION,
-            graph=graph, removed_nodes=nodes_to_remove
+            wiz.symbol.GRAPH_COMBINATION_EXTRACTION_ACTION,
+            graph=_graph, removed_nodes=nodes_to_remove
         )
 
         return _graph
@@ -358,12 +363,12 @@ class Resolver(object):
                     # Update conflict list if necessary.
                     conflicts = list(set(conflicts + graph.conflicts()))
 
-                    # If the updated graph contains variants, it must be
-                    # divided into combination before attempting to resolve
-                    # conflicts.
+                    # If the updated graph contains conflicting variants, the
+                    # relevant combination must be extracted, therefore the
+                    # current combination cannot be resolved.
                     if self._extract_combinations(graph):
                         raise wiz.exception.GraphResolutionError(
-                            "The current graph needs to be divided."
+                            "The current graph has conflicting variants."
                         )
 
 
@@ -1051,7 +1056,7 @@ class Graph(object):
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_NODE_CREATION_ACTION,
-            graph=self, node=self._node_mapping[package.identifier].identifier
+            graph=self, node=package.identifier
         )
 
     def _update_variant_mapping(self, identifier):

@@ -23,11 +23,14 @@ SYSTEM_IDENTIFICATION_ACTION = "IDENTIFY_SYSTEM"
 #: History action for definitions collection.
 DEFINITIONS_COLLECTION_ACTION = "FETCH_DEFINITIONS"
 
-#: History action for graph generation.
-GRAPH_GENERATE_ACTION = "GENERATE_GRAPH"
+#: History action for graph creation.
+GRAPH_CREATION_ACTION = "CREATE_GRAPH"
 
 #: History action for graph update.
 GRAPH_UPDATE_ACTION = "UPDATE_GRAPH"
+
+#: History action for graph combination extraction.
+GRAPH_COMBINATION_EXTRACTION_ACTION = "EXTRACT_GRAPH_COMBINATION"
 
 #: History action for computation of graph distance mapping.
 GRAPH_DISTANCE_COMPUTATION_ACTION = "CREATE_DISTANCE_MAPPING"

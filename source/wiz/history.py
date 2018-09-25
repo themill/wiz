@@ -9,7 +9,6 @@ import traceback
 
 from wiz import __version__
 from wiz.utility import Requirement, Version
-import wiz.symbol
 
 
 #: Indicate whether the history should be recorded.
@@ -89,7 +88,7 @@ def record_action(identifier, **kwargs):
     action = {"identifier": identifier}
     action.update(**kwargs)
 
-    if identifier == wiz.symbol.EXCEPTION_RAISE_ACTION:
+    if isinstance(action.get("error"), Exception):
         action["traceback"] = traceback.format_exc().splitlines()
 
     global _HISTORY
@@ -110,6 +109,9 @@ def _json_default(_object):
         return _object.to_dict(serialize_content=True)
 
     elif isinstance(_object, Requirement) or isinstance(_object, Version):
+        return str(_object)
+
+    elif isinstance(_object, Exception):
         return str(_object)
 
     raise TypeError("{} is not JSON serializable.".format(_object))
