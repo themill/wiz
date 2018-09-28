@@ -113,3 +113,9 @@ class DefinitionExists(WizError):
     """Raise when a definition already exists."""
 
     default_message = "The definition already exists."
+
+
+class InstallError(WizError):
+    """Raise when the installation of a definition failed."""
+
+    default_message = "The definition cannot be installed."
