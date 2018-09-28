@@ -436,7 +436,7 @@ class Package(wiz.mapping.Mapping):
             "version",
             "description",
             "registry",
-            "origin",
+            "definition_location",
             "install_location",
             "auto-use",
             "system",
