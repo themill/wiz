@@ -230,8 +230,16 @@ def export(path, definition, overwrite=False):
     The identifier must be unique in the registry so that it could be
     :func:`queried <query>`.
 
-    If *overwrite* is True, any existing definitions in the target path
-    will be overwritten.
+    *overwrite* indicate whether existing definitions in the target path
+    will be overwritten. Default is False.
+
+    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
+    cannot create a valid instance of :class:`wiz.definition.Definition`.
+
+    Raises :exc:`wiz.exception.FileExists` if definition already exists in
+    *path* and overwrite is False.
+
+    Raises :exc:`OSError` if the definition can not be exported in *path*.
 
     The command identifier must also be unique in the registry.
 
@@ -337,6 +345,58 @@ def load(path, mapping=None):
         definition_data = json.load(stream)
         definition_data.update(mapping)
         return Definition(**definition_data)
+
+
+def install(definition_path, registry, data_path=None, overwrite=False):
+    """Install a definition to a registry.
+
+    *definition_path* is the path to a definition file.
+
+    *registry* is the target registry to install to. This can be a directory
+    or a gitlab repository.
+
+    *data_path* is the path to a data.
+
+    If *overwrite* is True, any existing definitions in the target registry
+    will be overwritten.
+
+    Raises :exc:`IOError` if the definition cannot be copied to the destination.
+
+    """
+
+    definition_path = os.path.abspath(definition_path)
+    if data_path is not None:
+        data_path = os.path.abspath(data_path)
+
+    definition = load(definition_path)
+
+    # Check whether environment needs the installation path.
+    add_install_location = False
+    for value in itertools.chain(
+        definition.environ.values(),
+        *(variant.environ.values() for variant in definition.variants)
+    ):
+        if "${INSTALL_LOCATION}" in value:
+            add_install_location = True
+            break
+
+    if add_install_location and data_path is None:
+        raise wiz.exception.InstallError(
+            "The definition requires an installation path."
+        )
+
+    if add_install_location:
+        definition = definition.set("install-location", data_path)
+
+    # Install to a path
+    if os.path.isdir(registry):
+        registry = os.path.abspath(registry)
+        export(registry, definition, overwrite=overwrite)
+
+    else:
+        raise wiz.exception.InstallError(
+            "The registry has to be a path to a directory."
+        )
 
 
 class Definition(wiz.mapping.Mapping):
@@ -614,55 +674,3 @@ class _Variant(wiz.mapping.Mapping):
             "requirements",
             "constraints"
         ]
-
-
-def install(definition_path, registry, data_path=None, overwrite=False):
-    """Install a definition to a registry.
-
-    *definition_path* is the path to a definition file.
-
-    *registry* is the target registry to install to. This can be a directory
-    or a gitlab repository.
-
-    *data_path* is the path to a data.
-
-    If *overwrite* is True, any existing definitions in the target registry
-    will be overwritten.
-
-    Raises `IOError` if the definition cannot be copied to the destination.
-
-    """
-
-    definition_path = os.path.abspath(definition_path)
-    if data_path is not None:
-        data_path = os.path.abspath(data_path)
-
-    definition = load(definition_path)
-
-    # Check whether environment needs the installation path.
-    add_install_location = False
-    for value in itertools.chain(
-        definition.environ.values(),
-        *(variant.environ.values() for variant in definition.variants)
-    ):
-        if "${INSTALL_LOCATION}" in value:
-            add_install_location = True
-            break
-
-    if add_install_location and data_path is None:
-        raise wiz.exception.InstallError(
-            "The definition requires an installation path."
-        )
-
-    if add_install_location:
-        definition = definition.set("install-location", data_path)
-
-    # Install to a path
-    if os.path.isdir(registry):
-        registry = os.path.abspath(registry)
-        export(registry, definition, overwrite=overwrite)
-
-    else:
-        raise wiz.exception.InstallError(
-            "The registry has to be a path to a directory."
-        )
