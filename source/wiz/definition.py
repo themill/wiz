@@ -612,7 +612,7 @@ class _Variant(wiz.mapping.Mapping):
         ]
 
 
-def install(definition, registry):
+def install(definition, registry, overwrite=False):
     """Install a definition to a registry.
 
     *namespace* is an instance of :class:`argparse.Namespace`.
@@ -620,11 +620,21 @@ def install(definition, registry):
     *registry* is the target registry to install to. This can be a directory
     or a gitlab repository.
 
+    If *overwrite* is True, any existing definitions in the target registry
+    will be overwritten.
+
+    Raises `IOError` if the definition cannot be copied to the destination.
+
     """
 
     if os.path.isdir(registry):
         source_path = os.path.abspath(definition)
-        target_path = os.path.abspath(registry)
+        target_dir = os.path.abspath(registry)
+        target_path = os.path.join(target_dir, os.path.basename(definition))
+        if os.path.exists(target_path) and not overwrite:
+            raise wiz.exception.DefinitionExists(
+                "{} already exists".format(target_path)
+            )
 
         try:
             shutil.copy2(source_path, target_path)

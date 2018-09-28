@@ -7,6 +7,7 @@ import itertools
 import shlex
 import collections
 import datetime
+import click
 
 import mlog
 
@@ -774,14 +775,25 @@ def _install_definition(namespace):
     """
     logger = mlog.Logger(__name__ + "._create_definition")
 
-    try:
-        wiz.definition.install(namespace.definition, namespace.registry)
-        logger.info(
-            "Successfully installed definition {} to {}."
-            "".format(namespace.definition, namespace.registry)
-        )
-    except Exception as error:
-        logger.error(error)
+    overwrite = False
+    while True:
+        try:
+            wiz.definition.install(
+                namespace.definition, namespace.registry, overwrite=overwrite
+            )
+            logger.info(
+                "Successfully installed definition {} to {}."
+                "".format(namespace.definition, namespace.registry)
+            )
+            break
+        except wiz.exception.DefinitionExists:
+            if not click.confirm(
+                "Definition already exists in registry. Overwrite?"
+            ):
+                break
+            overwrite = True
+        except Exception as error:
+            logger.error(error)
 
 
 def display_registries(paths):
