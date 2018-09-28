@@ -288,7 +288,7 @@ def discover(paths, max_depth=None):
                     definition = load(
                         definition_path, mapping={
                             "registry": path,
-                            "definition_location": definition_path,
+                            "definition-location": definition_path,
                         }
                     )
 
@@ -548,8 +548,8 @@ class Definition(wiz.mapping.Mapping):
             "version",
             "description",
             "registry",
-            "definition_location",
-            "install_location",
+            "definition-location",
+            "install-location",
             "auto-use",
             "system",
             "command",

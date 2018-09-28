@@ -28,11 +28,11 @@
             "description": "Full path to the registry in which the definition file has been found.",
             "type": "string"
         },
-        "definition_location": {
+        "definition-location": {
             "description": "Full path to the definition file.",
             "type": "string"
         },
-        "install_location": {
+        "install-location": {
             "description": "Install location of the package data.",
             "type": "string"
         },
