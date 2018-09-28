@@ -83,3 +83,14 @@ def discover(path):
 
         if wiz.filesystem.is_accessible(registry_path):
             yield registry_path
+
+
+def install(definition, registry_location, overwrite=False):
+    if os.path.isdir(registry_location):
+        registry = os.path.abspath(registry_location)
+        wiz.export_definition(registry, definition, overwrite=overwrite)
+
+    else:
+        raise wiz.exception.InstallError(
+            "The registry has to be a path to a directory."
+        )
