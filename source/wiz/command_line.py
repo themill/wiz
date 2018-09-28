@@ -256,6 +256,17 @@ def construct_parser():
         help="Package identifiers required."
     )
 
+    install_subparsers = subparsers.add_parser(
+        "install",
+        help="Add a package definition to a registry.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    install_subparsers.add_argument(
+        "--registry",
+        help="Registry to install the package to (Path or Gitlab repository)."
+    )
+
     return parser
 
 
@@ -338,6 +349,9 @@ def main(arguments=None):
         _freeze_and_export_resolved_context(
             namespace, registries, system_mapping
         )
+
+    elif namespace.commands == "install":
+        _install_definition(namespace, registries)
 
     # Export the history if requested.
     if namespace.record is not None:
@@ -741,6 +755,21 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
 
     except KeyboardInterrupt:
         logger.warning("Aborted.")
+
+
+def _install_definition(namespace, registries):
+    """Install a definition to a registry from arguments in *namespace*.
+
+    Command example::
+
+        wiz install definition.json --registry primary
+
+    *namespace* is an instance of :class:`argparse.Namespace`.
+
+    *registries* should be a list of available registry paths.
+
+    """
+    logger = mlog.Logger(__name__ + "._create_definition")
 
 
 def display_registries(paths):
