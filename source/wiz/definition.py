@@ -2,7 +2,7 @@
 
 import os
 import json
-import shutil
+import itertools
 
 import mlog
 
@@ -199,7 +199,7 @@ def query(requirement, definition_mapping):
     return definition
 
 
-def export(path, definition):
+def export(path, definition, overwrite=False):
     """Export *definition* as a :term:`JSON` file to *path*.
 
     Return exported definition file path.
@@ -230,6 +230,9 @@ def export(path, definition):
     The identifier must be unique in the registry so that it could be
     :func:`queried <query>`.
 
+    If *overwrite* is True, any existing definitions in the target path
+    will be overwritten.
+
     The command identifier must also be unique in the registry.
 
     """
@@ -243,7 +246,7 @@ def export(path, definition):
         )
 
     file_path = os.path.join(os.path.abspath(path), file_name)
-    wiz.filesystem.export(file_path, definition.encode())
+    wiz.filesystem.export(file_path, definition.encode(), overwrite=overwrite)
     return file_path
 
 
@@ -613,13 +616,15 @@ class _Variant(wiz.mapping.Mapping):
         ]
 
 
-def install(definition, registry, overwrite=False):
+def install(definition_path, registry, data_path=None, overwrite=False):
     """Install a definition to a registry.
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
+    *definition_path* is the path to a definition file.
 
     *registry* is the target registry to install to. This can be a directory
     or a gitlab repository.
+
+    *data_path* is the path to a data.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -628,16 +633,36 @@ def install(definition, registry, overwrite=False):
 
     """
 
-    if os.path.isdir(registry):
-        source_path = os.path.abspath(definition)
-        target_dir = os.path.abspath(registry)
-        target_path = os.path.join(target_dir, os.path.basename(definition))
-        if os.path.exists(target_path) and not overwrite:
-            raise wiz.exception.DefinitionExists(
-                "{} already exists".format(target_path)
-            )
+    definition_path = os.path.abspath(definition_path)
+    if data_path is not None:
+        data_path = os.path.abspath(data_path)
 
-        try:
-            shutil.copy2(source_path, target_path)
-        except IOError as error:
-            raise error
+    definition = load(definition_path)
+
+    # Check whether environment needs the installation path.
+    add_install_location = False
+    for value in itertools.chain(
+        definition.environ.values(),
+        *(variant.environ.values() for variant in definition.variants)
+    ):
+        if "${INSTALL_LOCATION}" in value:
+            add_install_location = True
+            break
+
+    if add_install_location and data_path is None:
+        raise wiz.exception.InstallError(
+            "The definition requires an installation path."
+        )
+
+    if add_install_location:
+        definition = definition.set("install-location", data_path)
+
+    # Install to a path
+    if os.path.isdir(registry):
+        registry = os.path.abspath(registry)
+        export(registry, definition, overwrite=overwrite)
+
+    else:
+        raise wiz.exception.InstallError(
+            "The registry has to be a path to a directory."
+        )
