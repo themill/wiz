@@ -25,7 +25,8 @@ with open(
 INSTALL_REQUIRES = [
     "mlog >= 0.0.6, < 1",
     "packaging >= 17.1, < 18",
-    "jsonschema >= 2.5, < 3"
+    "jsonschema >= 2.5, < 3",
+    "click >= 6.7, < 7"
 ]
 
 DOC_REQUIRES = [
