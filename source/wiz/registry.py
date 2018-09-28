@@ -88,7 +88,8 @@ def discover(path):
 def install(definition, registry_location, overwrite=False):
     """Install a definition to a registry.
 
-    *definition* is the definition.
+    *definition* must be a valid :class:`~wiz.definition.Definition`
+    instance.
 
     *registry_location* is the target registry to install to. This can be a
     directory or a repository.
