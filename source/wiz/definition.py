@@ -2,6 +2,7 @@
 
 import os
 import json
+import shutil
 
 import mlog
 
@@ -609,3 +610,23 @@ class _Variant(wiz.mapping.Mapping):
             "requirements",
             "constraints"
         ]
+
+
+def install(definition, registry):
+    """Install a definition to a registry.
+
+    *namespace* is an instance of :class:`argparse.Namespace`.
+
+    *registry* is the target registry to install to. This can be a directory
+    or a gitlab repository.
+
+    """
+
+    if os.path.isdir(registry):
+        source_path = os.path.abspath(definition)
+        target_path = os.path.abspath(registry)
+
+        try:
+            shutil.copy2(source_path, target_path)
+        except IOError as error:
+            raise error
