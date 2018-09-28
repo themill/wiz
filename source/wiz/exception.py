@@ -107,3 +107,9 @@ class InvalidVersion(WizError):
     """Raise when a version is incorrect."""
 
     default_message = "The version is incorrect."
+
+
+class DefinitionExists(WizError):
+    """Raise when a definition already exists."""
+
+    default_message = "The definition already exists."
