@@ -377,6 +377,35 @@ def export_definition(path, data, overwrite=False):
     return wiz.definition.export(path, data, overwrite=overwrite)
 
 
+def install_definition(
+    definition_path, registry_location, data_path=None, overwrite=False
+):
+    """Install a definition to a registry.
+
+    *definition_path* is the path to a definition file.
+
+    *registry_location* is the target registry to install to. This can be a
+    directory or a gitlab repository.
+
+    *data_path* is the path to a data.
+
+    If *overwrite* is True, any existing definitions in the target registry
+    will be overwritten.
+
+    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
+    cannot create a valid instance of :class:`wiz.definition.Definition`.
+
+    Raises :exc:`wiz.exception.FileExists` if definition already exists in
+    *path* and overwrite is False.
+
+    Raises :exc:`OSError` if the definition can not be exported in *path*.
+
+    """
+    return wiz.definition.install(
+        definition_path, registry_location, data_path, overwrite
+    )
+
+
 def export_script(
     path, script_type, identifier, environ, command=None, packages=None,
 ):

@@ -784,7 +784,7 @@ def _install_definition(namespace):
     overwrite = False
     while True:
         try:
-            wiz.definition.install(
+            wiz.install_definition(
                 namespace.definition, namespace.registry, namespace.path,
                 overwrite=overwrite
             )
