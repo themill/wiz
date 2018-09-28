@@ -7,6 +7,8 @@ import unicodedata
 import re
 import gzip
 
+import wiz.exception
+
 try:
     to_unicode = unicode
 except NameError:
@@ -18,7 +20,8 @@ def export(path, content, compressed=False, overwrite=False):
 
     If *overwrite* is True, any existing path will be overwritten.
 
-    Raise :exc:`ValueError` if overwrite is False and *path* already exists.
+    Raise :exc:`wiz.exception.FileExists` if overwrite is False and *path*
+    already exists.
 
     """
     # Ensure that "~" is resolved if necessary and that the relative path is
@@ -26,7 +29,7 @@ def export(path, content, compressed=False, overwrite=False):
     path = os.path.abspath(os.path.expanduser(path))
 
     if os.path.isfile(path) and not overwrite:
-        raise ValueError("{!r} already exists.".format(path))
+        raise wiz.exception.FileExists("{!r} already exists.".format(path))
 
     ensure_directory(os.path.dirname(path))
 

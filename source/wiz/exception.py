@@ -109,10 +109,10 @@ class InvalidVersion(WizError):
     default_message = "The version is incorrect."
 
 
-class DefinitionExists(WizError):
-    """Raise when a definition already exists."""
+class FileExists(WizError):
+    """Raise when a file already exists."""
 
-    default_message = "The definition already exists."
+    default_message = "The file already exists."
 
 
 class InstallError(WizError):
