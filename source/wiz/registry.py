@@ -86,6 +86,26 @@ def discover(path):
 
 
 def install(definition, registry_location, overwrite=False):
+    """Install a definition to a registry.
+
+    *definition* is the definition.
+
+    *registry_location* is the target registry to install to. This can be a
+    directory or a repository.
+
+    If *overwrite* is True, any existing definitions in the target registry
+    will be overwritten.
+
+    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
+    cannot create a valid instance of :class:`wiz.definition.Definition`.
+
+    Raises :exc:`wiz.exception.FileExists` if definition already exists in
+    *path* and overwrite is False.
+
+    Raises :exc:`OSError` if the definition can not be exported in
+    *registry_location*.
+
+    """
     if os.path.isdir(registry_location):
         registry = os.path.abspath(registry_location)
         wiz.export_definition(registry, definition, overwrite=overwrite)

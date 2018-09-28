@@ -347,20 +347,28 @@ def load(path, mapping=None):
         return Definition(**definition_data)
 
 
-def install(definition_path, registry, data_path=None, overwrite=False):
+def install(
+    definition_path, registry_location, data_path=None, overwrite=False
+):
     """Install a definition to a registry.
 
     *definition_path* is the path to a definition file.
 
-    *registry* is the target registry to install to. This can be a directory
-    or a gitlab repository.
+    *registry_location* is the target registry to install to. This can be a
+    directory or a gitlab repository.
 
     *data_path* is the path to a data.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
 
-    Raises :exc:`IOError` if the definition cannot be copied to the destination.
+    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
+    cannot create a valid instance of :class:`wiz.definition.Definition`.
+
+    Raises :exc:`wiz.exception.FileExists` if definition already exists in
+    *path* and overwrite is False.
+
+    Raises :exc:`OSError` if the definition can not be exported in *path*.
 
     """
 
@@ -388,15 +396,7 @@ def install(definition_path, registry, data_path=None, overwrite=False):
     if add_install_location:
         definition = definition.set("install-location", data_path)
 
-    # Install to a path
-    if os.path.isdir(registry):
-        registry = os.path.abspath(registry)
-        export(registry, definition, overwrite=overwrite)
-
-    else:
-        raise wiz.exception.InstallError(
-            "The registry has to be a path to a directory."
-        )
+    wiz.registry.install(definition, registry_location, overwrite)
 
 
 class Definition(wiz.mapping.Mapping):
