@@ -273,6 +273,11 @@ def construct_parser():
         help="Registry to install the package to (path or repository)."
     )
 
+    install_subparsers.add_argument(
+        "-p", "--path",
+        help="Path to the installed data."
+    )
+
     return parser
 
 
@@ -769,6 +774,7 @@ def _install_definition(namespace):
     Command example::
 
         wiz install definition.json --registry primary
+        wiz install definition.json --registry primary --path .
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
@@ -779,21 +785,23 @@ def _install_definition(namespace):
     while True:
         try:
             wiz.definition.install(
-                namespace.definition, namespace.registry, overwrite=overwrite
+                namespace.definition, namespace.registry, namespace.path,
+                overwrite=overwrite
             )
             logger.info(
                 "Successfully installed definition {} to {}."
                 "".format(namespace.definition, namespace.registry)
             )
             break
-        except wiz.exception.DefinitionExists:
+        except wiz.exception.FileExists:
             if not click.confirm(
                 "Definition already exists in registry. Overwrite?"
             ):
                 break
             overwrite = True
         except Exception as error:
-            logger.error(error)
+            logger.error(error, traceback=True)
+            break
 
 
 def display_registries(paths):
