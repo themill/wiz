@@ -269,8 +269,8 @@ def construct_parser():
     )
 
     install_subparsers.add_argument(
-        "--registry",
-        help="Registry to install the package to (Path or Gitlab repository)."
+        "-r", "--registry",
+        help="Registry to install the package to (path or repository)."
     )
 
     return parser
