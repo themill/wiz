@@ -18,7 +18,8 @@ except NameError:
 def export(path, content, compressed=False, overwrite=False):
     """Create file from *content* in *path*.
 
-    If *overwrite* is True, any existing path will be overwritten.
+    *overwrite* indicate whether any existing path will be overwritten. Default
+    is False.
 
     Raise :exc:`wiz.exception.FileExists` if overwrite is False and *path*
     already exists.
