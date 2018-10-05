@@ -348,9 +348,13 @@ def load(path, mapping=None):
 
 
 def install(
-    definition_path, registry_location, data_path=None, overwrite=False
+    definition_path, registry_location, data_path=None, package_file=None,
+    overwrite=False
 ):
     """Install a definition to a registry.
+
+    The definitions to install can either be in the *definition_path* or in a
+    *package_file*.
 
     *definition_path* is the path to a definition file.
 
@@ -358,6 +362,8 @@ def install(
     directory or a gitlab repository.
 
     *data_path* is the path to the installed data.
+
+    *package_file* is a path to a file containing paths to definitions.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -371,34 +377,59 @@ def install(
     Raises :exc:`OSError` if the definition can not be exported in *path*.
 
     """
+    logger = mlog.Logger(__name__ + ".install")
 
-    definition_path = os.path.abspath(definition_path)
-    if data_path is not None:
-        data_path = os.path.abspath(data_path)
+    _definition_paths = []
+
+    # Definitions from package file.
+    if package_file is not None:
+        _file = open(package_file, "rb")
+        for _path in _file:
+            _definition_paths.append(_path)
+
+        if data_path is not None:
+            raise RuntimeError(
+                "`data-path` can not be specified in combination with "
+                "`package-file`."
+            )
+
+    # Definition from input.
     else:
-        data_path = os.path.abspath(os.path.dirname(definition_path))
+        _definition_paths = [os.path.abspath(definition_path)]
+        if data_path is not None:
+            data_path = os.path.abspath(data_path)
 
-    definition = load(definition_path)
+    for path in _definition_paths:
+        if data_path is None:
+            data_path = os.path.abspath(os.path.dirname(path))
 
-    # Check whether environment needs the installation path.
-    add_install_location = False
-    for value in itertools.chain(
-        definition.environ.values(),
-        *(variant.environ.values() for variant in definition.variants)
-    ):
-        if "${INSTALL_LOCATION}" in value:
-            add_install_location = True
-            break
+        definition = load(path)
 
-    if add_install_location and data_path is None:
-        raise wiz.exception.InstallError(
-            "The definition requires an installation path."
+        # Check whether environment needs the installation path.
+        add_install_location = False
+        for value in itertools.chain(
+            definition.environ.values(),
+            *(variant.environ.values() for variant in definition.variants)
+        ):
+            if "${INSTALL_LOCATION}" in value:
+                add_install_location = True
+                break
+
+        if add_install_location and data_path is None:
+            raise wiz.exception.InstallError(
+                "The definition requires an installation path."
+            )
+
+        if add_install_location:
+            definition = definition.set("install-location", data_path)
+
+        wiz.registry.install(definition, registry_location, overwrite)
+        logger.info(
+            "Successfully installed {}-{} to {}.".format(
+                definition.get("identifier"), definition.get("version"),
+                registry_location
+            )
         )
-
-    if add_install_location:
-        definition = definition.set("install-location", data_path)
-
-    wiz.registry.install(definition, registry_location, overwrite)
 
 
 class Definition(wiz.mapping.Mapping):

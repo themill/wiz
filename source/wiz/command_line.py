@@ -265,6 +265,7 @@ def construct_parser():
 
     install_subparsers.add_argument(
         "definition",
+        nargs="?",
         help="Definition to install."
     )
 
@@ -277,6 +278,11 @@ def construct_parser():
     install_subparsers.add_argument(
         "-i", "--install-location",
         help="Path to the installed data. (Default is the definition path)"
+    )
+
+    install_subparsers.add_argument(
+        "-p", "--package-file",
+        help="Path to a file containing paths to definitions. (package.txt)"
     )
 
     return parser
@@ -787,11 +793,8 @@ def _install_definition(namespace):
         try:
             wiz.install_definition(
                 namespace.definition, namespace.registry,
-                namespace.install_location, overwrite=overwrite
-            )
-            logger.info(
-                "Successfully installed definition {} to {}."
-                "".format(namespace.definition, namespace.registry)
+                namespace.install_location, namespace.package_file,
+                overwrite=overwrite
             )
             break
         except wiz.exception.FileExists:
