@@ -270,12 +270,13 @@ def construct_parser():
 
     install_subparsers.add_argument(
         "-r", "--registry",
-        help="Registry to install the package to (path or repository)."
+        help="Registry to install the package to (path or repository).",
+        required=True
     )
 
     install_subparsers.add_argument(
-        "-p", "--path",
-        help="Path to the installed data."
+        "-i", "--install-location",
+        help="Path to the installed data. (Default is the definition path)"
     )
 
     return parser
@@ -785,8 +786,8 @@ def _install_definition(namespace):
     while True:
         try:
             wiz.install_definition(
-                namespace.definition, namespace.registry, namespace.path,
-                overwrite=overwrite
+                namespace.definition, namespace.registry,
+                namespace.install_location, overwrite=overwrite
             )
             logger.info(
                 "Successfully installed definition {} to {}."

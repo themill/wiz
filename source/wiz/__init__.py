@@ -387,7 +387,7 @@ def install_definition(
     *registry_location* is the target registry to install to. This can be a
     directory or a gitlab repository.
 
-    *data_path* is the path to a data.
+    *data_path* is the path to  the installed data.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.

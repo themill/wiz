@@ -357,7 +357,7 @@ def install(
     *registry_location* is the target registry to install to. This can be a
     directory or a gitlab repository.
 
-    *data_path* is the path to a data.
+    *data_path* is the path to the installed data.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -375,6 +375,8 @@ def install(
     definition_path = os.path.abspath(definition_path)
     if data_path is not None:
         data_path = os.path.abspath(data_path)
+    else:
+        data_path = os.path.abspath(os.path.dirname(definition_path))
 
     definition = load(definition_path)
 
