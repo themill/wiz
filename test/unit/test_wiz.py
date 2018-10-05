@@ -544,7 +544,7 @@ def test_export_definition(mocked_definition_export):
     }
     wiz.export_definition("/path/to/output", definition_data)
     mocked_definition_export.assert_called_once_with(
-        "/path/to/output", definition_data
+        "/path/to/output", definition_data, overwrite=False
     )
 
 
