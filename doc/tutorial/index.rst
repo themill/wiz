@@ -15,6 +15,13 @@ Using Wiz
 
     generic
 
+Install a Definition
+--------------------
+
+.. toctree::
+    :maxdepth: 1
+
+    install
 
 Using Wiz in a Job
 ------------------
