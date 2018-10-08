@@ -385,7 +385,7 @@ def install(
     if package_file is not None:
         _file = open(package_file, "rb")
         for _path in _file:
-            _definition_paths.append(_path)
+            _definition_paths.append(_path.rstrip())
 
         if data_path is not None:
             raise RuntimeError(
