@@ -415,11 +415,6 @@ def install(
                 add_install_location = True
                 break
 
-        if add_install_location and data_path is None:
-            raise wiz.exception.InstallError(
-                "The definition requires an installation path."
-            )
-
         if add_install_location:
             definition = definition.set("install-location", data_path)
 
