@@ -275,6 +275,12 @@ def mocked_definition(mocker):
     )
 
 
+@pytest.fixture()
+def mocked_registry_install(mocker):
+    """Return mocked load function."""
+    return mocker.patch.object(wiz.registry, "install")
+
+
 @pytest.mark.parametrize("options", [
     {},
     {"requests": ["something", "test>1"]},
@@ -837,6 +843,123 @@ def test_load_with_mapping(mocked_definition, temporary_file):
     assert result == "DEFINITION"
     mocked_definition.assert_called_once_with(
         identifier="test_definition", key="value"
+    )
+
+
+@pytest.mark.parametrize("data, expected", [
+    (
+        {
+            "identifier": "test",
+            "version": "0.1.0",
+            "description": "This is a definition",
+        },
+        {
+            "identifier": "test",
+            "version": "0.1.0",
+            "description": "This is a definition"
+        }
+    ),
+    (
+        {
+            "identifier": "test",
+            "version": "0.1.0",
+            "description": "This is a definition",
+            "environ": {
+                "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
+            }
+        },
+        {
+            "identifier": "test",
+            "version": "0.1.0",
+            "description": "This is a definition",
+            "environ": {
+                "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
+            },
+            "install-location": "/definition_path",
+        }
+    ),
+    (
+        {
+            "identifier": "test",
+            "version": "0.1.0",
+            "description": "This is a definition",
+            "variants": [
+                {
+                    "identifier": "Variant1",
+                    "environ": {
+                        "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
+                    }
+                }
+            ]
+        },
+        {
+            "identifier": "test",
+            "version": "0.1.0",
+            "description": "This is a definition",
+            "variants": [
+                {
+                    "identifier": "Variant1",
+                    "environ": {
+                        "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
+                    }
+                }
+            ],
+            "install-location": "/definition_path",
+        }
+    )
+], ids=[
+    "without-install-location",
+    "with-install-location",
+    "install-location-in-variance"
+])
+def test_install_definition(
+    mocked_load, mocked_registry_install, data, expected
+):
+    """Install a definition to a registry."""
+    definition = wiz.definition.Definition(data)
+    definition_expected = wiz.definition.Definition(expected)
+
+    mocked_load.return_value = definition
+    wiz.definition.install("/definition_path/definition.json", "/registry_path")
+
+    mocked_load.assert_called_once_with("/definition_path/definition.json")
+    mocked_registry_install.assert_called_once_with(
+        definition_expected, "/registry_path", False
+    )
+
+
+def test_install_definition_with_data_path(
+    mocked_load, mocked_registry_install
+):
+    """Install a definition to a registry."""
+    data = {
+        "identifier": "test",
+        "version": "0.1.0",
+        "description": "This is a definition",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
+        }
+    }
+    expected = {
+        "identifier": "test",
+        "version": "0.1.0",
+        "description": "This is a definition",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
+        },
+        "install-location": "/data_path",
+    }
+    definition = wiz.definition.Definition(data)
+    definition_expected = wiz.definition.Definition(expected)
+
+    mocked_load.return_value = definition
+    wiz.definition.install(
+        "/definition_path/definition.json", "/registry_path", "/data_path"
+    )
+
+    mocked_load.assert_called_once_with("/definition_path/definition.json")
+    mocked_registry_install.assert_called_once_with(
+        definition_expected, "/registry_path", False
     )
 
 
