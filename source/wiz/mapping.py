@@ -138,6 +138,13 @@ class Mapping(collections.Mapping):
         """Return count of keys."""
         return len(self._mapping)
 
+    def __repr__(self):
+        """Representation of the mapping."""
+        return "{}({})".format(
+            self.__class__.__name__,
+            self.to_dict(serialize_content=True)
+        )
+
 
 def _serialize_content(element):
     """Return recursively serialized *element*.
