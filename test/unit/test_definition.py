@@ -7,6 +7,7 @@ from collections import OrderedDict
 import itertools
 
 import pytest
+from mock import mock_open, call
 
 from wiz.utility import Requirement, Version
 import wiz.definition
@@ -961,6 +962,47 @@ def test_install_definition_with_data_path(
     mocked_registry_install.assert_called_once_with(
         definition_expected, "/registry_path", False
     )
+
+
+def test_install_package_file(mocker, mocked_load, mocked_registry_install):
+    """Install definitions from package file to a registry."""
+    package_data = (
+        "/packageA/packageA.json\n"
+        "/packageB/packageB.json\n"
+        "/packageC/packageC.json"
+    )
+    expected_calls = [
+        call("/packageA/packageA.json"),
+        call("/packageB/packageB.json"),
+        call("/packageC/packageC.json")
+    ]
+
+    mocked_open = mock_open(mock=mocker.MagicMock(), read_data=package_data)
+    with mocker.patch('wiz.definition.open', mocked_open):
+        wiz.definition.install(
+            None, "/registry_path", package_file="/tmp/packages.txt"
+        )
+
+    mocked_open.assert_called_once_with("/tmp/packages.txt", "rb")
+    assert mocked_open().readlines.call_count == 1
+    assert mocked_load.call_count == 3
+    mocked_load.assert_has_calls(expected_calls, any_order=True)
+    assert mocked_registry_install.call_count == 3
+
+
+def test_install_definition_data_path_fail(mocker):
+    """Fail to install definition if data_path is not set."""
+    mocked_open = mock_open(mock=mocker.MagicMock())
+    with pytest.raises(RuntimeError) as error:
+        with mocker.patch('wiz.definition.open', mocked_open):
+            wiz.definition.install(
+                None, "/registry_path",
+                data_path="/data_path", package_file="/tmp/packages.txt"
+            )
+
+    assert (
+        "`data-path` can not be specified in combination with `package-file`."
+    ) in error.value
 
 
 def test_definition_mapping():
