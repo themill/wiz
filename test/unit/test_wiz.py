@@ -58,6 +58,12 @@ def mocked_definition_export(mocker):
 
 
 @pytest.fixture()
+def mocked_definition_install(mocker):
+    """Return mocked 'wiz.definition.install' function."""
+    return mocker.patch.object(wiz.definition, "install")
+
+
+@pytest.fixture()
 def mocked_package_extract(mocker):
     """Return mocked 'wiz.package.extract' function."""
     return mocker.patch.object(wiz.package, "extract")
@@ -545,6 +551,14 @@ def test_export_definition(mocked_definition_export):
     wiz.export_definition("/path/to/output", definition_data)
     mocked_definition_export.assert_called_once_with(
         "/path/to/output", definition_data, overwrite=False
+    )
+
+
+def test_install_definition(mocked_definition_install):
+    """Install a definition to a registry."""
+    wiz.install_definition("/definition_path", "/registry")
+    mocked_definition_install.assert_called_once_with(
+        "/definition_path", "/registry", None, None, False
     )
 
 
