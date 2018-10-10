@@ -281,8 +281,9 @@ def construct_parser():
     )
 
     install_subparsers.add_argument(
-        "-p", "--package-file",
-        help="Path to a file containing paths to definitions. (package.txt)"
+        "-d", "--with-dependencies",
+        help="Install dependencies as well.",
+        default=False
     )
 
     return parser
@@ -793,7 +794,7 @@ def _install_definition(namespace):
         try:
             wiz.install_definition(
                 namespace.definition, namespace.registry,
-                namespace.install_location, namespace.package_file,
+                namespace.install_location, namespace.with_dependencies,
                 overwrite=overwrite
             )
             break

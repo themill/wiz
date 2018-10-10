@@ -378,7 +378,7 @@ def export_definition(path, data, overwrite=False):
 
 
 def install_definition(
-    definition_path, registry_location, data_path=None, package_file=None,
+    definition_path, registry_location, data_path=None, dependencies=None,
     overwrite=False
 ):
     """Install a definition to a registry.
@@ -390,7 +390,7 @@ def install_definition(
 
     *data_path* is the path to the installed data.
 
-    *package_file* is a path to a file containing paths to definitions.
+    *dependencies* if True, install with dependencies.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -405,7 +405,7 @@ def install_definition(
 
     """
     return wiz.definition.install(
-        definition_path, registry_location, data_path, package_file, overwrite
+        definition_path, registry_location, data_path, dependencies, overwrite
     )
 
 

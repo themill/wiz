@@ -348,7 +348,7 @@ def load(path, mapping=None):
 
 
 def install(
-    definition_path, registry_location, data_path=None, package_file=None,
+    definition_path, registry_location, data_path=None, dependencies=None,
     overwrite=False
 ):
     """Install a definition to a registry.
@@ -363,7 +363,7 @@ def install(
 
     *data_path* is the path to the installed data.
 
-    *package_file* is a path to a file containing paths to definitions.
+    *dependencies* if True, install with dependencies.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -379,52 +379,35 @@ def install(
     """
     logger = mlog.Logger(__name__ + ".install")
 
-    _definition_paths = []
+    definition_path = os.path.abspath(definition_path)
 
-    # Definitions from package file.
-    if package_file is not None:
-        with open(package_file, "rb") as stream:
-            for _path in stream.readlines():
-                _definition_paths.append(_path.rstrip())
-
-        if data_path is not None:
-            raise RuntimeError(
-                "`data-path` can not be specified in combination with "
-                "`package-file`."
-            )
-
-    # Definition from input.
+    if data_path is None:
+        data_path = os.path.abspath(os.path.dirname(definition_path))
     else:
-        _definition_paths = [os.path.abspath(definition_path)]
-        if data_path is not None:
-            data_path = os.path.abspath(data_path)
+        data_path = os.path.abspath(data_path)
 
-    for path in _definition_paths:
-        if data_path is None:
-            data_path = os.path.abspath(os.path.dirname(path))
+    definition = load(definition_path)
 
-        definition = load(path)
+    # Check whether environment needs the installation path.
+    add_install_location = False
+    for value in itertools.chain(
+        definition.environ.values(),
+        *(variant.environ.values() for variant in definition.variants)
+    ):
+        if "${INSTALL_LOCATION}" in value:
+            add_install_location = True
+            break
 
-        # Check whether environment needs the installation path.
-        add_install_location = False
-        for value in itertools.chain(
-            definition.environ.values(),
-            *(variant.environ.values() for variant in definition.variants)
-        ):
-            if "${INSTALL_LOCATION}" in value:
-                add_install_location = True
-                break
+    if add_install_location:
+        definition = definition.set("install-location", data_path)
 
-        if add_install_location:
-            definition = definition.set("install-location", data_path)
-
-        wiz.registry.install(definition, registry_location, overwrite)
-        logger.info(
-            "Successfully installed {}-{} to {}.".format(
-                definition.get("identifier"), definition.get("version"),
-                registry_location
-            )
+    wiz.registry.install(definition, registry_location, overwrite)
+    logger.info(
+        "Successfully installed {}-{} to {}.".format(
+            definition.get("identifier"), definition.get("version"),
+            registry_location
         )
+    )
 
 
 class Definition(wiz.mapping.Mapping):
