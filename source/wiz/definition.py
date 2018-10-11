@@ -368,8 +368,9 @@ def install(
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
 
-    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
-    cannot create a valid instance of :class:`wiz.definition.Definition`.
+    Raises :exc:`wiz.exception.IncorrectDefinition` if *definition_location* is
+    a path to a definition that cannot create a valid instance of
+    :class:`wiz.definition.Definition`.
 
     Raises :exc:`wiz.exception.FileExists` if definition already exists in
     *path* and overwrite is False.
