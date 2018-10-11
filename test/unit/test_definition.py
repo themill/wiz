@@ -269,6 +269,18 @@ def mocked_load(mocker):
 
 
 @pytest.fixture()
+def mocked_fetch(mocker):
+    """Return mocked fetch function."""
+    return mocker.patch.object(wiz.definition, "fetch")
+
+
+@pytest.fixture()
+def mocked_query(mocker):
+    """Return mocked query function."""
+    return mocker.patch.object(wiz.definition, "query")
+
+
+@pytest.fixture()
 def mocked_definition(mocker):
     """Return mocked Definition class."""
     return mocker.patch.object(
@@ -847,6 +859,33 @@ def test_load_with_mapping(mocked_definition, temporary_file):
     )
 
 
+def test_install_definition_no_dependencies(
+    mocked_fetch, mocked_load, mocked_registry_install
+):
+    """Install a definition to a registry without installing dependencies."""
+    definition = wiz.definition.Definition({
+        "identifier": "test",
+        "version": "0.1.0",
+        "description": "This is a definition",
+        "requirements": ["foo"]
+    })
+    definition_expected = wiz.definition.Definition({
+        "identifier": "test",
+        "version": "0.1.0",
+        "description": "This is a definition",
+        "requirements": ["foo"]
+    })
+
+    mocked_load.return_value = definition
+    wiz.definition.install("/definition_path/definition.json", "/registry_path")
+
+    mocked_fetch.assert_called_once_with(None, max_depth=None)
+    mocked_load.assert_called_once_with("/definition_path/definition.json")
+    mocked_registry_install.assert_called_once_with(
+        definition_expected, "/registry_path", False
+    )
+
+
 @pytest.mark.parametrize("data, expected", [
     (
         {
@@ -913,26 +952,69 @@ def test_load_with_mapping(mocked_definition, temporary_file):
     "with-install-location",
     "install-location-in-variance"
 ])
-def test_install_definition(
-    mocked_load, mocked_registry_install, data, expected
+def test_install_definition_add_install_location(
+    mocked_fetch, mocked_load, mocked_registry_install, data, expected
 ):
-    """Install a definition to a registry."""
+    """Add install-location if necessary, when installing a definition."""
     definition = wiz.definition.Definition(data)
     definition_expected = wiz.definition.Definition(expected)
 
     mocked_load.return_value = definition
     wiz.definition.install("/definition_path/definition.json", "/registry_path")
 
+    mocked_fetch.assert_called_once_with(None, max_depth=None)
     mocked_load.assert_called_once_with("/definition_path/definition.json")
     mocked_registry_install.assert_called_once_with(
         definition_expected, "/registry_path", False
     )
 
 
-def test_install_definition_with_data_path(
-    mocked_load, mocked_registry_install
+def test_install_definition_with_dependencies(
+    mocked_fetch, mocked_query, mocked_load, mocked_registry_install
 ):
     """Install a definition to a registry."""
+    mocked_query.side_effect = [
+        wiz.definition.Definition({
+            "identifier": "foo-package",
+            "version": "0.1.0",
+            "description": "A test package for foo."
+        })
+    ]
+
+    definition = wiz.definition.Definition({
+        "identifier": "test",
+        "version": "0.1.0",
+        "description": "This is a definition",
+        "requirements": ["foo"]
+    })
+    expected_calls = [
+        call(wiz.definition.Definition({
+            "identifier": "test",
+            "version": "0.1.0",
+            "description": "This is a definition",
+            "requirements": ["foo"]
+        }), "/registry_path", False),
+        call(wiz.definition.Definition({
+            "identifier": "foo-package",
+            "version": "0.1.0",
+            "description": "A test package for foo."
+        }), "/registry_path", False)
+    ]
+
+    mocked_load.return_value = definition
+    wiz.definition.install(
+        "/definition_path/definition.json", "/registry_path", dependencies=True
+    )
+
+    mocked_fetch.assert_called_once_with(None, max_depth=None)
+    mocked_load.assert_called_once_with("/definition_path/definition.json")
+    mocked_registry_install.assert_has_calls(expected_calls, any_order=True)
+
+
+def test_install_definition_with_install_location(
+    mocked_fetch, mocked_load, mocked_registry_install
+):
+    """Install a definition to a registry adding an install_location."""
     data = {
         "identifier": "test",
         "version": "0.1.0",
@@ -948,60 +1030,37 @@ def test_install_definition_with_data_path(
         "environ": {
             "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
         },
-        "install-location": "/data_path",
+        "install-location": "/install_location",
     }
     definition = wiz.definition.Definition(data)
     definition_expected = wiz.definition.Definition(expected)
 
     mocked_load.return_value = definition
     wiz.definition.install(
-        "/definition_path/definition.json", "/registry_path", "/data_path"
+        "/definition_path/definition.json", "/registry_path",
+        install_location="/install_location"
     )
 
+    mocked_fetch.assert_called_once_with(None, max_depth=None)
     mocked_load.assert_called_once_with("/definition_path/definition.json")
     mocked_registry_install.assert_called_once_with(
         definition_expected, "/registry_path", False
     )
 
 
-def test_install_package_file(mocker, mocked_load, mocked_registry_install):
-    """Install definitions from package file to a registry."""
-    package_data = (
-        "/packageA/packageA.json\n"
-        "/packageB/packageB.json\n"
-        "/packageC/packageC.json"
-    )
-    expected_calls = [
-        call("/packageA/packageA.json"),
-        call("/packageB/packageB.json"),
-        call("/packageC/packageC.json")
-    ]
-
-    mocked_open = mock_open(mock=mocker.MagicMock(), read_data=package_data)
-    with mocker.patch('wiz.definition.open', mocked_open):
-        wiz.definition.install(
-            None, "/registry_path", package_file="/tmp/packages.txt"
-        )
-
-    mocked_open.assert_called_once_with("/tmp/packages.txt", "rb")
-    assert mocked_open().readlines.call_count == 1
-    assert mocked_load.call_count == 3
-    mocked_load.assert_has_calls(expected_calls, any_order=True)
-    assert mocked_registry_install.call_count == 3
-
-
-def test_install_definition_data_path_fail(mocker):
-    """Fail to install definition if data_path is not set."""
+def test_install_definition_dependencies_and_install_location_fail(mocker):
+    """Fail if install_location is set together with dependency flag."""
     mocked_open = mock_open(mock=mocker.MagicMock())
     with pytest.raises(RuntimeError) as error:
         with mocker.patch('wiz.definition.open', mocked_open):
             wiz.definition.install(
-                None, "/registry_path",
-                data_path="/data_path", package_file="/tmp/packages.txt"
+                None, "/registry_path", install_location="/install_location",
+                dependencies=True
             )
 
     assert (
-        "`data-path` can not be specified in combination with `package-file`."
+        "`install_location` can not be set when installing with dependencies. "
+        "The `install-location` for each of the dependencies has to be unique."
     ) in error.value
 
 
