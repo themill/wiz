@@ -405,7 +405,8 @@ def install(
                 break
 
         if add_install_location:
-            _definition = _definition.set("install-location",
+            _definition = _definition.set(
+                "install-location",
                 os.path.dirname(_definition.get("definition-location"))
             )
 
@@ -430,9 +431,9 @@ def install(
 
     if install_location is not None and dependencies is True:
         raise RuntimeError(
-            "`install_location` can not be set when installing with dependencies. "
-            "The `install-location` for each of the dependencies has to be "
-            "unique."
+            "`install_location` can not be set when installing with "
+            "dependencies. The `install-location` for each of the dependencies "
+            "has to be unique."
         )
 
     definition_mapping = fetch(search_paths, max_depth=max_depth)
