@@ -276,14 +276,14 @@ def construct_parser():
     )
 
     install_subparsers.add_argument(
-        "-i", "--install-location",
+        "--install-location",
         help="Path to the installed data. (Default is the definition path)"
     )
 
     install_subparsers.add_argument(
-        "-d", "--with-dependencies",
+        "--with-dependencies",
         help="Install dependencies as well.",
-        default=False
+        action="store_true"
     )
 
     return parser
@@ -795,17 +795,20 @@ def _install_definition(namespace):
             wiz.install_definition(
                 namespace.definition, namespace.registry,
                 namespace.install_location, namespace.with_dependencies,
+                namespace.definition_search_paths,
+                namespace.definition_search_depth,
                 overwrite=overwrite
             )
             break
-        except wiz.exception.FileExists:
+        except wiz.exception.FileExists as error:
             if not click.confirm(
-                "Definition already exists in registry. Overwrite?"
+                "Definition {} Overwrite?".format(error)
             ):
                 break
             overwrite = True
         except Exception as error:
-            logger.error(error, traceback=True)
+            logger.error(error)
+            logger.debug("", traceback=True)
             break
 
 

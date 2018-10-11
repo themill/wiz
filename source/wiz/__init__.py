@@ -378,19 +378,22 @@ def export_definition(path, data, overwrite=False):
 
 
 def install_definition(
-    definition_path, registry_location, data_path=None, dependencies=None,
-    overwrite=False
+    definition_location, registry, install_location=None, dependencies=False,
+    search_paths=None, max_depth=None, overwrite=False
 ):
     """Install a definition to a registry.
 
-    *definition_path* is the path to a definition file.
+    *definition_location* is the path to a definition file.
 
-    *registry_location* is the target registry to install to. This can be a
+    *registry* is the target registry to install to. This can be a
     directory or a gitlab repository.
 
-    *data_path* is the path to the installed data.
+    *install_location* is the path to the installed data.
 
     *dependencies* if True, install with dependencies.
+
+    Discover all available definitions under *search_paths*, searching
+    recursively up to *max_depth*.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -405,7 +408,8 @@ def install_definition(
 
     """
     return wiz.definition.install(
-        definition_path, registry_location, data_path, dependencies, overwrite
+        definition_location, registry, install_location, dependencies,
+        search_paths, max_depth, overwrite
     )
 
 

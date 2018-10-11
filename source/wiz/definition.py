@@ -348,20 +348,20 @@ def load(path, mapping=None):
 
 
 def install(
-    definition_path, registry_location, data_path=None, dependencies=None,
-    overwrite=False
+    definition_location, registry_location, install_location=None,
+    dependencies=False, search_paths=None, max_depth=None, overwrite=False
 ):
     """Install a definition to a registry.
 
-    The definitions to install can either be in the *definition_path* or in a
-    *package_file*.
+    The definitions to install can either be in the *definition_location* or in
+    a *package_file*.
 
-    *definition_path* is the path to a definition file.
+    *definition_location* is the path to a definition file.
 
     *registry_location* is the target registry to install to. This can be a
     directory or a gitlab repository.
 
-    *data_path* is the path to the installed data.
+    *install_location* is the path to the installed data.
 
     *dependencies* if True, install with dependencies.
 
@@ -379,35 +379,73 @@ def install(
     """
     logger = mlog.Logger(__name__ + ".install")
 
-    definition_path = os.path.abspath(definition_path)
+    def _install(_definition, installed_definitions):
+        """Recursively update and install definitions and their requirements.
 
-    if data_path is None:
-        data_path = os.path.abspath(os.path.dirname(definition_path))
-    else:
-        data_path = os.path.abspath(data_path)
+        Keep track of already installed packages, to avoid loops.
+        Update the definition with an 'install-location' if necessary and
+        remove a retrieved 'definition-location' before writing out the files.
 
-    definition = load(definition_path)
+        """
+        unique_identifier = wiz.package.generate_identifier(_definition)
+        if unique_identifier in installed_definitions:
+            return
 
-    # Check whether environment needs the installation path.
-    add_install_location = False
-    for value in itertools.chain(
-        definition.environ.values(),
-        *(variant.environ.values() for variant in definition.variants)
-    ):
-        if "${INSTALL_LOCATION}" in value:
-            add_install_location = True
-            break
+        installed_definitions.append(unique_identifier)
 
-    if add_install_location:
-        definition = definition.set("install-location", data_path)
+        # Check whether environment needs the installation path.
+        add_install_location = False
+        for value in itertools.chain(
+            _definition.environ.values(),
+            *(variant.environ.values() for variant in _definition.variants)
+        ):
+            if "${INSTALL_LOCATION}" in value:
+                add_install_location = True
+                break
 
-    wiz.registry.install(definition, registry_location, overwrite)
-    logger.info(
-        "Successfully installed {}-{} to {}.".format(
-            definition.get("identifier"), definition.get("version"),
-            registry_location
+        if add_install_location:
+            _definition = _definition.set("install-location",
+                os.path.dirname(_definition.get("definition-location"))
+            )
+
+        _definition = _definition.remove("definition-location")
+
+        wiz.registry.install(_definition, registry_location, overwrite)
+        logger.info(
+            "Successfully installed {}-{} to {}.".format(
+                _definition.get("identifier"), _definition.get("version"),
+                registry_location
+            )
         )
-    )
+
+        if dependencies is False:
+            return
+
+        for requirement in _definition.requirements:
+            _requirement_definition = query(
+                requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+            )
+            _install(_requirement_definition, installed_definitions)
+
+    if install_location is not None and dependencies is True:
+        raise RuntimeError(
+            "`install_location` can not be set when installing with dependencies. "
+            "The `install-location` for each of the dependencies has to be "
+            "unique."
+        )
+
+    definition_mapping = fetch(search_paths, max_depth=max_depth)
+
+    definition_location = os.path.abspath(definition_location)
+    definition = load(definition_location)
+    if install_location is not None:
+        definition = definition.set("definition-location",
+            os.path.join(install_location, "definition.json")
+        )
+    else:
+        definition = definition.set("definition-location", definition_location)
+
+    _install(definition, [])
 
 
 class Definition(wiz.mapping.Mapping):
