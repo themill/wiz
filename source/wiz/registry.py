@@ -1,6 +1,9 @@
 # :coding: utf-8
 
 import os
+import json
+import requests
+import getpass
 
 import wiz.filesystem
 
@@ -85,7 +88,7 @@ def discover(path):
             yield registry_path
 
 
-def install(definition, registry_location, overwrite=False):
+def install(definition, registry_location, namespace=None, overwrite=False):
     """Install a definition to a registry.
 
     *definition* must be a valid :class:`~wiz.definition.Definition`
@@ -93,6 +96,9 @@ def install(definition, registry_location, overwrite=False):
 
     *registry_location* is the target registry to install to. This can be a
     directory or a repository.
+
+    *namespace* within the target registry to install the definition to. If not
+    specified, it will be installed in the root of the registry.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -112,6 +118,40 @@ def install(definition, registry_location, overwrite=False):
         wiz.export_definition(registry, definition, overwrite=overwrite)
 
     else:
-        raise wiz.exception.InstallError(
-            "The registry has to be a path to a directory."
+        r = requests.get("http://wiz.themill.com/api/registry/all")
+        if not r.ok:
+            raise wiz.exception.InstallError(
+                "Registries could not be retrieved."
+            )
+
+        if registry_location not in r.json()["data"]["content"]:
+            raise wiz.exception.InstallError(
+                "{!r} is not a valid registry.".format(registry_location)
+            )
+
+        # TODO: remove this line
+        definition = definition.remove("install-location")
+
+        _namespaces = []
+        if namespace is not None:
+            _namespaces = namespace
+
+        r = requests.post(
+            "http://wiz.themill.com/api/registry/test/release",
+            data={
+                "content": json.dumps(definition.to_dict(serialize_content=True)),
+                "namespaces": json.dumps(_namespaces),
+                "message": (
+                    "Add {identifier!r} [{version}] to registry ({user})"
+                    "".format(
+                        identifier=definition.get("identifier"),
+                        version=definition.get("version"),
+                        user=getpass.getuser()
+                    )
+                )
+            }
         )
+        if not r.ok:
+            raise wiz.exception.InstallError(
+                "Definition could not be released to registry."
+            )

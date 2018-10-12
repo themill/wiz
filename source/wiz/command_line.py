@@ -286,6 +286,12 @@ def construct_parser():
         action="store_true"
     )
 
+    install_subparsers.add_argument(
+        "--namespace",
+        help="Namespace in the registry to install to.",
+        nargs="*",
+    )
+
     return parser
 
 
@@ -793,7 +799,7 @@ def _install_definition(namespace):
     while True:
         try:
             wiz.install_definition(
-                namespace.definition, namespace.registry,
+                namespace.definition, namespace.registry, namespace.namespace,
                 namespace.install_location, namespace.with_dependencies,
                 namespace.definition_search_paths,
                 namespace.definition_search_depth,

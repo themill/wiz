@@ -348,8 +348,9 @@ def load(path, mapping=None):
 
 
 def install(
-    definition_location, registry_location, install_location=None,
-    dependencies=False, search_paths=None, max_depth=None, overwrite=False
+    definition_location, registry_location, namespace=None,
+    install_location=None, dependencies=False, search_paths=None,
+    max_depth=None, overwrite=False
 ):
     """Install a definition to a registry.
 
@@ -360,6 +361,9 @@ def install(
 
     *registry_location* is the target registry to install to. This can be a
     directory or a gitlab repository.
+
+    *namespace* within the target registry to install the definition to. If not
+    specified, it will be installed in the root of the registry.
 
     *install_location* is the path to the installed data.
 
@@ -412,7 +416,9 @@ def install(
 
         _definition = _definition.remove("definition-location")
 
-        wiz.registry.install(_definition, registry_location, overwrite)
+        wiz.registry.install(
+            _definition, registry_location, namespace, overwrite
+        )
         logger.info(
             "Successfully installed {}-{} to {}.".format(
                 _definition.get("identifier"), _definition.get("version"),
