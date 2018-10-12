@@ -558,7 +558,7 @@ def test_install_definition(mocked_definition_install):
     """Install a definition to a registry."""
     wiz.install_definition("/definition_path", "/registry")
     mocked_definition_install.assert_called_once_with(
-        "/definition_path", "/registry", None, False, None, None, False
+        "/definition_path", "/registry", None, None, False, None, None, False
     )
 
 

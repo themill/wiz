@@ -882,7 +882,7 @@ def test_install_definition_no_dependencies(
     mocked_fetch.assert_called_once_with(None, max_depth=None)
     mocked_load.assert_called_once_with("/definition_path/definition.json")
     mocked_registry_install.assert_called_once_with(
-        definition_expected, "/registry_path", False
+        definition_expected, "/registry_path", None, False
     )
 
 
@@ -993,12 +993,12 @@ def test_install_definition_with_dependencies(
             "version": "0.1.0",
             "description": "This is a definition",
             "requirements": ["foo"]
-        }), "/registry_path", False),
+        }), "/registry_path", None, False),
         call(wiz.definition.Definition({
             "identifier": "foo-package",
             "version": "0.1.0",
             "description": "A test package for foo."
-        }), "/registry_path", False)
+        }), "/registry_path", None, False)
     ]
 
     mocked_load.return_value = definition
@@ -1044,7 +1044,7 @@ def test_install_definition_with_install_location(
     mocked_fetch.assert_called_once_with(None, max_depth=None)
     mocked_load.assert_called_once_with("/definition_path/definition.json")
     mocked_registry_install.assert_called_once_with(
-        definition_expected, "/registry_path", False
+        definition_expected, "/registry_path", None, False
     )
 
 
