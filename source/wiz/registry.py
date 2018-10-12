@@ -4,6 +4,7 @@ import os
 import json
 import requests
 import getpass
+import pwd
 
 import wiz.filesystem
 
@@ -136,17 +137,23 @@ def install(definition, registry_location, namespace=None, overwrite=False):
         if namespace is not None:
             _namespaces = namespace
 
+        try:
+            author = pwd.getpwnam(getpass.getuser())
+            _author = "({})\n\nauthor: {}".format(author.pw_name, author.pw_gecos)
+        except Exception:
+            _author = "({})".format(getpass.getuser())
+
         r = requests.post(
             "http://wiz.themill.com/api/registry/test/release",
             data={
                 "content": definition.encode(),
                 "namespaces": json.dumps(_namespaces),
                 "message": (
-                    "Add {identifier!r} [{version}] to registry ({user})"
+                    "Add {identifier!r} [{version}] to registry {user}"
                     "".format(
                         identifier=definition.get("identifier"),
                         version=definition.get("version"),
-                        user=getpass.getuser()
+                        user=_author
                     )
                 )
             }
