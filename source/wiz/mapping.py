@@ -58,6 +58,22 @@ class Mapping(collections.Mapping):
         """Return constraint list."""
         return self.get("constraints", [])
 
+    def localized_environ(self):
+        """Return localized environ mapping."""
+        _environ = self.environ
+
+        def _replace_location(mapping, item):
+            """Replace location in *value* for *mapping*."""
+            mapping[item[0]] = item[1].replace(
+                "${INSTALL_LOCATION}", self.get("install-location")
+            )
+            return mapping
+
+        if "install-location" in self.keys():
+            _environ = reduce(_replace_location, _environ.items(), {})
+
+        return _environ
+
     def to_dict(self, serialize_content=False):
         """Return corresponding dictionary.
 

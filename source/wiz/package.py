@@ -131,14 +131,16 @@ def extract_context(packages, environ_mapping=None):
     be augmented.
 
     """
-    def _combine(mapping1, mapping2):
+    def _combine(combined_mapping, package):
         """Return intermediate context combining both extracted results."""
-        identifier = mapping2.get("identifier")
+        identifier = package.identifier
         _environ = combine_environ_mapping(
-            identifier, mapping1.get("environ", {}), mapping2.get("environ", {})
+            identifier, combined_mapping.get("environ", {}),
+            package.localized_environ()
         )
         _command = combine_command_mapping(
-            identifier, mapping1.get("command", {}), mapping2.get("command", {})
+            identifier, combined_mapping.get("command", {}),
+            package.localized_environ()
         )
         return dict(command=_command, environ=_environ)
 
