@@ -965,7 +965,7 @@ def test_install_definition_add_install_location(
     mocked_fetch.assert_called_once_with(None, max_depth=None)
     mocked_load.assert_called_once_with("/definition_path/definition.json")
     mocked_registry_install.assert_called_once_with(
-        definition_expected, "/registry_path", False
+        definition_expected, "/registry_path", None, False
     )
 
 
