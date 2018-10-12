@@ -139,7 +139,7 @@ def install(definition, registry_location, namespace=None, overwrite=False):
         r = requests.post(
             "http://wiz.themill.com/api/registry/test/release",
             data={
-                "content": json.dumps(definition.to_dict(serialize_content=True)),
+                "content": definition.encode(),
                 "namespaces": json.dumps(_namespaces),
                 "message": (
                     "Add {identifier!r} [{version}] to registry ({user})"
