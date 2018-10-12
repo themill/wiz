@@ -113,6 +113,9 @@ def install(definition, registry_location, namespace=None, overwrite=False):
     Raises :exc:`OSError` if the definition can not be exported in
     *registry_location*.
 
+    Raises :exc:`wiz.exception.InstallError` if the registry could not be found,
+    or definition could not be installed into it.
+
     """
     if os.path.isdir(registry_location):
         registry = os.path.abspath(registry_location)
@@ -139,7 +142,9 @@ def install(definition, registry_location, namespace=None, overwrite=False):
 
         try:
             author = pwd.getpwnam(getpass.getuser())
-            _author = "({})\n\nauthor: {}".format(author.pw_name, author.pw_gecos)
+            _author = "({})\n\nauthor: {}".format(
+                author.pw_name, author.pw_gecos
+            )
         except Exception:
             _author = "({})".format(getpass.getuser())
 
@@ -160,5 +165,5 @@ def install(definition, registry_location, namespace=None, overwrite=False):
         )
         if not r.ok:
             raise wiz.exception.InstallError(
-                "Definition could not be released to registry."
+                "Definition could not be installed to registry."
             )
