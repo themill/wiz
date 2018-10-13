@@ -3,6 +3,9 @@
 import os
 import os.path
 import types
+import requests
+import pwd
+import getpass
 import pytest
 
 import wiz.registry
@@ -42,6 +45,48 @@ def mocked_discover(mocker):
     return mocker.patch.object(
         wiz.registry, "discover", return_value=(path for path in paths)
     )
+
+
+@pytest.fixture()
+def mocked_requests_get(mocker):
+    """Return mocked 'requests.get' function."""
+    return mocker.patch.object(requests, "get")
+
+
+@pytest.fixture()
+def mocked_requests_post(mocker):
+    """Return mocked 'requests.post' function."""
+    return mocker.patch.object(requests, "post")
+
+
+@pytest.fixture()
+def mocked_requests_response(mocker):
+    """Return mocked 'requests' response object."""
+    return mocker.Mock()
+
+
+@pytest.fixture()
+def mocked_pwnam_response(mocker):
+    """Return mocked 'getpwnam' object."""
+    return mocker.Mock()
+
+
+@pytest.fixture()
+def mocked_pwnam(mocker):
+    """Return mocked 'getpwnam' response object."""
+    return mocker.patch.object(pwd, "getpwnam")
+
+
+@pytest.fixture()
+def mocked_getuser(mocker):
+    """Return mocked 'getuser' response object."""
+    return mocker.patch.object(getpass, "getuser")
+
+
+@pytest.fixture()
+def mocked_isdir(mocker):
+    """Return mocked 'isdir' response object."""
+    return mocker.patch.object(os.path, "isdir")
 
 
 def test_get_local_reachable(mocked_user_home):
@@ -193,3 +238,65 @@ def test_fetch_unreachable_paths(mocked_accessible):
         "/jobs/ads/project/identity/shot/.common/wiz/registry",
         "/usr/people/me/.wiz/registry"
     ]
+
+
+def test_install_filesystem(mocker, mocked_isdir):
+    """Install a definition to a registry on the file system."""
+    mocked_isdir.return_value = True
+    mocked_export_definition = mocker.patch.object(wiz, "export_definition")
+
+    definition = wiz.definition.Definition({
+        "identifier": "test",
+        "version": "0.1.0",
+        "description": "This is a definition",
+    })
+    wiz.registry.install(definition, "/registry_location")
+
+    mocked_export_definition.assert_called_once_with(
+        "/registry_location", definition, overwrite=False
+    )
+
+
+def test_install_repository(
+    mocked_requests_get, mocked_requests_post, mocked_requests_response,
+    mocked_isdir, mocked_getuser, mocked_pwnam, mocked_pwnam_response
+):
+    """Install a definition to a registry repository."""
+    mocked_isdir.return_value = False
+
+    mocked_requests_get.return_value = mocked_requests_response
+    mocked_requests_response.ok = True
+    mocked_requests_response.json.return_value = {
+        "data": {
+            "content": {
+                "registry": {}
+            }
+        }}
+    mocked_requests_post.return_value = mocked_requests_response
+
+    mocked_getuser.return_value = "user"
+    mocked_pwnam.return_value = mocked_pwnam_response
+    mocked_pwnam_response.pw_name = "user"
+    mocked_pwnam_response.pw_gecos = "User Name"
+
+    definition = wiz.definition.Definition({
+        "identifier": "test",
+        "version": "0.1.0",
+        "description": "This is a definition",
+    })
+    wiz.registry.install(definition, "registry")
+
+    mocked_requests_get.assert_called_once_with(
+        "http://wiz.themill.com/api/registry/all"
+    )
+    mocked_requests_post.assert_called_once_with(
+        "http://wiz.themill.com/api/registry/test/release",
+        params={
+            "overwrite": False
+        },
+        data={
+            "content": definition.encode(),
+            "message": "Add 'test' [0.1.0] to registry (user)\n\nauthor: User Name",
+            "namespaces": "[]"
+        }
+    )
