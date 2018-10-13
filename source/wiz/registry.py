@@ -119,8 +119,12 @@ def install(definition, registry_location, namespace=None, overwrite=False):
     """
     if os.path.isdir(registry_location):
         registry = os.path.abspath(registry_location)
-        wiz.export_definition(registry, definition, overwrite=overwrite)
-
+        try:
+            wiz.export_definition(registry, definition, overwrite=overwrite)
+        except wiz.exception.FileExists:
+            raise wiz.exception.DefinitionExists(
+                "Definition {!r} already exists.".format(definition.identifier)
+            )
     else:
         r = requests.get("http://wiz.themill.com/api/registry/all")
         if not r.ok:
@@ -150,6 +154,7 @@ def install(definition, registry_location, namespace=None, overwrite=False):
 
         r = requests.post(
             "http://wiz.themill.com/api/registry/test/release",
+            params={"overwrite": overwrite},
             data={
                 "content": definition.encode(),
                 "namespaces": json.dumps(_namespaces),
@@ -163,7 +168,14 @@ def install(definition, registry_location, namespace=None, overwrite=False):
                 )
             }
         )
-        if not r.ok:
+        if r.ok:
+            return
+
+        if r.status_code == 409:
+            raise wiz.exception.DefinitionExists(
+                "Definition {!r} already exists.".format(definition.identifier)
+            )
+        else:
             raise wiz.exception.InstallError(
                 "Definition could not be installed to registry."
             )

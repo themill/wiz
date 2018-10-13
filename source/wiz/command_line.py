@@ -806,7 +806,7 @@ def _install_definition(namespace):
                 overwrite=overwrite
             )
             break
-        except wiz.exception.FileExists as error:
+        except wiz.exception.DefinitionExists as error:
             if not click.confirm(
                 "Definition {} Overwrite?".format(error)
             ):
