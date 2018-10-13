@@ -405,8 +405,8 @@ def install_definition(
     Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
     cannot create a valid instance of :class:`wiz.definition.Definition`.
 
-    Raises :exc:`wiz.exception.FileExists` if definition already exists in
-    *path* and overwrite is False.
+    Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
+    the target registry and overwrite is False.
 
     Raises :exc:`OSError` if the definition can not be exported in *path*.
 
