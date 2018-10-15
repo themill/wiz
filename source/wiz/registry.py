@@ -89,13 +89,13 @@ def discover(path):
             yield registry_path
 
 
-def install(definition, registry_location, namespace=None, overwrite=False):
+def install(definition, registry, namespace=None, overwrite=False):
     """Install a definition to a registry.
 
     *definition* must be a valid :class:`~wiz.definition.Definition`
     instance.
 
-    *registry_location* is the target registry to install to. This can be a
+    *registry* is the target registry to install to. This can be a
     directory or a repository.
 
     *namespace* within the target registry to install the definition to. If not
@@ -110,15 +110,14 @@ def install(definition, registry_location, namespace=None, overwrite=False):
     Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
     the target registry and overwrite is False.
 
-    Raises :exc:`OSError` if the definition can not be exported in
-    *registry_location*.
+    Raises :exc:`OSError` if the definition can not be exported in *registry*.
 
     Raises :exc:`wiz.exception.InstallError` if the registry could not be found,
     or definition could not be installed into it.
 
     """
-    if os.path.isdir(registry_location):
-        registry = os.path.abspath(registry_location)
+    if os.path.isdir(registry):
+        registry = os.path.abspath(registry)
         try:
             wiz.export_definition(registry, definition, overwrite=overwrite)
         except wiz.exception.FileExists:
@@ -127,19 +126,19 @@ def install(definition, registry_location, namespace=None, overwrite=False):
             )
     else:
         install_to_repository(
-            definition, registry_location, namespace, overwrite
+            definition, registry, namespace, overwrite
         )
 
 
 def install_to_repository(
-    definition, registry_location, hierarchy=None, overwrite=False
+    definition, registry, hierarchy=None, overwrite=False
 ):
     """Install a definition to a repository registry.
 
     *definition* must be a valid :class:`~wiz.definition.Definition`
     instance.
 
-    *registry_location* is the target repository registry to install to.
+    *registry* is the target repository registry to install to.
 
     *hierarchy* within the target registry to install the definition to. If not
     specified, it will be installed in the root of the registry.
@@ -163,9 +162,9 @@ def install_to_repository(
             "Registries could not be retrieved."
         )
 
-    if registry_location not in r.json()["data"]["content"]:
+    if registry not in r.json()["data"]["content"]:
         raise wiz.exception.InstallError(
-            "{!r} is not a valid registry.".format(registry_location)
+            "{!r} is not a valid registry.".format(registry)
         )
 
     # TODO: remove this line
@@ -184,7 +183,7 @@ def install_to_repository(
         _author = "({})".format(getpass.getuser())
 
     r = requests.post(
-        "http://wiz.themill.com/api/registry/test/release",
+        "http://wiz.themill.com/api/registry/{}/release".format(registry),
         params={"overwrite": overwrite},
         data={
             "content": definition.encode(),

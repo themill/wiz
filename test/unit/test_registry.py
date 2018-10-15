@@ -319,7 +319,7 @@ def test_install_to_repository(
         "http://wiz.themill.com/api/registry/all"
     )
     mocked_requests_post.assert_called_once_with(
-        "http://wiz.themill.com/api/registry/test/release",
+        "http://wiz.themill.com/api/registry/registry/release",
         params={
             "overwrite": False
         },
@@ -359,7 +359,7 @@ def test_install_to_repository_user_name(
         "http://wiz.themill.com/api/registry/all"
     )
     mocked_requests_post.assert_called_once_with(
-        "http://wiz.themill.com/api/registry/test/release",
+        "http://wiz.themill.com/api/registry/registry/release",
         params={
             "overwrite": False
         },
@@ -399,7 +399,7 @@ def test_install_to_repository_hierarchy(
         "http://wiz.themill.com/api/registry/all"
     )
     mocked_requests_post.assert_called_once_with(
-        "http://wiz.themill.com/api/registry/test/release",
+        "http://wiz.themill.com/api/registry/registry/release",
         params={
             "overwrite": False
         },
