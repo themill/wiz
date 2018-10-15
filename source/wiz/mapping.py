@@ -66,6 +66,8 @@ class Mapping(collections.Mapping):
             """Replace location in *value* for *mapping*."""
             mapping[item[0]] = item[1].replace(
                 "${INSTALL_LOCATION}", self.get("install-location")
+            ).replace(
+                "$INSTALL_LOCATION", self.get("install-location")
             )
             return mapping
 

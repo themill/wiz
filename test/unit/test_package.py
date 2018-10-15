@@ -302,7 +302,7 @@ def test_extract_context_with_one_package(
     mocked_sanitise_environ.assert_called_once_with({"KEY": "VALUE"})
 
 
-def test_extract_context_with_five_package(
+def test_extract_context_with_six_package(
     mocked_combine_environ, mocked_combine_command, mocked_sanitise_environ
 ):
     """Extract context with five packages."""
@@ -334,6 +334,13 @@ def test_extract_context_with_five_package(
             "install-location": "/path/to/package",
             "command": {"app1": "AppX"},
             "environ": {"PATH": "${INSTALL_LOCATION}/bin"}
+        }),
+        wiz.definition.Definition({
+            "identifier": "test6",
+            "version": "30.5",
+            "install-location": "/path/to/package",
+            "command": {"app1": "AppX"},
+            "environ": {"PATH": "$INSTALL_LOCATION/bin"}
         })
     ]
 
@@ -343,7 +350,7 @@ def test_extract_context_with_five_package(
         "command": {"APP": "APP_EXE"}, "environ": {"CLEAN_KEY": "CLEAN_VALUE"}
     }
 
-    assert mocked_combine_environ.call_count == 5
+    assert mocked_combine_environ.call_count == 6
     mocked_combine_environ.assert_any_call(
         "test1==0.1.0", {}, {"key1": "value1"}
     )
@@ -359,8 +366,11 @@ def test_extract_context_with_five_package(
     mocked_combine_environ.assert_any_call(
         "test5==30", {"KEY": "VALUE"}, {"PATH": "/path/to/package/bin"}
     )
+    mocked_combine_environ.assert_any_call(
+        "test6==30.5", {"KEY": "VALUE"}, {"PATH": "/path/to/package/bin"}
+    )
 
-    assert mocked_combine_command.call_count == 5
+    assert mocked_combine_command.call_count == 6
     mocked_combine_command.assert_any_call(
         "test1==0.1.0", {}, {}
     )
@@ -375,6 +385,9 @@ def test_extract_context_with_five_package(
     )
     mocked_combine_command.assert_any_call(
         "test5==30", {"APP": "APP_EXE"}, {"app1": "AppX"}
+    )
+    mocked_combine_command.assert_any_call(
+        "test6==30.5", {"APP": "APP_EXE"}, {"app1": "AppX"}
     )
 
     mocked_sanitise_environ.assert_called_once_with({"KEY": "VALUE"})
