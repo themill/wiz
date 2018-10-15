@@ -140,7 +140,7 @@ def extract_context(packages, environ_mapping=None):
         )
         _command = combine_command_mapping(
             identifier, combined_mapping.get("command", {}),
-            package.localized_environ()
+            package.command
         )
         return dict(command=_command, environ=_environ)
 

@@ -89,6 +89,12 @@ def mocked_isdir(mocker):
     return mocker.patch.object(os.path, "isdir")
 
 
+@pytest.fixture()
+def mocked_install_to_repository(mocker):
+    """Return mocked 'isdir' response object."""
+    return mocker.patch.object(wiz.registry, "install_to_repository")
+
+
 def test_get_local_reachable(mocked_user_home):
     """Fail to return unreachable local registry."""
     path = os.path.join(mocked_user_home, ".wiz", "registry")
@@ -241,7 +247,7 @@ def test_fetch_unreachable_paths(mocked_accessible):
 
 
 def test_install_filesystem(mocker, mocked_isdir):
-    """Install a definition to a registry on the file system."""
+    """Install a definition if the registry is on the file system."""
     mocked_isdir.return_value = True
     mocked_export_definition = mocker.patch.object(wiz, "export_definition")
 
@@ -258,12 +264,69 @@ def test_install_filesystem(mocker, mocked_isdir):
 
 
 def test_install_repository(
-    mocked_requests_get, mocked_requests_post, mocked_requests_response,
-    mocked_isdir, mocked_getuser, mocked_pwnam, mocked_pwnam_response
+    mocked_isdir, mocked_install_to_repository
 ):
-    """Install a definition to a registry repository."""
+    """Install a definition if the registry is a repository."""
     mocked_isdir.return_value = False
 
+    definition = wiz.definition.Definition({
+        "identifier": "test",
+        "version": "0.1.0",
+        "description": "This is a definition",
+    })
+    wiz.registry.install(definition, "registry")
+
+    mocked_install_to_repository.assert_called_once_with(
+        definition, "registry", None, False
+    )
+
+
+def test_install_to_repository(
+    mocked_requests_get, mocked_requests_post, mocked_requests_response,
+    mocked_getuser, mocked_pwnam
+):
+    """Install a definition to a registry repository."""
+    mocked_requests_get.return_value = mocked_requests_response
+    mocked_requests_response.ok = True
+    mocked_requests_response.json.return_value = {
+        "data": {
+            "content": {
+                "registry": {}
+            }
+        }}
+    mocked_requests_post.return_value = mocked_requests_response
+
+    mocked_getuser.return_value = "user"
+    mocked_pwnam.side_effect = Exception()
+
+    definition = wiz.definition.Definition({
+        "identifier": "test",
+        "version": "0.1.0",
+        "description": "This is a definition",
+    })
+    wiz.registry.install_to_repository(definition, "registry")
+
+    mocked_requests_get.assert_called_once_with(
+        "http://wiz.themill.com/api/registry/all"
+    )
+    mocked_requests_post.assert_called_once_with(
+        "http://wiz.themill.com/api/registry/test/release",
+        params={
+            "overwrite": False
+        },
+        data={
+            "content": definition.encode(),
+            "message": "Add 'test' [0.1.0] to registry (user)",
+            "namespaces": "[]"
+        }
+    )
+
+
+def test_install_to_repository_user_name(
+    mocked_requests_get, mocked_requests_post, mocked_requests_response,
+    mocked_getuser, mocked_pwnam, mocked_pwnam_response
+):
+    """Install a definition adding the user name to commit message."""
     mocked_requests_get.return_value = mocked_requests_response
     mocked_requests_response.ok = True
     mocked_requests_response.json.return_value = {
@@ -284,7 +347,9 @@ def test_install_repository(
         "version": "0.1.0",
         "description": "This is a definition",
     })
-    wiz.registry.install(definition, "registry")
+    wiz.registry.install_to_repository(
+        definition, "registry", namespace=["foo", "bar"]
+    )
 
     mocked_requests_get.assert_called_once_with(
         "http://wiz.themill.com/api/registry/all"
@@ -296,7 +361,52 @@ def test_install_repository(
         },
         data={
             "content": definition.encode(),
-            "message": "Add 'test' [0.1.0] to registry (user)\n\nauthor: User Name",
-            "namespaces": "[]"
+            "message": (
+                "Add 'test' [0.1.0] to registry (user)\n\nauthor: User Name"
+            ),
+            "namespaces": "[\"foo\", \"bar\"]"
+        }
+    )
+
+
+def test_install_to_repository_namespace(
+    mocked_requests_get, mocked_requests_post, mocked_requests_response,
+    mocked_getuser, mocked_pwnam
+):
+    """Install a definition to a registry repository into a namespace."""
+    mocked_requests_get.return_value = mocked_requests_response
+    mocked_requests_response.ok = True
+    mocked_requests_response.json.return_value = {
+        "data": {
+            "content": {
+                "registry": {}
+            }
+        }}
+    mocked_requests_post.return_value = mocked_requests_response
+
+    mocked_getuser.return_value = "user"
+    mocked_pwnam.side_effect = Exception()
+
+    definition = wiz.definition.Definition({
+        "identifier": "test",
+        "version": "0.1.0",
+        "description": "This is a definition",
+    })
+    wiz.registry.install_to_repository(
+        definition, "registry", namespace=["foo", "bar"]
+    )
+
+    mocked_requests_get.assert_called_once_with(
+        "http://wiz.themill.com/api/registry/all"
+    )
+    mocked_requests_post.assert_called_once_with(
+        "http://wiz.themill.com/api/registry/test/release",
+        params={
+            "overwrite": False
+        },
+        data={
+            "content": definition.encode(),
+            "message": "Add 'test' [0.1.0] to registry (user)",
+            "namespaces": "[\"foo\", \"bar\"]"
         }
     )
