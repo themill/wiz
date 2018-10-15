@@ -331,8 +331,9 @@ def test_extract_context_with_five_package(
         wiz.definition.Definition({
             "identifier": "test5",
             "version": "30",
+            "install-location": "/path/to/package",
             "command": {"app1": "AppX"},
-            "environ": {"key5": "value5"}
+            "environ": {"PATH": "${INSTALL_LOCATION}/bin"}
         })
     ]
 
@@ -356,7 +357,7 @@ def test_extract_context_with_five_package(
         "test4==0.11.2", {"KEY": "VALUE"}, {"key4": "value4"}
     )
     mocked_combine_environ.assert_any_call(
-        "test5==30", {"KEY": "VALUE"}, {"key5": "value5"}
+        "test5==30", {"KEY": "VALUE"}, {"PATH": "/path/to/package/bin"}
     )
 
     assert mocked_combine_command.call_count == 5
