@@ -326,7 +326,7 @@ def test_install_to_repository(
         data={
             "content": mocked_definition.encode(),
             "message": "Add 'test' [0.1.0] to registry (user)",
-            "namespaces": "[]"
+            "hierarchy": "[]"
         }
     )
 
@@ -352,7 +352,7 @@ def test_install_to_repository_user_name(
     mocked_pwnam_response.pw_gecos = "User Name"
 
     wiz.registry.install_to_repository(
-        mocked_definition, "registry", namespace=["foo", "bar"]
+        mocked_definition, "registry", hierarchy=["foo", "bar"]
     )
 
     mocked_requests_get.assert_called_once_with(
@@ -368,16 +368,16 @@ def test_install_to_repository_user_name(
             "message": (
                 "Add 'test' [0.1.0] to registry (user)\n\nauthor: User Name"
             ),
-            "namespaces": "[\"foo\", \"bar\"]"
+            "hierarchy": "[\"foo\", \"bar\"]"
         }
     )
 
 
-def test_install_to_repository_namespace(
+def test_install_to_repository_hierarchy(
     mocked_requests_get, mocked_requests_post, mocked_requests_response,
     mocked_getuser, mocked_pwnam, mocked_definition
 ):
-    """Install a definition to a registry repository into a namespace."""
+    """Install a definition to a registry repository into a hierarchy."""
     mocked_requests_get.return_value = mocked_requests_response
     mocked_requests_response.ok = True
     mocked_requests_response.json.return_value = {
@@ -392,7 +392,7 @@ def test_install_to_repository_namespace(
     mocked_pwnam.side_effect = Exception()
 
     wiz.registry.install_to_repository(
-        mocked_definition, "registry", namespace=["foo", "bar"]
+        mocked_definition, "registry", hierarchy=["foo", "bar"]
     )
 
     mocked_requests_get.assert_called_once_with(
@@ -406,7 +406,7 @@ def test_install_to_repository_namespace(
         data={
             "content": mocked_definition.encode(),
             "message": "Add 'test' [0.1.0] to registry (user)",
-            "namespaces": "[\"foo\", \"bar\"]"
+            "hierarchy": "[\"foo\", \"bar\"]"
         }
     )
 

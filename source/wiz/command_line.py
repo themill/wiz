@@ -287,8 +287,8 @@ def construct_parser():
     )
 
     install_subparsers.add_argument(
-        "--namespace",
-        help="Namespace in the registry to install to.",
+        "--hierarchy",
+        help="Hierarchy in the registry to install to.",
         nargs="*",
     )
 
@@ -320,77 +320,77 @@ def main(arguments=None):
 
     # Process arguments.
     parser = construct_parser()
-    namespace = parser.parse_args(arguments)
+    hierarchy = parser.parse_args(arguments)
 
-    if namespace.record is not None:
+    if hierarchy.record is not None:
         command = "wiz {}".format(" ".join(arguments))
         wiz.history.start_recording(command=command)
 
     # Set verbosity level.
-    mlog.root.handlers["stderr"].filterer.filterers[0].min = namespace.verbosity
+    mlog.root.handlers["stderr"].filterer.filterers[0].min = hierarchy.verbosity
 
     # Identify system mapping.
     system_mapping = wiz.system.query(
-        platform=namespace.platform,
-        architecture=namespace.arch,
-        os_name=namespace.os_name,
-        os_version=namespace.os_version,
+        platform=hierarchy.platform,
+        architecture=hierarchy.arch,
+        os_name=hierarchy.os_name,
+        os_version=hierarchy.os_version,
     )
     logger.debug("System: {}".format(system_mapping))
 
     # Fetch all registries.
     registries = wiz.registry.fetch(
-        namespace.definition_search_paths,
-        include_local=not namespace.no_local,
-        include_working_directory=not namespace.no_cwd
+        hierarchy.definition_search_paths,
+        include_local=not hierarchy.no_local,
+        include_working_directory=not hierarchy.no_cwd
     )
     logger.debug("Registries: " + ", ".join(registries))
 
     # Process requested operation.
-    if namespace.commands == "list":
-        _fetch_and_display_definitions(namespace, registries, system_mapping)
+    if hierarchy.commands == "list":
+        _fetch_and_display_definitions(hierarchy, registries, system_mapping)
 
-    elif namespace.commands == "search":
+    elif hierarchy.commands == "search":
         _search_and_display_definitions(
-            namespace, registries, system_mapping
+            hierarchy, registries, system_mapping
         )
 
-    elif namespace.commands == "view":
+    elif hierarchy.commands == "view":
         _display_definition(
-            namespace, registries, system_mapping
+            hierarchy, registries, system_mapping
         )
 
-    elif namespace.commands == "use":
+    elif hierarchy.commands == "use":
         _resolve_and_use_context(
-            namespace, registries, command_arguments, system_mapping
+            hierarchy, registries, command_arguments, system_mapping
         )
 
-    elif namespace.commands == "run":
+    elif hierarchy.commands == "run":
         _run_command(
-            namespace, registries, command_arguments, system_mapping
+            hierarchy, registries, command_arguments, system_mapping
         )
 
-    elif namespace.commands == "freeze":
+    elif hierarchy.commands == "freeze":
         _freeze_and_export_resolved_context(
-            namespace, registries, system_mapping
+            hierarchy, registries, system_mapping
         )
 
-    elif namespace.commands == "install":
-        _install_definition(namespace)
+    elif hierarchy.commands == "install":
+        _install_definition(hierarchy)
 
     # Export the history if requested.
-    if namespace.record is not None:
+    if hierarchy.record is not None:
         history = wiz.history.get(serialized=True)
         path = os.path.join(
-            os.path.abspath(namespace.record),
+            os.path.abspath(hierarchy.record),
             "wiz-{}.dump".format(datetime.datetime.now().isoformat())
         )
         wiz.filesystem.export(path, history, compressed=True)
         logger.info("History recorded and exported in '{}'".format(path))
 
 
-def _fetch_and_display_definitions(namespace, registries, system_mapping):
-    """Fetch and display definitions from arguments in *namespace*.
+def _fetch_and_display_definitions(hierarchy, registries, system_mapping):
+    """Fetch and display definitions from arguments in *hierarchy*.
 
     Command example::
 
@@ -399,7 +399,7 @@ def _fetch_and_display_definitions(namespace, registries, system_mapping):
         wiz list package --all
         wiz list command --all
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
+    *hierarchy* is an instance of :class:`argparse.Namespace`.
 
     *registries* should be a list of available registry paths.
 
@@ -410,11 +410,11 @@ def _fetch_and_display_definitions(namespace, registries, system_mapping):
     mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
+        max_depth=hierarchy.definition_search_depth
     )
     display_registries(registries)
 
-    if namespace.subcommands == "command":
+    if hierarchy.subcommands == "command":
         definition_mapping = {
             k: mapping[wiz.symbol.PACKAGE_REQUEST_TYPE][v]
             for (k, v) in mapping[wiz.symbol.COMMAND_REQUEST_TYPE].items()
@@ -422,19 +422,19 @@ def _fetch_and_display_definitions(namespace, registries, system_mapping):
 
         display_definition_mapping(
             definition_mapping, registries,
-            all_versions=namespace.all,
+            all_versions=hierarchy.all,
             command=True
         )
 
-    elif namespace.subcommands == "package":
+    elif hierarchy.subcommands == "package":
         display_definition_mapping(
             mapping[wiz.symbol.PACKAGE_REQUEST_TYPE], registries,
-            all_versions=namespace.all,
+            all_versions=hierarchy.all,
         )
 
 
-def _search_and_display_definitions(namespace, registries, system_mapping):
-    """Search and display definitions from arguments in *namespace*.
+def _search_and_display_definitions(hierarchy, registries, system_mapping):
+    """Search and display definitions from arguments in *hierarchy*.
 
     Command example::
 
@@ -443,7 +443,7 @@ def _search_and_display_definitions(namespace, registries, system_mapping):
         wiz search request>=2
         wiz search request other
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
+    *hierarchy* is an instance of :class:`argparse.Namespace`.
 
     *registries* should be a list of available registry paths.
 
@@ -455,16 +455,16 @@ def _search_and_display_definitions(namespace, registries, system_mapping):
 
     mapping = wiz.definition.fetch(
         registries,
-        requests=namespace.requests,
+        requests=hierarchy.requests,
         system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
+        max_depth=hierarchy.definition_search_depth
     )
 
     display_registries(registries)
     results_found = False
 
     if (
-        namespace.type in ["command", "all"] and
+        hierarchy.type in ["command", "all"] and
         len(mapping[wiz.symbol.COMMAND_REQUEST_TYPE]) > 0
     ):
         results_found = True
@@ -475,33 +475,33 @@ def _search_and_display_definitions(namespace, registries, system_mapping):
 
         display_definition_mapping(
             definition_mapping, registries,
-            all_versions=namespace.all,
+            all_versions=hierarchy.all,
             command=True
         )
 
     if (
-        namespace.type in ["package", "all"] and
+        hierarchy.type in ["package", "all"] and
         len(mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]) > 0
     ):
         results_found = True
         display_definition_mapping(
             mapping[wiz.symbol.PACKAGE_REQUEST_TYPE], registries,
-            all_versions=namespace.all,
+            all_versions=hierarchy.all,
         )
 
     if not results_found:
         logger.warning("No results found.\n")
 
 
-def _display_definition(namespace, registries, system_mapping):
-    """Display definition from arguments in *namespace*.
+def _display_definition(hierarchy, registries, system_mapping):
+    """Display definition from arguments in *hierarchy*.
 
     Command example::
 
         wiz view app
         wiz view package --json
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
+    *hierarchy* is an instance of :class:`argparse.Namespace`.
 
     *registries* should be a list of available registry paths.
 
@@ -514,7 +514,7 @@ def _display_definition(namespace, registries, system_mapping):
     mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
+        max_depth=hierarchy.definition_search_depth
     )
 
     results_found = False
@@ -522,7 +522,7 @@ def _display_definition(namespace, registries, system_mapping):
     # Display the corresponding definition if the request is a command.
     try:
         request = wiz.fetch_package_request_from_command(
-            namespace.request, mapping
+            hierarchy.request, mapping
         )
         definition = wiz.fetch_definition(request, mapping)
 
@@ -542,7 +542,7 @@ def _display_definition(namespace, registries, system_mapping):
 
     # Display the full definition if the request is a package.
     try:
-        definition = wiz.fetch_definition(namespace.request, mapping)
+        definition = wiz.fetch_definition(hierarchy.request, mapping)
 
     except wiz.exception.RequestNotFound as exception:
         logger.debug(
@@ -557,7 +557,7 @@ def _display_definition(namespace, registries, system_mapping):
             )
         )
 
-        if namespace.json:
+        if hierarchy.json:
             print(definition.encode())
         else:
             display_definition(definition)
@@ -570,9 +570,9 @@ def _display_definition(namespace, registries, system_mapping):
 
 
 def _resolve_and_use_context(
-    namespace, registries, command_arguments, system_mapping
+    hierarchy, registries, command_arguments, system_mapping
 ):
-    """Resolve and use context from arguments in *namespace*.
+    """Resolve and use context from arguments in *hierarchy*.
 
     Command example::
 
@@ -580,7 +580,7 @@ def _resolve_and_use_context(
         wiz use package1>=1 package2==2.3.0 package3 -- app --option value
         wiz use --view command
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
+    *hierarchy* is an instance of :class:`argparse.Namespace`.
 
     *registries* should be a list of available registry paths.
 
@@ -596,18 +596,18 @@ def _resolve_and_use_context(
     mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
+        max_depth=hierarchy.definition_search_depth
     )
 
     try:
         context = wiz.resolve_context(
-            namespace.requests, mapping,
-            ignore_implicit=namespace.ignore_implicit
+            hierarchy.requests, mapping,
+            ignore_implicit=hierarchy.ignore_implicit
         )
 
         # Only view the resolved context without spawning a shell nor
         # running any commands.
-        if namespace.view:
+        if hierarchy.view:
             display_registries(registries)
             display_packages(context["packages"], registries)
             display_command_mapping(context.get("command", {}))
@@ -635,15 +635,15 @@ def _resolve_and_use_context(
         )
 
 
-def _run_command(namespace, registries, command_arguments, system_mapping):
-    """Run application from arguments in *namespace*.
+def _run_command(hierarchy, registries, command_arguments, system_mapping):
+    """Run application from arguments in *hierarchy*.
 
     Command example::
 
         wiz run command
         wiz run command -- --option value /path/to/output
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
+    *hierarchy* is an instance of :class:`argparse.Namespace`.
 
     *registries* should be a list of available registry paths.
 
@@ -659,18 +659,18 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
     mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
+        max_depth=hierarchy.definition_search_depth
     )
 
     try:
-        requirement = wiz.utility.get_requirement(namespace.request)
+        requirement = wiz.utility.get_requirement(hierarchy.request)
         request = wiz.fetch_package_request_from_command(
-            namespace.request, mapping
+            hierarchy.request, mapping
         )
 
         context = wiz.resolve_context(
             [request], mapping,
-            ignore_implicit=namespace.ignore_implicit
+            ignore_implicit=hierarchy.ignore_implicit
         )
 
         resolved_command = wiz.resolve_command(
@@ -680,7 +680,7 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
 
         # Only view the resolved context without spawning a shell nor
         # running any commands.
-        if namespace.view:
+        if hierarchy.view:
             display_registries(registries)
             display_packages(context["packages"], registries)
             display_command_mapping(context.get("command", {}))
@@ -699,8 +699,8 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
         )
 
 
-def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
-    """Freeze resolved context from arguments in *namespace*.
+def _freeze_and_export_resolved_context(hierarchy, registries, system_mapping):
+    """Freeze resolved context from arguments in *hierarchy*.
 
     Command example::
 
@@ -708,7 +708,7 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
         wiz freeze --format bash package1>=1 package2==2.3.0 package3 -o /tmp
         wiz freeze --format tcsh package1>=1 package2==2.3.0 package3 -o /tmp
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
+    *hierarchy* is an instance of :class:`argparse.Namespace`.
 
     *registries* should be a list of available registry paths.
 
@@ -721,17 +721,17 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
     mapping = wiz.fetch_definition_mapping(
         registries,
         system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
+        max_depth=hierarchy.definition_search_depth
     )
 
     try:
         context = wiz.resolve_context(
-            namespace.requests, mapping,
-            ignore_implicit=namespace.ignore_implicit
+            hierarchy.requests, mapping,
+            ignore_implicit=hierarchy.ignore_implicit
         )
         identifier = _query_identifier(logger)
 
-        if namespace.format == "wiz":
+        if hierarchy.format == "wiz":
             description = _query_description(logger)
             version = _query_version(logger)
 
@@ -749,22 +749,22 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
             if environ_mapping is not None:
                 definition_data["environ"] = environ_mapping
 
-            wiz.export_definition(namespace.output, definition_data)
+            wiz.export_definition(hierarchy.output, definition_data)
 
-        elif namespace.format == "bash":
+        elif hierarchy.format == "bash":
             command = _query_command(context.get("command", {}).values())
             wiz.export_script(
-                namespace.output, "bash",
+                hierarchy.output, "bash",
                 identifier,
                 environ=context.get("environ", {}),
                 command=command,
                 packages=context.get("packages")
             )
 
-        elif namespace.format == "tcsh":
+        elif hierarchy.format == "tcsh":
             command = _query_command(context.get("command", {}).values())
             wiz.export_script(
-                namespace.output, "csh",
+                hierarchy.output, "csh",
                 identifier,
                 environ=context.get("environ", {}),
                 command=command,
@@ -782,15 +782,15 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
         logger.warning("Aborted.")
 
 
-def _install_definition(namespace):
-    """Install a definition to a registry from arguments in *namespace*.
+def _install_definition(hierarchy):
+    """Install a definition to a registry from arguments in *hierarchy*.
 
     Command example::
 
         wiz install definition.json --registry primary
         wiz install definition.json --registry primary --path .
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
+    *hierarchy* is an instance of :class:`argparse.Namespace`.
 
     """
     logger = mlog.Logger(__name__ + "._create_definition")
@@ -799,10 +799,10 @@ def _install_definition(namespace):
     while True:
         try:
             wiz.install_definition(
-                namespace.definition, namespace.registry, namespace.namespace,
-                namespace.install_location, namespace.with_dependencies,
-                namespace.definition_search_paths,
-                namespace.definition_search_depth,
+                hierarchy.definition, hierarchy.registry, hierarchy.hierarchy,
+                hierarchy.install_location, hierarchy.with_dependencies,
+                hierarchy.definition_search_paths,
+                hierarchy.definition_search_depth,
                 overwrite=overwrite
             )
             break

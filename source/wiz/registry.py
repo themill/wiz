@@ -132,7 +132,7 @@ def install(definition, registry_location, namespace=None, overwrite=False):
 
 
 def install_to_repository(
-    definition, registry_location, namespace=None, overwrite=False
+    definition, registry_location, hierarchy=None, overwrite=False
 ):
     """Install a definition to a repository registry.
 
@@ -141,7 +141,7 @@ def install_to_repository(
 
     *registry_location* is the target repository registry to install to.
 
-    *namespace* within the target registry to install the definition to. If not
+    *hierarchy* within the target registry to install the definition to. If not
     specified, it will be installed in the root of the registry.
 
     If *overwrite* is True, any existing definitions in the target registry
@@ -171,9 +171,9 @@ def install_to_repository(
     # TODO: remove this line
     definition = definition.remove("install-location")
 
-    _namespaces = []
-    if namespace is not None:
-        _namespaces = namespace
+    _hierarchy = []
+    if hierarchy is not None:
+        _hierarchy = hierarchy
 
     try:
         author = pwd.getpwnam(getpass.getuser())
@@ -188,7 +188,7 @@ def install_to_repository(
         params={"overwrite": overwrite},
         data={
             "content": definition.encode(),
-            "namespaces": json.dumps(_namespaces),
+            "hierarchy": json.dumps(_hierarchy),
             "message": (
                 "Add {identifier!r} [{version}] to registry {user}"
                 "".format(
