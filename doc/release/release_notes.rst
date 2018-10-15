@@ -4,6 +4,28 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: added
+
+        Added :ref:`tutorial <tutorial/install>` for installing a definition
+        to a registry.
+
+    .. change:: added
+
+        Added :func:`wiz.install_definition`, `wiz.package.install` and
+        `wiz.registry.install` to install a definition to a registry.
+        The registry to install to can be a path to the file system or an
+        identifier for a repository.
+
+    .. change:: added
+
+        Added :meth:`wiz.mapping.Mapping.localized_environ` to replace
+        :envvar:`INSTALL_LOCATION` in the environment, with the value of
+        "install-location".
+        This way :func:`wiz.package.extract_context` can correctly return a
+        resolved environment of an installed package.
+
 .. release:: 1.0.1
     :date: 2018-09-24
 

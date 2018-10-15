@@ -17,6 +17,7 @@ Package management system.
     guidelines
     tools
     command_line
+    environment_variables
     api_reference/index
     release/index
     glossary
