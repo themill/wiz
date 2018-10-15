@@ -268,10 +268,10 @@ def test_install_filesystem(mocker, mocked_isdir, mocked_definition):
     )
 
 
-def test_install_filesystem_file_exists(
+def test_install_filesystem_definition_exists(
     mocker, mocked_isdir, mocked_definition
 ):
-    """Fail on install if file exists already on the file system."""
+    """Fail on install if definition exists already on the file system."""
     mocked_isdir.return_value = True
     mocked_export_definition = mocker.patch.object(wiz, "export_definition")
     mocked_export_definition.side_effect = wiz.exception.FileExists()
@@ -409,3 +409,83 @@ def test_install_to_repository_namespace(
             "namespaces": "[\"foo\", \"bar\"]"
         }
     )
+
+
+def test_install_to_repository_no_registries(
+    mocked_definition, mocked_requests_get, mocked_requests_response
+):
+    """Registries can not be fetched."""
+    mocked_requests_get.return_value = mocked_requests_response
+    mocked_requests_response.ok = False
+
+    with pytest.raises(wiz.exception.InstallError) as error:
+        wiz.registry.install_to_repository(mocked_definition, "/registry")
+
+    assert "Registries could not be retrieved." in str(error)
+
+
+def test_install_to_repository_registry_not_found(
+    mocked_definition, mocked_requests_get, mocked_requests_response
+):
+    """Registry can not be found in fetched registries."""
+    mocked_requests_get.return_value = mocked_requests_response
+    mocked_requests_response.ok = True
+    mocked_requests_response.json.return_value = {
+        "data": {
+            "content": {
+                "registry": {}
+            }
+        }
+    }
+
+    with pytest.raises(wiz.exception.InstallError) as error:
+        wiz.registry.install_to_repository(mocked_definition, "/registry")
+
+    assert "InstallError: '/registry' is not a valid registry." in str(error)
+
+
+def test_install_to_repository_definition_exists(
+    mocked_requests_get, mocked_requests_post, mocked_requests_response,
+    mocked_definition, mocker
+):
+    """Fail on install if definition exists already in repository."""
+    mocked_requests_get.return_value = mocked_requests_response
+    mocked_requests_response.ok = True
+    mocked_requests_response.json.return_value = {
+        "data": {
+            "content": {
+                "registry": {}
+            }
+        }}
+    mocked_requests_post_response = mocker.Mock()
+    mocked_requests_post.return_value = mocked_requests_post_response
+    mocked_requests_post_response.ok = False
+    mocked_requests_post_response.status_code = 409
+
+    with pytest.raises(wiz.exception.DefinitionExists) as error:
+        wiz.registry.install_to_repository(mocked_definition, "registry")
+
+    assert "DefinitionExists: Definition 'test' already exists." in str(error)
+
+
+def test_install_to_repository_publish_fail(
+    mocked_requests_get, mocked_requests_post, mocked_requests_response,
+    mocked_definition, mocker
+):
+    """Fail to install a definition to a registry repository."""
+    mocked_requests_get.return_value = mocked_requests_response
+    mocked_requests_response.ok = True
+    mocked_requests_response.json.return_value = {
+        "data": {
+            "content": {
+                "registry": {}
+            }
+        }}
+    mocked_requests_post_response = mocker.Mock()
+    mocked_requests_post.return_value = mocked_requests_post_response
+    mocked_requests_post_response.ok = False
+
+    with pytest.raises(wiz.exception.InstallError) as error:
+        wiz.registry.install_to_repository(mocked_definition, "registry")
+
+    assert "Definition could not be installed to registry." in str(error)
