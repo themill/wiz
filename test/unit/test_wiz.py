@@ -484,7 +484,8 @@ def test_resolve_command():
 
 def test_discover_context(
     monkeypatch, mocked_utility_decode, mocked_fetch_definition_mapping,
-    mocked_fetch_package, mocked_package_initiate_environ
+    mocked_fetch_package, mocked_package_initiate_environ,
+    mocked_package_extract_context,
 ):
     """Discover context from environment variable."""
     monkeypatch.setenv("WIZ_CONTEXT", "__CONTEXT__")
@@ -497,6 +498,10 @@ def test_discover_context(
         {"identifier": "package1==0.1.2"}, {"identifier": "package2==1.0.2"}
     ]
     mocked_package_initiate_environ.return_value = {"KEY": "VALUE"}
+    mocked_package_extract_context.return_value = {
+        "command": {},
+        "environ": {"KEY": "VALUE"},
+    }
 
     result = wiz.discover_context()
     assert result == {
@@ -518,6 +523,11 @@ def test_discover_context(
     )
     mocked_fetch_package.assert_any_call(
         package_identifiers[1], "__DEFINITION_MAPPING__"
+    )
+
+    mocked_package_extract_context.assert_called_once_with(
+        [{"identifier": "package1==0.1.2"}, {"identifier": "package2==1.0.2"}],
+        environ_mapping={"KEY": "VALUE"}
     )
 
 
