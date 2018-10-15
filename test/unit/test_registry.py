@@ -95,6 +95,16 @@ def mocked_install_to_repository(mocker):
     return mocker.patch.object(wiz.registry, "install_to_repository")
 
 
+@pytest.fixture()
+def mocked_definition():
+    """Return mocked simple definition."""
+    return wiz.definition.Definition({
+        "identifier": "test",
+        "version": "0.1.0",
+        "description": "This is a definition",
+    })
+
+
 def test_get_local_reachable(mocked_user_home):
     """Fail to return unreachable local registry."""
     path = os.path.join(mocked_user_home, ".wiz", "registry")
@@ -246,44 +256,48 @@ def test_fetch_unreachable_paths(mocked_accessible):
     ]
 
 
-def test_install_filesystem(mocker, mocked_isdir):
+def test_install_filesystem(mocker, mocked_isdir, mocked_definition):
     """Install a definition if the registry is on the file system."""
     mocked_isdir.return_value = True
     mocked_export_definition = mocker.patch.object(wiz, "export_definition")
 
-    definition = wiz.definition.Definition({
-        "identifier": "test",
-        "version": "0.1.0",
-        "description": "This is a definition",
-    })
-    wiz.registry.install(definition, "/registry_location")
+    wiz.registry.install(mocked_definition, "/registry_location")
 
     mocked_export_definition.assert_called_once_with(
-        "/registry_location", definition, overwrite=False
+        "/registry_location", mocked_definition, overwrite=False
     )
 
 
+def test_install_filesystem_file_exists(
+    mocker, mocked_isdir, mocked_definition
+):
+    """Fail on install if file exists already on the file system."""
+    mocked_isdir.return_value = True
+    mocked_export_definition = mocker.patch.object(wiz, "export_definition")
+    mocked_export_definition.side_effect = wiz.exception.FileExists()
+
+    with pytest.raises(wiz.exception.DefinitionExists) as error:
+        wiz.registry.install(mocked_definition, "/registry_location")
+
+    assert "DefinitionExists: Definition 'test' already exists." in str(error)
+
+
 def test_install_repository(
-    mocked_isdir, mocked_install_to_repository
+    mocked_isdir, mocked_install_to_repository, mocked_definition
 ):
     """Install a definition if the registry is a repository."""
     mocked_isdir.return_value = False
 
-    definition = wiz.definition.Definition({
-        "identifier": "test",
-        "version": "0.1.0",
-        "description": "This is a definition",
-    })
-    wiz.registry.install(definition, "registry")
+    wiz.registry.install(mocked_definition, "registry")
 
     mocked_install_to_repository.assert_called_once_with(
-        definition, "registry", None, False
+        mocked_definition, "registry", None, False
     )
 
 
 def test_install_to_repository(
     mocked_requests_get, mocked_requests_post, mocked_requests_response,
-    mocked_getuser, mocked_pwnam
+    mocked_getuser, mocked_pwnam, mocked_definition
 ):
     """Install a definition to a registry repository."""
     mocked_requests_get.return_value = mocked_requests_response
@@ -299,12 +313,7 @@ def test_install_to_repository(
     mocked_getuser.return_value = "user"
     mocked_pwnam.side_effect = Exception()
 
-    definition = wiz.definition.Definition({
-        "identifier": "test",
-        "version": "0.1.0",
-        "description": "This is a definition",
-    })
-    wiz.registry.install_to_repository(definition, "registry")
+    wiz.registry.install_to_repository(mocked_definition, "registry")
 
     mocked_requests_get.assert_called_once_with(
         "http://wiz.themill.com/api/registry/all"
@@ -315,7 +324,7 @@ def test_install_to_repository(
             "overwrite": False
         },
         data={
-            "content": definition.encode(),
+            "content": mocked_definition.encode(),
             "message": "Add 'test' [0.1.0] to registry (user)",
             "namespaces": "[]"
         }
@@ -324,7 +333,7 @@ def test_install_to_repository(
 
 def test_install_to_repository_user_name(
     mocked_requests_get, mocked_requests_post, mocked_requests_response,
-    mocked_getuser, mocked_pwnam, mocked_pwnam_response
+    mocked_getuser, mocked_pwnam, mocked_pwnam_response, mocked_definition
 ):
     """Install a definition adding the user name to commit message."""
     mocked_requests_get.return_value = mocked_requests_response
@@ -342,13 +351,8 @@ def test_install_to_repository_user_name(
     mocked_pwnam_response.pw_name = "user"
     mocked_pwnam_response.pw_gecos = "User Name"
 
-    definition = wiz.definition.Definition({
-        "identifier": "test",
-        "version": "0.1.0",
-        "description": "This is a definition",
-    })
     wiz.registry.install_to_repository(
-        definition, "registry", namespace=["foo", "bar"]
+        mocked_definition, "registry", namespace=["foo", "bar"]
     )
 
     mocked_requests_get.assert_called_once_with(
@@ -360,7 +364,7 @@ def test_install_to_repository_user_name(
             "overwrite": False
         },
         data={
-            "content": definition.encode(),
+            "content": mocked_definition.encode(),
             "message": (
                 "Add 'test' [0.1.0] to registry (user)\n\nauthor: User Name"
             ),
@@ -371,7 +375,7 @@ def test_install_to_repository_user_name(
 
 def test_install_to_repository_namespace(
     mocked_requests_get, mocked_requests_post, mocked_requests_response,
-    mocked_getuser, mocked_pwnam
+    mocked_getuser, mocked_pwnam, mocked_definition
 ):
     """Install a definition to a registry repository into a namespace."""
     mocked_requests_get.return_value = mocked_requests_response
@@ -387,13 +391,8 @@ def test_install_to_repository_namespace(
     mocked_getuser.return_value = "user"
     mocked_pwnam.side_effect = Exception()
 
-    definition = wiz.definition.Definition({
-        "identifier": "test",
-        "version": "0.1.0",
-        "description": "This is a definition",
-    })
     wiz.registry.install_to_repository(
-        definition, "registry", namespace=["foo", "bar"]
+        mocked_definition, "registry", namespace=["foo", "bar"]
     )
 
     mocked_requests_get.assert_called_once_with(
@@ -405,7 +404,7 @@ def test_install_to_repository_namespace(
             "overwrite": False
         },
         data={
-            "content": definition.encode(),
+            "content": mocked_definition.encode(),
             "message": "Add 'test' [0.1.0] to registry (user)",
             "namespaces": "[\"foo\", \"bar\"]"
         }
