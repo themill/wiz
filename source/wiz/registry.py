@@ -126,56 +126,87 @@ def install(definition, registry_location, namespace=None, overwrite=False):
                 "Definition {!r} already exists.".format(definition.identifier)
             )
     else:
-        r = requests.get("http://wiz.themill.com/api/registry/all")
-        if not r.ok:
-            raise wiz.exception.InstallError(
-                "Registries could not be retrieved."
-            )
-
-        if registry_location not in r.json()["data"]["content"]:
-            raise wiz.exception.InstallError(
-                "{!r} is not a valid registry.".format(registry_location)
-            )
-
-        # TODO: remove this line
-        definition = definition.remove("install-location")
-
-        _namespaces = []
-        if namespace is not None:
-            _namespaces = namespace
-
-        try:
-            author = pwd.getpwnam(getpass.getuser())
-            _author = "({})\n\nauthor: {}".format(
-                author.pw_name, author.pw_gecos
-            )
-        except Exception:
-            _author = "({})".format(getpass.getuser())
-
-        r = requests.post(
-            "http://wiz.themill.com/api/registry/test/release",
-            params={"overwrite": overwrite},
-            data={
-                "content": definition.encode(),
-                "namespaces": json.dumps(_namespaces),
-                "message": (
-                    "Add {identifier!r} [{version}] to registry {user}"
-                    "".format(
-                        identifier=definition.get("identifier"),
-                        version=definition.get("version"),
-                        user=_author
-                    )
-                )
-            }
+        install_to_repository(
+            definition, registry_location, namespace, overwrite
         )
-        if r.ok:
-            return
 
-        if r.status_code == 409:
-            raise wiz.exception.DefinitionExists(
-                "Definition {!r} already exists.".format(definition.identifier)
+
+def install_to_repository(
+    definition, registry_location, namespace=None, overwrite=False
+):
+    """Install a definition to a repository registry.
+
+    *definition* must be a valid :class:`~wiz.definition.Definition`
+    instance.
+
+    *registry_location* is the target repository registry to install to.
+
+    *namespace* within the target registry to install the definition to. If not
+    specified, it will be installed in the root of the registry.
+
+    If *overwrite* is True, any existing definitions in the target registry
+    will be overwritten.
+
+    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
+    cannot create a valid instance of :class:`wiz.definition.Definition`.
+
+    Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
+    the target registry and overwrite is False.
+
+    Raises :exc:`wiz.exception.InstallError` if the registry could not be found,
+    or definition could not be installed into it.
+
+    """
+    r = requests.get("http://wiz.themill.com/api/registry/all")
+    if not r.ok:
+        raise wiz.exception.InstallError(
+            "Registries could not be retrieved."
+        )
+
+    if registry_location not in r.json()["data"]["content"]:
+        raise wiz.exception.InstallError(
+            "{!r} is not a valid registry.".format(registry_location)
+        )
+
+    # TODO: remove this line
+    definition = definition.remove("install-location")
+
+    _namespaces = []
+    if namespace is not None:
+        _namespaces = namespace
+
+    try:
+        author = pwd.getpwnam(getpass.getuser())
+        _author = "({})\n\nauthor: {}".format(
+            author.pw_name, author.pw_gecos
+        )
+    except Exception:
+        _author = "({})".format(getpass.getuser())
+
+    r = requests.post(
+        "http://wiz.themill.com/api/registry/test/release",
+        params={"overwrite": overwrite},
+        data={
+            "content": definition.encode(),
+            "namespaces": json.dumps(_namespaces),
+            "message": (
+                "Add {identifier!r} [{version}] to registry {user}"
+                "".format(
+                    identifier=definition.get("identifier"),
+                    version=definition.get("version"),
+                    user=_author
+                )
             )
-        else:
-            raise wiz.exception.InstallError(
-                "Definition could not be installed to registry."
-            )
+        }
+    )
+    if r.ok:
+        return
+
+    if r.status_code == 409:
+        raise wiz.exception.DefinitionExists(
+            "Definition {!r} already exists.".format(definition.identifier)
+        )
+    else:
+        raise wiz.exception.InstallError(
+            "Definition could not be installed to registry."
+        )
