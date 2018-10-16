@@ -157,13 +157,13 @@ def install_to_id(
     or definition could not be installed into it.
 
     """
-    r = requests.get("{}/api/registry/all".format(wiz.symbol.WIZ_SERVER))
-    if not r.ok:
+    response = requests.get("{}/api/registry/all".format(wiz.symbol.WIZ_SERVER))
+    if not response.ok:
         raise wiz.exception.InstallError(
             "Registries could not be retrieved."
         )
 
-    if registry_id not in r.json()["data"]["content"]:
+    if registry_id not in response.json()["data"]["content"]:
         raise wiz.exception.InstallError(
             "{!r} is not a valid registry.".format(registry_id)
         )
@@ -171,11 +171,7 @@ def install_to_id(
     # TODO: remove this line
     definition = definition.remove("install-location")
 
-    _hierarchy = []
-    if hierarchy is not None:
-        _hierarchy = hierarchy
-
-    r = requests.post(
+    response = requests.post(
         "{server}/api/registry/{name}/release".format(
             server=wiz.symbol.WIZ_SERVER,
             name=registry_id
@@ -183,7 +179,7 @@ def install_to_id(
         params={"overwrite": json.dumps(overwrite)},
         data={
             "content": definition.encode(),
-            "hierarchy": json.dumps(_hierarchy),
+            "hierarchy": json.dumps(hierarchy or []),
             "message": (
                 "Add {identifier!r} [{version}] to registry ({username})"
                 "\n\nauthor: {name}".format(
@@ -195,10 +191,10 @@ def install_to_id(
             )
         }
     )
-    if r.ok:
+    if response.ok:
         return
 
-    if r.status_code == 409:
+    if response.status_code == 409:
         raise wiz.exception.DefinitionExists(
             "Definition {!r} already exists.".format(definition.identifier)
         )
