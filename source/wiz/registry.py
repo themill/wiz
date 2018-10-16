@@ -204,6 +204,6 @@ def install_to_id(
             "Definition could not be installed to registry {registry}: "
             "{error}".format(
                 registry=registry_id,
-                error=r.json().get("error", {}).get("message", "unknown")
+                error=response.json().get("error", {}).get("message", "unknown")
             )
         )
