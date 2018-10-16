@@ -211,8 +211,12 @@ def install_to_id(
         raise wiz.exception.DefinitionExists(
             "Definition {!r} already exists.".format(definition.identifier)
         )
+
     else:
         raise wiz.exception.InstallError(
-            "Definition could not be installed to registry {!r}."
-            "".format(registry_id)
+            "Definition could not be installed to registry {registry}: "
+            "{error}".format(
+                registry=registry_id,
+                error=r.json().get("error", {}).get("message", "unknown")
+            )
         )
