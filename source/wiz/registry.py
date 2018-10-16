@@ -190,7 +190,7 @@ def install_to_id(
             server=wiz.symbol.WIZ_SERVER,
             name=registry_id
         ),
-        params={"overwrite": overwrite},
+        params={"overwrite": json.dumps(overwrite)},
         data={
             "content": definition.encode(),
             "hierarchy": json.dumps(_hierarchy),
