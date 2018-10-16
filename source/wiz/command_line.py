@@ -269,10 +269,18 @@ def construct_parser():
         help="Definition to install."
     )
 
-    install_subparsers.add_argument(
-        "-r", "--registry",
-        help="Registry to install the package to (path or repository).",
+    install_subparsers_group = install_subparsers.add_mutually_exclusive_group(
         required=True
+    )
+
+    install_subparsers_group.add_argument(
+        "-r", "--registry-id",
+        help="Tracked registry (repository) to install the package to."
+    )
+
+    install_subparsers_group.add_argument(
+        "-p", "--registry-path",
+        help="Untracked registry (path) to install the package to."
     )
 
     install_subparsers.add_argument(
