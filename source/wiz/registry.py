@@ -3,8 +3,6 @@
 import os
 import json
 import requests
-import getpass
-import pwd
 
 import wiz.symbol
 import wiz.filesystem
@@ -177,14 +175,6 @@ def install_to_id(
     if hierarchy is not None:
         _hierarchy = hierarchy
 
-    try:
-        author = pwd.getpwnam(getpass.getuser())
-        _author = "({})\n\nauthor: {}".format(
-            author.pw_name, author.pw_gecos
-        )
-    except Exception:
-        _author = "({})".format(getpass.getuser())
-
     r = requests.post(
         "{server}/api/registry/{name}/release".format(
             server=wiz.symbol.WIZ_SERVER,
@@ -195,11 +185,12 @@ def install_to_id(
             "content": definition.encode(),
             "hierarchy": json.dumps(_hierarchy),
             "message": (
-                "Add {identifier!r} [{version}] to registry {user}"
-                "".format(
+                "Add {identifier!r} [{version}] to registry ({username})"
+                "\n\nauthor: {name}".format(
                     identifier=definition.get("identifier"),
                     version=definition.get("version"),
-                    user=_author
+                    username=wiz.filesystem.get_username(),
+                    name=wiz.filesystem.get_name() or "unknown",
                 )
             )
         }

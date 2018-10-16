@@ -6,6 +6,8 @@ import io
 import unicodedata
 import re
 import gzip
+import pwd
+import getpass
 
 import wiz.exception
 
@@ -13,6 +15,23 @@ try:
     to_unicode = unicode
 except NameError:
     to_unicode = str
+
+
+def get_username():
+    """Fetch username from password database entry."""
+    return getpass.getuser()
+
+
+def get_name():
+    """Fetch user full name from password database entry.
+
+    Return None if name cannot be returned.
+
+    """
+    try:
+        return pwd.getpwnam(getpass.getuser()).pw_gecos
+    except KeyError:
+        return
 
 
 def export(path, content, compressed=False, overwrite=False):
