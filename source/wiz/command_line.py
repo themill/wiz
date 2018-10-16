@@ -289,8 +289,8 @@ def construct_parser():
     )
 
     install_subparsers.add_argument(
-        "--with-dependencies",
-        help="Install dependencies as well.",
+        "--with-requirements",
+        help="Install requirements as well.",
         action="store_true"
     )
 
@@ -384,7 +384,7 @@ def main(arguments=None):
         )
 
     elif namespace.commands == "install":
-        _install_definition(namespace)
+        _install_definition(namespace, registries, system_mapping)
 
     # Export the history if requested.
     if namespace.record is not None:
@@ -790,7 +790,7 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
         logger.warning("Aborted.")
 
 
-def _install_definition(namespace):
+def _install_definition(namespace, registries, system_mapping):
     """Install a definition to a registry from arguments in *namespace*.
 
     Command example::
@@ -800,40 +800,46 @@ def _install_definition(namespace):
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 
+    *registries* should be a list of available registry paths.
+
+    *system_mapping* should be a mapping of the current system, usually
+    retrieved via :func:`wiz.system.query`.
+
     """
-    logger = mlog.Logger(__name__ + "._create_definition")
+    logger = mlog.Logger(__name__ + "._install_definition")
+
+    mapping = wiz.fetch_definition_mapping(
+        registries,
+        system_mapping=system_mapping,
+        max_depth=namespace.definition_search_depth
+    )
 
     overwrite = False
+
     while True:
         try:
             if namespace.registry_path is not None:
                 wiz.install_definition_to_path(
                     namespace.definition, namespace.registry_path,
-                    namespace.hierarchy, namespace.install_location,
-                    namespace.with_dependencies,
-                    namespace.definition_search_paths,
-                    namespace.definition_search_depth,
-                    overwrite=overwrite
+                    mapping, namespace.hierarchy, namespace.install_location,
+                    namespace.with_requirements, overwrite=overwrite
                 )
             if namespace.registry_id is not None:
-                wiz.install_definition_to_id(
+                wiz.install_definition_to_vault(
                     namespace.definition, namespace.registry_id,
-                    namespace.hierarchy, namespace.install_location,
-                    namespace.with_dependencies,
-                    namespace.definition_search_paths,
-                    namespace.definition_search_depth,
-                    overwrite=overwrite
+                    mapping, namespace.hierarchy, namespace.install_location,
+                    namespace.with_requirements, overwrite=overwrite
                 )
             break
+
         except wiz.exception.DefinitionExists as error:
-            if not click.confirm(
-                "Definition {} Overwrite?".format(error)
-            ):
+            if not click.confirm("Definition {} Overwrite?".format(error)):
                 break
+
             overwrite = True
+
         except Exception as error:
-            logger.error(error)
-            logger.debug("", traceback=True)
+            logger.error(error, traceback=True)
             break
 
 

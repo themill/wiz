@@ -4,6 +4,9 @@ import os
 import json
 import requests
 
+import mlog
+
+import wiz.history
 import wiz.symbol
 import wiz.filesystem
 
@@ -88,14 +91,13 @@ def discover(path):
             yield registry_path
 
 
-def install_to_path(definition, registry_path, hierarchy=None, overwrite=False):
+def install_to_path(definition, registry, hierarchy=None, overwrite=False):
     """Install a definition to a registry on the file system.
 
-    *definition* must be a valid :class:`~wiz.definition.Definition`
-    instance.
+    *definition* must be a valid :class:`~wiz.definition.Definition` instance.
 
-    *registry_path* is the target registry to install to. This can be a
-    directory or a repository.
+    *registry* is the target registry path to install to (ending on
+    `.wiz/.registry`).
 
     *hierarchy* within the target registry to install the definition to. If not
     specified, it will be installed in the root of the registry.
@@ -115,31 +117,46 @@ def install_to_path(definition, registry_path, hierarchy=None, overwrite=False):
     a valid directory.
 
     """
-    if os.path.isdir(registry_path):
-        registry_path = os.path.abspath(registry_path)
+    logger = mlog.Logger(__name__ + ".install_to_path")
+
+    if os.path.isdir(registry):
+        if not registry.endswith(".wiz/registry"):
+            registry = os.path.join(registry, ".wiz", "registry")
+
+        if hierarchy is not None:
+            registry = os.path.join(registry, *hierarchy)
+
+        registry = os.path.abspath(registry)
+        wiz.filesystem.ensure_directory(registry)
+
         try:
-            wiz.export_definition(
-                registry_path, definition, overwrite=overwrite
-            )
+            wiz.export_definition(registry, definition, overwrite=overwrite)
+
         except wiz.exception.FileExists:
             raise wiz.exception.DefinitionExists(
                 "Definition {!r} already exists.".format(definition.identifier)
             )
+
+        logger.info(
+            "Successfully installed {}-{} to {}.".format(
+                definition.identifier, _definition.version, registry
+            )
+        )
+
     else:
         raise wiz.exception.InstallError(
-            "{} is not a valid registry directory.".format(registry_path)
+            "{} is not a valid registry directory.".format(registry)
         )
 
 
-def install_to_id(
-    definition, registry_id, hierarchy=None, overwrite=False
+def install_to_vault(
+    definition, registry_identifier, hierarchy=None, overwrite=False
 ):
     """Install a definition to a repository registry.
 
-    *definition* must be a valid :class:`~wiz.definition.Definition`
-    instance.
+    *definition* must be a valid :class:`~wiz.definition.Definition` instance.
 
-    *registry_id* is the target repository registry to install to (repository).
+    *registry* ID of the target registry to install to (repository).
 
     *hierarchy* within the target registry to install the definition to. If not
     specified, it will be installed in the root of the registry.
@@ -157,15 +174,20 @@ def install_to_id(
     or definition could not be installed into it.
 
     """
+    logger = mlog.Logger(__name__ + ".install_to_vault")
+
     response = requests.get("{}/api/registry/all".format(wiz.symbol.WIZ_SERVER))
     if not response.ok:
         raise wiz.exception.InstallError(
-            "Registries could not be retrieved."
+            "Vault registries could not be retrieved: {}".format(
+                response.json().get("error", {}).get("message", "unknown")
+            )
         )
 
-    if registry_id not in response.json()["data"]["content"]:
+    registry_identifiers = response.json().get("data", {}).get("content")
+    if registry_identifier not in registry_identifiers:
         raise wiz.exception.InstallError(
-            "{!r} is not a valid registry.".format(registry_id)
+            "{!r} is not a valid registry.".format(registry_identifier)
         )
 
     # TODO: remove this line
@@ -174,7 +196,7 @@ def install_to_id(
     response = requests.post(
         "{server}/api/registry/{name}/release".format(
             server=wiz.symbol.WIZ_SERVER,
-            name=registry_id
+            name=registry_identifier
         ),
         params={"overwrite": json.dumps(overwrite)},
         data={
@@ -191,7 +213,14 @@ def install_to_id(
             )
         }
     )
+
+    # Return if all good.
     if response.ok:
+        logger.info(
+            "Successfully installed {}-{} to {}.".format(
+                definition.identifier, _definition.version, registry_identifier
+            )
+        )
         return
 
     if response.status_code == 409:
@@ -203,7 +232,7 @@ def install_to_id(
         raise wiz.exception.InstallError(
             "Definition could not be installed to registry {registry}: "
             "{error}".format(
-                registry=registry_id,
+                registry=registry_identifier,
                 error=response.json().get("error", {}).get("message", "unknown")
             )
         )

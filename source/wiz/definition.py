@@ -347,29 +347,19 @@ def load(path, mapping=None):
         return Definition(**definition_data)
 
 
-def install_to_path(
-    definition_location, registry_path, namespace=None,
-    install_location=None, dependencies=False, search_paths=None,
-    max_depth=None, overwrite=False
+def prepare_install(
+    path, definition_mapping, install_location=None, include_requirements=False
 ):
-    """Install a definition to a registry on the file system.
+    """Return updated definiton list for installation to a registry.
 
     The definitions to install can either be in the *definition_location* or in
     a *package_file*.
 
     *definition_location* is the path to a definition file.
 
-    *registry_path* is the target registry to install to (directory).
-
-    *namespace* within the target registry to install the definition to. If not
-    specified, it will be installed in the root of the registry.
-
     *install_location* is the path to the installed data.
 
     *dependencies* if True, install with dependencies.
-
-    If *overwrite* is True, any existing definitions in the target registry
-    will be overwritten.
 
     Raises :exc:`wiz.exception.IncorrectDefinition` if *definition_location* is
     a path to a definition that cannot create a valid instance of
@@ -381,9 +371,15 @@ def install_to_path(
     Raises :exc:`OSError` if the definition can not be exported in *path*.
 
     """
-    logger = mlog.Logger(__name__ + ".install")
+    path = os.path.abspath(path)
 
-    def _install(_definition, installed_definitions):
+    # Track all definitions fetched.
+    definitions = []
+
+    # Keep track of processed package identifier to prevent loops.
+    processed_definitions = set()
+
+    def _process_definitions(definition):
         """Recursively update and install definitions and their requirements.
 
         Keep track of already installed packages, to avoid loops.
@@ -391,176 +387,42 @@ def install_to_path(
         remove a retrieved 'definition-location' before writing out the files.
 
         """
-        unique_identifier = wiz.package.generate_identifier(_definition)
-        if unique_identifier in installed_definitions:
+        identifier = wiz.package.generate_identifier(definition)
+        if identifier in processed_definitions:
             return
-
-        installed_definitions.append(unique_identifier)
 
         # Check whether environment needs the installation path.
-        add_install_location = False
-        for value in itertools.chain(
-            _definition.environ.values(),
-            *(variant.environ.values() for variant in _definition.variants)
-        ):
-            if "${INSTALL_LOCATION}" in value:
-                add_install_location = True
-                break
-
-        if add_install_location:
-            _definition = _definition.set(
+        if definition.need_install_location():
+            definition = definition.set(
                 "install-location",
-                os.path.dirname(_definition.get("definition-location"))
+                install_location or os.path.dirname(
+                    definition.get("definition-location")
+                )
             )
 
-        _definition = _definition.remove("definition-location")
+        # Remove definition location as it is an internal key added on load.
+        definition = definition.remove("definition-location")
 
-        wiz.registry.install_to_path(
-            _definition, registry_path, namespace, overwrite
-        )
-        logger.info(
-            "Successfully installed {}-{} to {}.".format(
-                _definition.get("identifier"), _definition.get("version"),
-                registry_path
-            )
-        )
+        definitions.append(definition)
+        processed_definitions.add(identifier)
 
-        if dependencies is False:
+        if include_requirements is not True:
             return
 
-        for requirement in _definition.requirements:
+        for requirement in definition.requirements:
             _requirement_definition = query(
-                requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+                requirement,
+                definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
             )
-            _install(_requirement_definition, installed_definitions)
+            _process_definitions(_requirement_definition)
 
-    if install_location is not None and dependencies is True:
-        raise RuntimeError(
-            "`install_location` can not be set when installing with "
-            "dependencies. The `install-location` for each of the dependencies "
-            "has to be unique."
-        )
+    # Load definition from path.
+    _definition = load(path, mapping={"definition-location": path})
 
-    definition_mapping = fetch(search_paths, max_depth=max_depth)
+    # Start recursive loop.
+    _process_definitions(_definition)
 
-    definition_location = os.path.abspath(definition_location)
-    definition = load(definition_location)
-    if install_location is not None:
-        definition = definition.set("definition-location",
-            os.path.join(install_location, "definition.json")
-        )
-    else:
-        definition = definition.set("definition-location", definition_location)
-
-    _install(definition, [])
-
-
-def install_to_id(
-    definition_location, registry_id, namespace=None,
-    install_location=None, dependencies=False, search_paths=None,
-    max_depth=None, overwrite=False
-):
-    """Install a definition to a registry repository.
-
-    The definitions to install can either be in the *definition_location* or in
-    a *package_file*.
-
-    *definition_location* is the path to a definition file.
-
-    *registry_id* is the target registry to install to (gitlab repository).
-
-    *namespace* within the target registry to install the definition to. If not
-    specified, it will be installed in the root of the registry.
-
-    *install_location* is the path to the installed data.
-
-    *dependencies* if True, install with dependencies.
-
-    If *overwrite* is True, any existing definitions in the target registry
-    will be overwritten.
-
-    Raises :exc:`wiz.exception.IncorrectDefinition` if *definition_location* is
-    a path to a definition that cannot create a valid instance of
-    :class:`wiz.definition.Definition`.
-
-    Raises :exc:`wiz.exception.FileExists` if definition already exists in
-    *path* and overwrite is False.
-
-    Raises :exc:`OSError` if the definition can not be exported in *path*.
-
-    """
-    logger = mlog.Logger(__name__ + ".install")
-
-    def _install(_definition, installed_definitions):
-        """Recursively update and install definitions and their requirements.
-
-        Keep track of already installed packages, to avoid loops.
-        Update the definition with an 'install-location' if necessary and
-        remove a retrieved 'definition-location' before writing out the files.
-
-        """
-        unique_identifier = wiz.package.generate_identifier(_definition)
-        if unique_identifier in installed_definitions:
-            return
-
-        installed_definitions.append(unique_identifier)
-
-        # Check whether environment needs the installation path.
-        add_install_location = False
-        for value in itertools.chain(
-            _definition.environ.values(),
-            *(variant.environ.values() for variant in _definition.variants)
-        ):
-            if "${INSTALL_LOCATION}" in value:
-                add_install_location = True
-                break
-
-        if add_install_location:
-            _definition = _definition.set(
-                "install-location",
-                os.path.dirname(_definition.get("definition-location"))
-            )
-
-        _definition = _definition.remove("definition-location")
-
-        wiz.registry.install_to_id(
-            _definition, registry_id, namespace, overwrite
-        )
-        logger.info(
-            "Successfully installed {}-{} to {}.".format(
-                _definition.get("identifier"), _definition.get("version"),
-                registry_id
-            )
-        )
-
-        if dependencies is False:
-            return
-
-        for requirement in _definition.requirements:
-            _requirement_definition = query(
-                requirement, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
-            )
-            _install(_requirement_definition, installed_definitions)
-
-    if install_location is not None and dependencies is True:
-        raise RuntimeError(
-            "`install_location` can not be set when installing with "
-            "dependencies. The `install-location` for each of the dependencies "
-            "has to be unique."
-        )
-
-    definition_mapping = fetch(search_paths, max_depth=max_depth)
-
-    definition_location = os.path.abspath(definition_location)
-    definition = load(definition_location)
-    if install_location is not None:
-        definition = definition.set("definition-location",
-            os.path.join(install_location, "definition.json")
-        )
-    else:
-        definition = definition.set("definition-location", definition_location)
-
-    _install(definition, [])
+    return definitions
 
 
 class Definition(wiz.mapping.Mapping):
@@ -761,6 +623,15 @@ class Definition(wiz.mapping.Mapping):
             del _mapping[element]
 
         return self.__class__(**_mapping)
+
+    def need_install_location(self):
+        return any(
+            "${INSTALL_LOCATION}" in value or "$INSTALL_LOCATION" in value
+            for value in itertools.chain(
+                self.environ.values(),
+                *(variant.environ.values() for variant in self.variants)
+            )
+        )
 
     @property
     def variants(self):
