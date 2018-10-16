@@ -6,6 +6,7 @@ import requests
 import getpass
 import pwd
 
+import wiz.symbol
 import wiz.filesystem
 
 
@@ -158,7 +159,7 @@ def install_to_id(
     or definition could not be installed into it.
 
     """
-    r = requests.get("http://wiz.themill.com/api/registry/all")
+    r = requests.get("{}/api/registry/all".format(wiz.symbol.WIZ_SERVER))
     if not r.ok:
         raise wiz.exception.InstallError(
             "Registries could not be retrieved."
@@ -184,10 +185,9 @@ def install_to_id(
     except Exception:
         _author = "({})".format(getpass.getuser())
 
-    _server = os.environ.get("WIZ_SERVER", "http://wiz.themill.com")
     r = requests.post(
         "{server}/api/registry/{name}/release".format(
-            server=_server,
+            server=wiz.symbol.WIZ_SERVER,
             name=registry_id
         ),
         params={"overwrite": overwrite},

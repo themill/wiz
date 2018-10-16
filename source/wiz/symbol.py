@@ -2,6 +2,12 @@
 
 """Common symbols."""
 
+import os
+
+
+#: Server hosting the Wiz-Vault API
+WIZ_SERVER = os.environ.get("WIZ_SERVER", "http://wiz.themill.com")
+
 #: Separator between the normal arguments and the command to run.
 COMMAND_SEPARATOR = "--"
 
