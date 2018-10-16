@@ -377,17 +377,16 @@ def export_definition(path, data, overwrite=False):
     return wiz.definition.export(path, data, overwrite=overwrite)
 
 
-def install_definition(
-    definition_location, registry_location, hierarchy=None,
+def install_definition_to_path(
+    definition_location, registry_path, hierarchy=None,
     install_location=None, dependencies=False, search_paths=None,
     max_depth=None, overwrite=False
 ):
-    """Install a definition to a registry.
+    """Install a definition to a registry on the file system.
 
     *definition_location* is the path to a definition file.
 
-    *registry_location* is the target registry to install to. This can be a
-    directory or a gitlab repository.
+    *registry_path* is the target registry to install to (directory).
 
     *hierarchy* within the target registry to install the definition to. If not
     specified, it will be installed in the root of the registry.
@@ -411,8 +410,45 @@ def install_definition(
     Raises :exc:`OSError` if the definition can not be exported in *path*.
 
     """
-    return wiz.definition.install(
-        definition_location, registry_location, hierarchy, install_location,
+    return wiz.definition.install_to_path(
+        definition_location, registry_path, hierarchy, install_location,
+        dependencies, search_paths, max_depth, overwrite
+    )
+
+
+def install_definition_to_id(
+    definition_location, registry_id, hierarchy=None,
+    install_location=None, dependencies=False, search_paths=None,
+    max_depth=None, overwrite=False
+):
+    """Install a definition to a registry repository.
+
+    *definition_location* is the path to a definition file.
+
+    *registry_id* is the target registry to install to (gitlab repository).
+
+    *hierarchy* within the target registry to install the definition to. If not
+    specified, it will be installed in the root of the registry.
+
+    *install_location* is the path to the installed data.
+
+    *dependencies* if True, install with dependencies.
+
+    Discover all available definitions under *search_paths*, searching
+    recursively up to *max_depth*.
+
+    If *overwrite* is True, any existing definitions in the target registry
+    will be overwritten.
+
+    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
+    cannot create a valid instance of :class:`wiz.definition.Definition`.
+
+    Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
+    the target registry and overwrite is False.
+
+    """
+    return wiz.definition.install_to_id(
+        definition_location, registry_id, hierarchy, install_location,
         dependencies, search_paths, max_depth, overwrite
     )
 

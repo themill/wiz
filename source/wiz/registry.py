@@ -89,16 +89,16 @@ def discover(path):
             yield registry_path
 
 
-def install(definition, registry, namespace=None, overwrite=False):
-    """Install a definition to a registry.
+def install_to_path(definition, registry_path, hierarchy=None, overwrite=False):
+    """Install a definition to a registry on the file system.
 
     *definition* must be a valid :class:`~wiz.definition.Definition`
     instance.
 
-    *registry* is the target registry to install to. This can be a
+    *registry_path* is the target registry to install to. This can be a
     directory or a repository.
 
-    *namespace* within the target registry to install the definition to. If not
+    *hierarchy* within the target registry to install the definition to. If not
     specified, it will be installed in the root of the registry.
 
     If *overwrite* is True, any existing definitions in the target registry
@@ -112,33 +112,35 @@ def install(definition, registry, namespace=None, overwrite=False):
 
     Raises :exc:`OSError` if the definition can not be exported in *registry*.
 
-    Raises :exc:`wiz.exception.InstallError` if the registry could not be found,
-    or definition could not be installed into it.
+    Raises :exc:`wiz.exception.InstallError` if the target registry path is not
+    a valid directory.
 
     """
-    if os.path.isdir(registry):
-        registry = os.path.abspath(registry)
+    if os.path.isdir(registry_path):
+        registry_path = os.path.abspath(registry_path)
         try:
-            wiz.export_definition(registry, definition, overwrite=overwrite)
+            wiz.export_definition(
+                registry_path, definition, overwrite=overwrite
+            )
         except wiz.exception.FileExists:
             raise wiz.exception.DefinitionExists(
                 "Definition {!r} already exists.".format(definition.identifier)
             )
     else:
-        install_to_repository(
-            definition, registry, namespace, overwrite
+        raise wiz.exception.InstallError(
+            "{} is not a valid registry directory.".format(registry_path)
         )
 
 
-def install_to_repository(
-    definition, registry, hierarchy=None, overwrite=False
+def install_to_id(
+    definition, registry_id, hierarchy=None, overwrite=False
 ):
     """Install a definition to a repository registry.
 
     *definition* must be a valid :class:`~wiz.definition.Definition`
     instance.
 
-    *registry* is the target repository registry to install to.
+    *registry_id* is the target repository registry to install to (repository).
 
     *hierarchy* within the target registry to install the definition to. If not
     specified, it will be installed in the root of the registry.
@@ -162,9 +164,9 @@ def install_to_repository(
             "Registries could not be retrieved."
         )
 
-    if registry not in r.json()["data"]["content"]:
+    if registry_id not in r.json()["data"]["content"]:
         raise wiz.exception.InstallError(
-            "{!r} is not a valid registry.".format(registry)
+            "{!r} is not a valid registry.".format(registry_id)
         )
 
     # TODO: remove this line
@@ -186,7 +188,7 @@ def install_to_repository(
     r = requests.post(
         "{server}/api/registry/{name}/release".format(
             server=_server,
-            name=registry
+            name=registry_id
         ),
         params={"overwrite": overwrite},
         data={
@@ -210,7 +212,7 @@ def install_to_repository(
             "Definition {!r} already exists.".format(definition.identifier)
         )
     else:
-        print r.json()
         raise wiz.exception.InstallError(
-            "Definition could not be installed to registry."
+            "Definition could not be installed to registry {!r}."
+            "".format(registry_id)
         )

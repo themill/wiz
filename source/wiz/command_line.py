@@ -806,13 +806,24 @@ def _install_definition(namespace):
     overwrite = False
     while True:
         try:
-            wiz.install_definition(
-                namespace.definition, namespace.registry, namespace.hierarchy,
-                namespace.install_location, namespace.with_dependencies,
-                namespace.definition_search_paths,
-                namespace.definition_search_depth,
-                overwrite=overwrite
-            )
+            if namespace.registry_path is not None:
+                wiz.install_definition_to_path(
+                    namespace.definition, namespace.registry_path,
+                    namespace.hierarchy, namespace.install_location,
+                    namespace.with_dependencies,
+                    namespace.definition_search_paths,
+                    namespace.definition_search_depth,
+                    overwrite=overwrite
+                )
+            if namespace.registry_id is not None:
+                wiz.install_definition_to_id(
+                    namespace.definition, namespace.registry_id,
+                    namespace.hierarchy, namespace.install_location,
+                    namespace.with_dependencies,
+                    namespace.definition_search_paths,
+                    namespace.definition_search_depth,
+                    overwrite=overwrite
+                )
             break
         except wiz.exception.DefinitionExists as error:
             if not click.confirm(
