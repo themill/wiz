@@ -182,8 +182,12 @@ def install_to_repository(
     except Exception:
         _author = "({})".format(getpass.getuser())
 
+    _server = os.environ.get("WIZ_SERVER", "http://wiz.themill.com")
     r = requests.post(
-        "http://wiz.themill.com/api/registry/{}/release".format(registry),
+        "{server}/api/registry/{name}/release".format(
+            server=_server,
+            name=registry
+        ),
         params={"overwrite": overwrite},
         data={
             "content": definition.encode(),
@@ -206,6 +210,7 @@ def install_to_repository(
             "Definition {!r} already exists.".format(definition.identifier)
         )
     else:
+        print r.json()
         raise wiz.exception.InstallError(
             "Definition could not be installed to registry."
         )

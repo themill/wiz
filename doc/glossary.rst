@@ -68,3 +68,8 @@ Glossary
         A tool to create isolated Python environments.
 
         .. seealso:: https://virtualenv.pypa.io/en/latest/
+
+    Wiz Vault
+        Registry Server for Wiz.
+
+        .. seealso:: :ref:`wiz-vault:main`

@@ -21,3 +21,9 @@ Environment variables directly defined or referenced by this package.
                 "PATH": "${INSTALL_LOCATION}/bin:{PATH}",
             "install-location": "/path/to/test"
         }
+
+
+.. envvar:: WIZ_SERVER
+
+    Link to the :term:`Wiz Vault` server. By default `http://wiz.themill.com
+    <http://wiz.themill.com>`_.
