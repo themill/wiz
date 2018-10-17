@@ -619,6 +619,7 @@ class Definition(wiz.mapping.Mapping):
         return self.__class__(**_mapping)
 
     def need_install_location(self):
+        """Return True if INSTALL_LOCATION variable is found in definition."""
         return any(
             "${INSTALL_LOCATION}" in value or "$INSTALL_LOCATION" in value
             for value in itertools.chain(
