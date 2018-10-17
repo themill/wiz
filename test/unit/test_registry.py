@@ -257,7 +257,8 @@ def test_install_to_path(
         registry_path, mocked_definition, **export_options
     )
     logger.info.assert_called_once_with(
-        "Successfully installed test-0.1.0 to {}.".format(registry_path)
+        "Successfully installed test-0.1.0 to registry '{}'."
+        .format(registry_path)
     )
 
 
@@ -274,7 +275,8 @@ def test_install_to_path_with_full_registry_path(
         registry_path, mocked_definition, overwrite=False
     )
     logger.info.assert_called_once_with(
-        "Successfully installed test-0.1.0 to {}.".format(registry_path)
+        "Successfully installed test-0.1.0 to registry '{}'."
+        .format(registry_path)
     )
 
 
@@ -292,7 +294,8 @@ def test_install_to_path_with_relative_path(
         registry_path, mocked_definition, overwrite=False
     )
     logger.info.assert_called_once_with(
-        "Successfully installed test-0.1.0 to {}.".format(registry_path)
+        "Successfully installed test-0.1.0 to registry '{}'."
+        .format(registry_path)
     )
 
 
@@ -311,7 +314,8 @@ def test_install_to_path_with_hierarchy(
         registry_path, mocked_definition, overwrite=False
     )
     logger.info.assert_called_once_with(
-        "Successfully installed test-0.1.0 to {}.".format(registry_path)
+        "Successfully installed test-0.1.0 to registry '{}'."
+        .format(registry_path)
     )
 
 
@@ -410,7 +414,7 @@ def test_install_to_vault(
     mocked_filesystem_get_username.assert_called_once()
 
     logger.info.assert_called_once_with(
-        "Successfully installed test-0.1.0 to 'registry-id'."
+        "Successfully installed test-0.1.0 to registry 'registry-id'."
     )
 
 

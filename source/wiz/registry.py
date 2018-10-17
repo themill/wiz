@@ -144,8 +144,11 @@ def install_to_path(definition, registry_path, hierarchy=None, overwrite=False):
         )
 
     logger.info(
-        "Successfully installed {}-{} to {} registry.".format(
-            definition.identifier, definition.version, registry_path
+        "Successfully installed {identifier}-{version} to "
+        "registry {registry!r}.".format(
+            identifier=definition.identifier,
+            version=definition.version,
+            registry=registry_path
         )
     )
 
@@ -219,8 +222,11 @@ def install_to_vault(
     # Return if all good.
     if response.ok:
         logger.info(
-            "Successfully installed {}-{} to {!r}.".format(
-                definition.identifier, definition.version, registry_identifier
+            "Successfully installed {identifier}-{version} to "
+            "registry {registry!r}.".format(
+                identifier=definition.identifier,
+                version=definition.version,
+                registry=registry_identifier
             )
         )
         return
