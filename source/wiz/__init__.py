@@ -409,13 +409,22 @@ def install_definition_to_path(
     Raises :exc:`OSError` if the definition can not be exported in *path*.
 
     """
+    if definition_mapping is None:
+        definition_mapping = wiz.fetch_definition_mapping(
+            wiz.registry.get_defaults()
+        )
+
     definitions = wiz.definition.prepare_install(
-        path, definition_mapping, install_location, requirements
+        path, definition_mapping,
+        install_location=install_location,
+        include_requirements=requirements
     )
 
     for _definition in definitions:
         wiz.registry.install_to_path(
-            _definition, registry_path, hierarchy, overwrite
+            _definition, registry_path,
+            hierarchy=hierarchy,
+            overwrite=overwrite
         )
 
 
@@ -449,13 +458,22 @@ def install_definition_to_vault(
     the target registry and overwrite is False.
 
     """
+    if definition_mapping is None:
+        definition_mapping = wiz.fetch_definition_mapping(
+            wiz.registry.get_defaults()
+        )
+
     definitions = wiz.definition.prepare_install(
-        path, definition_mapping, install_location, requirements
+        path, definition_mapping,
+        install_location=install_location,
+        include_requirements=requirements
     )
 
     for _definition in definitions:
         wiz.registry.install_to_vault(
-            _definition, registry_identifier, hierarchy, overwrite
+            _definition, registry_identifier,
+            hierarchy=hierarchy,
+            overwrite=overwrite
         )
 
 

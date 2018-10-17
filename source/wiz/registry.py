@@ -120,34 +120,34 @@ def install_to_path(definition, registry_path, hierarchy=None, overwrite=False):
     """
     logger = mlog.Logger(__name__ + ".install_to_path")
 
-    if os.path.isdir(registry_path):
-        if not registry_path.endswith(".wiz/registry"):
-            registry_path = os.path.join(registry_path, ".wiz", "registry")
-
-        if hierarchy is not None:
-            registry_path = os.path.join(registry_path, *hierarchy)
-
-        registry_path = os.path.abspath(registry_path)
-        wiz.filesystem.ensure_directory(registry_path)
-
-        try:
-            wiz.export_definition(registry_path, definition, overwrite=overwrite)
-
-        except wiz.exception.FileExists:
-            raise wiz.exception.DefinitionExists(
-                "Definition {!r} already exists.".format(definition.identifier)
-            )
-
-        logger.info(
-            "Successfully installed {}-{} to {}.".format(
-                definition.identifier, _definition.version, registry_path
-            )
-        )
-
-    else:
+    if not os.path.isdir(registry_path):
         raise wiz.exception.InstallError(
-            "{} is not a valid registry path.".format(registry_path)
+            "{!r} is not a valid registry directory.".format(registry_path)
         )
+
+    registry_path = os.path.abspath(registry_path)
+    if not registry_path.endswith(".wiz/registry"):
+        registry_path = os.path.join(registry_path, ".wiz", "registry")
+
+    if hierarchy is not None:
+        registry_path = os.path.join(registry_path, *hierarchy)
+
+    try:
+        wiz.export_definition(registry_path, definition, overwrite=overwrite)
+
+    except wiz.exception.FileExists:
+        raise wiz.exception.DefinitionExists(
+            "Definition '{identifier}-{version}' already exists.".format(
+                identifier=definition.identifier,
+                version=definition.version
+            )
+        )
+
+    logger.info(
+        "Successfully installed {}-{} to {}.".format(
+            definition.identifier, definition.version, registry_path
+        )
+    )
 
 
 def install_to_vault(
@@ -186,7 +186,7 @@ def install_to_vault(
             )
         )
 
-    registry_identifiers = response.json().get("data", {}).get("content")
+    registry_identifiers = response.json().get("data", {}).get("content", {})
     if registry_identifier not in registry_identifiers:
         raise wiz.exception.InstallError(
             "{!r} is not a valid registry.".format(registry_identifier)
@@ -219,20 +219,23 @@ def install_to_vault(
     # Return if all good.
     if response.ok:
         logger.info(
-            "Successfully installed {}-{} to {}.".format(
-                definition.identifier, _definition.version, registry_identifier
+            "Successfully installed {}-{} to {!r}.".format(
+                definition.identifier, definition.version, registry_identifier
             )
         )
         return
 
     if response.status_code == 409:
         raise wiz.exception.DefinitionExists(
-            "Definition {!r} already exists.".format(definition.identifier)
+            "Definition '{identifier}-{version}' already exists.".format(
+                identifier=definition.identifier,
+                version=definition.version
+            )
         )
 
     else:
         raise wiz.exception.InstallError(
-            "Definition could not be installed to registry {registry}: "
+            "Definition could not be installed to registry {registry!r}: "
             "{error}".format(
                 registry=registry_identifier,
                 error=response.json().get("error", {}).get("message", "unknown")

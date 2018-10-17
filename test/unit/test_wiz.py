@@ -22,6 +22,18 @@ def mocked_registry_defaults(mocker):
 
 
 @pytest.fixture()
+def mocked_registry_install_to_path(mocker):
+    """Return mocked 'wiz.registry.install_to_path' function."""
+    return mocker.patch.object(wiz.registry, "install_to_path")
+
+
+@pytest.fixture()
+def mocked_registry_install_to_vault(mocker):
+    """Return mocked 'wiz.registry.install_to_vault' function."""
+    return mocker.patch.object(wiz.registry, "install_to_vault")
+
+
+@pytest.fixture()
 def mocked_fetch_definition_mapping(mocker):
     """Return mocked 'wiz.fetch_definition_mapping' function."""
     return mocker.patch.object(wiz, "fetch_definition_mapping")
@@ -58,9 +70,9 @@ def mocked_definition_export(mocker):
 
 
 @pytest.fixture()
-def mocked_definition_install(mocker):
-    """Return mocked 'wiz.definition.install' function."""
-    return mocker.patch.object(wiz.definition, "install")
+def mocked_definition_prepare_install(mocker):
+    """Return mocked 'wiz.definition.prepare_install' function."""
+    return mocker.patch.object(wiz.definition, "prepare_install")
 
 
 @pytest.fixture()
@@ -564,11 +576,203 @@ def test_export_definition(mocked_definition_export):
     )
 
 
-def test_install_definition(mocked_definition_install):
-    """Install a definition to a registry."""
-    wiz.install_definition("/definition_path", "/registry")
-    mocked_definition_install.assert_called_once_with(
-        "/definition_path", "/registry", None, None, False, None, None, False
+@pytest.mark.parametrize("options, prepare_options, install_options", [
+    (
+        {},
+        {"install_location": None, "include_requirements": False},
+        {"hierarchy": None, "overwrite": False}
+    ),
+    (
+        {"hierarchy": ["foo", "bar"]},
+        {"install_location": None, "include_requirements": False},
+        {"hierarchy": ["foo", "bar"], "overwrite": False}
+    ),
+    (
+        {"install_location": "/path/to/package"},
+        {"install_location": "/path/to/package", "include_requirements": False},
+        {"hierarchy": None, "overwrite": False}
+    ),
+    (
+        {"requirements": True},
+        {"install_location": None, "include_requirements": True},
+        {"hierarchy": None, "overwrite": False}
+    ),
+    (
+        {"overwrite": True},
+        {"install_location": None, "include_requirements": False},
+        {"hierarchy": None, "overwrite": True}
+    ),
+], ids=[
+    "no-options",
+    "with-hierarchy",
+    "with-install-location",
+    "with-requirements",
+    "with-overwrite",
+])
+def test_install_definition_to_path(
+    mocked_fetch_definition_mapping, mocked_registry_defaults,
+    mocked_definition_prepare_install, mocked_registry_install_to_path,
+    options, prepare_options, install_options
+):
+    """Install a definition to a path registry."""
+    mocked_definition_prepare_install.return_value = ["DEF1", "DEF2", "DEF3"]
+
+    wiz.install_definition_to_path(
+        "/path/to/definition.json", "/path/to/registry",
+        definition_mapping="__MAPPING__", **options
+    )
+
+    mocked_registry_defaults.assert_not_called()
+    mocked_fetch_definition_mapping.assert_not_called()
+
+    mocked_definition_prepare_install.assert_called_once_with(
+        "/path/to/definition.json", "__MAPPING__",
+        **prepare_options
+    )
+
+    assert mocked_registry_install_to_path.call_count == 3
+    mocked_registry_install_to_path.assert_any_call(
+        "DEF1", "/path/to/registry", **install_options
+    )
+    mocked_registry_install_to_path.assert_any_call(
+        "DEF2", "/path/to/registry", **install_options
+    )
+    mocked_registry_install_to_path.assert_any_call(
+        "DEF3", "/path/to/registry", **install_options
+    )
+
+
+def test_install_definition_to_path_with_default_definition_mapping(
+    mocked_fetch_definition_mapping, mocked_registry_defaults,
+    mocked_definition_prepare_install, mocked_registry_install_to_path
+):
+    """Install a definition to a path registry with default definition mapping.
+    """
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_registry_defaults.return_value = ["PATH1", "PATH2"]
+    mocked_definition_prepare_install.return_value = ["DEF1", "DEF2", "DEF3"]
+
+    wiz.install_definition_to_path(
+        "/path/to/definition.json", "/path/to/registry"
+    )
+
+    mocked_registry_defaults.assert_called_once()
+    mocked_fetch_definition_mapping.assert_called_once_with(["PATH1", "PATH2"])
+    mocked_definition_prepare_install.assert_called_once_with(
+        "/path/to/definition.json", "__MAPPING__",
+        install_location=None,
+        include_requirements=False
+    )
+
+    assert mocked_registry_install_to_path.call_count == 3
+    mocked_registry_install_to_path.assert_any_call(
+        "DEF1", "/path/to/registry", hierarchy=None, overwrite=False
+    )
+    mocked_registry_install_to_path.assert_any_call(
+        "DEF2", "/path/to/registry", hierarchy=None, overwrite=False
+    )
+    mocked_registry_install_to_path.assert_any_call(
+        "DEF3", "/path/to/registry", hierarchy=None, overwrite=False
+    )
+
+
+@pytest.mark.parametrize("options, prepare_options, install_options", [
+    (
+        {},
+        {"install_location": None, "include_requirements": False},
+        {"hierarchy": None, "overwrite": False}
+    ),
+    (
+        {"hierarchy": ["foo", "bar"]},
+        {"install_location": None, "include_requirements": False},
+        {"hierarchy": ["foo", "bar"], "overwrite": False}
+    ),
+    (
+        {"install_location": "/path/to/package"},
+        {"install_location": "/path/to/package", "include_requirements": False},
+        {"hierarchy": None, "overwrite": False}
+    ),
+    (
+        {"requirements": True},
+        {"install_location": None, "include_requirements": True},
+        {"hierarchy": None, "overwrite": False}
+    ),
+    (
+        {"overwrite": True},
+        {"install_location": None, "include_requirements": False},
+        {"hierarchy": None, "overwrite": True}
+    ),
+], ids=[
+    "no-options",
+    "with-hierarchy",
+    "with-install-location",
+    "with-requirements",
+    "with-overwrite",
+])
+def test_install_definition_to_vault(
+    mocked_fetch_definition_mapping, mocked_registry_defaults,
+    mocked_definition_prepare_install, mocked_registry_install_to_vault,
+    options, prepare_options, install_options
+):
+    """Install a definition to a vault registry."""
+    mocked_definition_prepare_install.return_value = ["DEF1", "DEF2", "DEF3"]
+
+    wiz.install_definition_to_vault(
+        "/path/to/definition.json", "registry_id",
+        definition_mapping="__MAPPING__", **options
+    )
+
+    mocked_registry_defaults.assert_not_called()
+    mocked_fetch_definition_mapping.assert_not_called()
+
+    mocked_definition_prepare_install.assert_called_once_with(
+        "/path/to/definition.json", "__MAPPING__",
+        **prepare_options
+    )
+
+    assert mocked_registry_install_to_vault.call_count == 3
+    mocked_registry_install_to_vault.assert_any_call(
+        "DEF1", "registry_id", **install_options
+    )
+    mocked_registry_install_to_vault.assert_any_call(
+        "DEF2", "registry_id", **install_options
+    )
+    mocked_registry_install_to_vault.assert_any_call(
+        "DEF3", "registry_id", **install_options
+    )
+
+
+def test_install_definition_to_vault_with_default_definition_mapping(
+    mocked_fetch_definition_mapping, mocked_registry_defaults,
+    mocked_definition_prepare_install, mocked_registry_install_to_vault
+):
+    """Install a definition to a vault registry with default definition mapping.
+    """
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_registry_defaults.return_value = ["PATH1", "PATH2"]
+    mocked_definition_prepare_install.return_value = ["DEF1", "DEF2", "DEF3"]
+
+    wiz.install_definition_to_vault(
+        "/path/to/definition.json", "registry_id"
+    )
+
+    mocked_registry_defaults.assert_called_once()
+    mocked_fetch_definition_mapping.assert_called_once_with(["PATH1", "PATH2"])
+    mocked_definition_prepare_install.assert_called_once_with(
+        "/path/to/definition.json", "__MAPPING__",
+        install_location=None,
+        include_requirements=False
+    )
+
+    assert mocked_registry_install_to_vault.call_count == 3
+    mocked_registry_install_to_vault.assert_any_call(
+        "DEF1", "registry_id", hierarchy=None, overwrite=False
+    )
+    mocked_registry_install_to_vault.assert_any_call(
+        "DEF2", "registry_id", hierarchy=None, overwrite=False
+    )
+    mocked_registry_install_to_vault.assert_any_call(
+        "DEF3", "registry_id", hierarchy=None, overwrite=False
     )
 
 
