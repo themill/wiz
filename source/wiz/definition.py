@@ -367,6 +367,9 @@ def prepare_install(
     """
     path = os.path.abspath(path)
 
+    if install_location is not None:
+        install_location = os.path.abspath(install_location)
+
     # Track all definitions fetched.
     definitions = []
 
