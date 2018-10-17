@@ -7,7 +7,6 @@ from collections import OrderedDict
 import itertools
 
 import pytest
-from mock import mock_open, call
 
 from wiz.utility import Requirement, Version
 import wiz.definition
@@ -859,209 +858,179 @@ def test_load_with_mapping(mocked_definition, temporary_file):
     )
 
 
-def test_install_definition_no_dependencies(
-    mocked_fetch, mocked_load, mocked_registry_install
-):
-    """Install a definition to a registry without installing dependencies."""
-    definition = wiz.definition.Definition({
-        "identifier": "test",
+def test_prepare_install(mocked_load, mocked_query):
+    """Return prepared definition list for installation."""
+    mocked_load.return_value = wiz.definition.Definition({
+        "identifier": "foo",
         "version": "0.1.0",
-        "description": "This is a definition",
-        "requirements": ["foo"]
-    })
-    definition_expected = wiz.definition.Definition({
-        "identifier": "test",
-        "version": "0.1.0",
-        "description": "This is a definition",
-        "requirements": ["foo"]
+        "definition-location": "/path/to/foo-0.1.0.json"
     })
 
-    mocked_load.return_value = definition
-    wiz.definition.install("/definition_path/definition.json", "/registry_path")
-
-    mocked_fetch.assert_called_once_with(None, max_depth=None)
-    mocked_load.assert_called_once_with("/definition_path/definition.json")
-    mocked_registry_install.assert_called_once_with(
-        definition_expected, "/registry_path", None, False
+    definitions = wiz.definition.prepare_install(
+        "/path/to/foo-0.1.0.json", "__MAPPING__"
     )
-
-
-@pytest.mark.parametrize("data, expected", [
-    (
-        {
-            "identifier": "test",
-            "version": "0.1.0",
-            "description": "This is a definition",
-        },
-        {
-            "identifier": "test",
-            "version": "0.1.0",
-            "description": "This is a definition"
-        }
-    ),
-    (
-        {
-            "identifier": "test",
-            "version": "0.1.0",
-            "description": "This is a definition",
-            "environ": {
-                "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
-            }
-        },
-        {
-            "identifier": "test",
-            "version": "0.1.0",
-            "description": "This is a definition",
-            "environ": {
-                "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
-            },
-            "install-location": "/definition_path",
-        }
-    ),
-    (
-        {
-            "identifier": "test",
-            "version": "0.1.0",
-            "description": "This is a definition",
-            "variants": [
-                {
-                    "identifier": "Variant1",
-                    "environ": {
-                        "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
-                    }
-                }
-            ]
-        },
-        {
-            "identifier": "test",
-            "version": "0.1.0",
-            "description": "This is a definition",
-            "variants": [
-                {
-                    "identifier": "Variant1",
-                    "environ": {
-                        "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
-                    }
-                }
-            ],
-            "install-location": "/definition_path",
-        }
-    )
-], ids=[
-    "without-install-location",
-    "with-install-location",
-    "install-location-in-variance"
-])
-def test_install_definition_add_install_location(
-    mocked_fetch, mocked_load, mocked_registry_install, data, expected
-):
-    """Add install-location if necessary, when installing a definition."""
-    definition = wiz.definition.Definition(data)
-    definition_expected = wiz.definition.Definition(expected)
-
-    mocked_load.return_value = definition
-    wiz.definition.install("/definition_path/definition.json", "/registry_path")
-
-    mocked_fetch.assert_called_once_with(None, max_depth=None)
-    mocked_load.assert_called_once_with("/definition_path/definition.json")
-    mocked_registry_install.assert_called_once_with(
-        definition_expected, "/registry_path", None, False
-    )
-
-
-def test_install_definition_with_dependencies(
-    mocked_fetch, mocked_query, mocked_load, mocked_registry_install
-):
-    """Install a definition to a registry."""
-    mocked_query.side_effect = [
+    assert definitions == [
         wiz.definition.Definition({
-            "identifier": "foo-package",
-            "version": "0.1.0",
-            "description": "A test package for foo."
+            "identifier": "foo",
+            "version": "0.1.0"
         })
     ]
 
-    definition = wiz.definition.Definition({
-        "identifier": "test",
+    mocked_load.assert_called_once_with(
+        "/path/to/foo-0.1.0.json",
+        mapping={"definition-location": "/path/to/foo-0.1.0.json"}
+    )
+    mocked_query.assert_not_called()
+
+
+@pytest.mark.parametrize("options, install_location", [
+    ({}, "/path/to"),
+    ({"install_location": "/somewhere/else"}, "/somewhere/else")
+], ids=[
+    "with-option",
+    "without-option",
+])
+def test_prepare_install_with_install_location_needed(
+    mocked_load, mocked_query, options, install_location
+):
+    """Return prepared definition list for installation with install location.
+    """
+    mocked_load.return_value = wiz.definition.Definition({
+        "identifier": "foo",
         "version": "0.1.0",
-        "description": "This is a definition",
-        "requirements": ["foo"]
+        "definition-location": "/path/to/foo-0.1.0.json",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin"
+        }
     })
-    expected_calls = [
-        call(wiz.definition.Definition({
-            "identifier": "test",
+
+    definitions = wiz.definition.prepare_install(
+        "/path/to/foo-0.1.0.json", "__MAPPING__", **options
+    )
+    assert definitions == [
+        wiz.definition.Definition({
+            "identifier": "foo",
             "version": "0.1.0",
-            "description": "This is a definition",
-            "requirements": ["foo"]
-        }), "/registry_path", None, False),
-        call(wiz.definition.Definition({
-            "identifier": "foo-package",
-            "version": "0.1.0",
-            "description": "A test package for foo."
-        }), "/registry_path", None, False)
+            "install-location": install_location,
+            "environ": {
+                "PATH": "${INSTALL_LOCATION}/bin"
+            }
+        })
     ]
 
-    mocked_load.return_value = definition
-    wiz.definition.install(
-        "/definition_path/definition.json", "/registry_path", dependencies=True
+    mocked_load.assert_called_once_with(
+        "/path/to/foo-0.1.0.json",
+        mapping={"definition-location": "/path/to/foo-0.1.0.json"}
     )
-
-    mocked_fetch.assert_called_once_with(None, max_depth=None)
-    mocked_load.assert_called_once_with("/definition_path/definition.json")
-    mocked_registry_install.assert_has_calls(expected_calls, any_order=True)
+    mocked_query.assert_not_called()
 
 
-def test_install_definition_with_install_location(
-    mocked_fetch, mocked_load, mocked_registry_install
+@pytest.mark.parametrize("options, install_location", [
+    ({}, None),
+    ({"install_location": "/somewhere/else"}, "/somewhere/else")
+], ids=[
+    "with-option",
+    "without-option",
+])
+def test_prepare_install_with_requirements(
+    mocked_load, mocked_query, options, install_location
 ):
-    """Install a definition to a registry adding an install_location."""
-    data = {
-        "identifier": "test",
+    """Return prepared definition list for installation with requirements.
+    """
+    mocked_load.return_value = wiz.definition.Definition({
+        "identifier": "foo",
         "version": "0.1.0",
-        "description": "This is a definition",
-        "environ": {
-            "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
-        }
-    }
-    expected = {
-        "identifier": "test",
-        "version": "0.1.0",
-        "description": "This is a definition",
-        "environ": {
-            "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
-        },
-        "install-location": "/install_location",
-    }
-    definition = wiz.definition.Definition(data)
-    definition_expected = wiz.definition.Definition(expected)
+        "definition-location": "/path1/foo-0.1.0.json",
+        "requirements": [
+            "bar >= 10, < 11",
+            "bim >= 0.1.0, < 1"
+        ]
+    })
 
-    mocked_load.return_value = definition
-    wiz.definition.install(
-        "/definition_path/definition.json", "/registry_path",
-        install_location="/install_location"
+    mocked_query.side_effect = [
+        wiz.definition.Definition({
+            "identifier": "bar",
+            "version": "10.5",
+            "definition-location": "/path2/bar-10.5.json",
+            "environ": {
+                "PATH": "${INSTALL_LOCATION}/bin"
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "bim",
+            "version": "0.1.0",
+            "definition-location": "/path3/bim-0.1.0.json",
+            "requirements": [
+                "baz",
+                "bim"
+            ]
+        }),
+        wiz.definition.Definition({
+            "identifier": "baz",
+            "version": "0.3.0",
+            "definition-location": "/path4/baz-0.3.0.json",
+            "environ": {
+                "PYTHONPATH": "${INSTALL_LOCATION}/lib/python2.7/site-packages"
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "bim",
+            "version": "0.1.0",
+            "definition-location": "/path3/bim-0.1.0.json",
+            "requirements": [
+                "baz"
+            ]
+        }),
+    ]
+
+    definitions = wiz.definition.prepare_install(
+        "/path/to/definition.json", "__MAPPING__",
+        include_requirements=True, **options
+    )
+    assert definitions == [
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "version": "0.1.0",
+            "requirements": [
+                "bar >= 10, < 11",
+                "bim >= 0.1.0, < 1"
+            ]
+        }),
+        wiz.definition.Definition({
+            "identifier": "bar",
+            "version": "10.5",
+            "install-location": install_location or "/path2",
+            "environ": {
+                "PATH": "${INSTALL_LOCATION}/bin"
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "bim",
+            "version": "0.1.0",
+            "requirements": [
+                "baz",
+                "bim"
+            ]
+        }),
+        wiz.definition.Definition({
+            "identifier": "baz",
+            "version": "0.3.0",
+            "install-location": install_location or "/path4",
+            "environ": {
+                "PYTHONPATH": "${INSTALL_LOCATION}/lib/python2.7/site-packages"
+            }
+        })
+    ]
+
+    mocked_load.assert_called_once_with(
+        "/path/to/definition.json",
+        mapping={"definition-location": "/path/to/definition.json"}
     )
 
-    mocked_fetch.assert_called_once_with(None, max_depth=None)
-    mocked_load.assert_called_once_with("/definition_path/definition.json")
-    mocked_registry_install.assert_called_once_with(
-        definition_expected, "/registry_path", None, False
-    )
-
-
-def test_install_definition_dependencies_and_install_location_fail(mocker):
-    """Fail if install_location is set together with dependency flag."""
-    mocked_open = mock_open(mock=mocker.MagicMock())
-    with pytest.raises(RuntimeError) as error:
-        with mocker.patch('wiz.definition.open', mocked_open):
-            wiz.definition.install(
-                None, "/registry_path", install_location="/install_location",
-                dependencies=True
-            )
-
-    assert (
-        "`install_location` can not be set when installing with dependencies. "
-        "The `install-location` for each of the dependencies has to be unique."
-    ) in error.value
+    assert mocked_query.call_count == 4
+    mocked_query.assert_any_call(Requirement("bar >= 10, <11"), "__MAPPING__")
+    mocked_query.assert_any_call(Requirement("bim >= 0.1.0, <1"), "__MAPPING__")
+    mocked_query.assert_any_call(Requirement("baz"), "__MAPPING__")
 
 
 def test_definition_mapping():

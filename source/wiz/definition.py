@@ -354,8 +354,8 @@ def prepare_install(
 
     *path* is the path to a definition file.
 
-    *definition_mapping* is a mapping regrouping all available definitions
-    available.
+    *definition_mapping* is a mapping regrouping all available definition
+    associated with their unique identifier.
 
     *install_location* is the path to the installed data on the file system.
 
@@ -404,10 +404,7 @@ def prepare_install(
             return
 
         for requirement in definition.requirements:
-            _requirement_definition = query(
-                requirement,
-                definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
-            )
+            _requirement_definition = query(requirement, definition_mapping)
             _process_definitions(_requirement_definition)
 
     # Load definition from path.

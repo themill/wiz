@@ -415,7 +415,7 @@ def install_definition_to_path(
         )
 
     definitions = wiz.definition.prepare_install(
-        path, definition_mapping,
+        path, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
         install_location=install_location,
         include_requirements=requirements
     )
@@ -464,7 +464,7 @@ def install_definition_to_vault(
         )
 
     definitions = wiz.definition.prepare_install(
-        path, definition_mapping,
+        path, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
         install_location=install_location,
         include_requirements=requirements
     )

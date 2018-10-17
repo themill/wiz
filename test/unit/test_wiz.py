@@ -619,7 +619,7 @@ def test_install_definition_to_path(
 
     wiz.install_definition_to_path(
         "/path/to/definition.json", "/path/to/registry",
-        definition_mapping="__MAPPING__", **options
+        definition_mapping={"package": "__MAPPING__"}, **options
     )
 
     mocked_registry_defaults.assert_not_called()
@@ -648,7 +648,7 @@ def test_install_definition_to_path_with_default_definition_mapping(
 ):
     """Install a definition to a path registry with default definition mapping.
     """
-    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_fetch_definition_mapping.return_value = {"package": "__MAPPING__"}
     mocked_registry_defaults.return_value = ["PATH1", "PATH2"]
     mocked_definition_prepare_install.return_value = ["DEF1", "DEF2", "DEF3"]
 
@@ -719,7 +719,7 @@ def test_install_definition_to_vault(
 
     wiz.install_definition_to_vault(
         "/path/to/definition.json", "registry_id",
-        definition_mapping="__MAPPING__", **options
+        definition_mapping={"package": "__MAPPING__"}, **options
     )
 
     mocked_registry_defaults.assert_not_called()
@@ -748,7 +748,7 @@ def test_install_definition_to_vault_with_default_definition_mapping(
 ):
     """Install a definition to a vault registry with default definition mapping.
     """
-    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_fetch_definition_mapping.return_value = {"package": "__MAPPING__"}
     mocked_registry_defaults.return_value = ["PATH1", "PATH2"]
     mocked_definition_prepare_install.return_value = ["DEF1", "DEF2", "DEF3"]
 
