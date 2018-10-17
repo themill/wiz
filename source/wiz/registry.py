@@ -144,7 +144,7 @@ def install_to_path(definition, registry_path, hierarchy=None, overwrite=False):
         )
 
     logger.info(
-        "Successfully installed {}-{} to {}.".format(
+        "Successfully installed {}-{} to {} registry.".format(
             definition.identifier, definition.version, registry_path
         )
     )
