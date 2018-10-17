@@ -91,12 +91,12 @@ def discover(path):
             yield registry_path
 
 
-def install_to_path(definition, registry, hierarchy=None, overwrite=False):
+def install_to_path(definition, registry_path, hierarchy=None, overwrite=False):
     """Install a definition to a registry on the file system.
 
     *definition* must be a valid :class:`~wiz.definition.Definition` instance.
 
-    *registry* is the target registry path to install to (ending on
+    *registry_path* is the target registry path to install to (ending on
     `.wiz/.registry`).
 
     *hierarchy* within the target registry to install the definition to. If not
@@ -105,13 +105,14 @@ def install_to_path(definition, registry, hierarchy=None, overwrite=False):
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
 
-    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
-    cannot create a valid instance of :class:`wiz.definition.Definition`.
+    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
+    create a valid instance of :class:`wiz.definition.Definition`.
 
     Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
     the target registry and overwrite is False.
 
-    Raises :exc:`OSError` if the definition can not be exported in *registry*.
+    Raises :exc:`OSError` if the definition can not be exported in
+    *registry_path*.
 
     Raises :exc:`wiz.exception.InstallError` if the target registry path is not
     a valid directory.
@@ -119,18 +120,18 @@ def install_to_path(definition, registry, hierarchy=None, overwrite=False):
     """
     logger = mlog.Logger(__name__ + ".install_to_path")
 
-    if os.path.isdir(registry):
-        if not registry.endswith(".wiz/registry"):
-            registry = os.path.join(registry, ".wiz", "registry")
+    if os.path.isdir(registry_path):
+        if not registry_path.endswith(".wiz/registry"):
+            registry_path = os.path.join(registry_path, ".wiz", "registry")
 
         if hierarchy is not None:
-            registry = os.path.join(registry, *hierarchy)
+            registry_path = os.path.join(registry_path, *hierarchy)
 
-        registry = os.path.abspath(registry)
-        wiz.filesystem.ensure_directory(registry)
+        registry_path = os.path.abspath(registry_path)
+        wiz.filesystem.ensure_directory(registry_path)
 
         try:
-            wiz.export_definition(registry, definition, overwrite=overwrite)
+            wiz.export_definition(registry_path, definition, overwrite=overwrite)
 
         except wiz.exception.FileExists:
             raise wiz.exception.DefinitionExists(
@@ -139,13 +140,13 @@ def install_to_path(definition, registry, hierarchy=None, overwrite=False):
 
         logger.info(
             "Successfully installed {}-{} to {}.".format(
-                definition.identifier, _definition.version, registry
+                definition.identifier, _definition.version, registry_path
             )
         )
 
     else:
         raise wiz.exception.InstallError(
-            "{} is not a valid registry directory.".format(registry)
+            "{} is not a valid registry path.".format(registry_path)
         )
 
 
@@ -156,7 +157,8 @@ def install_to_vault(
 
     *definition* must be a valid :class:`~wiz.definition.Definition` instance.
 
-    *registry* ID of the target registry to install to (repository).
+    *registry_identifier* is the identifier of the target registry repository to
+    install to.
 
     *hierarchy* within the target registry to install the definition to. If not
     specified, it will be installed in the root of the registry.
@@ -164,8 +166,8 @@ def install_to_vault(
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
 
-    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
-    cannot create a valid instance of :class:`wiz.definition.Definition`.
+    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
+    create a valid instance of :class:`wiz.definition.Definition`.
 
     Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
     the target registry and overwrite is False.

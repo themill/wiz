@@ -795,8 +795,8 @@ def _install_definition(namespace, registries, system_mapping):
 
     Command example::
 
-        wiz install definition.json --registry primary
-        wiz install definition.json --registry primary --path .
+        wiz install definition.json --registry-id primary
+        wiz install definition.json --registry-path /path/to/registry
 
     *namespace* is an instance of :class:`argparse.Namespace`.
 

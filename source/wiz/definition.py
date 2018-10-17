@@ -350,25 +350,19 @@ def load(path, mapping=None):
 def prepare_install(
     path, definition_mapping, install_location=None, include_requirements=False
 ):
-    """Return updated definiton list for installation to a registry.
+    """Return a list of updated definitions to install to a registry.
 
-    The definitions to install can either be in the *definition_location* or in
-    a *package_file*.
+    *path* is the path to a definition file.
 
-    *definition_location* is the path to a definition file.
+    *definition_mapping* is a mapping regrouping all available definitions
+    available.
 
-    *install_location* is the path to the installed data.
+    *install_location* is the path to the installed data on the file system.
 
-    *dependencies* if True, install with dependencies.
+    *requirements* if True, install requirements too.
 
-    Raises :exc:`wiz.exception.IncorrectDefinition` if *definition_location* is
-    a path to a definition that cannot create a valid instance of
-    :class:`wiz.definition.Definition`.
-
-    Raises :exc:`wiz.exception.FileExists` if definition already exists in
-    *path* and overwrite is False.
-
-    Raises :exc:`OSError` if the definition can not be exported in *path*.
+    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
+    create a valid instance of :class:`wiz.definition.Definition`.
 
     """
     path = os.path.abspath(path)
