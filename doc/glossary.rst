@@ -37,6 +37,15 @@ Glossary
 
         .. seealso:: http://json-schema.org/
 
+    Gitlab
+        Centralised server for :term:`Git` that provides additional
+        collaborative features.
+
+        .. seealso::
+
+            * `Local Gitlab server <http://gitlab/>`__
+            * https://about.gitlab.com/
+
     Maya
         A digital content creator provided by Autodesk.
 
@@ -57,6 +66,12 @@ Glossary
         more effectively.
 
         .. seealso:: https://www.python.org/
+
+    Qip
+        Quarantined Installer for Python. Tool to install python packages into a
+        self contained directory structure.
+
+        .. seealso:: http://rtd.themill.com/docs/qip/en/stable/
 
     Unix Shell
         Command line interpreter providing a user interaction to use traditional
