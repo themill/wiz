@@ -1,62 +1,42 @@
 .. _tutorial/install:
 
-Install
-=======
+Installing from Qip
+===================
 
-To use a package with Wiz it needs to be available in a registry.
-Adding a definition to a registry can be done manually, by either copying the
-file to location on the file system (like `~/.wiz/registry`) or commit it to
-one of the registries on `Gitlab <http://gitlab/rnd/wiz-registry>`_.
+:term:`Qip` is a tool to install packages into a bundled directory structure.
+It will also create Wiz package definitions for any packages that don't include
+one already.
 
-To ease and automise this process an ``install`` command has been added to Wiz::
+Once package data has been installed to their location on the file system, using
+:term:`Qip`, ``wiz install`` can be run to install those definitions to a
+registry.
 
-    >>> wiz install -h
+To try this, lets ``qip install`` a package to /tmp::
 
-Command line Usage
-------------------
+    >>> qip install mlog --output /tmp/my-install-test
 
-Running ``wiz install`` with a definition and a registry will add that
-definition to the specified registry and update the ``install-location`` inside
-the definition to match the data location it has been installed to.
-
-.. code-block:: console
-
-    >>> wiz install package-0.1.0.json --registry ~/.wiz/registry
-
-    info: Successfully installed definition package-0.1.0.json to ~/.wiz/registry.
+Navigate to the :term:`Qip` package install location on the file system and
+install the definition to your personal registry:
 
 .. code-block:: console
 
-    >>> cat ~/.wiz/registry/package-0.1.0.json
-    {
-        "identifier": "package",
-        "version": "0.1.0",
-        "description": "Some description.",
-        "install-location": "/path/package/package-0.1.0",
-        "system": {
-            "arch": "x86_64",
-            "os": "el >= 7, < 8"
-        },
-        "environ": {
-            "PYTHONPATH": "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}"
-        }
-    }
+    >>> cd /tmp/my-install-test
+    >>> wiz --definition-search-paths . --definition-search-depth 2 install mlog/mlog-0.2.1/mlog-0.2.1.json --registry-path ~ --with-requirements
+    info: Successfully installed mlog-0.2.1 to ~/.wiz/registry registry.
+    info: Successfully installed sawmill-0.2.1 to ~/.wiz/registry registry.
+    info: Successfully installed html2text-2016.4.2 to ~/.wiz/registry registry.
+    info: Successfully installed pystache-0.5.4 to ~/.wiz/registry registry.
+    info: Successfully installed colorama-0.3.9 to ~/.wiz/registry registry.
+    >>> l ~/.wiz/registry/
+    colorama-0.3.9.json
+    html2text-2016.4.2.json
+    mlog-0.2.1.json
+    pystache-0.5.4.json
+    sawmill-0.2.1.json
 
-.. hint::
+With the package and all of its dependencies installed in your personal registry,
+you can now use all the typical wiz commands to view and use that package.
 
-    If the installed data is not in the same directory as the package
-    definition, an additonal argument ``--install-location`` can be set to
-    the data. This will make sure Wiz can find the installed data
-    at runtime.
-
-API Usage
----------
-
-The same result can be achieved using the :term:`Python` API call
-:func:`wiz.install_definition`::
-
-    import wiz
-
-    wiz.install_definition(
-        definition_path="/path/package-0.1.0.json", registry_location="~/.wiz/registry"
-    )
+    >>> wiz use mlog --view
+    >>> wiz use mlog -- python
+    import mlog
