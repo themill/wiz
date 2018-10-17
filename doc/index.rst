@@ -13,6 +13,7 @@ Package management system.
     installing
     registry
     definition
+    install_definitions
     tutorial/index
     guidelines
     tools

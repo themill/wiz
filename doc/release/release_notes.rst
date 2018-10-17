@@ -13,6 +13,11 @@ Release Notes
 
     .. change:: added
 
+        Added :ref:`install definitions guide <install_definitions>` for
+        installing definitions to a registry.
+
+    .. change:: added
+
         Added :ref:`environment variable <environment_variables>` section to
         list and describe the environment variables used by Wiz.
 
