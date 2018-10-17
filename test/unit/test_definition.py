@@ -717,22 +717,34 @@ def test_discover(mocked_load, registries, definitions):
     r2 = registries[1]
 
     path = os.path.join(r1, "defA.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "definition-location": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "definition-location": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defF.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "definition-location": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defE.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "definition-location": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r2, "defH.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r2, "definition-location": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2, "definition-location": path}
+    )
 
     path = os.path.join(r2, "defI.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r2, "definition-location": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2, "definition-location": path}
+    )
 
     assert discovered == definitions[:6]
 
@@ -753,16 +765,24 @@ def test_discover_with_max_depth(mocked_load, registries, definitions):
     r2 = registries[1]
 
     path = os.path.join(r1, "defA.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "definition-location": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "definition-location": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r2, "defH.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r2, "definition-location": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2, "definition-location": path}
+    )
 
     path = os.path.join(r2, "defI.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r2, "definition-location": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2, "definition-location": path}
+    )
 
     assert discovered == definitions[:4]
 
@@ -2099,6 +2119,67 @@ def test_definition_remove_non_existing_index():
     _definition = definition.remove_index("requirements", 5)
     assert definition == _definition
 
-    _definition= definition.remove_index("test", "error")
+    _definition = definition.remove_index("test", "error")
     assert definition == _definition
+
+
+def test_definition_need_install_location():
+    """Indicate whether definition use 'INSTALL_LOCATION' environment variable.
+    """
+    definition = wiz.definition.Definition({"identifier": "foo"})
+    assert definition.need_install_location() is False
+
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "environ": {
+            "PATH": "/path/to/bin:${PATH}"
+        }
+    })
+    assert definition.need_install_location() is False
+
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin:${PATH}"
+        }
+    })
+    assert definition.need_install_location() is True
+
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "variants": [
+            {
+                "identifier": "V1",
+                "environ": {
+                    "PATH": "/path/to/bin1:${PATH}"
+                }
+            },
+            {
+                "identifier": "V2",
+                "environ": {
+                    "PATH": "/path/to/bin2:${PATH}"
+                }
+            }
+        ]
+    })
+    assert definition.need_install_location() is False
+
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "variants": [
+            {
+                "identifier": "V1",
+                "environ": {
+                    "PATH": "/path/to/bin1:${PATH}"
+                }
+            },
+            {
+                "identifier": "V2",
+                "environ": {
+                    "PATH": "${INSTALL_LOCATION}/bin2:${PATH}"
+                }
+            }
+        ]
+    })
+    assert definition.need_install_location() is True
 

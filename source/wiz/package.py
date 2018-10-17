@@ -428,6 +428,22 @@ class Package(wiz.mapping.Mapping):
         """Return variant name."""
         return self.get("variant_name")
 
+    def localized_environ(self):
+        """Return localized environ mapping."""
+        _environ = self.environ
+
+        def _replace_location(mapping, item):
+            """Replace location in *value* for *mapping*."""
+            mapping[item[0]] = item[1].replace(
+                "${INSTALL_LOCATION}", self.get("install-location")
+            )
+            return mapping
+
+        if "install-location" in self.keys():
+            _environ = reduce(_replace_location, _environ.items(), {})
+
+        return _environ
+
     @property
     def _ordered_keywords(self):
         """Return ordered keywords."""

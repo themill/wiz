@@ -340,7 +340,7 @@ def test_extract_context_with_six_package(
             "version": "30.5",
             "install-location": "/path/to/package",
             "command": {"app1": "AppX"},
-            "environ": {"PATH": "$INSTALL_LOCATION/bin"}
+            "environ": {"PATH": "${INSTALL_LOCATION}/bin"}
         })
     ]
 
@@ -689,4 +689,49 @@ def test_initiate_data_with_initial_data(monkeypatch):
             "/bin",
         ]),
         "KEY": "VALUE"
+    }
+
+
+def test_package_localized_environ():
+    """Return localized environment."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "install-location": "/path/to/package",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin:${PATH}",
+            "PYTHONPATH": (
+                "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}"
+            )
+        }
+    })
+
+    package = wiz.package.Package(definition)
+
+    assert package.localized_environ() == {
+        "PATH": "/path/to/package/bin:${PATH}",
+        "PYTHONPATH": (
+            "/path/to/package/lib/python2.7/site-packages:${PYTHONPATH}"
+        )
+    }
+
+
+def test_package_localized_environ_without_key():
+    """Return localized environment with 'install-location' key."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin:${PATH}",
+            "PYTHONPATH": (
+                "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}"
+            )
+        }
+    })
+
+    package = wiz.package.Package(definition)
+
+    assert package.localized_environ() == {
+        "PATH": "${INSTALL_LOCATION}/bin:${PATH}",
+        "PYTHONPATH": (
+            "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}"
+        )
     }
