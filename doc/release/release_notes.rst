@@ -53,6 +53,14 @@ Release Notes
         helper to determine when an `install-location` key is needed in a
         definition.
 
+.. release:: 1.0.2
+    :date: 2018-10-18
+
+    .. change:: fixed
+
+        Updated :mod:`wiz.command_line` to convert version to a string when
+        freezing the environment. Previously it would fail with a type error.
+
 .. release:: 1.0.1
     :date: 2018-09-24
 
