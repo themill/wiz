@@ -699,7 +699,7 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
             definition_data = {
                 "identifier": identifier,
                 "description": description,
-                "version": version
+                "version": str(version)
             }
 
             command_mapping = context.get("command")
