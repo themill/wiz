@@ -32,10 +32,6 @@
             "description": "Full path to the definition file.",
             "type": "string"
         },
-        "install-location": {
-            "description": "Install location of the package data.",
-            "type": "string"
-        },
         "system": {
             "description": "System constraints limiting the scope of the definition.",
             "type": "object",

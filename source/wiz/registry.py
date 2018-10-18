@@ -195,9 +195,6 @@ def install_to_vault(
             "{!r} is not a valid registry.".format(registry_identifier)
         )
 
-    # TODO: remove this line
-    definition = definition.remove("install-location")
-
     response = requests.post(
         "{server}/api/registry/{name}/release".format(
             server=wiz.symbol.WIZ_SERVER,
