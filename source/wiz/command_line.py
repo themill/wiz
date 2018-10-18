@@ -285,7 +285,8 @@ def construct_parser():
 
     install_subparsers.add_argument(
         "--install-location",
-        help="Path to the installed data. (Default is the definition path)"
+        help="Path to the installed data.",
+        required=True
     )
 
     install_subparsers.add_argument(
