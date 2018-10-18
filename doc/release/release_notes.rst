@@ -8,8 +8,8 @@ Release Notes
 
     .. change:: fixed
 
-        Convert Version to a string when freezing the environment. Previously it
-        would error since it expected the wrong type.
+        Updated :mod:`wiz.command_line` to convert Version to a string when freezing
+        the environment. Previously it would error since it expected the wrong type.
 
 .. release:: 1.0.1
     :date: 2018-09-24
