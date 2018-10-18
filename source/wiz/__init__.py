@@ -379,7 +379,7 @@ def export_definition(path, data, overwrite=False):
 
 def install_definition_to_path(
     path, registry_path, definition_mapping=None, hierarchy=None,
-    install_location=None, requirements=False, overwrite=False
+    install_location=None, overwrite=False
 ):
     """Install a definition to a registry on the file system.
 
@@ -394,8 +394,6 @@ def install_definition_to_path(
     specified, it will be installed in the root of the registry.
 
     *install_location* is the path to the installed data on the file system.
-
-    *requirements* if True, install requirements too.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -430,7 +428,7 @@ def install_definition_to_path(
 
 def install_definition_to_vault(
     path, registry_identifier, definition_mapping=None, hierarchy=None,
-    install_location=None, requirements=False, overwrite=False
+    install_location=None, overwrite=False
 ):
     """Install a definition to a registry repository.
 
@@ -445,8 +443,6 @@ def install_definition_to_vault(
     specified, it will be installed in the root of the registry.
 
     *install_location* is the path to the installed data on the file system.
-
-    *requirements* if True, install requirements too.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.

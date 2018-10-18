@@ -289,12 +289,6 @@ def construct_parser():
     )
 
     install_subparsers.add_argument(
-        "--with-requirements",
-        help="Install requirements as well.",
-        action="store_true"
-    )
-
-    install_subparsers.add_argument(
         "--hierarchy",
         help="Hierarchy in the registry to install to.",
         nargs="*",
@@ -822,13 +816,13 @@ def _install_definition(namespace, registries, system_mapping):
                 wiz.install_definition_to_path(
                     namespace.definition, namespace.registry_path,
                     mapping, namespace.hierarchy, namespace.install_location,
-                    namespace.with_requirements, overwrite=overwrite
+                    overwrite=overwrite
                 )
             if namespace.registry_id is not None:
                 wiz.install_definition_to_vault(
                     namespace.definition, namespace.registry_id,
                     mapping, namespace.hierarchy, namespace.install_location,
-                    namespace.with_requirements, overwrite=overwrite
+                    overwrite=overwrite
                 )
             break
 

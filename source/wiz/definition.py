@@ -348,7 +348,7 @@ def load(path, mapping=None):
 
 
 def prepare_install(
-    path, definition_mapping, install_location=None, include_requirements=False
+    path, definition_mapping, install_location=None
 ):
     """Return a list of updated definitions to install to a registry.
 
@@ -358,8 +358,6 @@ def prepare_install(
     associated with their unique identifier.
 
     *install_location* is the path to the installed data on the file system.
-
-    *requirements* if True, install requirements too.
 
     Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
     create a valid instance of :class:`wiz.definition.Definition`.
@@ -402,9 +400,6 @@ def prepare_install(
 
         definitions.append(definition)
         processed_definitions.add(identifier)
-
-        if include_requirements is not True:
-            return
 
         for requirement in definition.requirements:
             _requirement_definition = query(requirement, definition_mapping)
