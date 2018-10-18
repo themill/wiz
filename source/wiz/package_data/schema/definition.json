@@ -28,7 +28,7 @@
             "description": "Full path to the registry in which the definition file has been found.",
             "type": "string"
         },
-        "definition-location": {
+        "origin": {
             "description": "Full path to the definition file.",
             "type": "string"
         },
