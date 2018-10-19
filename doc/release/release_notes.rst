@@ -6,52 +6,54 @@ Release Notes
 
 .. release:: Upcoming
 
-    .. change:: added
+    .. change:: new
+        :tags: command-line
 
-        Added :ref:`tutorial <tutorial/install>` for installing a definition
-        to a registry.
+        Added ``wiz install`` sub-command to install package definition to a
+        registry.
 
-    .. change:: added
+    .. change:: new
+        :tags: API
 
-        Added :ref:`install definitions guide <install_definitions>` for
-        installing definitions to a registry.
+        Added :func:`wiz.install_definition_to_path` and
+        :func:`wiz.install_definition_to_vault` to install one or several
+        definition files into a *local* or a *vault* registry.
 
-    .. change:: added
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.registry.install_to_path` and
+        :func:`wiz.registry.install_to_vault` to install a definition instance
+        into a *local* or a *vault* registry.
+
+    .. change:: new
+        :tags: API
+
+        Added :meth:`wiz.package.Package.localized_environ` to return
+        environment mapping of a package which replace the
+        :envvar:`INSTALL_LOCATION` environment variable by the
+        :ref:`install-location <definition/install_location>` value.
+
+    .. change:: new
+        :tags: documentation
+
+        Added :ref:`installing_definitions` section.
+
+    .. change:: new
+        :tags: documentation
+
+        Added :ref:`tutorial/install/qip` section.
+
+    .. change:: new
+        :tags: documentation
 
         Added :ref:`environment variable <environment_variables>` section to
         list and describe the environment variables used by Wiz.
 
-    .. change:: added
+    .. change:: new
+        :tags: documentation
 
-        Added :func:`wiz.install_definition_to_path` to install a definition to
-        a registry on the file system.
-        Added :func:`wiz.install_definition_to_vault` to install a definition to
-        a repository registry with :term:`Wiz Vault`.
-
-    .. change:: added
-
-        Added `wiz.definition.prepare_install` gather definitions that are
-        supposed to be installed to a registry from requirements and update
-        them with an `install-location` if necessary.
-
-    .. change:: added
-
-        Added `wiz.registry.install_to_path` and `wiz.registry.install_to_vault`
-        to install a definition to a registry.
-
-    .. change:: added
-
-        Added :meth:`wiz.mapping.Mapping.localized_environ` to replace
-        :envvar:`INSTALL_LOCATION` in the environment, with the value of
-        "install-location".
-        This way :func:`wiz.package.extract_context` can correctly return a
-        resolved environment of an installed package.
-
-    .. change:: added
-
-        Added :meth:`wiz.definition.Definition.need_install_location` as a
-        helper to determine when an `install-location` key is needed in a
-        definition.
+        Added :ref:`definition/install_location` to :ref:`definition` section.
 
 .. release:: 1.0.2
     :date: 2018-10-18

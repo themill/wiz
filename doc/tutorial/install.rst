@@ -1,4 +1,4 @@
-.. _tutorial/install:
+.. _tutorial/install/qip:
 
 Installing from Qip
 ===================
