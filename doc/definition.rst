@@ -284,9 +284,9 @@ returned. However, a variant can also be requested individually::
 Install Location
 ----------------
 
-If a package definition is defining the context of an installed application,
-it can be useful to define an ``install-location`` which would indicate the
-root location of the package:
+If a package definition is referencing data on the file system it can be useful
+to define an ``install-location`` which would indicate the root location for
+that data:
 
 .. code-block:: json
 
@@ -295,7 +295,7 @@ root location of the package:
     }
 
 This location can be referenced within each ``environ`` value (including the
-``variants``) with the :envvar:`INSTALL_LOCATION` environment variable:
+``variants``) using the :envvar:`INSTALL_LOCATION` environment variable:
 
 .. code-block:: json
 
