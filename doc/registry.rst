@@ -5,8 +5,12 @@ Using Registries
 ****************
 
 A registry is a folder which contains one or several :ref:`package definitions
-<definition>`. Several registries could be provided when a package definition
-should overwrite a command or an entire definition in another registry.
+<definition>`. When resolving environments, Wiz will parse these directories to
+gather any definitions available and match the requests.
+
+Several registries may be necessary when a :ref:`package definitions
+<definition>` should overwrite a command or an entire definition in another
+registry.
 
 .. warning::
 
@@ -28,6 +32,19 @@ displayed in the output like this.
     [1] /mill3d/server/apps/WIZ/registry/secondary/default
     [2] /Users/jeremyr/.wiz/registry
 
+.. rubric:: What are local registries?
+
+A local registry is a simple folder ending on :file:`/path/to/folder/.wiz/
+registry`. Definitions can be simply copied into a local registry.
+
+.. rubric:: What are Vault registries?
+
+A registry must always be a folder which contain all available definitions.
+However, some important registries are stored as a :term:`Gitlab` repository
+which automatises the deployment to the file system. A Web API called
+:term:`Wiz Vault` is available to release or fetch definitions from these
+registries.
+
 
 The default registries are:
 
@@ -40,16 +57,6 @@ Two global registries are available under
 :file:`/mill3d/server/apps/WIZ/registry`.
 
 As this folder is part of the weekly sync, it will be identical on all sites.
-
-.. important::
-
-    **What are Vault registries?**
-
-    A registry must always be a folder which contain all available definitions.
-    However, some important registries are stored as a :term:`Gitlab` repository
-    which automatize the deployment on the file system. A Web API called
-    :term:`Wiz Vault` is available to release or fetch definitions from these
-    registries.
 
 .. _registry/global/primary:
 
