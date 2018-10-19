@@ -2,7 +2,6 @@
 
 import os
 import json
-import itertools
 
 import mlog
 
@@ -347,73 +346,6 @@ def load(path, mapping=None):
         return Definition(**definition_data)
 
 
-def prepare_install(
-    path, definition_mapping, install_location=None
-):
-    """Return a list of updated definitions to install to a registry.
-
-    *path* is the path to a definition file.
-
-    *definition_mapping* is a mapping regrouping all available definition
-    associated with their unique identifier.
-
-    *install_location* is the path to the installed data on the file system.
-
-    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
-    create a valid instance of :class:`wiz.definition.Definition`.
-
-    """
-    path = os.path.abspath(path)
-
-    if install_location is not None:
-        install_location = os.path.abspath(install_location)
-
-    # Track all definitions fetched.
-    definitions = []
-
-    # Keep track of processed package identifier to prevent loops.
-    processed_definitions = set()
-
-    def _process_definitions(definition):
-        """Recursively update and install definitions and their requirements.
-
-        Keep track of already installed packages, to avoid loops.
-        Update the definition with an 'install-location' if necessary and
-        remove a retrieved 'definition-location' before writing out the files.
-
-        """
-        identifier = wiz.package.generate_identifier(definition)
-        if identifier in processed_definitions:
-            return
-
-        # Check whether environment needs the installation path.
-        if definition.need_install_location():
-            definition = definition.set(
-                "install-location",
-                install_location or os.path.dirname(
-                    definition.get("definition-location")
-                )
-            )
-
-        # Remove definition location as it is an internal key added on load.
-        definition = definition.remove("definition-location")
-
-        definitions.append(definition)
-        processed_definitions.add(identifier)
-
-        for requirement in definition.requirements:
-            _requirement_definition = query(requirement, definition_mapping)
-            _process_definitions(_requirement_definition)
-
-    # Load definition from path.
-    _definition = load(path, mapping={"definition-location": path})
-
-    # Start recursive loop.
-    _process_definitions(_definition)
-
-    return definitions
-
-
 class Definition(wiz.mapping.Mapping):
     """Definition object."""
 
@@ -612,16 +544,6 @@ class Definition(wiz.mapping.Mapping):
             del _mapping[element]
 
         return self.__class__(**_mapping)
-
-    def need_install_location(self):
-        """Return True if INSTALL_LOCATION variable is found in definition."""
-        return any(
-            "${INSTALL_LOCATION}" in value
-            for value in itertools.chain(
-                self.environ.values(),
-                *(variant.environ.values() for variant in self.variants)
-            )
-        )
 
     @property
     def variants(self):
