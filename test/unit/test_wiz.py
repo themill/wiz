@@ -46,6 +46,12 @@ def mocked_fetch_package(mocker):
 
 
 @pytest.fixture()
+def mocked_load_definition(mocker):
+    """Return mocked 'wiz.load_definition' function."""
+    return mocker.patch.object(wiz, "load_definition")
+
+
+@pytest.fixture()
 def mocked_definition_fetch(mocker):
     """Return mocked 'wiz.definition.fetch' function."""
     return mocker.patch.object(wiz.definition, "fetch")
@@ -67,12 +73,6 @@ def mocked_definition_load(mocker):
 def mocked_definition_export(mocker):
     """Return mocked 'wiz.definition.export' function."""
     return mocker.patch.object(wiz.definition, "export")
-
-
-@pytest.fixture()
-def mocked_definition_prepare_install(mocker):
-    """Return mocked 'wiz.definition.prepare_install' function."""
-    return mocker.patch.object(wiz.definition, "prepare_install")
 
 
 @pytest.fixture()
@@ -576,203 +576,117 @@ def test_export_definition(mocked_definition_export):
     )
 
 
-@pytest.mark.parametrize("options, prepare_options, install_options", [
+@pytest.mark.parametrize("options, install_options", [
     (
         {},
-        {"install_location": None, "include_requirements": False},
-        {"hierarchy": None, "overwrite": False}
+        {"hierarchy_list": None, "overwrite": False}
     ),
     (
-        {"hierarchy": ["foo", "bar"]},
-        {"install_location": None, "include_requirements": False},
-        {"hierarchy": ["foo", "bar"], "overwrite": False}
-    ),
-    (
-        {"install_location": "/path/to/package"},
-        {"install_location": "/path/to/package", "include_requirements": False},
-        {"hierarchy": None, "overwrite": False}
-    ),
-    (
-        {"requirements": True},
-        {"install_location": None, "include_requirements": True},
-        {"hierarchy": None, "overwrite": False}
+        {"hierarchy_list": ["foo", "bar"]},
+        {"hierarchy_list": ["foo", "bar"], "overwrite": False}
     ),
     (
         {"overwrite": True},
-        {"install_location": None, "include_requirements": False},
-        {"hierarchy": None, "overwrite": True}
+        {"hierarchy_list": None, "overwrite": True}
     ),
 ], ids=[
     "no-options",
     "with-hierarchy",
-    "with-install-location",
-    "with-requirements",
     "with-overwrite",
 ])
 def test_install_definition_to_path(
-    mocked_fetch_definition_mapping, mocked_registry_defaults,
-    mocked_definition_prepare_install, mocked_registry_install_to_path,
-    options, prepare_options, install_options
+    mocked_load_definition, mocked_registry_install_to_path,
+    options, install_options
 ):
     """Install a definition to a path registry."""
-    mocked_definition_prepare_install.return_value = ["DEF1", "DEF2", "DEF3"]
+    definition = wiz.definition.Definition({"identifier": "foo"})
+    mocked_load_definition.return_value = definition
+
+    wiz.install_definition_to_path(
+        "/path/to/definition.json", "/path/to/registry", **options
+    )
+
+    mocked_registry_install_to_path.assert_called_once_with(
+        definition, "/path/to/registry", **install_options
+    )
+
+
+def test_install_definition_to_path_with_install_location(
+    mocked_load_definition, mocked_registry_install_to_path,
+):
+    """Install a definition to a path registry with install location."""
+    definition = wiz.definition.Definition({"identifier": "foo"})
+    mocked_load_definition.return_value = definition
 
     wiz.install_definition_to_path(
         "/path/to/definition.json", "/path/to/registry",
-        definition_mapping={"package": "__MAPPING__"}, **options
+        install_location="/path/to/package"
     )
 
-    mocked_registry_defaults.assert_not_called()
-    mocked_fetch_definition_mapping.assert_not_called()
+    _definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "install-location": "/path/to/package"
+    })
 
-    mocked_definition_prepare_install.assert_called_once_with(
-        "/path/to/definition.json", "__MAPPING__",
-        **prepare_options
-    )
-
-    assert mocked_registry_install_to_path.call_count == 3
-    mocked_registry_install_to_path.assert_any_call(
-        "DEF1", "/path/to/registry", **install_options
-    )
-    mocked_registry_install_to_path.assert_any_call(
-        "DEF2", "/path/to/registry", **install_options
-    )
-    mocked_registry_install_to_path.assert_any_call(
-        "DEF3", "/path/to/registry", **install_options
+    mocked_registry_install_to_path.assert_called_once_with(
+        _definition, "/path/to/registry", hierarchy_list=None, overwrite=False
     )
 
 
-def test_install_definition_to_path_with_default_definition_mapping(
-    mocked_fetch_definition_mapping, mocked_registry_defaults,
-    mocked_definition_prepare_install, mocked_registry_install_to_path
-):
-    """Install a definition to a path registry with default definition mapping.
-    """
-    mocked_fetch_definition_mapping.return_value = {"package": "__MAPPING__"}
-    mocked_registry_defaults.return_value = ["PATH1", "PATH2"]
-    mocked_definition_prepare_install.return_value = ["DEF1", "DEF2", "DEF3"]
-
-    wiz.install_definition_to_path(
-        "/path/to/definition.json", "/path/to/registry"
-    )
-
-    mocked_registry_defaults.assert_called_once()
-    mocked_fetch_definition_mapping.assert_called_once_with(["PATH1", "PATH2"])
-    mocked_definition_prepare_install.assert_called_once_with(
-        "/path/to/definition.json", "__MAPPING__",
-        install_location=None,
-        include_requirements=False
-    )
-
-    assert mocked_registry_install_to_path.call_count == 3
-    mocked_registry_install_to_path.assert_any_call(
-        "DEF1", "/path/to/registry", hierarchy=None, overwrite=False
-    )
-    mocked_registry_install_to_path.assert_any_call(
-        "DEF2", "/path/to/registry", hierarchy=None, overwrite=False
-    )
-    mocked_registry_install_to_path.assert_any_call(
-        "DEF3", "/path/to/registry", hierarchy=None, overwrite=False
-    )
-
-
-@pytest.mark.parametrize("options, prepare_options, install_options", [
+@pytest.mark.parametrize("options, install_options", [
     (
         {},
-        {"install_location": None, "include_requirements": False},
-        {"hierarchy": None, "overwrite": False}
+        {"hierarchy_list": None, "overwrite": False}
     ),
     (
-        {"hierarchy": ["foo", "bar"]},
-        {"install_location": None, "include_requirements": False},
-        {"hierarchy": ["foo", "bar"], "overwrite": False}
-    ),
-    (
-        {"install_location": "/path/to/package"},
-        {"install_location": "/path/to/package", "include_requirements": False},
-        {"hierarchy": None, "overwrite": False}
-    ),
-    (
-        {"requirements": True},
-        {"install_location": None, "include_requirements": True},
-        {"hierarchy": None, "overwrite": False}
+        {"hierarchy_list": ["foo", "bar"]},
+        {"hierarchy_list": ["foo", "bar"], "overwrite": False}
     ),
     (
         {"overwrite": True},
-        {"install_location": None, "include_requirements": False},
-        {"hierarchy": None, "overwrite": True}
+        {"hierarchy_list": None, "overwrite": True}
     ),
 ], ids=[
     "no-options",
     "with-hierarchy",
-    "with-install-location",
-    "with-requirements",
     "with-overwrite",
 ])
 def test_install_definition_to_vault(
-    mocked_fetch_definition_mapping, mocked_registry_defaults,
-    mocked_definition_prepare_install, mocked_registry_install_to_vault,
-    options, prepare_options, install_options
+    mocked_load_definition, mocked_registry_install_to_vault,
+    options, install_options
 ):
     """Install a definition to a vault registry."""
-    mocked_definition_prepare_install.return_value = ["DEF1", "DEF2", "DEF3"]
+    definition = wiz.definition.Definition({"identifier": "foo"})
+    mocked_load_definition.return_value = definition
 
     wiz.install_definition_to_vault(
-        "/path/to/definition.json", "registry_id",
-        definition_mapping={"package": "__MAPPING__"}, **options
+        "/path/to/definition.json", "registry-id", **options
     )
 
-    mocked_registry_defaults.assert_not_called()
-    mocked_fetch_definition_mapping.assert_not_called()
-
-    mocked_definition_prepare_install.assert_called_once_with(
-        "/path/to/definition.json", "__MAPPING__",
-        **prepare_options
-    )
-
-    assert mocked_registry_install_to_vault.call_count == 3
-    mocked_registry_install_to_vault.assert_any_call(
-        "DEF1", "registry_id", **install_options
-    )
-    mocked_registry_install_to_vault.assert_any_call(
-        "DEF2", "registry_id", **install_options
-    )
-    mocked_registry_install_to_vault.assert_any_call(
-        "DEF3", "registry_id", **install_options
+    mocked_registry_install_to_vault.assert_called_once_with(
+        definition, "registry-id", **install_options
     )
 
 
-def test_install_definition_to_vault_with_default_definition_mapping(
-    mocked_fetch_definition_mapping, mocked_registry_defaults,
-    mocked_definition_prepare_install, mocked_registry_install_to_vault
+def test_install_definition_to_vault_with_install_location(
+    mocked_load_definition, mocked_registry_install_to_vault,
 ):
-    """Install a definition to a vault registry with default definition mapping.
-    """
-    mocked_fetch_definition_mapping.return_value = {"package": "__MAPPING__"}
-    mocked_registry_defaults.return_value = ["PATH1", "PATH2"]
-    mocked_definition_prepare_install.return_value = ["DEF1", "DEF2", "DEF3"]
+    """Install a definition to a vault registry with install location."""
+    definition = wiz.definition.Definition({"identifier": "foo"})
+    mocked_load_definition.return_value = definition
 
     wiz.install_definition_to_vault(
-        "/path/to/definition.json", "registry_id"
+        "/path/to/definition.json", "registry-id",
+        install_location="/path/to/package"
     )
 
-    mocked_registry_defaults.assert_called_once()
-    mocked_fetch_definition_mapping.assert_called_once_with(["PATH1", "PATH2"])
-    mocked_definition_prepare_install.assert_called_once_with(
-        "/path/to/definition.json", "__MAPPING__",
-        install_location=None,
-        include_requirements=False
-    )
+    _definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "install-location": "/path/to/package"
+    })
 
-    assert mocked_registry_install_to_vault.call_count == 3
-    mocked_registry_install_to_vault.assert_any_call(
-        "DEF1", "registry_id", hierarchy=None, overwrite=False
-    )
-    mocked_registry_install_to_vault.assert_any_call(
-        "DEF2", "registry_id", hierarchy=None, overwrite=False
-    )
-    mocked_registry_install_to_vault.assert_any_call(
-        "DEF3", "registry_id", hierarchy=None, overwrite=False
+    mocked_registry_install_to_vault.install_definition_to_vault(
+        _definition, "registry-id", hierarchy_list=None, overwrite=False
     )
 
 

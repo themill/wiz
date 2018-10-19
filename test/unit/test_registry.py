@@ -304,7 +304,7 @@ def test_install_to_path_with_hierarchy(
 ):
     """Install definition to registry path with hierarchy."""
     wiz.registry.install_to_path(
-        mocked_definition, temporary_directory, hierarchy=["foo", "bar"]
+        mocked_definition, temporary_directory, hierarchy_list=["foo", "bar"]
     )
 
     registry_path = os.path.join(
@@ -356,7 +356,7 @@ def test_install_to_path_error_definition_exists(
 
 @pytest.mark.parametrize("options, hierarchy, overwrite", [
     ({}, "[]", "false"),
-    ({"hierarchy": ["foo", "bar"]}, "[\"foo\", \"bar\"]", "false"),
+    ({"hierarchy_list": ["foo", "bar"]}, "[\"foo\", \"bar\"]", "false"),
     ({"overwrite": True}, "[]", "true"),
 ], ids=[
     "no-options",
