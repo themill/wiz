@@ -801,9 +801,9 @@ def _install_definition(namespace):
     """
     logger = mlog.Logger(__name__ + "._install_definition")
 
-    overwrite = False
-
     for definition in namespace.definitions:
+        overwrite = False
+
         while True:
             try:
                 if namespace.registry_path is not None:
