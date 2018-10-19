@@ -438,7 +438,8 @@ class Package(wiz.mapping.Mapping):
             "version",
             "description",
             "registry",
-            "origin",
+            "definition-location",
+            "install-location",
             "auto-use",
             "system",
             "command",
@@ -446,3 +447,20 @@ class Package(wiz.mapping.Mapping):
             "requirements",
             "constraints"
         ]
+
+    def localized_environ(self):
+        """Return localized environ mapping."""
+        _environ = self.environ
+
+        def _replace_location(mapping, item):
+            """Replace location in *item* for *mapping*."""
+            mapping[item[0]] = item[1].replace(
+                "${{0}}".format(wiz.symbol.INSTALL_LOCATION),
+                self.get("install-location")
+            )
+            return mapping
+
+        if "install-location" in self.keys():
+            _environ = reduce(_replace_location, _environ.items(), {})
+
+        return _environ
