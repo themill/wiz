@@ -378,22 +378,23 @@ def export_definition(path, data, overwrite=False):
 
 
 def install_definition_to_path(
-    path, registry_path, definition_mapping=None, hierarchy=None,
-    install_location=None, overwrite=False
+    path, registry_path, install_location=None, hierarchy_list=None,
+    overwrite=False
 ):
-    """Install a definition to a registry on the file system.
+    """Install a definition file to a registry on the file system.
 
     *path* is the path to a definition file.
 
     *registry_path* is the path to the target registry to install to.
 
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
+    *install_location* could be the path to the package data which will be set
+    in the 'install-location' keyword of the installed definition. This path
+    will be used to resolve the :envvar:`INSTALL_LOCATION` environment variable
+    within the environment mapping.
 
-    *hierarchy* within the target registry to install the definition to. If not
-    specified, it will be installed in the root of the registry.
-
-    *install_location* is the path to the installed data on the file system.
+    *hierarchy_list* could be a list of sub-folders within the registry to
+    install the definition to. By default the definition will be installed in
+    the root of the registry.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -402,47 +403,42 @@ def install_definition_to_path(
     create a valid instance of :class:`wiz.definition.Definition`.
 
     Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
-    the target registry and overwrite is False.
+    the target registry and *overwrite* is False.
 
     Raises :exc:`OSError` if the definition can not be exported in *path*.
 
     """
-    if definition_mapping is None:
-        definition_mapping = wiz.fetch_definition_mapping(
-            wiz.registry.get_defaults()
-        )
+    _definition = wiz.load_definition(path)
 
-    definitions = wiz.definition.prepare_install(
-        path, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
-        install_location=install_location,
-        include_requirements=requirements
+    if install_location is not None:
+        _definition = _definition.set("install-location", install_location)
+
+    wiz.registry.install_to_path(
+        _definition, registry_path,
+        hierarchy=hierarchy_list,
+        overwrite=overwrite
     )
-
-    for _definition in definitions:
-        wiz.registry.install_to_path(
-            _definition, registry_path,
-            hierarchy=hierarchy,
-            overwrite=overwrite
-        )
 
 
 def install_definition_to_vault(
-    path, registry_identifier, definition_mapping=None, hierarchy=None,
-    install_location=None, overwrite=False
+    path, registry_identifier, install_location=None, hierarchy_list=None,
+    overwrite=False
 ):
-    """Install a definition to a registry repository.
+    """Install a definition file to a :term:`Wiz Vault` registry.
 
     *path* is the path to a definition file.
 
-    *registry_id* is the ID of the target registry repository to install to.
+    *registry_identifier* is the ID of the target :term:`Wiz Vault` registry to
+    install to (e.g. "primary-registry").
 
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
+    *install_location* could be the path to the package data which will be set
+    in the 'install-location' keyword of the installed definition. This path
+    will be used to resolve the :envvar:`INSTALL_LOCATION` environment variable
+    within the environment mapping.
 
-    *hierarchy* within the target registry to install the definition to. If not
-    specified, it will be installed in the root of the registry.
-
-    *install_location* is the path to the installed data on the file system.
+    *hierarchy_list* could be a list of sub-folders within the registry to
+    install the definition to. By default the definition will be installed in
+    the root of the registry.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -451,26 +447,19 @@ def install_definition_to_vault(
     create a valid instance of :class:`wiz.definition.Definition`.
 
     Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
-    the target registry and overwrite is False.
+    the target registry and *overwrite* is False.
 
     """
-    if definition_mapping is None:
-        definition_mapping = wiz.fetch_definition_mapping(
-            wiz.registry.get_defaults()
-        )
+    _definition = wiz.load_definition(path)
 
-    definitions = wiz.definition.prepare_install(
-        path, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
-        install_location=install_location,
-        include_requirements=requirements
+    if install_location is not None:
+        _definition = _definition.set("install-location", install_location)
+
+    wiz.registry.install_to_vault(
+        _definition, registry_identifier,
+        hierarchy=hierarchy_list,
+        overwrite=overwrite
     )
-
-    for _definition in definitions:
-        wiz.registry.install_to_vault(
-            _definition, registry_identifier,
-            hierarchy=hierarchy,
-            overwrite=overwrite
-        )
 
 
 def export_script(

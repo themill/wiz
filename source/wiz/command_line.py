@@ -263,35 +263,38 @@ def construct_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    install_subparsers.add_argument(
-        "definition",
-        nargs="?",
-        help="Definition to install."
-    )
-
     install_subparsers_group = install_subparsers.add_mutually_exclusive_group(
         required=True
     )
 
     install_subparsers_group.add_argument(
         "-r", "--registry-id",
-        help="Tracked registry (repository) to install the package to."
+        help="Vault registry identifier to install the package to."
     )
 
     install_subparsers_group.add_argument(
         "-p", "--registry-path",
-        help="Untracked registry (path) to install the package to."
+        help="Registry path to install the package to."
     )
 
     install_subparsers.add_argument(
         "--install-location",
-        help="Path to the installed data."
+        help=(
+            "Path to the package data which will be set in the "
+            "'install-location' keyword of the installed definition."
+        )
     )
 
     install_subparsers.add_argument(
         "--hierarchy",
         help="Hierarchy in the registry to install to.",
         nargs="*",
+    )
+
+    install_subparsers.add_argument(
+        "definitions",
+        nargs="+",
+        help="Path to definition to install."
     )
 
     return parser
@@ -378,7 +381,7 @@ def main(arguments=None):
         )
 
     elif namespace.commands == "install":
-        _install_definition(namespace, registries, system_mapping)
+        _install_definition(namespace)
 
     # Export the history if requested.
     if namespace.record is not None:
@@ -784,57 +787,50 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
         logger.warning("Aborted.")
 
 
-def _install_definition(namespace, registries, system_mapping):
+def _install_definition(namespace):
     """Install a definition to a registry from arguments in *namespace*.
 
     Command example::
 
-        wiz install definition.json --registry-id primary
-        wiz install definition.json --registry-path /path/to/registry
+        wiz install definition1.json definition2.json --registry-id primary
+        wiz install /path/to/definition.json --registry-path /path/to/registry
+        wiz install /path/to/definitions/* --registry-path /path/to/registry
 
     *namespace* is an instance of :class:`argparse.Namespace`.
-
-    *registries* should be a list of available registry paths.
-
-    *system_mapping* should be a mapping of the current system, usually
-    retrieved via :func:`wiz.system.query`.
 
     """
     logger = mlog.Logger(__name__ + "._install_definition")
 
-    mapping = wiz.fetch_definition_mapping(
-        registries,
-        system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
-    )
-
     overwrite = False
 
-    while True:
-        try:
-            if namespace.registry_path is not None:
-                wiz.install_definition_to_path(
-                    namespace.definition, namespace.registry_path,
-                    mapping, namespace.hierarchy, namespace.install_location,
-                    overwrite=overwrite
-                )
-            if namespace.registry_id is not None:
-                wiz.install_definition_to_vault(
-                    namespace.definition, namespace.registry_id,
-                    mapping, namespace.hierarchy, namespace.install_location,
-                    overwrite=overwrite
-                )
-            break
-
-        except wiz.exception.DefinitionExists as error:
-            if not click.confirm("Definition {} Overwrite?".format(error)):
+    for definition in namespace.definitions:
+        while True:
+            try:
+                if namespace.registry_path is not None:
+                    wiz.install_definition_to_path(
+                        definition, namespace.registry_path,
+                        install_location=namespace.install_location,
+                        hierarchy_list=namespace.hierarchy,
+                        overwrite=overwrite
+                    )
+                elif namespace.registry_id is not None:
+                    wiz.install_definition_to_vault(
+                        definition, namespace.registry_id,
+                        install_location=namespace.install_location,
+                        hierarchy_list=namespace.hierarchy,
+                        overwrite=overwrite
+                    )
                 break
 
-            overwrite = True
+            except wiz.exception.DefinitionExists as error:
+                if not click.confirm("{}, Overwrite?".format(error)):
+                    break
 
-        except Exception as error:
-            logger.error(error, traceback=True)
-            break
+                overwrite = True
+
+            except Exception as error:
+                logger.error(error, traceback=True)
+                return
 
 
 def display_registries(paths):
