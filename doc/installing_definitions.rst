@@ -3,7 +3,7 @@
 Installing Definitions
 ======================
 
-A :ref:`definition <definition>` should be available in a :ref:`registry
+A :ref:`definition <definition>` must be available in a :ref:`registry
 <registry>` in order to use the corresponding package(s).
 
 The process to install a definition file into a registry depends on the nature
@@ -13,20 +13,6 @@ of the registry. A registry can be a *vault* registry or a *local* registry.
 
 Installing to vault registries
 ------------------------------
-
-A registry must always be a folder which contain all available definitions.
-However, some important registries are stored as a :term:`Gitlab` repository
-which automatize the deployment on the file system. A Web API called
-:term:`Wiz Vault` is available to release or fetch definitions from these
-registries.
-
-The following registries are *vault* registries:
-
-* :ref:`registry/global/primary`
-
-* :ref:`registry/global/secondary`
-
-* :ref:`registry/site`
 
 :option:`wiz install --registry-id` option can be used to release one or several
 definitions in a *vault* registry::
@@ -52,10 +38,6 @@ API call :func:`wiz.install_definition_to_vault`:
 
 Installing to local registries
 ------------------------------
-
-A local registry is a simple folder with the following extension
-:file:`/path/to/folder/.wiz/registry`. Definitions can be safely copied in a
-local registry in order to release it.
 
 :option:`wiz install --registry-path` can also be used to release one or several
 definitions in a *local* registry::
