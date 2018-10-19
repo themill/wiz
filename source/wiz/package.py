@@ -136,7 +136,7 @@ def extract_context(packages, environ_mapping=None):
         identifier = package.identifier
         _environ = combine_environ_mapping(
             identifier, combined_mapping.get("environ", {}),
-            package.environ
+            package.localized_environ()
         )
         _command = combine_command_mapping(
             identifier, combined_mapping.get("command", {}),
@@ -455,7 +455,7 @@ class Package(wiz.mapping.Mapping):
         def _replace_location(mapping, item):
             """Replace location in *item* for *mapping*."""
             mapping[item[0]] = item[1].replace(
-                "${{0}}".format(wiz.symbol.INSTALL_LOCATION),
+                "${{{}}}".format(wiz.symbol.INSTALL_LOCATION),
                 self.get("install-location")
             )
             return mapping
