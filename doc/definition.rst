@@ -279,3 +279,34 @@ returned. However, a variant can also be requested individually::
 
     >>> wiz use foo[variant1]
 
+.. _definition/install_location:
+
+Install Location
+----------------
+
+If a package definition is defining the context of an installed application,
+it can be useful to define an ``install-location`` which would indicate the
+root location of the package:
+
+.. code-block:: json
+
+    {
+        "install-location": "/path/to/data"
+    }
+
+This location can be referenced within each ``environ`` value (including the
+``variants``) with the :envvar:`INSTALL_LOCATION` environment variable:
+
+.. code-block:: json
+
+    {
+        "definition": "foo",
+        "install-location": "/path/to/data",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin:${PATH}",
+            "PYTHONPATH": "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}",
+        }
+    }
+
+When the context is resolved, the :envvar:`INSTALL_LOCATION` environment
+variable is replaced by the ``install-location`` value within the definition.

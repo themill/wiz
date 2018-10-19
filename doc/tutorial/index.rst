@@ -15,8 +15,8 @@ Using Wiz
 
     generic
 
-Install a Definition
---------------------
+Installing a Definition
+-----------------------
 
 .. toctree::
     :maxdepth: 1

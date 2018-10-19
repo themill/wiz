@@ -6,24 +6,14 @@ Environment variables
 
 Environment variables directly defined or referenced by this package.
 
-.. envvar:: INSTALL_LOCATION
-
-    Environment variable used inside a Wiz definition environment to refer to
-    the install location of a package.
-    At resolve time, Wiz will substitude the environment variable with the
-    'install-location' defined in the same definition.
-
-    .. code-block:: python
-
-        {
-            "identifier: "test"
-            "environ": {
-                "PATH": "${INSTALL_LOCATION}/bin:{PATH}",
-            "install-location": "/path/to/test"
-        }
-
-
 .. envvar:: WIZ_SERVER
 
-    Link to the :term:`Wiz Vault` server. By default `http://wiz.themill.com
-    <http://wiz.themill.com>`_.
+    Indicate the :term:`Wiz Vault` host server. By default the host is
+    `http://wiz.themill.com <http://wiz.themill.com>`_.
+
+.. envvar:: INSTALL_LOCATION
+
+    Environment variable used within a Wiz definition environment to refer to
+    the install location of a package.
+
+    .. seealso:: :ref:`definition/install_location`

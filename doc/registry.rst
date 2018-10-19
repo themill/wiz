@@ -41,16 +41,20 @@ Two global registries are available under
 
 As this folder is part of the weekly sync, it will be identical on all sites.
 
-Primary
--------
+.. _registry/global/primary:
+
+Primary registry
+----------------
 
 The primary registry contains all generic package definitions. If commands are
 included, they are in vanilla configuration (no plugins).
 
 .. seealso:: http://gitlab/rnd/wiz-registry/primary-registry
 
-Secondary
----------
+.. _registry/global/secondary:
+
+Secondary registry
+------------------
 
 The secondary registry contains package definitions for default configurations
 (e.g. maya, houdini, nuke, etc). Commands specified here include all the
