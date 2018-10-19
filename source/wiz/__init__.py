@@ -415,7 +415,7 @@ def install_definition_to_path(
 
     wiz.registry.install_to_path(
         _definition, registry_path,
-        hierarchy=hierarchy_list,
+        hierarchy_list=hierarchy_list,
         overwrite=overwrite
     )
 
@@ -457,7 +457,7 @@ def install_definition_to_vault(
 
     wiz.registry.install_to_vault(
         _definition, registry_identifier,
-        hierarchy=hierarchy_list,
+        hierarchy_list=hierarchy_list,
         overwrite=overwrite
     )
 
