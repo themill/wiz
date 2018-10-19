@@ -7,10 +7,24 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: new
+        :tags: definition
 
-        Added "group" keyword to definition schema, which can be used to define
-        where in the hierachy of a :term:`Wiz Vault` registry a definition will
-        be grouped under at install.
+        Added optional 'group' keyword to definition schema, which can be used
+        to define where in the hierachy of a :term:`Wiz Vault` registry a
+        definition will be grouped under at install. Default is "".
+
+    .. change:: changed
+        :tags: definition
+
+        Renamed keyword 'origin' to 'definition-location', to be more consistent
+        with the newly added 'install-location' keyword.
+
+    .. change:: new
+        :tags: definition
+
+        Added optional 'install-location' keyword to definition schema which
+        will be used to resolve any occurances of :envvar:`INSTALL_LOCATION` in
+        ``environ``.
 
     .. change:: new
         :tags: command-line
