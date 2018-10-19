@@ -286,12 +286,6 @@ def construct_parser():
     )
 
     install_subparsers.add_argument(
-        "--hierarchy",
-        help="Hierarchy in the registry to install to.",
-        nargs="*",
-    )
-
-    install_subparsers.add_argument(
         "definitions",
         nargs="+",
         help="Path to definition to install."
@@ -810,14 +804,12 @@ def _install_definition(namespace):
                     wiz.install_definition_to_path(
                         definition, namespace.registry_path,
                         install_location=namespace.install_location,
-                        hierarchy_list=namespace.hierarchy,
                         overwrite=overwrite
                     )
                 elif namespace.registry_id is not None:
                     wiz.install_definition_to_vault(
                         definition, namespace.registry_id,
                         install_location=namespace.install_location,
-                        hierarchy_list=namespace.hierarchy,
                         overwrite=overwrite
                     )
                 break

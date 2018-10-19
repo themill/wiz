@@ -579,19 +579,14 @@ def test_export_definition(mocked_definition_export):
 @pytest.mark.parametrize("options, install_options", [
     (
         {},
-        {"hierarchy_list": None, "overwrite": False}
-    ),
-    (
-        {"hierarchy_list": ["foo", "bar"]},
-        {"hierarchy_list": ["foo", "bar"], "overwrite": False}
+        {"overwrite": False}
     ),
     (
         {"overwrite": True},
-        {"hierarchy_list": None, "overwrite": True}
+        {"overwrite": True}
     ),
 ], ids=[
     "no-options",
-    "with-hierarchy",
     "with-overwrite",
 ])
 def test_install_definition_to_path(
@@ -629,26 +624,21 @@ def test_install_definition_to_path_with_install_location(
     })
 
     mocked_registry_install_to_path.assert_called_once_with(
-        _definition, "/path/to/registry", hierarchy_list=None, overwrite=False
+        _definition, "/path/to/registry", overwrite=False
     )
 
 
 @pytest.mark.parametrize("options, install_options", [
     (
         {},
-        {"hierarchy_list": None, "overwrite": False}
-    ),
-    (
-        {"hierarchy_list": ["foo", "bar"]},
-        {"hierarchy_list": ["foo", "bar"], "overwrite": False}
+        {"overwrite": False}
     ),
     (
         {"overwrite": True},
-        {"hierarchy_list": None, "overwrite": True}
+        {"overwrite": True}
     ),
 ], ids=[
     "no-options",
-    "with-hierarchy",
     "with-overwrite",
 ])
 def test_install_definition_to_vault(
@@ -686,7 +676,7 @@ def test_install_definition_to_vault_with_install_location(
     })
 
     mocked_registry_install_to_vault.install_definition_to_vault(
-        _definition, "registry-id", hierarchy_list=None, overwrite=False
+        _definition, "registry-id", overwrite=False
     )
 
 

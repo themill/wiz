@@ -378,8 +378,7 @@ def export_definition(path, data, overwrite=False):
 
 
 def install_definition_to_path(
-    path, registry_path, install_location=None, hierarchy_list=None,
-    overwrite=False
+    path, registry_path, install_location=None, overwrite=False
 ):
     """Install a definition file to a registry on the file system.
 
@@ -391,10 +390,6 @@ def install_definition_to_path(
     in the 'install-location' keyword of the installed definition. This path
     will be used to resolve the :envvar:`INSTALL_LOCATION` environment variable
     within the environment mapping.
-
-    *hierarchy_list* could be a list of sub-folders within the registry to
-    install the definition to. By default the definition will be installed in
-    the root of the registry.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -415,14 +410,12 @@ def install_definition_to_path(
 
     wiz.registry.install_to_path(
         _definition, registry_path,
-        hierarchy_list=hierarchy_list,
         overwrite=overwrite
     )
 
 
 def install_definition_to_vault(
-    path, registry_identifier, install_location=None, hierarchy_list=None,
-    overwrite=False
+    path, registry_identifier, install_location=None, overwrite=False
 ):
     """Install a definition file to a :term:`Wiz Vault` registry.
 
@@ -435,10 +428,6 @@ def install_definition_to_vault(
     in the 'install-location' keyword of the installed definition. This path
     will be used to resolve the :envvar:`INSTALL_LOCATION` environment variable
     within the environment mapping.
-
-    *hierarchy_list* could be a list of sub-folders within the registry to
-    install the definition to. By default the definition will be installed in
-    the root of the registry.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -457,7 +446,6 @@ def install_definition_to_vault(
 
     wiz.registry.install_to_vault(
         _definition, registry_identifier,
-        hierarchy_list=hierarchy_list,
         overwrite=overwrite
     )
 

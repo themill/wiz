@@ -36,6 +36,11 @@
             "description": "Install location to the package data.",
             "type": "string"
         },
+        "group": {
+            "description": "Group in registry to place definition into.",
+            "type": "string",
+            "default": ""
+        },
         "system": {
             "description": "System constraints limiting the scope of the definition.",
             "type": "object",

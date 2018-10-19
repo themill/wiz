@@ -560,6 +560,7 @@ class Definition(wiz.mapping.Mapping):
             "registry",
             "definition-location",
             "install-location",
+            'group',
             "auto-use",
             "system",
             "command",

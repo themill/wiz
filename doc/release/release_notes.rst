@@ -7,6 +7,12 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: new
+
+        Added "group" keyword to definition schema, which can be used to define
+        where in the hierachy of a :term:`Wiz Vault` registry a definition will
+        be grouped under at install.
+
+    .. change:: new
         :tags: command-line
 
         Added ``wiz install`` sub-command to install package definition to a

@@ -92,17 +92,13 @@ def discover(path):
 
 
 def install_to_path(
-    definition, registry_path, hierarchy_list=None, overwrite=False
+    definition, registry_path, overwrite=False
 ):
     """Install a definition to a registry on the file system.
 
     *definition* must be a valid :class:`~wiz.definition.Definition` instance.
 
     *registry_path* is the target registry path to install to.
-
-    *hierarchy_list* could be a list of sub-folders within the registry to
-    install the definition to. By default the definition will be installed in
-    the root of the registry.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -131,9 +127,6 @@ def install_to_path(
     if not registry_path.endswith(".wiz/registry"):
         registry_path = os.path.join(registry_path, ".wiz", "registry")
 
-    if hierarchy_list is not None:
-        registry_path = os.path.join(registry_path, *hierarchy_list)
-
     try:
         wiz.export_definition(registry_path, definition, overwrite=overwrite)
 
@@ -156,7 +149,7 @@ def install_to_path(
 
 
 def install_to_vault(
-    definition, registry_identifier, hierarchy_list=None, overwrite=False
+    definition, registry_identifier, overwrite=False
 ):
     """Install a definition to a repository registry.
 
@@ -164,10 +157,6 @@ def install_to_vault(
 
     *registry_identifier* is the identifier of the target :term:`Wiz Vault`
     registry to install to.
-
-    *hierarchy_list* could be a list of sub-folders within the registry to
-    install the definition to. By default the definition will be installed in
-    the root of the registry.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -206,7 +195,6 @@ def install_to_vault(
         params={"overwrite": json.dumps(overwrite)},
         data={
             "content": definition.encode(),
-            "hierarchy": json.dumps(hierarchy_list or []),
             "message": (
                 "Add {identifier!r} [{version}] to registry ({username})"
                 "\n\nauthor: {name}".format(

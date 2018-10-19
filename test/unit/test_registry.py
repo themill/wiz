@@ -299,26 +299,6 @@ def test_install_to_path_with_relative_path(
     )
 
 
-def test_install_to_path_with_hierarchy(
-    temporary_directory, mocked_definition, mocked_export_definition, logger
-):
-    """Install definition to registry path with hierarchy."""
-    wiz.registry.install_to_path(
-        mocked_definition, temporary_directory, hierarchy_list=["foo", "bar"]
-    )
-
-    registry_path = os.path.join(
-        temporary_directory, ".wiz", "registry", "foo", "bar"
-    )
-    mocked_export_definition.assert_called_once_with(
-        registry_path, mocked_definition, overwrite=False
-    )
-    logger.info.assert_called_once_with(
-        "Successfully installed test-0.1.0 to registry '{}'."
-        .format(registry_path)
-    )
-
-
 def test_install_to_path_error_path(
     temporary_directory, mocked_definition, mocked_export_definition, logger
 ):
@@ -354,19 +334,17 @@ def test_install_to_path_error_definition_exists(
     assert "Definition 'test-0.1.0' already exists." in str(error)
 
 
-@pytest.mark.parametrize("options, hierarchy, overwrite", [
-    ({}, "[]", "false"),
-    ({"hierarchy_list": ["foo", "bar"]}, "[\"foo\", \"bar\"]", "false"),
-    ({"overwrite": True}, "[]", "true"),
+@pytest.mark.parametrize("options, overwrite", [
+    ({}, "false"),
+    ({"overwrite": True}, "true"),
 ], ids=[
     "no-options",
-    "with-hierarchy",
     "with-overwrite",
 ])
 def test_install_to_vault(
     mocked_requests_get, mocked_requests_post, mocked_definition,
     mocked_filesystem_get_name, mocked_filesystem_get_username, logger,
-    monkeypatch, mocker, options, hierarchy, overwrite
+    monkeypatch, mocker, options, overwrite
 ):
     """Install definition to vault registry."""
     monkeypatch.setenv("WIZ_SERVER", "https://wiz.themill.com")
@@ -402,7 +380,6 @@ def test_install_to_vault(
         params={"overwrite": overwrite},
         data={
             "content": mocked_definition.encode(),
-            "hierarchy": hierarchy,
             "message": (
                 "Add 'test' [0.1.0] to registry (john-doe)"
                 "\n\nauthor: John Doe"
@@ -530,7 +507,6 @@ def test_install_to_vault_error_definition_exists(
         params={"overwrite": "false"},
         data={
             "content": mocked_definition.encode(),
-            "hierarchy": "[]",
             "message": (
                 "Add 'test' [0.1.0] to registry (john-doe)"
                 "\n\nauthor: John Doe"
@@ -595,7 +571,6 @@ def test_install_to_vault_error_post(
         params={"overwrite": "false"},
         data={
             "content": mocked_definition.encode(),
-            "hierarchy": "[]",
             "message": (
                 "Add 'test' [0.1.0] to registry (john-doe)"
                 "\n\nauthor: John Doe"
