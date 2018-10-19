@@ -41,6 +41,16 @@ Two global registries are available under
 
 As this folder is part of the weekly sync, it will be identical on all sites.
 
+.. important::
+
+    **What are Vault registries?**
+
+    A registry must always be a folder which contain all available definitions.
+    However, some important registries are stored as a :term:`Gitlab` repository
+    which automatize the deployment on the file system. A Web API called
+    :term:`Wiz Vault` is available to release or fetch definitions from these
+    registries.
+
 .. _registry/global/primary:
 
 Primary registry
@@ -49,7 +59,11 @@ Primary registry
 The primary registry contains all generic package definitions. If commands are
 included, they are in vanilla configuration (no plugins).
 
-.. seealso:: http://gitlab/rnd/wiz-registry/primary-registry
+This registry is accessable through :term:`Wiz Vault`.
+
+.. seealso::
+
+    http://gitlab/rnd/wiz-registry/primary-registry
 
 .. _registry/global/secondary:
 
@@ -60,7 +74,12 @@ The secondary registry contains package definitions for default configurations
 (e.g. maya, houdini, nuke, etc). Commands specified here include all the
 packages that should be run by default on all sites.
 
-.. seealso:: http://gitlab/rnd/wiz-registry/secondary-registry
+This registry is accessable through :term:`Wiz Vault`.
+
+.. seealso::
+
+    http://gitlab/rnd/wiz-registry/secondary-registry
+
 
 .. _registry/site:
 
@@ -72,6 +91,16 @@ for a single site only (e.g. houdini hsite, site specific environment
 variables).
 
 It is available in :file:`/jobs/.wiz/registry/default`.
+
+This registry is accessable through :term:`Wiz Vault`.
+
+.. seealso::
+
+    | http://gitlab/rnd/wiz-registry/london-registry
+    | http://gitlab/rnd/wiz-registry/new-york-registry
+    | http://gitlab/rnd/wiz-registry/chicago-registry
+    | http://gitlab/rnd/wiz-registry/los-angeles-registry
+    | http://gitlab/rnd/wiz-registry/bangalore-registry
 
 .. _registry/project:
 
