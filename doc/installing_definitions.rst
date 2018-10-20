@@ -7,15 +7,16 @@ A :ref:`definition <definition>` must be available in a :ref:`registry
 <registry>` in order to use the corresponding package(s).
 
 The process to install a definition file into a registry depends on the nature
-of the registry. A registry can be a *vault* registry or a *local* registry.
+of the registry. A registry can be a :term:`VCS Registry` or a
+:term:`Local Registry`.
 
 .. _installing_definitions/vault:
 
-Installing to vault registries
-------------------------------
+Installing to VCS registries
+-----------------------------
 
 :option:`wiz install --registry-id` option can be used to release one or several
-definitions in a *vault* registry::
+definitions in a :term:`VCS Registry`::
 
     >>> wiz install /path/to/foo.json --registry-id primary-registry
     >>> wiz install /path/to/definitions/* --registry-id primary-registry
@@ -25,8 +26,8 @@ definitions in a *vault* registry::
     Releasing a definition within a global registry will affect **ALL** sites.
     Use this command with caution.
 
-A definition can be released into a *vault* registry using the :term:`Python`
-API call :func:`wiz.install_definition_to_vault`:
+A definition can be released into a :term:`VCS Registry` using the
+:term:`Python` API call :func:`wiz.install_definition_to_vault`:
 
     .. code-block:: python
 
@@ -40,7 +41,7 @@ Installing to local registries
 ------------------------------
 
 :option:`wiz install --registry-path` can also be used to release one or several
-definitions in a *local* registry::
+definitions in a :term:`Local Registry`::
 
     >>> wiz install /path/to/foo.json --registry-path /path/to/folder
     >>> wiz install /path/to/definitions/* --registry-path /path/to/folder
@@ -55,8 +56,8 @@ personal registry can be done as follow::
 
     >>> wiz install /path/to/foo.json --registry-path ~
 
-A definition can be released into a *local* registry using the :term:`Python`
-API call :func:`wiz.install_definition_to_path`:
+A definition can be released into a :term:`Local Registry` using the
+:term:`Python` API call :func:`wiz.install_definition_to_path`:
 
     .. code-block:: python
 

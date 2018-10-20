@@ -46,6 +46,11 @@ Glossary
             * `Local Gitlab server <http://gitlab/>`__
             * https://about.gitlab.com/
 
+    Local Registry
+        Registry stored on the file system.
+
+        .. seealso:: :ref:`registry/local`
+
     Maya
         A digital content creator provided by Autodesk.
 
@@ -83,6 +88,15 @@ Glossary
         A tool to create isolated Python environments.
 
         .. seealso:: https://virtualenv.pypa.io/en/latest/
+
+    VCS
+        Version control systems are a category of software tools that help a
+        software team manage changes to source code over time.
+
+    VCS Registry
+        Registry stored as a :term:`VCS` (ie. :term:`Gitlab`) repository.
+
+        .. seealso:: :ref:`registry/vcs`
 
     Wiz Vault
         Registry Server for Wiz.

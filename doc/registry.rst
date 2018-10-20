@@ -18,7 +18,6 @@ registry.
     definition within a single registry as the discovery order is not
     guaranteed.
 
-
 When a package definition is found in several registries, the latest one is
 picked, which would imply that the registries are listed in a sensible order to
 prevent unintuitive results.
@@ -32,12 +31,16 @@ displayed in the output like this.
     [1] /mill3d/server/apps/WIZ/registry/secondary/default
     [2] /Users/jeremyr/.wiz/registry
 
+.. _registry/local:
+
 .. rubric:: What are local registries?
 
 A local registry is a simple folder ending on :file:`/path/to/folder/.wiz/
 registry`. Definitions can be simply copied into a local registry.
 
-.. rubric:: What are Vault registries?
+.. _registry/vcs:
+
+.. rubric:: What are VCS registries?
 
 A registry must always be a folder which contain all available definitions.
 However, some important registries are stored as a :term:`Gitlab` repository
