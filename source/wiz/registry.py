@@ -148,7 +148,7 @@ def install_to_path(
     )
 
 
-def install_to_vault(
+def install_to_vcs(
     definition, registry_identifier, overwrite=False
 ):
     """Install a definition to a repository registry.
@@ -171,7 +171,7 @@ def install_to_vault(
     or definition could not be installed into it.
 
     """
-    logger = mlog.Logger(__name__ + ".install_to_vault")
+    logger = mlog.Logger(__name__ + ".install_to_vcs")
 
     response = requests.get("{}/api/registry/all".format(wiz.symbol.WIZ_SERVER))
     if not response.ok:

@@ -27,11 +27,11 @@ definitions in a :term:`VCS Registry`::
     Use this command with caution.
 
 A definition can be released into a :term:`VCS Registry` using the
-:term:`Python` API call :func:`wiz.install_definition_to_vault`:
+:term:`Python` API call :func:`wiz.install_definition_to_vcs`:
 
     .. code-block:: python
 
-        wiz.install_definition_to_vault(
+        wiz.install_definition_to_vcs(
             "/path/to/foo-0.1.0.json", "primary-registry"
         )
 

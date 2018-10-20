@@ -414,7 +414,7 @@ def install_definition_to_path(
     )
 
 
-def install_definition_to_vault(
+def install_definition_to_vcs(
     path, registry_identifier, install_location=None, overwrite=False
 ):
     """Install a definition file to a :term:`Wiz Vault` registry.
@@ -444,7 +444,7 @@ def install_definition_to_vault(
     if install_location is not None:
         _definition = _definition.set("install-location", install_location)
 
-    wiz.registry.install_to_vault(
+    wiz.registry.install_to_vcs(
         _definition, registry_identifier,
         overwrite=overwrite
     )

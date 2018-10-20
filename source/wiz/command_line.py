@@ -807,7 +807,7 @@ def _install_definition(namespace):
                         overwrite=overwrite
                     )
                 elif namespace.registry_id is not None:
-                    wiz.install_definition_to_vault(
+                    wiz.install_definition_to_vcs(
                         definition, namespace.registry_id,
                         install_location=namespace.install_location,
                         overwrite=overwrite

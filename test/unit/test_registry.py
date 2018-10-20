@@ -341,7 +341,7 @@ def test_install_to_path_error_definition_exists(
     "no-options",
     "with-overwrite",
 ])
-def test_install_to_vault(
+def test_install_to_vcs(
     mocked_requests_get, mocked_requests_post, mocked_definition,
     mocked_filesystem_get_name, mocked_filesystem_get_username, logger,
     monkeypatch, mocker, options, overwrite
@@ -369,7 +369,7 @@ def test_install_to_vault(
     mocked_filesystem_get_name.return_value = "John Doe"
     mocked_filesystem_get_username.return_value = "john-doe"
 
-    wiz.registry.install_to_vault(mocked_definition, "registry-id", **options)
+    wiz.registry.install_to_vcs(mocked_definition, "registry-id", **options)
 
     mocked_requests_get.assert_called_once_with(
         "https://wiz.themill.com/api/registry/all"
@@ -402,7 +402,7 @@ def test_install_to_vault(
     "with-json-error",
     "without-json-error",
 ])
-def test_install_to_vault_error_get(
+def test_install_to_vcs_error_get(
     mocked_requests_get, mocked_requests_post, mocked_definition,
     mocked_filesystem_get_name, mocked_filesystem_get_username, logger,
     monkeypatch, mocker, json_response, expected_error
@@ -416,7 +416,7 @@ def test_install_to_vault_error_get(
     )
 
     with pytest.raises(wiz.exception.InstallError) as error:
-        wiz.registry.install_to_vault(mocked_definition, "registry-id")
+        wiz.registry.install_to_vcs(mocked_definition, "registry-id")
 
     mocked_requests_get.assert_called_once_with(
         "https://wiz.themill.com/api/registry/all"
@@ -438,7 +438,7 @@ def test_install_to_vault_error_get(
     "with-json-error",
     "without-json-error",
 ])
-def test_install_to_vault_error_incorrect_identifier(
+def test_install_to_vcs_error_incorrect_identifier(
     mocked_requests_get, mocked_requests_post, mocked_definition,
     mocked_filesystem_get_name, mocked_filesystem_get_username, logger,
     monkeypatch, mocker, json_response
@@ -452,7 +452,7 @@ def test_install_to_vault_error_incorrect_identifier(
     )
 
     with pytest.raises(wiz.exception.InstallError) as error:
-        wiz.registry.install_to_vault(mocked_definition, "registry-id")
+        wiz.registry.install_to_vcs(mocked_definition, "registry-id")
 
     mocked_requests_get.assert_called_once_with(
         "https://wiz.themill.com/api/registry/all"
@@ -466,7 +466,7 @@ def test_install_to_vault_error_incorrect_identifier(
     assert "'registry-id' is not a valid registry" in str(error)
 
 
-def test_install_to_vault_error_definition_exists(
+def test_install_to_vcs_error_definition_exists(
     mocked_requests_get, mocked_requests_post, mocked_definition,
     mocked_filesystem_get_name, mocked_filesystem_get_username, logger,
     monkeypatch, mocker
@@ -496,7 +496,7 @@ def test_install_to_vault_error_definition_exists(
     mocked_filesystem_get_username.return_value = "john-doe"
 
     with pytest.raises(wiz.exception.DefinitionExists) as error:
-        wiz.registry.install_to_vault(mocked_definition, "registry-id")
+        wiz.registry.install_to_vcs(mocked_definition, "registry-id")
 
     mocked_requests_get.assert_called_once_with(
         "https://wiz.themill.com/api/registry/all"
@@ -528,7 +528,7 @@ def test_install_to_vault_error_definition_exists(
     "with-json-error",
     "without-json-error",
 ])
-def test_install_to_vault_error_post(
+def test_install_to_vcs_error_post(
     mocked_requests_get, mocked_requests_post, mocked_definition,
     mocked_filesystem_get_name, mocked_filesystem_get_username, logger,
     monkeypatch, mocker, json_response, expected_error
@@ -560,7 +560,7 @@ def test_install_to_vault_error_post(
     mocked_filesystem_get_username.return_value = "john-doe"
 
     with pytest.raises(wiz.exception.InstallError) as error:
-        wiz.registry.install_to_vault(mocked_definition, "registry-id")
+        wiz.registry.install_to_vcs(mocked_definition, "registry-id")
 
     mocked_requests_get.assert_called_once_with(
         "https://wiz.themill.com/api/registry/all"

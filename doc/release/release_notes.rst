@@ -36,14 +36,14 @@ Release Notes
         :tags: API
 
         Added :func:`wiz.install_definition_to_path` and
-        :func:`wiz.install_definition_to_vault` to install one or several
+        :func:`wiz.install_definition_to_vcs` to install one or several
         definition files to a :term:`Local Registry` or a :term:`VCS Registry`.
 
     .. change:: new
         :tags: API
 
         Added :func:`wiz.registry.install_to_path` and
-        :func:`wiz.registry.install_to_vault` to install a definition instance
+        :func:`wiz.registry.install_to_vcs` to install a definition instance
         to a :term:`Local Registry` or a :term:`VCS Registry`.
 
     .. change:: new

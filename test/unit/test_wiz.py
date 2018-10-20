@@ -28,9 +28,9 @@ def mocked_registry_install_to_path(mocker):
 
 
 @pytest.fixture()
-def mocked_registry_install_to_vault(mocker):
-    """Return mocked 'wiz.registry.install_to_vault' function."""
-    return mocker.patch.object(wiz.registry, "install_to_vault")
+def mocked_registry_install_to_vcs(mocker):
+    """Return mocked 'wiz.registry.install_to_vcs' function."""
+    return mocker.patch.object(wiz.registry, "install_to_vcs")
 
 
 @pytest.fixture()
@@ -641,31 +641,31 @@ def test_install_definition_to_path_with_install_location(
     "no-options",
     "with-overwrite",
 ])
-def test_install_definition_to_vault(
-    mocked_load_definition, mocked_registry_install_to_vault,
+def test_install_definition_to_vcs(
+    mocked_load_definition, mocked_registry_install_to_vcs,
     options, install_options
 ):
     """Install a definition to a vault registry."""
     definition = wiz.definition.Definition({"identifier": "foo"})
     mocked_load_definition.return_value = definition
 
-    wiz.install_definition_to_vault(
+    wiz.install_definition_to_vcs(
         "/path/to/definition.json", "registry-id", **options
     )
 
-    mocked_registry_install_to_vault.assert_called_once_with(
+    mocked_registry_install_to_vcs.assert_called_once_with(
         definition, "registry-id", **install_options
     )
 
 
-def test_install_definition_to_vault_with_install_location(
-    mocked_load_definition, mocked_registry_install_to_vault,
+def test_install_definition_to_vcs_with_install_location(
+    mocked_load_definition, mocked_registry_install_to_vcs,
 ):
     """Install a definition to a vault registry with install location."""
     definition = wiz.definition.Definition({"identifier": "foo"})
     mocked_load_definition.return_value = definition
 
-    wiz.install_definition_to_vault(
+    wiz.install_definition_to_vcs(
         "/path/to/definition.json", "registry-id",
         install_location="/path/to/package"
     )
@@ -675,7 +675,7 @@ def test_install_definition_to_vault_with_install_location(
         "install-location": "/path/to/package"
     })
 
-    mocked_registry_install_to_vault.install_definition_to_vault(
+    mocked_registry_install_to_vcs.install_definition_to_vcs(
         _definition, "registry-id", overwrite=False
     )
 
