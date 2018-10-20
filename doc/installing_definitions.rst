@@ -35,6 +35,17 @@ A definition can be released into a :term:`VCS Registry` using the
             "/path/to/foo-0.1.0.json", "primary-registry"
         )
 
+.. hint::
+
+    A definition can be manually added definitions, by just checking out the
+    repository.
+    After committing the changes, make sure to tag the commit and push the tag.
+    This will trigger the pipeline to release the registry to all sites::
+
+        >>> usurp release minor
+        >>> git push --follow-tags
+
+
 .. _installing_definitions/local:
 
 Installing to local registries
@@ -64,6 +75,11 @@ A definition can be released into a :term:`Local Registry` using the
         wiz.install_definition_to_path(
             "/path/to/foo-0.1.0.json", "/path/to/folder"
         )
+
+.. hint::
+
+    A definition can be manually added to a registry by just copying the
+    file to location on the file system (like ``~/.wiz/registry``).
 
 
 .. _installing_definitions/install-location:
