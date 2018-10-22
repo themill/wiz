@@ -115,10 +115,10 @@ class FileExists(WizError):
     default_message = "The file already exists."
 
 
-class DefinitionExists(WizError):
-    """Raise when a definition already exists in a registry."""
+class DefinitionsExist(WizError):
+    """Raise when definitions already exists in a registry."""
 
-    default_message = "Definition already exists."
+    default_message = "Definitions already exist."
 
 
 class InstallError(WizError):
