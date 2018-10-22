@@ -209,10 +209,6 @@ def install_to_vcs(definitions, registry_identifier, overwrite=False):
         }
     )
 
-    # If no content was released.
-    if response.status_code == 204:
-        raise wiz.exception.NoContent()
-
     # Return if all good.
     if response.ok:
         logger.info(
@@ -223,6 +219,10 @@ def install_to_vcs(definitions, registry_identifier, overwrite=False):
             )
         )
         return
+
+    # If no content was released.
+    if response.status_code == 417:
+        raise wiz.exception.NoContent()
 
     if response.status_code == 409:
         _definitions = response.json().get("error", {}).get("definitions", [])
