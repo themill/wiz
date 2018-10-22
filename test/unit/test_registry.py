@@ -322,7 +322,7 @@ def test_install_to_path_error_definition_exists(
     """Fail to install definition when definition exists."""
     mocked_export_definition.side_effect = wiz.exception.FileExists()
 
-    with pytest.raises(wiz.exception.DefinitionExists) as error:
+    with pytest.raises(wiz.exception.DefinitionsExist) as error:
         wiz.registry.install_to_path(mocked_definition, temporary_directory)
 
     registry_path = os.path.join(temporary_directory, ".wiz", "registry")
@@ -495,7 +495,7 @@ def test_install_to_vcs_error_definition_exists(
     mocked_filesystem_get_name.return_value = "John Doe"
     mocked_filesystem_get_username.return_value = "john-doe"
 
-    with pytest.raises(wiz.exception.DefinitionExists) as error:
+    with pytest.raises(wiz.exception.DefinitionsExist) as error:
         wiz.registry.install_to_vcs(mocked_definition, "registry-id")
 
     mocked_requests_get.assert_called_once_with(
