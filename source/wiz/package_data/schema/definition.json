@@ -38,8 +38,7 @@
         },
         "group": {
             "description": "Group in registry to place definition into.",
-            "type": "string",
-            "default": ""
+            "type": "string"
         },
         "system": {
             "description": "System constraints limiting the scope of the definition.",
