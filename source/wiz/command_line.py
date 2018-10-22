@@ -819,7 +819,7 @@ def _install_definition(namespace):
 
             overwrite = True
 
-        except wiz.exception.NoContent:
+        except wiz.exception.InstallNoChanges:
             logger.warning("No changes detected in release.")
             break
 

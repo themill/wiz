@@ -121,10 +121,10 @@ class DefinitionsExist(WizError):
     default_message = "Definitions already exist."
 
 
-class NoContent(WizError):
-    """Raise when no new content was detected in a release request."""
+class InstallNoChanges(WizError):
+    """Raise when no content was detected in a release request."""
 
-    default_message = "No changes detected."
+    default_message = "Nothing to install."
 
 
 class InstallError(WizError):

@@ -222,7 +222,7 @@ def install_to_vcs(definitions, registry_identifier, overwrite=False):
 
     # If no content was released.
     if response.status_code == 417:
-        raise wiz.exception.NoContent()
+        raise wiz.exception.InstallNoChanges()
 
     if response.status_code == 409:
         _definitions = response.json().get("error", {}).get("definitions", [])
