@@ -593,38 +593,51 @@ def test_install_definition_to_path(
     mocked_load_definition, mocked_registry_install_to_path,
     options, install_options
 ):
-    """Install a definition to a path registry."""
-    definition = wiz.definition.Definition({"identifier": "foo"})
-    mocked_load_definition.return_value = definition
+    """Install definitions to a path registry."""
+    definitions = [
+        wiz.definition.Definition({"identifier": "foo"}),
+        wiz.definition.Definition({"identifier": "bar"})
+    ]
+    mocked_load_definition.side_effect = definitions
 
-    wiz.install_definition_to_path(
-        "/path/to/definition.json", "/path/to/registry", **options
+    wiz.install_definitions_to_path(
+        ["/path/to/foo.json", "/path/to/bar.json"],
+        "/path/to/registry", **options
     )
 
     mocked_registry_install_to_path.assert_called_once_with(
-        definition, "/path/to/registry", **install_options
+        definitions, "/path/to/registry", **install_options
     )
 
 
 def test_install_definition_to_path_with_install_location(
     mocked_load_definition, mocked_registry_install_to_path,
 ):
-    """Install a definition to a path registry with install location."""
-    definition = wiz.definition.Definition({"identifier": "foo"})
-    mocked_load_definition.return_value = definition
+    """Install definitions to a path registry with install location."""
+    definitions = [
+        wiz.definition.Definition({"identifier": "foo"}),
+        wiz.definition.Definition({"identifier": "bar"})
+    ]
+    mocked_load_definition.side_effect = definitions
 
-    wiz.install_definition_to_path(
-        "/path/to/definition.json", "/path/to/registry",
-        install_location="/path/to/package"
+    wiz.install_definitions_to_path(
+        ["/path/to/foo.json", "/path/to/bar.json"],
+        "/path/to/registry", install_location="/path/to/package"
     )
 
-    _definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "install-location": "/path/to/package"
-    })
+    _definitions = [
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "install-location": "/path/to/package"
+        }),
+        wiz.definition.Definition({
+            "identifier": "bar",
+            "install-location": "/path/to/package"
+        })
+    ]
 
     mocked_registry_install_to_path.assert_called_once_with(
-        _definition, "/path/to/registry", overwrite=False
+        _definitions, "/path/to/registry", overwrite=False
     )
 
 
@@ -645,38 +658,52 @@ def test_install_definition_to_vcs(
     mocked_load_definition, mocked_registry_install_to_vcs,
     options, install_options
 ):
-    """Install a definition to a vault registry."""
-    definition = wiz.definition.Definition({"identifier": "foo"})
-    mocked_load_definition.return_value = definition
+    """Install definitions to a vcs registry."""
+    definitions = [
+        wiz.definition.Definition({"identifier": "foo"}),
+        wiz.definition.Definition({"identifier": "bar"})
+    ]
+    mocked_load_definition.side_effect = definitions
 
-    wiz.install_definition_to_vcs(
-        "/path/to/definition.json", "registry-id", **options
+    wiz.install_definitions_to_vcs(
+        ["/path/to/foo.json", "/path/to/bar.json"],
+        "registry-id", **options
     )
 
     mocked_registry_install_to_vcs.assert_called_once_with(
-        definition, "registry-id", **install_options
+        definitions, "registry-id", **install_options
     )
 
 
 def test_install_definition_to_vcs_with_install_location(
     mocked_load_definition, mocked_registry_install_to_vcs,
 ):
-    """Install a definition to a vault registry with install location."""
-    definition = wiz.definition.Definition({"identifier": "foo"})
-    mocked_load_definition.return_value = definition
+    """Install definitions to a vcs registry with install location."""
+    definitions = [
+        wiz.definition.Definition({"identifier": "foo"}),
+        wiz.definition.Definition({"identifier": "bar"})
+    ]
+    mocked_load_definition.side_effect = definitions
 
-    wiz.install_definition_to_vcs(
-        "/path/to/definition.json", "registry-id",
+    wiz.install_definitions_to_vcs(
+        ["/path/to/foo.json", "/path/to/bar.json"],
+        "registry-id",
         install_location="/path/to/package"
     )
 
-    _definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "install-location": "/path/to/package"
-    })
+    _definitions = [
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "install-location": "/path/to/package"
+        }),
+        wiz.definition.Definition({
+            "identifier": "bar",
+            "install-location": "/path/to/package"
+        })
+    ]
 
     mocked_registry_install_to_vcs.install_definition_to_vcs(
-        _definition, "registry-id", overwrite=False
+        _definitions, "registry-id", overwrite=False
     )
 
 
