@@ -124,7 +124,7 @@ class DefinitionsExist(WizError):
 class NoContent(WizError):
     """Raise when no new content was detected in a release request."""
 
-    default_message = "No changes detected in release"
+    default_message = "No changes detected."
 
 
 class InstallError(WizError):
