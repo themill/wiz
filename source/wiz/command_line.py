@@ -795,34 +795,37 @@ def _install_definition(namespace):
     """
     logger = mlog.Logger(__name__ + "._install_definition")
 
-    for definition in namespace.definitions:
-        overwrite = False
+    overwrite = False
 
-        while True:
-            try:
-                if namespace.registry_path is not None:
-                    wiz.install_definition_to_path(
-                        definition, namespace.registry_path,
-                        install_location=namespace.install_location,
-                        overwrite=overwrite
-                    )
-                elif namespace.registry_id is not None:
-                    wiz.install_definition_to_vcs(
-                        definition, namespace.registry_id,
-                        install_location=namespace.install_location,
-                        overwrite=overwrite
-                    )
+    while True:
+        try:
+            if namespace.registry_path is not None:
+                wiz.install_definitions_to_path(
+                    namespace.definitions, namespace.registry_path,
+                    install_location=namespace.install_location,
+                    overwrite=overwrite
+                )
+            elif namespace.registry_id is not None:
+                wiz.install_definitions_to_vcs(
+                    namespace.definitions, namespace.registry_id,
+                    install_location=namespace.install_location,
+                    overwrite=overwrite
+                )
+            break
+
+        except wiz.exception.DefinitionsExist as error:
+            if not click.confirm("{}\n Overwrite?".format(error)):
                 break
 
-            except wiz.exception.DefinitionExists as error:
-                if not click.confirm("{}, Overwrite?".format(error)):
-                    break
+            overwrite = True
 
-                overwrite = True
+        except wiz.exception.NoContent:
+            logger.warning("No changes detected in release.")
+            break
 
-            except Exception as error:
-                logger.error(error, traceback=True)
-                return
+        except Exception as error:
+            logger.error(error, traceback=True)
+            break
 
 
 def display_registries(paths):
