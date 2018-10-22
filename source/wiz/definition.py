@@ -246,12 +246,7 @@ def export(path, definition, overwrite=False):
     if not isinstance(definition, Definition):
         definition = wiz.definition.Definition(**definition)
 
-    file_name = "{}.json".format(definition.identifier)
-    if definition.version != wiz.symbol.UNKNOWN_VALUE:
-        file_name = "{}-{}.json".format(
-            definition.identifier, definition.version
-        )
-
+    file_name = wiz.utility.compute_file_name(definition)
     file_path = os.path.join(os.path.abspath(path), file_name)
     wiz.filesystem.export(file_path, definition.encode(), overwrite=overwrite)
     return file_path
