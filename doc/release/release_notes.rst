@@ -12,25 +12,22 @@ Release Notes
         Added ``wiz install`` sub-command to install package definition to a
         registry.
 
-    .. change:: new
-        :tags: definition
-
-        Added optional 'group' keyword to definition schema, which can be used
-        to define where in the hierachy of a :term:`Wiz Vault` registry a
-        definition will be grouped under at install. Default is "".
+        .. seealso:: :ref:`installing_definitions`
 
     .. change:: new
         :tags: definition
 
-        Added optional 'install-location' keyword to definition schema which
-        will be used to resolve any occurances of :envvar:`INSTALL_LOCATION` in
-        ``environ``.
+        Added optional :ref:`group <definition/group>` keyword to definition
+        schema, which can be used to define where in the hierarchy of a
+        :term:`VCS Registry` a definition will be installed (e.g. "python",
+        "maya").
 
-    .. change:: changed
+    .. change:: new
         :tags: definition
 
-        Renamed keyword 'origin' to 'definition-location', to be more consistent
-        with the newly added 'install-location' keyword.
+        Added optional :ref:`install-location <definition/install_location>`
+        keyword to definition schema to indicate the root location of a package
+        data.
 
     .. change:: new
         :tags: API
@@ -52,14 +49,35 @@ Release Notes
         Added :meth:`wiz.package.Package.localized_environ` to return
         environment mapping of a package which replace the
         :envvar:`INSTALL_LOCATION` environment variable by the
-        :ref:`install-location <definition/install_location>` value.
+        :ref:`install-location <definition/install_location>` keyword value.
 
     .. change:: new
+        :tags: API
 
-        Added utility functions :func:`wiz.utility.compute_label`,
-        :func:`wiz.utility.compute_system_label` and
-        :func:`wiz.utility.compute_file_name` to create a unique label for a
-        definition file from a definition mapping.
+        Added :meth:`wiz.definition.Definition.sanitized` to return a definition
+        without keywords implemented when the definition is :func:`discovered
+        <wiz.definition.discover>`. Only the keywords unrelated to the registry
+        are preserved so that sanitized definition can be compared and
+        installed.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.compute_label` to compute a unique label for
+        a definition (e.g. "'foo' [0.1.0]").
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.compute_system_label` to compute a unique label
+        for the :ref:`system <definition/system>` value of a definition (e.g.
+        "linux : x86_64 : el >= 6, 7").
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.compute_file_name` to compute a unique
+        :term:`JSON` file name for a definition (e.g. "foo-0.1.0.json").
 
     .. change:: new
         :tags: documentation
@@ -81,6 +99,12 @@ Release Notes
         :tags: documentation
 
         Added :ref:`definition/install_location` to :ref:`definition` section.
+
+    .. change:: changed
+        :tags: definition
+
+        Renamed keyword 'origin' to 'definition-location', to be more consistent
+        with the newly added 'install-location' keyword.
 
     .. change:: fixed
 
