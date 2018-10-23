@@ -814,7 +814,15 @@ def _install_definition(namespace):
             break
 
         except wiz.exception.DefinitionsExist as error:
-            if not click.confirm("{}\n Overwrite?".format(error)):
+            if not click.confirm(
+                "{message}\n{definitions}\nOverwrite?".format(
+                    message=str(error),
+                    definitions="\n".join([
+                        "- {}".format(definition)
+                        for definition in error.definitions
+                    ])
+                )
+            ):
                 break
 
             overwrite = True

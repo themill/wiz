@@ -7,6 +7,8 @@ import requests
 import mlog
 
 import wiz.history
+import wiz.package
+import wiz.exception
 import wiz.utility
 import wiz.symbol
 import wiz.filesystem
@@ -106,10 +108,13 @@ def install_to_path(definitions, registry_path, overwrite=False):
     Raises :exc:`wiz.exception.DefinitionsExist` if definitions already exist in
     the target registry and overwrite is False.
 
-    Raises :exc:`OSError` if definitions can not be exported in *registry_path*.
+    Raises :exc:`wiz.exception.InstallNoChanges` if definitions already exists
+    in the target registry and no changes is detected.
 
     Raises :exc:`wiz.exception.InstallError` if the target registry path is not
     a valid directory.
+
+    Raises :exc:`OSError` if definitions can not be exported in *registry_path*.
 
     """
     logger = mlog.Logger(__name__ + ".install_to_path")
@@ -123,35 +128,61 @@ def install_to_path(definitions, registry_path, overwrite=False):
     if not registry_path.endswith(".wiz/registry"):
         registry_path = os.path.join(registry_path, ".wiz", "registry")
 
-    # Record definition labels which already exist.
-    existing_definitions = [
-        wiz.utility.compute_label(definition) for definition in definitions
-        if os.path.exists(
-            os.path.join(
-                registry_path, wiz.utility.compute_file_name(definition)
-            )
-        )
-    ]
+    # Record definitions to install.
+    _definitions = []
+
+    # Record existing definitions per identifier.
+    existing_definition_map = {}
+
+    # Fetch all definitions from registry.
+    mapping = wiz.fetch_definition_mapping([registry_path])
+
+    for definition in definitions:
+        request = wiz.package.generate_identifier(definition)
+
+        try:
+            _definition = wiz.fetch_definition(request, mapping)
+
+        except wiz.exception.RequestNotFound:
+            _definitions.append(definition.sanitized())
+
+        else:
+            if definition.sanitized() == _definition.sanitized():
+                continue
+
+            existing_definition_map[definition.identifier] = _definition
+            _definitions.append(definition.sanitized())
+
+    # If no content was released.
+    if len(_definitions) == 0:
+        raise wiz.exception.InstallNoChanges()
 
     # Fail if overwrite is False and some definition paths exist in registry.
-    if len(existing_definitions) > 0 and overwrite is False:
-        raise wiz.exception.DefinitionsExist(
-            "The following definitions already exist:\n{definitions}".format(
-                definitions="\n".join([
-                    "- {}".format(_definition)
-                    for _definition in existing_definitions
-                ])
-            )
-        )
+    if len(existing_definition_map) > 0 and overwrite is False:
+        raise wiz.exception.DefinitionsExist([
+            wiz.utility.compute_label(definition)
+            for definition in existing_definition_map.values()
+        ])
 
     # Release definitions
-    for definition in definitions:
-        wiz.export_definition(registry_path, definition, overwrite=overwrite)
+    for definition in _definitions:
+        path = registry_path
+        identifier = definition.identifier
+
+        # Replace existing definition if necessary.
+        if identifier in existing_definition_map.keys():
+            existing_definition_path = (
+                existing_definition_map[identifier].get("definition-location")
+            )
+            path = os.path.dirname(existing_definition_path)
+            os.remove(existing_definition_path)
+
+        wiz.export_definition(path, definition, overwrite=True)
 
     logger.info(
         "Successfully installed {number} definition(s) to "
         "registry {registry!r}.".format(
-            number=len(definitions),
+            number=len(_definitions),
             registry=registry_path
         )
     )
@@ -169,11 +200,11 @@ def install_to_vcs(definitions, registry_identifier, overwrite=False):
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
 
-    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
-    create a valid instance of :class:`wiz.definition.Definition`.
+    Raises :exc:`wiz.exception.DefinitionExists` if definitions already exists
+    in the target registry and overwrite is False.
 
-    Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
-    the target registry and overwrite is False.
+    Raises :exc:`wiz.exception.InstallNoChanges` if definitions already exists
+    in the target registry and no changes is detected.
 
     Raises :exc:`wiz.exception.InstallError` if the registry could not be found,
     or definition could not be installed into it.
@@ -226,13 +257,7 @@ def install_to_vcs(definitions, registry_identifier, overwrite=False):
 
     if response.status_code == 409:
         _definitions = response.json().get("error", {}).get("definitions", [])
-        raise wiz.exception.DefinitionsExist(
-            "The following definitions already exist:\n{definitions}".format(
-                definitions="\n".join([
-                    "- {}".format(_definition) for _definition in _definitions
-                ])
-            )
-        )
+        raise wiz.exception.DefinitionsExist(_definitions)
 
     else:
         raise wiz.exception.InstallError(

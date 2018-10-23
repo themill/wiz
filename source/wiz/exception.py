@@ -120,6 +120,27 @@ class DefinitionsExist(WizError):
 
     default_message = "Definitions already exist."
 
+    def __init__(self, definition_labels):
+        """Initialise with list of existing *definitions*.
+
+        *definition_labels* should be in the form of::
+
+            [
+                "foo",
+                "bar 0.1.0",
+                "baz [linux : el =! 7]",
+                "baz [linux : el >= 6, < 7]"
+            ]
+
+        """
+        self.definitions = definition_labels
+
+        super(DefinitionsExist, self).__init__(
+            message="{} definition(s) already exist in registry.".format(
+                len(definition_labels)
+            )
+        )
+
 
 class InstallNoChanges(WizError):
     """Raise when no content was detected in a release request."""
