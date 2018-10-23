@@ -93,8 +93,10 @@ Glossary
         Version control systems are a category of software tools that help a
         software team manage changes to source code over time.
 
+        .. seealso:: https://en.wikipedia.org/wiki/Version_control
+
     VCS Registry
-        Registry stored as a :term:`VCS` (ie. :term:`Gitlab`) repository.
+        Registry stored as a :term:`VCS` (e.g. :term:`Gitlab`) repository.
 
         .. seealso:: :ref:`registry/vcs`
 
