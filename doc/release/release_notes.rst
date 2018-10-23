@@ -82,21 +82,33 @@ Release Notes
 
         Added :ref:`definition/install_location` to :ref:`definition` section.
 
+.. release:: 1.1.1
+    :date: 2018-10-23
+
+    .. change:: fixed
+        :tags: API
+
+        Fixed :class:`wiz.definition._Variant` to ensure that it can be
+        initiated with "\*args" and "\*\*kwargs" like its mother class
+        :class:`wiz.mapping.Mapping`. The manipulation methods would not work
+        otherwise as it attempted to create a new Variant instance without the
+        "definition_identifier" argument.
+
 .. release:: 1.1.0
     :date: 2018-10-23
 
     .. change:: changed
         :tags: API
 
-        Moved :meth:`~wiz.definition.Definition.set`,
+        Moved manipulation methods :meth:`~wiz.definition.Definition.set`,
         :meth:`~wiz.definition.Definition.update`,
         :meth:`~wiz.definition.Definition.extend`,
         :meth:`~wiz.definition.Definition.insert`,
         :meth:`~wiz.definition.Definition.remove`,
         :meth:`~wiz.definition.Definition.remove_key`,
-        :meth:`~wiz.definition.Definition.remove_index` methods to mother class
-        :class:`~wiz.mapping.Mapping` to ensure that logic is available in
-        variant object.
+        :meth:`~wiz.definition.Definition.remove_index` to mother class
+        :class:`wiz.mapping.Mapping` to ensure that logic is available in
+        :class:`wiz.definition._Variant` object.
 
 .. release:: 1.0.2
     :date: 2018-10-18
