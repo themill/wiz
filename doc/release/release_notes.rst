@@ -82,6 +82,22 @@ Release Notes
 
         Added :ref:`definition/install_location` to :ref:`definition` section.
 
+.. release:: 1.1.0
+    :date: 2018-10-23
+
+    .. change:: changed
+        :tags: API
+
+        Moved :meth:`~wiz.definition.Definition.set`,
+        :meth:`~wiz.definition.Definition.update`,
+        :meth:`~wiz.definition.Definition.extend`,
+        :meth:`~wiz.definition.Definition.insert`,
+        :meth:`~wiz.definition.Definition.remove`,
+        :meth:`~wiz.definition.Definition.remove_key`,
+        :meth:`~wiz.definition.Definition.remove_index` methods to mother class
+        :class:`~wiz.mapping.Mapping` to ensure that logic is available in
+        variant object.
+
 .. release:: 1.0.2
     :date: 2018-10-18
 
