@@ -17,11 +17,6 @@ except NameError:
     to_unicode = str
 
 
-def get_username():
-    """Fetch username from password database entry."""
-    return getpass.getuser()
-
-
 def get_name():
     """Fetch user full name from password database entry.
 
