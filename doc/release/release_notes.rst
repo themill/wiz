@@ -82,6 +82,10 @@ Release Notes
 
         Added :ref:`definition/install_location` to :ref:`definition` section.
 
+    .. change:: fixed
+
+        Actually return a copy in :func:`wiz.definition._Variant.copy`.
+
 .. release:: 1.1.1
     :date: 2018-10-23
 

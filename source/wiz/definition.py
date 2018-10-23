@@ -486,7 +486,7 @@ class _Variant(wiz.mapping.Mapping):
         """Return copy of instance."""
         mapping = dict(*args, **kwargs)
         mapping["definition"] = self.definition_identifier
-        super(_Variant, self).copy(**mapping)
+        return super(_Variant, self).copy(**mapping)
 
     @property
     def _ordered_keywords(self):
