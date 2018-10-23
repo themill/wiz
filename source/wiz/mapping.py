@@ -63,12 +63,16 @@ class Mapping(collections.Mapping):
         """Return constraint list."""
         return self.get("constraints", [])
 
+    def copy(self, *args, **kwargs):
+        """Return copy of instance."""
+        return self.__class__(*args, **kwargs)
+
     def set(self, element, value):
         """Returns copy of instance with *element* set to *value*.
         """
         _mapping = self.to_dict(serialize_content=True)
         _mapping[element] = value
-        return self.__class__(**_mapping)
+        return self.copy(**_mapping)
 
     def update(self, element, value):
         """Returns copy of instance with *element* mapping updated with *value*.
@@ -86,7 +90,7 @@ class Mapping(collections.Mapping):
             )
 
         _mapping[element].update(value)
-        return self.__class__(**_mapping)
+        return self.copy(**_mapping)
 
     def extend(self, element, values):
         """Returns copy of instance with *element* list extended with *values*.
@@ -103,7 +107,7 @@ class Mapping(collections.Mapping):
             )
 
         _mapping[element].extend(values)
-        return self.__class__(**_mapping)
+        return self.copy(**_mapping)
 
     def insert(self, element, value, index):
         """Returns copy of instance with *value* inserted in *element* list.
@@ -124,7 +128,7 @@ class Mapping(collections.Mapping):
             )
 
         _mapping[element].insert(index, value)
-        return self.__class__(**_mapping)
+        return self.copy(**_mapping)
 
     def remove(self, element):
         """Returns copy of instance without *element*."""
@@ -133,7 +137,7 @@ class Mapping(collections.Mapping):
             return self
 
         del _mapping[element]
-        return self.__class__(**_mapping)
+        return self.copy(**_mapping)
 
     def remove_key(self, element, value):
         """Returns copy of instance without key *value* from *element* mapping.
@@ -161,7 +165,7 @@ class Mapping(collections.Mapping):
         if len(_mapping[element]) == 0:
             del _mapping[element]
 
-        return self.__class__(**_mapping)
+        return self.copy(**_mapping)
 
     def remove_index(self, element, index):
         """Returns copy of instance without *index* from *element* list.
@@ -189,7 +193,7 @@ class Mapping(collections.Mapping):
         if len(_mapping[element]) == 0:
             del _mapping[element]
 
-        return self.__class__(**_mapping)
+        return self.copy(**_mapping)
 
     def to_dict(self, serialize_content=False):
         """Return corresponding dictionary.
