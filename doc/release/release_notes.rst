@@ -7,17 +7,17 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: new
+        :tags: command-line
+
+        Added ``wiz install`` sub-command to install package definition to a
+        registry.
+
+    .. change:: new
         :tags: definition
 
         Added optional 'group' keyword to definition schema, which can be used
         to define where in the hierachy of a :term:`Wiz Vault` registry a
         definition will be grouped under at install. Default is "".
-
-    .. change:: changed
-        :tags: definition
-
-        Renamed keyword 'origin' to 'definition-location', to be more consistent
-        with the newly added 'install-location' keyword.
 
     .. change:: new
         :tags: definition
@@ -26,17 +26,17 @@ Release Notes
         will be used to resolve any occurances of :envvar:`INSTALL_LOCATION` in
         ``environ``.
 
-    .. change:: new
-        :tags: command-line
+    .. change:: changed
+        :tags: definition
 
-        Added ``wiz install`` sub-command to install package definition to a
-        registry.
+        Renamed keyword 'origin' to 'definition-location', to be more consistent
+        with the newly added 'install-location' keyword.
 
     .. change:: new
         :tags: API
 
-        Added :func:`wiz.install_definition_to_path` and
-        :func:`wiz.install_definition_to_vcs` to install one or several
+        Added :func:`wiz.install_definitions_to_path` and
+        :func:`wiz.install_definitions_to_vcs` to install one or several
         definition files to a :term:`Local Registry` or a :term:`VCS Registry`.
 
     .. change:: new
@@ -55,6 +55,13 @@ Release Notes
         :ref:`install-location <definition/install_location>` value.
 
     .. change:: new
+
+        Added utility functions :func:`wiz.utility.compute_label`,
+        :func:`wiz.utility.compute_system_label` and
+        :func:`wiz.utility.compute_file_name` to create a unique label for a
+        definition file from a definition mapping.
+
+    .. change:: new
         :tags: documentation
 
         Added :ref:`installing_definitions` section.
@@ -62,7 +69,7 @@ Release Notes
     .. change:: new
         :tags: documentation
 
-        Added :ref:`tutorial/install/qip` section.
+        Added :ref:`tutorial/install/qip` section to tutorial.
 
     .. change:: new
         :tags: documentation
@@ -74,6 +81,22 @@ Release Notes
         :tags: documentation
 
         Added :ref:`definition/install_location` to :ref:`definition` section.
+
+.. release:: 1.1.0
+    :date: 2018-10-23
+
+    .. change:: changed
+        :tags: API
+
+        Moved :meth:`~wiz.definition.Definition.set`,
+        :meth:`~wiz.definition.Definition.update`,
+        :meth:`~wiz.definition.Definition.extend`,
+        :meth:`~wiz.definition.Definition.insert`,
+        :meth:`~wiz.definition.Definition.remove`,
+        :meth:`~wiz.definition.Definition.remove_key`,
+        :meth:`~wiz.definition.Definition.remove_index` methods to mother class
+        :class:`~wiz.mapping.Mapping` to ensure that logic is available in
+        variant object.
 
 .. release:: 1.0.2
     :date: 2018-10-18

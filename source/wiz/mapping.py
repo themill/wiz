@@ -63,6 +63,134 @@ class Mapping(collections.Mapping):
         """Return constraint list."""
         return self.get("constraints", [])
 
+    def set(self, element, value):
+        """Returns copy of instance with *element* set to *value*.
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping[element] = value
+        return self.__class__(**_mapping)
+
+    def update(self, element, value):
+        """Returns copy of instance with *element* mapping updated with *value*.
+
+        Raise :exc:`ValueError` if *element* is not a dictionary.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping.setdefault(element, {})
+
+        if not isinstance(_mapping[element], dict):
+            raise ValueError(
+                "Impossible to update '{}' as it is not a "
+                "dictionary.".format(element)
+            )
+
+        _mapping[element].update(value)
+        return self.__class__(**_mapping)
+
+    def extend(self, element, values):
+        """Returns copy of instance with *element* list extended with *values*.
+
+        Raise :exc:`ValueError` if *mapping* is not a list.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping.setdefault(element, [])
+
+        if not isinstance(_mapping[element], list):
+            raise ValueError(
+                "Impossible to extend '{}' as it is not a list.".format(element)
+            )
+
+        _mapping[element].extend(values)
+        return self.__class__(**_mapping)
+
+    def insert(self, element, value, index):
+        """Returns copy of instance with *value* inserted in *element* list.
+
+        *index* should be the index number at which the *value* should be
+        inserted.
+
+        Raise :exc:`ValueError` if *mapping* is not a list.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        _mapping.setdefault(element, [])
+
+        if not isinstance(_mapping[element], list):
+            raise ValueError(
+                "Impossible to insert '{}' in '{}' as it is not "
+                "a list.".format(value, element)
+            )
+
+        _mapping[element].insert(index, value)
+        return self.__class__(**_mapping)
+
+    def remove(self, element):
+        """Returns copy of instance without *element*."""
+        _mapping = self.to_dict(serialize_content=True)
+        if element not in _mapping.keys():
+            return self
+
+        del _mapping[element]
+        return self.__class__(**_mapping)
+
+    def remove_key(self, element, value):
+        """Returns copy of instance without key *value* from *element* mapping.
+
+        If *element* mapping is empty after removing *value*, the *element* key
+        will be removed.
+
+        Raise :exc:`ValueError` if *element* is not a dictionary.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        if element not in _mapping.keys():
+            return self
+
+        if not isinstance(_mapping[element], dict):
+            raise ValueError(
+                "Impossible to remove key from '{}' as it is not a "
+                "dictionary.".format(element)
+            )
+
+        if value not in _mapping[element].keys():
+            return self
+
+        del _mapping[element][value]
+        if len(_mapping[element]) == 0:
+            del _mapping[element]
+
+        return self.__class__(**_mapping)
+
+    def remove_index(self, element, index):
+        """Returns copy of instance without *index* from *element* list.
+
+        If *element* list is empty after removing *index*, the *element* key
+        will be removed.
+
+        Raise :exc:`ValueError` if *element* is not a list.
+
+        """
+        _mapping = self.to_dict(serialize_content=True)
+        if element not in _mapping.keys():
+            return self
+
+        if not isinstance(_mapping[element], list):
+            raise ValueError(
+                "Impossible to remove index from '{}' as it is not a "
+                "list.".format(element)
+            )
+
+        if index >= len(_mapping[element]):
+            return self
+
+        del _mapping[element][index]
+        if len(_mapping[element]) == 0:
+            del _mapping[element]
+
+        return self.__class__(**_mapping)
+
     def to_dict(self, serialize_content=False):
         """Return corresponding dictionary.
 
