@@ -12,12 +12,12 @@ Once package data has been installed to their location on the file system,
 
 Let's install a python package with all its requirements as follow::
 
-    >>> qip install mlog --output-path /tmp/python-data --definition-path /tmp/python-definition
+    >>> qip install mlog --output-path /tmp/data --definition-path /tmp/definition
 
 Now install the corresponding definitions in your personal registry::
 
     >>> cd /tmp/my-install-test
-    >>> wiz install /tmp/python-definition/* --registry-path ~
+    >>> wiz install /tmp/definition/* --registry-path ~
 
 You can now use all the typical wiz commands to view and use that package::
 
