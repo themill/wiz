@@ -5,15 +5,18 @@ Using Registries
 ****************
 
 A registry is a folder which contains one or several :ref:`package definitions
-<definition>`. Several registries could be provided when a package definition
-should overwrite a command or an entire definition in another registry.
+<definition>`. When resolving environments, Wiz will parse these directories to
+gather any definitions available and match the requests.
+
+Several registries may be necessary when a :ref:`package definitions
+<definition>` should overwrite a command or an entire definition in another
+registry.
 
 .. warning::
 
     A package definition should never overwrite a command or an entire
     definition within a single registry as the discovery order is not
     guaranteed.
-
 
 When a package definition is found in several registries, the latest one is
 picked, which would imply that the registries are listed in a sensible order to
@@ -28,6 +31,23 @@ displayed in the output like this.
     [1] /mill3d/server/apps/WIZ/registry/secondary/default
     [2] /Users/jeremyr/.wiz/registry
 
+.. _registry/local:
+
+.. rubric:: What are local registries?
+
+A local registry is a simple folder ending on :file:`/path/to/folder/.wiz/
+registry`. Definitions can be simply copied into a local registry.
+
+.. _registry/vcs:
+
+.. rubric:: What are VCS registries?
+
+A registry must always be a folder which contain all available definitions.
+However, some important registries are stored as a :term:`Gitlab` repository
+which automatises the deployment to the file system. A Web API called
+:term:`Wiz Vault` is available to release or fetch definitions from these
+registries.
+
 
 The default registries are:
 
@@ -41,22 +61,35 @@ Two global registries are available under
 
 As this folder is part of the weekly sync, it will be identical on all sites.
 
-Primary
--------
+.. _registry/global/primary:
+
+Primary registry
+----------------
 
 The primary registry contains all generic package definitions. If commands are
 included, they are in vanilla configuration (no plugins).
 
-.. seealso:: http://gitlab/rnd/wiz-registry/primary-registry
+This registry is accessable through :term:`Wiz Vault`.
 
-Secondary
----------
+.. seealso::
+
+    http://gitlab/rnd/wiz-registry/primary-registry
+
+.. _registry/global/secondary:
+
+Secondary registry
+------------------
 
 The secondary registry contains package definitions for default configurations
 (e.g. maya, houdini, nuke, etc). Commands specified here include all the
 packages that should be run by default on all sites.
 
-.. seealso:: http://gitlab/rnd/wiz-registry/secondary-registry
+This registry is accessable through :term:`Wiz Vault`.
+
+.. seealso::
+
+    http://gitlab/rnd/wiz-registry/secondary-registry
+
 
 .. _registry/site:
 
@@ -68,6 +101,16 @@ for a single site only (e.g. houdini hsite, site specific environment
 variables).
 
 It is available in :file:`/jobs/.wiz/registry/default`.
+
+This registry is accessable through :term:`Wiz Vault`.
+
+.. seealso::
+
+    | http://gitlab/rnd/wiz-registry/london-registry
+    | http://gitlab/rnd/wiz-registry/new-york-registry
+    | http://gitlab/rnd/wiz-registry/chicago-registry
+    | http://gitlab/rnd/wiz-registry/los-angeles-registry
+    | http://gitlab/rnd/wiz-registry/bangalore-registry
 
 .. _registry/project:
 

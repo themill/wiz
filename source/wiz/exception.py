@@ -107,3 +107,48 @@ class InvalidVersion(WizError):
     """Raise when a version is incorrect."""
 
     default_message = "The version is incorrect."
+
+
+class FileExists(WizError):
+    """Raise when a file already exists."""
+
+    default_message = "The file already exists."
+
+
+class DefinitionsExist(WizError):
+    """Raise when definitions already exists in a registry."""
+
+    default_message = "Definitions already exist."
+
+    def __init__(self, definition_labels):
+        """Initialise with list of existing *definitions*.
+
+        *definition_labels* should be in the form of::
+
+            [
+                "foo",
+                "bar 0.1.0",
+                "baz [linux : el =! 7]",
+                "baz [linux : el >= 6, < 7]"
+            ]
+
+        """
+        self.definitions = definition_labels
+
+        super(DefinitionsExist, self).__init__(
+            message="{} definition(s) already exist in registry.".format(
+                len(definition_labels)
+            )
+        )
+
+
+class InstallNoChanges(WizError):
+    """Raise when no content was detected in a release request."""
+
+    default_message = "Nothing to install."
+
+
+class InstallError(WizError):
+    """Raise when the installation of a definition failed."""
+
+    default_message = "The definition cannot be installed."

@@ -184,11 +184,11 @@ def test_incorrect_disabled_type(value):
     ]
 
 
-def test_definition_with_origin():
-    """Validate a definition data with an origin keyword."""
+def test_definition_with_definition_location():
+    """Validate a definition data with an definition-location keyword."""
     data = {
         "identifier": "test",
-        "origin": "/path/to/definition.json"
+        "definition-location": "/path/to/definition.json"
     }
     assert list(wiz.validator.yield_definition_errors(data)) == []
 
@@ -204,18 +204,18 @@ def test_definition_with_origin():
     "list",
     "object"
 ])
-def test_incorrect_origin_type(value):
-    """Raise an error when origin type is incorrect."""
+def test_incorrect_definition_location_type(value):
+    """Raise an error when definition-location type is incorrect."""
     data = {
         "identifier": "test",
-        "origin": value,
+        "definition-location": value,
     }
 
     assert list(wiz.validator.yield_definition_errors(data)) == [
         {
             "message": "{!r} is not of type u'string'".format(value),
-            "path": "/origin",
-            "schema_path": "/properties/origin/type"
+            "path": "/definition-location",
+            "schema_path": "/properties/definition-location/type"
         }
     ]
 

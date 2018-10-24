@@ -37,6 +37,20 @@ Glossary
 
         .. seealso:: http://json-schema.org/
 
+    Gitlab
+        Centralised server for :term:`Git` that provides additional
+        collaborative features.
+
+        .. seealso::
+
+            * `Local Gitlab server <http://gitlab/>`__
+            * https://about.gitlab.com/
+
+    Local Registry
+        Registry stored on the file system.
+
+        .. seealso:: :ref:`registry/local`
+
     Maya
         A digital content creator provided by Autodesk.
 
@@ -58,6 +72,12 @@ Glossary
 
         .. seealso:: https://www.python.org/
 
+    Qip
+        Quarantined Installer for Python. Tool to install python packages into a
+        self contained directory structure.
+
+        .. seealso:: http://rtd.themill.com/docs/qip/en/stable/
+
     Unix Shell
         Command line interpreter providing a user interaction to use traditional
         Unix-like commands (such as `ls`, `cd`, `awk`, etc.) or execute scripts.
@@ -68,3 +88,19 @@ Glossary
         A tool to create isolated Python environments.
 
         .. seealso:: https://virtualenv.pypa.io/en/latest/
+
+    VCS
+        Version control systems are a category of software tools that help a
+        software team manage changes to source code over time.
+
+        .. seealso:: https://en.wikipedia.org/wiki/Version_control
+
+    VCS Registry
+        Registry stored as a :term:`VCS` (e.g. :term:`Gitlab`) repository.
+
+        .. seealso:: :ref:`registry/vcs`
+
+    Wiz Vault
+        Registry Server for Wiz.
+
+        .. seealso:: :ref:`wiz-vault:main`

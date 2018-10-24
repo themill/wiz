@@ -34,6 +34,11 @@ class Mapping(collections.Mapping):
         return self.get("description", wiz.symbol.UNKNOWN_VALUE)
 
     @property
+    def group(self):
+        """Return group."""
+        return self.get("group")
+
+    @property
     def environ(self):
         """Return environ mapping."""
         return self.get("environ", {})
@@ -269,6 +274,13 @@ class Mapping(collections.Mapping):
     def __len__(self):
         """Return count of keys."""
         return len(self._mapping)
+
+    def __repr__(self):
+        """Representation of the mapping."""
+        return "{}({})".format(
+            self.__class__.__name__,
+            self.to_dict(serialize_content=True)
+        )
 
 
 def _serialize_content(element):

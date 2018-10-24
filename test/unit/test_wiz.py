@@ -22,6 +22,18 @@ def mocked_registry_defaults(mocker):
 
 
 @pytest.fixture()
+def mocked_registry_install_to_path(mocker):
+    """Return mocked 'wiz.registry.install_to_path' function."""
+    return mocker.patch.object(wiz.registry, "install_to_path")
+
+
+@pytest.fixture()
+def mocked_registry_install_to_vcs(mocker):
+    """Return mocked 'wiz.registry.install_to_vcs' function."""
+    return mocker.patch.object(wiz.registry, "install_to_vcs")
+
+
+@pytest.fixture()
 def mocked_fetch_definition_mapping(mocker):
     """Return mocked 'wiz.fetch_definition_mapping' function."""
     return mocker.patch.object(wiz, "fetch_definition_mapping")
@@ -31,6 +43,12 @@ def mocked_fetch_definition_mapping(mocker):
 def mocked_fetch_package(mocker):
     """Return mocked 'wiz.fetch_package' function."""
     return mocker.patch.object(wiz, "fetch_package")
+
+
+@pytest.fixture()
+def mocked_load_definition(mocker):
+    """Return mocked 'wiz.load_definition' function."""
+    return mocker.patch.object(wiz, "load_definition")
 
 
 @pytest.fixture()
@@ -478,7 +496,8 @@ def test_resolve_command():
 
 def test_discover_context(
     monkeypatch, mocked_utility_decode, mocked_fetch_definition_mapping,
-    mocked_fetch_package, mocked_package_initiate_environ
+    mocked_fetch_package, mocked_package_initiate_environ,
+    mocked_package_extract_context,
 ):
     """Discover context from environment variable."""
     monkeypatch.setenv("WIZ_CONTEXT", "__CONTEXT__")
@@ -491,6 +510,10 @@ def test_discover_context(
         {"identifier": "package1==0.1.2"}, {"identifier": "package2==1.0.2"}
     ]
     mocked_package_initiate_environ.return_value = {"KEY": "VALUE"}
+    mocked_package_extract_context.return_value = {
+        "command": {},
+        "environ": {"KEY": "VALUE"},
+    }
 
     result = wiz.discover_context()
     assert result == {
@@ -512,6 +535,11 @@ def test_discover_context(
     )
     mocked_fetch_package.assert_any_call(
         package_identifiers[1], "__DEFINITION_MAPPING__"
+    )
+
+    mocked_package_extract_context.assert_called_once_with(
+        [{"identifier": "package1==0.1.2"}, {"identifier": "package2==1.0.2"}],
+        environ_mapping={"KEY": "VALUE"}
     )
 
 
@@ -544,7 +572,138 @@ def test_export_definition(mocked_definition_export):
     }
     wiz.export_definition("/path/to/output", definition_data)
     mocked_definition_export.assert_called_once_with(
-        "/path/to/output", definition_data
+        "/path/to/output", definition_data, overwrite=False
+    )
+
+
+@pytest.mark.parametrize("options, install_options", [
+    (
+        {},
+        {"overwrite": False}
+    ),
+    (
+        {"overwrite": True},
+        {"overwrite": True}
+    ),
+], ids=[
+    "no-options",
+    "with-overwrite",
+])
+def test_install_definitions_to_path(
+    mocked_load_definition, mocked_registry_install_to_path,
+    options, install_options
+):
+    """Install definitions to a path registry."""
+    definitions = [
+        wiz.definition.Definition({"identifier": "foo"}),
+        wiz.definition.Definition({"identifier": "bar"})
+    ]
+    mocked_load_definition.side_effect = definitions
+
+    wiz.install_definitions_to_path(
+        ["/path/to/foo.json", "/path/to/bar.json"],
+        "/path/to/registry", **options
+    )
+
+    mocked_registry_install_to_path.assert_called_once_with(
+        definitions, "/path/to/registry", **install_options
+    )
+
+
+def test_install_definitions_to_path_with_install_location(
+    mocked_load_definition, mocked_registry_install_to_path,
+):
+    """Install definitions to a path registry with install location."""
+    definitions = [
+        wiz.definition.Definition({"identifier": "foo"}),
+        wiz.definition.Definition({"identifier": "bar"})
+    ]
+    mocked_load_definition.side_effect = definitions
+
+    wiz.install_definitions_to_path(
+        ["/path/to/foo.json", "/path/to/bar.json"],
+        "/path/to/registry", install_location="/path/to/package"
+    )
+
+    _definitions = [
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "install-location": "/path/to/package"
+        }),
+        wiz.definition.Definition({
+            "identifier": "bar",
+            "install-location": "/path/to/package"
+        })
+    ]
+
+    mocked_registry_install_to_path.assert_called_once_with(
+        _definitions, "/path/to/registry", overwrite=False
+    )
+
+
+@pytest.mark.parametrize("options, install_options", [
+    (
+        {},
+        {"overwrite": False}
+    ),
+    (
+        {"overwrite": True},
+        {"overwrite": True}
+    ),
+], ids=[
+    "no-options",
+    "with-overwrite",
+])
+def test_install_definitions_to_vcs(
+    mocked_load_definition, mocked_registry_install_to_vcs,
+    options, install_options
+):
+    """Install definitions to a vcs registry."""
+    definitions = [
+        wiz.definition.Definition({"identifier": "foo"}),
+        wiz.definition.Definition({"identifier": "bar"})
+    ]
+    mocked_load_definition.side_effect = definitions
+
+    wiz.install_definitions_to_vcs(
+        ["/path/to/foo.json", "/path/to/bar.json"],
+        "registry-id", **options
+    )
+
+    mocked_registry_install_to_vcs.assert_called_once_with(
+        definitions, "registry-id", **install_options
+    )
+
+
+def test_install_definitions_to_vcs_with_install_location(
+    mocked_load_definition, mocked_registry_install_to_vcs,
+):
+    """Install definitions to a vcs registry with install location."""
+    definitions = [
+        wiz.definition.Definition({"identifier": "foo"}),
+        wiz.definition.Definition({"identifier": "bar"})
+    ]
+    mocked_load_definition.side_effect = definitions
+
+    wiz.install_definitions_to_vcs(
+        ["/path/to/foo.json", "/path/to/bar.json"],
+        "registry-id",
+        install_location="/path/to/package"
+    )
+
+    _definitions = [
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "install-location": "/path/to/package"
+        }),
+        wiz.definition.Definition({
+            "identifier": "bar",
+            "install-location": "/path/to/package"
+        })
+    ]
+
+    mocked_registry_install_to_vcs.assert_called_once_with(
+        _definitions, "registry-id", overwrite=False
     )
 
 

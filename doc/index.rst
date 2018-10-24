@@ -13,10 +13,12 @@ Package management system.
     installing
     registry
     definition
+    installing_definitions
     tutorial/index
     guidelines
     tools
     command_line
+    environment_variables
     api_reference/index
     release/index
     glossary

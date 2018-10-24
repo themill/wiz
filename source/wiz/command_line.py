@@ -7,6 +7,7 @@ import itertools
 import shlex
 import collections
 import datetime
+import click
 
 import mlog
 
@@ -256,6 +257,40 @@ def construct_parser():
         help="Package identifiers required."
     )
 
+    install_subparsers = subparsers.add_parser(
+        "install",
+        help="Add a package definition to a registry.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    install_subparsers_group = install_subparsers.add_mutually_exclusive_group(
+        required=True
+    )
+
+    install_subparsers_group.add_argument(
+        "-r", "--registry-id",
+        help="Vault registry identifier to install the package to."
+    )
+
+    install_subparsers_group.add_argument(
+        "-p", "--registry-path",
+        help="Registry path to install the package to."
+    )
+
+    install_subparsers.add_argument(
+        "--install-location",
+        help=(
+            "Path to the package data which will be set in the "
+            "'install-location' keyword of the installed definition."
+        )
+    )
+
+    install_subparsers.add_argument(
+        "definitions",
+        nargs="+",
+        help="Path to definition to install."
+    )
+
     return parser
 
 
@@ -338,6 +373,9 @@ def main(arguments=None):
         _freeze_and_export_resolved_context(
             namespace, registries, system_mapping
         )
+
+    elif namespace.commands == "install":
+        _install_definition(namespace)
 
     # Export the history if requested.
     if namespace.record is not None:
@@ -741,6 +779,61 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
 
     except KeyboardInterrupt:
         logger.warning("Aborted.")
+
+
+def _install_definition(namespace):
+    """Install a definition to a registry from arguments in *namespace*.
+
+    Command example::
+
+        wiz install definition1.json definition2.json --registry-id primary
+        wiz install /path/to/definition.json --registry-path /path/to/registry
+        wiz install /path/to/definitions/* --registry-path /path/to/registry
+
+    *namespace* is an instance of :class:`argparse.Namespace`.
+
+    """
+    logger = mlog.Logger(__name__ + "._install_definition")
+
+    overwrite = False
+
+    while True:
+        try:
+            if namespace.registry_path is not None:
+                wiz.install_definitions_to_path(
+                    namespace.definitions, namespace.registry_path,
+                    install_location=namespace.install_location,
+                    overwrite=overwrite
+                )
+            elif namespace.registry_id is not None:
+                wiz.install_definitions_to_vcs(
+                    namespace.definitions, namespace.registry_id,
+                    install_location=namespace.install_location,
+                    overwrite=overwrite
+                )
+            break
+
+        except wiz.exception.DefinitionsExist as error:
+            if not click.confirm(
+                "{message}\n{definitions}\nOverwrite?".format(
+                    message=str(error),
+                    definitions="\n".join([
+                        "- {}".format(definition)
+                        for definition in error.definitions
+                    ])
+                )
+            ):
+                break
+
+            overwrite = True
+
+        except wiz.exception.InstallNoChanges:
+            logger.warning("No changes detected in release.")
+            break
+
+        except Exception as error:
+            logger.error(error, traceback=True)
+            break
 
 
 def display_registries(paths):

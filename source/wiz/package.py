@@ -131,14 +131,16 @@ def extract_context(packages, environ_mapping=None):
     be augmented.
 
     """
-    def _combine(mapping1, mapping2):
+    def _combine(combined_mapping, package):
         """Return intermediate context combining both extracted results."""
-        identifier = mapping2.get("identifier")
+        identifier = package.identifier
         _environ = combine_environ_mapping(
-            identifier, mapping1.get("environ", {}), mapping2.get("environ", {})
+            identifier, combined_mapping.get("environ", {}),
+            package.localized_environ()
         )
         _command = combine_command_mapping(
-            identifier, mapping1.get("command", {}), mapping2.get("command", {})
+            identifier, combined_mapping.get("command", {}),
+            package.command
         )
         return dict(command=_command, environ=_environ)
 
@@ -436,7 +438,8 @@ class Package(wiz.mapping.Mapping):
             "version",
             "description",
             "registry",
-            "origin",
+            "definition-location",
+            "install-location",
             "auto-use",
             "system",
             "command",
@@ -444,3 +447,20 @@ class Package(wiz.mapping.Mapping):
             "requirements",
             "constraints"
         ]
+
+    def localized_environ(self):
+        """Return localized environ mapping."""
+        _environ = self.environ
+
+        def _replace_location(mapping, item):
+            """Replace location in *item* for *mapping*."""
+            mapping[item[0]] = item[1].replace(
+                "${{{}}}".format(wiz.symbol.INSTALL_LOCATION),
+                self.get("install-location")
+            )
+            return mapping
+
+        if "install-location" in self.keys():
+            _environ = reduce(_replace_location, _environ.items(), {})
+
+        return _environ

@@ -201,12 +201,27 @@ let the user call the command directly with the ``run`` command:
     Each command must be unique within a :ref:`registry` and could be
     overwritten by another package definition in another registry.
 
+.. _definition/group:
+
+Group
+-----
+
+the optional ``group`` keyword can be used to indicate where in the hierarchy of
+a :term:`VCS Registry` a definition will be installed.
+
+.. code-block:: json
+
+    {
+        "group": "python"
+    }
+
+
 .. _definition/requirements:
 
 Requirements
 ------------
 
-A optional ``requirements`` keyword can be used to reference other package
+the optional ``requirements`` keyword can be used to reference other package
 definitions. This indicates that the resulting context has to be composed of
 other package definitions and thereby eases the creation of reliable context.
 
@@ -242,8 +257,8 @@ will have priority over the latest.
 Variants
 --------
 
-When different environment mappings are available for one definition version, an
-optional ``variants`` keyword can be used in order to define an array of
+When different environment mappings are available for one definition version,
+the optional ``variants`` keyword can be used in order to define an array of
 sub-definitions:
 
 .. code-block:: json
@@ -279,3 +294,34 @@ returned. However, a variant can also be requested individually::
 
     >>> wiz use foo[variant1]
 
+.. _definition/install_location:
+
+Install Location
+----------------
+
+If a package definition is referencing data on the file system it can be useful
+to define the ``install-location`` which would indicate the root location for
+that data:
+
+.. code-block:: json
+
+    {
+        "install-location": "/path/to/data"
+    }
+
+This location can be referenced within each ``environ`` value (including the
+``variants``) using the :envvar:`INSTALL_LOCATION` environment variable:
+
+.. code-block:: json
+
+    {
+        "definition": "foo",
+        "install-location": "/path/to/data",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin:${PATH}",
+            "PYTHONPATH": "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}",
+        }
+    }
+
+When the context is resolved, the :envvar:`INSTALL_LOCATION` environment
+variable is replaced by the ``install-location`` value within the definition.

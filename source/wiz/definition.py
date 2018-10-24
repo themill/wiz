@@ -198,7 +198,7 @@ def query(requirement, definition_mapping):
     return definition
 
 
-def export(path, definition):
+def export(path, definition, overwrite=False):
     """Export *definition* as a :term:`JSON` file to *path*.
 
     Return exported definition file path.
@@ -229,20 +229,26 @@ def export(path, definition):
     The identifier must be unique in the registry so that it could be
     :func:`queried <query>`.
 
+    *overwrite* indicate whether existing definitions in the target path
+    will be overwritten. Default is False.
+
+    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
+    cannot create a valid instance of :class:`wiz.definition.Definition`.
+
+    Raises :exc:`wiz.exception.FileExists` if definition already exists in
+    *path* and overwrite is False.
+
+    Raises :exc:`OSError` if the definition can not be exported in *path*.
+
     The command identifier must also be unique in the registry.
 
     """
     if not isinstance(definition, Definition):
         definition = wiz.definition.Definition(**definition)
 
-    file_name = "{}.json".format(definition.identifier)
-    if definition.version != wiz.symbol.UNKNOWN_VALUE:
-        file_name = "{}-{}.json".format(
-            definition.identifier, definition.version
-        )
-
+    file_name = wiz.utility.compute_file_name(definition)
     file_path = os.path.join(os.path.abspath(path), file_name)
-    wiz.filesystem.export(file_path, definition.encode())
+    wiz.filesystem.export(file_path, definition.encode(), overwrite=overwrite)
     return file_path
 
 
@@ -287,7 +293,7 @@ def discover(paths, max_depth=None):
                     definition = load(
                         definition_path, mapping={
                             "registry": path,
-                            "origin": definition_path,
+                            "definition-location": definition_path,
                         }
                     )
 
@@ -406,6 +412,17 @@ class Definition(wiz.mapping.Mapping):
 
         super(Definition, self).__init__(mapping)
 
+    def sanitized(self):
+        """Return definition instance without keywords added at load time.
+
+        These keyword must be removed before exporting the definition into a
+        file.
+
+        """
+        _definition = self.remove("definition-location")
+        _definition = _definition.remove("registry")
+        return _definition
+
     @property
     def variants(self):
         """Return variant list."""
@@ -419,7 +436,9 @@ class Definition(wiz.mapping.Mapping):
             "version",
             "description",
             "registry",
-            "origin",
+            "definition-location",
+            "install-location",
+            'group',
             "auto-use",
             "system",
             "command",
@@ -478,7 +497,7 @@ class _Variant(wiz.mapping.Mapping):
         """Return copy of instance."""
         mapping = dict(*args, **kwargs)
         mapping["definition"] = self.definition_identifier
-        super(_Variant, self).copy(**mapping)
+        return super(_Variant, self).copy(**mapping)
 
     @property
     def _ordered_keywords(self):

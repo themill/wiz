@@ -268,11 +268,29 @@ def mocked_load(mocker):
 
 
 @pytest.fixture()
+def mocked_fetch(mocker):
+    """Return mocked fetch function."""
+    return mocker.patch.object(wiz.definition, "fetch")
+
+
+@pytest.fixture()
+def mocked_query(mocker):
+    """Return mocked query function."""
+    return mocker.patch.object(wiz.definition, "query")
+
+
+@pytest.fixture()
 def mocked_definition(mocker):
     """Return mocked Definition class."""
     return mocker.patch.object(
         wiz.definition, "Definition", return_value="DEFINITION"
     )
+
+
+@pytest.fixture()
+def mocked_registry_install(mocker):
+    """Return mocked load function."""
+    return mocker.patch.object(wiz.registry, "install")
 
 
 @pytest.mark.parametrize("options", [
@@ -573,7 +591,7 @@ def test_export_data(mocked_filesystem_export):
             "        \"KEY\": \"VALUE\"\n"
             "    }\n"
             "}"
-        )
+        ), overwrite=False
     )
 
 
@@ -609,7 +627,7 @@ def test_export_data_with_version(mocked_filesystem_export):
             "        \"KEY\": \"VALUE\"\n"
             "    }\n"
             "}"
-        )
+        ), overwrite=False
     )
 
 
@@ -643,7 +661,7 @@ def test_export(mocked_filesystem_export):
             "        \"KEY\": \"VALUE\"\n"
             "    }\n"
             "}"
-        )
+        ), overwrite=False
     )
 
 
@@ -679,7 +697,7 @@ def test_export_with_version(mocked_filesystem_export):
             "        \"KEY\": \"VALUE\"\n"
             "    }\n"
             "}"
-        )
+        ), overwrite=False
     )
 
 
@@ -699,22 +717,34 @@ def test_discover(mocked_load, registries, definitions):
     r2 = registries[1]
 
     path = os.path.join(r1, "defA.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defF.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defE.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r2, "defH.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r2, "origin": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2, "definition-location": path}
+    )
 
     path = os.path.join(r2, "defI.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r2, "origin": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2, "definition-location": path}
+    )
 
     assert discovered == definitions[:6]
 
@@ -735,16 +765,24 @@ def test_discover_with_max_depth(mocked_load, registries, definitions):
     r2 = registries[1]
 
     path = os.path.join(r1, "defA.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r1, "origin": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1, "definition-location": path}
+    )
 
     path = os.path.join(r2, "defH.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r2, "origin": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2, "definition-location": path}
+    )
 
     path = os.path.join(r2, "defI.json")
-    mocked_load.assert_any_call(path, mapping={"registry": r2, "origin": path})
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2, "definition-location": path}
+    )
 
     assert discovered == definitions[:4]
 
@@ -847,7 +885,7 @@ def test_definition_mapping():
         "version": "0.1.0",
         "description": "This is a definition",
         "registry": "/path/to/registry",
-        "origin": "/path/to/registry/test-0.1.0.json",
+        "definition-location": "/path/to/registry/test-0.1.0.json",
         "auto-use": True,
         "system": {
             "platform": "linux",
@@ -884,7 +922,7 @@ def test_definition_mapping():
         "version": Version("0.1.0"),
         "description": "This is a definition",
         "registry": "/path/to/registry",
-        "origin": "/path/to/registry/test-0.1.0.json",
+        "definition-location": "/path/to/registry/test-0.1.0.json",
         "auto-use": True,
         "system": {
             "platform": "linux",
@@ -920,7 +958,7 @@ def test_definition_mapping():
         "    \"version\": \"0.1.0\",\n"
         "    \"description\": \"This is a definition\",\n"
         "    \"registry\": \"/path/to/registry\",\n"
-        "    \"origin\": \"/path/to/registry/test-0.1.0.json\",\n"
+        "    \"definition-location\": \"/path/to/registry/test-0.1.0.json\",\n"
         "    \"auto-use\": true,\n"
         "    \"system\": {\n"
         "        \"platform\": \"linux\",\n"
@@ -1906,6 +1944,5 @@ def test_definition_remove_non_existing_index():
     _definition = definition.remove_index("requirements", 5)
     assert definition == _definition
 
-    _definition= definition.remove_index("test", "error")
+    _definition = definition.remove_index("test", "error")
     assert definition == _definition
-

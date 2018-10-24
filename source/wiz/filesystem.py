@@ -6,6 +6,10 @@ import io
 import unicodedata
 import re
 import gzip
+import pwd
+import getpass
+
+import wiz.exception
 
 try:
     to_unicode = unicode
@@ -13,11 +17,34 @@ except NameError:
     to_unicode = str
 
 
-def export(path, content, compressed=False):
-    """Create file from *content* in *path*."""
+def get_name():
+    """Fetch user full name from password database entry.
+
+    Return None if name cannot be returned.
+
+    """
+    try:
+        return pwd.getpwnam(getpass.getuser()).pw_gecos
+    except KeyError:
+        return
+
+
+def export(path, content, compressed=False, overwrite=False):
+    """Create file from *content* in *path*.
+
+    *overwrite* indicate whether any existing path will be overwritten. Default
+    is False.
+
+    Raise :exc:`wiz.exception.FileExists` if overwrite is False and *path*
+    already exists.
+
+    """
     # Ensure that "~" is resolved if necessary and that the relative path is
     # always converted into a absolute path.
     path = os.path.abspath(os.path.expanduser(path))
+
+    if os.path.isfile(path) and not overwrite:
+        raise wiz.exception.FileExists("{!r} already exists.".format(path))
 
     ensure_directory(os.path.dirname(path))
 

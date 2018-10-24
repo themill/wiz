@@ -1,8 +1,10 @@
 # :coding: utf-8
 
-import base64
+import re
 import json
 import zlib
+import base64
+import hashlib
 
 from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
@@ -126,3 +128,76 @@ def decode(element):
 
     """
     return json.loads(zlib.decompress(base64.b64decode(element)))
+
+
+def compute_label(definition):
+    """Return unique label for *definition*.
+
+    The name should be in the form of::
+
+        "'foo'"
+        "'bar' [0.1.0]"
+        "'baz' [0.2.0] (linux : el =! 7)"
+        "'bim' (linux : el >= 6, < 7)"
+
+    *definition* should be a :class:`wiz.definition.Definition` instance.
+
+    """
+    label = "'{}'".format(definition.identifier)
+
+    if definition.get("version"):
+        label += " [{}]".format(definition.version)
+
+    if definition.get("system"):
+        system_identifier = compute_system_label(definition)
+        label += " ({})".format(system_identifier)
+
+    return label
+
+
+def compute_system_label(definition):
+    """Return unique system label from *definition*.
+
+    The system identifier should be in the form of::
+
+        "linux : x86_64 : el >= 7, < 8"
+        "centos >= 7, < 8"
+        "x86_64 : el >= 7, < 8"
+        "windows"
+
+    *definition* should be a :class:`wiz.definition.Definition` instance.
+
+    """
+    elements = [
+        definition.system.get(element)
+        for element in ["platform", "arch", "os"]
+        if definition.system.get(element) is not None
+    ]
+    return " : ".join(elements)
+
+
+def compute_file_name(definition):
+    """Return unique file name from *definition*.
+
+    The file name should be in the form of::
+
+        "foo.json"
+        "foo-0.1.0.json"
+        "foo-0.1.0-M2Uq9Esezm-m00VeWkTzkQIu3T4.json"
+
+    *definition* should be a :class:`wiz.definition.Definition` instance.
+
+    """
+    name = definition.identifier
+
+    if definition.get("version"):
+        name += "-{}".format(definition.version)
+
+    if definition.get("system"):
+        system_identifier = wiz.utility.compute_system_label(definition)
+        encoded = base64.urlsafe_b64encode(
+            hashlib.sha1(re.sub(r"(\s+|:+)", "", system_identifier)).digest()
+        )
+        name += "-{}".format(encoded.rstrip("="))
+
+    return "{}.json".format(name)

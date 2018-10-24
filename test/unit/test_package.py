@@ -302,7 +302,7 @@ def test_extract_context_with_one_package(
     mocked_sanitise_environ.assert_called_once_with({"KEY": "VALUE"})
 
 
-def test_extract_context_with_five_package(
+def test_extract_context_with_six_package(
     mocked_combine_environ, mocked_combine_command, mocked_sanitise_environ
 ):
     """Extract context with five packages."""
@@ -331,8 +331,16 @@ def test_extract_context_with_five_package(
         wiz.definition.Definition({
             "identifier": "test5",
             "version": "30",
+            "install-location": "/path/to/package",
             "command": {"app1": "AppX"},
-            "environ": {"key5": "value5"}
+            "environ": {"PATH": "${INSTALL_LOCATION}/bin"}
+        }),
+        wiz.definition.Definition({
+            "identifier": "test6",
+            "version": "30.5",
+            "install-location": "/path/to/package",
+            "command": {"app1": "AppX"},
+            "environ": {"PATH": "${INSTALL_LOCATION}/bin"}
         })
     ]
 
@@ -342,7 +350,7 @@ def test_extract_context_with_five_package(
         "command": {"APP": "APP_EXE"}, "environ": {"CLEAN_KEY": "CLEAN_VALUE"}
     }
 
-    assert mocked_combine_environ.call_count == 5
+    assert mocked_combine_environ.call_count == 6
     mocked_combine_environ.assert_any_call(
         "test1==0.1.0", {}, {"key1": "value1"}
     )
@@ -356,10 +364,13 @@ def test_extract_context_with_five_package(
         "test4==0.11.2", {"KEY": "VALUE"}, {"key4": "value4"}
     )
     mocked_combine_environ.assert_any_call(
-        "test5==30", {"KEY": "VALUE"}, {"key5": "value5"}
+        "test5==30", {"KEY": "VALUE"}, {"PATH": "/path/to/package/bin"}
+    )
+    mocked_combine_environ.assert_any_call(
+        "test6==30.5", {"KEY": "VALUE"}, {"PATH": "/path/to/package/bin"}
     )
 
-    assert mocked_combine_command.call_count == 5
+    assert mocked_combine_command.call_count == 6
     mocked_combine_command.assert_any_call(
         "test1==0.1.0", {}, {}
     )
@@ -374,6 +385,9 @@ def test_extract_context_with_five_package(
     )
     mocked_combine_command.assert_any_call(
         "test5==30", {"APP": "APP_EXE"}, {"app1": "AppX"}
+    )
+    mocked_combine_command.assert_any_call(
+        "test6==30.5", {"APP": "APP_EXE"}, {"app1": "AppX"}
     )
 
     mocked_sanitise_environ.assert_called_once_with({"KEY": "VALUE"})
@@ -675,4 +689,49 @@ def test_initiate_data_with_initial_data(monkeypatch):
             "/bin",
         ]),
         "KEY": "VALUE"
+    }
+
+
+def test_package_localized_environ():
+    """Return localized environment."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "install-location": "/path/to/package",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin:${PATH}",
+            "PYTHONPATH": (
+                "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}"
+            )
+        }
+    })
+
+    package = wiz.package.Package(definition)
+
+    assert package.localized_environ() == {
+        "PATH": "/path/to/package/bin:${PATH}",
+        "PYTHONPATH": (
+            "/path/to/package/lib/python2.7/site-packages:${PYTHONPATH}"
+        )
+    }
+
+
+def test_package_localized_environ_without_key():
+    """Return localized environment with 'install-location' key."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin:${PATH}",
+            "PYTHONPATH": (
+                "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}"
+            )
+        }
+    })
+
+    package = wiz.package.Package(definition)
+
+    assert package.localized_environ() == {
+        "PATH": "${INSTALL_LOCATION}/bin:${PATH}",
+        "PYTHONPATH": (
+            "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}"
+        )
     }
