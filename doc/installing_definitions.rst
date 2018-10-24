@@ -27,24 +27,26 @@ definitions in a :term:`VCS Registry`::
     Use this command with caution.
 
 A definition can be released into a :term:`VCS Registry` using the
-:term:`Python` API call :func:`wiz.install_definition_to_vcs`:
+:term:`Python` API call :func:`wiz.install_definitions_to_vcs`:
 
     .. code-block:: python
 
-        wiz.install_definition_to_vcs(
-            "/path/to/foo-0.1.0.json", "primary-registry"
+        wiz.install_definitions_to_vcs(
+            ["/path/to/foo-0.1.0.json"], "primary-registry"
         )
 
 .. hint::
 
-    A definition can be manually added definitions, by just checking out the
-    repository.
+    A definition can be manually added to a :term:`VCS Registry`, by just
+    checking out the corresponding repository.
     After committing the changes, make sure to tag the commit and push the tag.
     This will trigger the pipeline to release the registry to all sites::
 
         >>> usurp release minor
         >>> git push --follow-tags
 
+    This method should only be used by experienced developers as there are no
+    safeguards in place.
 
 .. _installing_definitions/local:
 
@@ -68,12 +70,12 @@ personal registry can be done as follow::
     >>> wiz install /path/to/foo.json --registry-path ~
 
 A definition can be released into a :term:`Local Registry` using the
-:term:`Python` API call :func:`wiz.install_definition_to_path`:
+:term:`Python` API call :func:`wiz.install_definitions_to_path`:
 
     .. code-block:: python
 
-        wiz.install_definition_to_path(
-            "/path/to/foo-0.1.0.json", "/path/to/folder"
+        wiz.install_definitions_to_path(
+            ["/path/to/foo-0.1.0.json"], "/path/to/folder"
         )
 
 .. hint::

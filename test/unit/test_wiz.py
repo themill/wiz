@@ -589,7 +589,7 @@ def test_export_definition(mocked_definition_export):
     "no-options",
     "with-overwrite",
 ])
-def test_install_definition_to_path(
+def test_install_definitions_to_path(
     mocked_load_definition, mocked_registry_install_to_path,
     options, install_options
 ):
@@ -610,7 +610,7 @@ def test_install_definition_to_path(
     )
 
 
-def test_install_definition_to_path_with_install_location(
+def test_install_definitions_to_path_with_install_location(
     mocked_load_definition, mocked_registry_install_to_path,
 ):
     """Install definitions to a path registry with install location."""
@@ -654,7 +654,7 @@ def test_install_definition_to_path_with_install_location(
     "no-options",
     "with-overwrite",
 ])
-def test_install_definition_to_vcs(
+def test_install_definitions_to_vcs(
     mocked_load_definition, mocked_registry_install_to_vcs,
     options, install_options
 ):
@@ -675,7 +675,7 @@ def test_install_definition_to_vcs(
     )
 
 
-def test_install_definition_to_vcs_with_install_location(
+def test_install_definitions_to_vcs_with_install_location(
     mocked_load_definition, mocked_registry_install_to_vcs,
 ):
     """Install definitions to a vcs registry with install location."""
@@ -702,7 +702,7 @@ def test_install_definition_to_vcs_with_install_location(
         })
     ]
 
-    mocked_registry_install_to_vcs.install_definition_to_vcs(
+    mocked_registry_install_to_vcs.assert_called_once_with(
         _definitions, "registry-id", overwrite=False
     )
 
