@@ -94,3 +94,4 @@ can be set during the installation process.
 :option:`wiz install --install-location` can be used as follow::
 
     >>> wiz install . --install-location /path/to/data --registry-path ~
+
