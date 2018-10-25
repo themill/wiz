@@ -49,9 +49,8 @@ def shell(environment, shell_type="bash"):
     )
 
     # Register the cleanup function as handler for SIGINT and SIGTERM.
-    handler = functools.partial(_cleanup, process, logger)
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGINT, _cleanup)
+    signal.signal(signal.SIGTERM, _cleanup)
 
     while process.poll() is None:
         read_list, write_list, _ = select.select([sys.stdin, master_fd], [], [])
@@ -75,29 +74,14 @@ def execute(commands, environment):
     logger = mlog.Logger(__name__ + ".shell")
     logger.info("Start command: {}".format(" ".join(commands)))
 
-    process = subprocess.Popen(
-        commands,
-        preexec_fn=os.setsid,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        universal_newlines=True,
-        env=environment
-    )
-
     # Register the cleanup function as handler for SIGINT and SIGTERM.
-    handler = functools.partial(_cleanup, process, logger)
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGINT, _cleanup)
+    signal.signal(signal.SIGTERM, _cleanup)
 
-    lines_iterator = iter(process.stdout.readline, b"")
-    while process.poll() is None:
-        for line in lines_iterator:
-            _line = line.rstrip()
-            print(_line.decode("latin"), end="\r\n")
+    subprocess.call(commands, env=environment)
 
 
-def _cleanup(process, logger, signum, frame):
-    """Kill the sub-process *process* with all children and exit."""
-    logger.warning("Kill process [pid: {}]".format(process.pid))
-    os.killpg(process.pid, signal.SIGTERM)
+def _cleanup(signum, frame):
+    """Exit from python if a process is terminated or interrupted."""
     sys.exit(0)
+
