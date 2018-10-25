@@ -11,7 +11,6 @@ import termios
 import tty
 import pty
 import signal
-import functools
 
 import mlog
 
@@ -84,4 +83,3 @@ def execute(commands, environment):
 def _cleanup(signum, frame):
     """Exit from python if a process is terminated or interrupted."""
     sys.exit(0)
-

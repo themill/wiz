@@ -4,6 +4,17 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Fixed :func:`wiz.spawn.execute` to use the :func:`subprocess.call`
+        convenience function which is less likely to leave remaining
+        sub-processed when the parent is killed.
+
+        This was an issue as the render farm is using :data:`signal.SIGKILL`
+        to interrupt a job.
+
 .. release:: 1.2.0
     :date: 2018-10-24
 
