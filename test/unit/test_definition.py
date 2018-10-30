@@ -718,32 +718,32 @@ def test_discover(mocked_load, registries, definitions):
 
     path = os.path.join(r1, "defA.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "definition-location": path}
+        path, mapping={"registry": r1}
     )
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "definition-location": path}
+        path, mapping={"registry": r1}
     )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defF.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "definition-location": path}
+        path, mapping={"registry": r1}
     )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defE.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "definition-location": path}
+        path, mapping={"registry": r1}
     )
 
     path = os.path.join(r2, "defH.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2, "definition-location": path}
+        path, mapping={"registry": r2}
     )
 
     path = os.path.join(r2, "defI.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2, "definition-location": path}
+        path, mapping={"registry": r2}
     )
 
     assert discovered == definitions[:6]
@@ -766,22 +766,22 @@ def test_discover_with_max_depth(mocked_load, registries, definitions):
 
     path = os.path.join(r1, "defA.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "definition-location": path}
+        path, mapping={"registry": r1}
     )
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1, "definition-location": path}
+        path, mapping={"registry": r1}
     )
 
     path = os.path.join(r2, "defH.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2, "definition-location": path}
+        path, mapping={"registry": r2}
     )
 
     path = os.path.join(r2, "defI.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2, "definition-location": path}
+        path, mapping={"registry": r2}
     )
 
     assert discovered == definitions[:4]
@@ -862,7 +862,12 @@ def test_load(mocked_definition, temporary_file):
     mocked_definition.return_value = "DEFINITION"
     result = wiz.definition.load(temporary_file)
     assert result == "DEFINITION"
-    mocked_definition.assert_called_once_with(identifier="test_definition")
+    mocked_definition.assert_called_once_with(
+        **{
+            "definition-location": temporary_file,
+            "identifier": "test_definition"
+        }
+    )
 
 
 def test_load_with_mapping(mocked_definition, temporary_file):
@@ -874,7 +879,11 @@ def test_load_with_mapping(mocked_definition, temporary_file):
     result = wiz.definition.load(temporary_file, mapping={"key": "value"})
     assert result == "DEFINITION"
     mocked_definition.assert_called_once_with(
-        identifier="test_definition", key="value"
+        **{
+            "definition-location": temporary_file,
+            "identifier": "test_definition",
+            "key": "value"
+        }
     )
 
 
