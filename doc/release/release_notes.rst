@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+
+        Added the 'definition-location' keyword in :func:`wiz.definition.load`,
+        so that this is always available after a load. Previously this would
+        only be added by :func:`wiz.definition.discover`.
+
 .. release:: 1.2.1
     :date: 2018-10-24
 
