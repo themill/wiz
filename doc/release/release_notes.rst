@@ -6,13 +6,27 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: added
+        :tags: command-line
+
+        Added ``wiz edit`` sub-command to edit a definition. This command can
+        be used to update a keyword in a definition with a new value.
+
+    .. change:: added
+        :tags: API
+
+        Added :func:`wiz.edit_definitions` to edit a list of definition files
+        by setting a new value to a keyword.
+
     .. change:: changed
+        :tags: API
 
         Sanitize the definition using :meth:`wiz.definition.Definition.sanitized`
         in :func:`wiz.definition.export` to ensure that 'definition-location'
         has been removed from the definition before exporting it.
 
     .. change:: changed
+        :tags: API
 
         Added the 'definition-location' keyword in :func:`wiz.definition.load`,
         so that this is always available after a load. Previously this would
