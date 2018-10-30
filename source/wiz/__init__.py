@@ -458,7 +458,7 @@ def install_definitions_to_vcs(
     )
 
 
-def edit_definitions(
+def set_in_definitions(
     paths, keyword, value, output_path=None, overwrite=False
 ):
     """Edit a list of definition files by setting a new 'value' to 'keyword'.

@@ -15,15 +15,16 @@ Release Notes
     .. change:: added
         :tags: API
 
-        Added :func:`wiz.edit_definitions` to edit a list of definition files
+        Added :func:`wiz.set_in_definitions` to edit a list of definition files
         by setting a new value to a keyword.
 
     .. change:: changed
         :tags: API
 
-        Sanitize the definition using :meth:`wiz.definition.Definition.sanitized`
-        in :func:`wiz.definition.export` to ensure that 'definition-location'
-        has been removed from the definition before exporting it.
+        Sanitize the definition using
+        :meth:`wiz.definition.Definition.sanitized` in
+        :func:`wiz.definition.export` to ensure that 'definition-location' has
+        been removed from the definition before exporting it.
 
     .. change:: changed
         :tags: API

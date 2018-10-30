@@ -713,7 +713,7 @@ def test_install_definitions_to_vcs_with_install_location(
     )
 
 
-def test_edit_definitions(
+def test_set_in_definitions(
     mocked_load_definition, mocked_definition_export, mocked_exists
 ):
     """Edit a definition file by setting a new 'value' to 'keyword'."""
@@ -726,7 +726,7 @@ def test_edit_definitions(
 
     paths = ["/path/to/foo.json"]
 
-    wiz.edit_definitions(paths, "install-location", "/path")
+    wiz.set_in_definitions(paths, "install-location", "/path")
     mocked_definition_export.assert_called_once_with(
         "/path/to",
         wiz.definition.Definition({
@@ -738,7 +738,7 @@ def test_edit_definitions(
     )
 
 
-def test_edit_definitions_multiple(
+def test_set_in_definitions_multiple(
     mocked_load_definition, mocked_definition_export, mocked_exists
 ):
     """Edit a list of definition files by setting a new 'value' to 'keyword'."""
@@ -753,11 +753,11 @@ def test_edit_definitions_multiple(
 
     paths = ["/path/to/foo.json", "/path/to/bar.json"]
 
-    wiz.edit_definitions(paths, "install-location", "/path")
+    wiz.set_in_definitions(paths, "install-location", "/path")
     assert mocked_definition_export.call_count == 2
 
 
-def test_edit_definitions_with_output_path(
+def test_set_in_definitions_with_output_path(
     mocked_load_definition, mocked_definition_export, mocked_exists
 ):
     """Edit a definition file and export to new path."""
@@ -770,7 +770,7 @@ def test_edit_definitions_with_output_path(
 
     paths = ["/path/to/foo.json"]
 
-    wiz.edit_definitions(paths, "install-location", "/path", "/new_output_path")
+    wiz.set_in_definitions(paths, "install-location", "/path", "/new_output_path")
     mocked_definition_export.assert_called_once_with(
         "/new_output_path",
         wiz.definition.Definition({
@@ -782,7 +782,7 @@ def test_edit_definitions_with_output_path(
     )
 
 
-def test_edit_definitions_overwrite(
+def test_set_in_definitions_overwrite(
     mocked_load_definition, mocked_definition_export, mocked_exists
 ):
     """Error when file already exists."""
@@ -796,7 +796,7 @@ def test_edit_definitions_overwrite(
     paths = ["/path/to/foo.json"]
 
     with pytest.raises(wiz.exception.FileExists) as error:
-        wiz.edit_definitions(paths, "install-location", "/path")
+        wiz.set_in_definitions(paths, "install-location", "/path")
 
     assert "FileExists: Definition files already exist." in str(error)
 

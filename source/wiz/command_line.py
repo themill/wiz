@@ -896,10 +896,11 @@ def _edit_definition(namespace):
 
     while True:
         try:
-            wiz.edit_definitions(
-                namespace.definitions, namespace.keyword, namespace.value,
-                namespace.output_path, overwrite=overwrite
-            )
+            if namespace.set:
+                wiz.set_in_definitions(
+                    namespace.definitions, namespace.keyword, namespace.value,
+                    namespace.output_path, overwrite=overwrite
+                )
             break
 
         except wiz.exception.FileExists as error:
