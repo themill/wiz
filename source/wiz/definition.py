@@ -246,6 +246,8 @@ def export(path, definition, overwrite=False):
     if not isinstance(definition, Definition):
         definition = wiz.definition.Definition(**definition)
 
+    definition = definition.sanitized()
+
     file_name = wiz.utility.compute_file_name(definition)
     file_path = os.path.join(os.path.abspath(path), file_name)
     wiz.filesystem.export(file_path, definition.encode(), overwrite=overwrite)
