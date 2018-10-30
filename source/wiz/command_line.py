@@ -297,6 +297,15 @@ def construct_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
+    edit_subparsers_group = edit_subparsers.add_mutually_exclusive_group(
+        required=True
+    )
+
+    edit_subparsers_group.add_argument(
+        "--set",
+        help="Set a new value to the keyword."
+    )
+
     edit_subparsers.add_argument(
         "--keyword",
         help="Definition keyword to update.",
