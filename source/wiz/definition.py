@@ -291,10 +291,7 @@ def discover(paths, max_depth=None):
 
                 try:
                     definition = load(
-                        definition_path, mapping={
-                            "registry": path,
-                            "definition-location": definition_path,
-                        }
+                        definition_path, mapping={"registry": path}
                     )
 
                     if definition.get("disabled", False):
@@ -334,6 +331,8 @@ def load(path, mapping=None):
     """
     if mapping is None:
         mapping = {}
+
+    mapping.setdefault("definition-location", path)
 
     with open(path, "r") as stream:
         definition_data = json.load(stream)
