@@ -490,11 +490,11 @@ def edit_definitions(
 
     for path in paths:
 
-        _definition = wiz.definition.load(path)
+        _definition = wiz.load_definition(path)
 
-        if isinstance(_definition[keyword], dict):
+        try:
             _definition = _definition.set(keyword, json.loads(value))
-        else:
+        except ValueError:
             _definition = _definition.set(keyword, value)
 
         _output_path = output_path
