@@ -117,6 +117,12 @@ def mocked_utility_decode(mocker):
     return mocker.patch.object(wiz.utility, "decode")
 
 
+@pytest.fixture()
+def mocked_exists(mocker):
+    """Return mocked 'os.path.exists' function."""
+    return mocker.patch.object(os.path, "exists")
+
+
 @pytest.mark.parametrize("options", [
     {},
     {"max_depth": 2},
@@ -705,6 +711,94 @@ def test_install_definitions_to_vcs_with_install_location(
     mocked_registry_install_to_vcs.assert_called_once_with(
         _definitions, "registry-id", overwrite=False
     )
+
+
+def test_edit_definitions(
+    mocked_load_definition, mocked_definition_export, mocked_exists
+):
+    """Edit a definition file by setting a new 'value' to 'keyword'."""
+    definitions = [
+        wiz.definition.Definition(
+            {"identifier": "foo", "definition-location": "/path/to/foo.json"})
+    ]
+    mocked_load_definition.side_effect = definitions
+    mocked_exists.return_value = False
+
+    paths = ["/path/to/foo.json"]
+
+    wiz.edit_definitions(paths, "install-location", "/path")
+    mocked_definition_export.assert_called_once_with(
+        "/path/to",
+        wiz.definition.Definition({
+            'definition-location': '/path/to/foo.json',
+            'identifier': 'foo',
+            'install-location': '/path'
+        }),
+        overwrite=False
+    )
+
+
+def test_edit_definitions_multiple(
+    mocked_load_definition, mocked_definition_export, mocked_exists
+):
+    """Edit a list of definition files by setting a new 'value' to 'keyword'."""
+    definitions = [
+        wiz.definition.Definition(
+            {"identifier": "foo", "definition-location": "/path/to/foo.json"}),
+        wiz.definition.Definition(
+            {"identifier": "bar", "definition-location": "/path/to/bar.json"}),
+    ]
+    mocked_load_definition.side_effect = definitions
+    mocked_exists.return_value = False
+
+    paths = ["/path/to/foo.json", "/path/to/bar.json"]
+
+    wiz.edit_definitions(paths, "install-location", "/path")
+    assert mocked_definition_export.call_count == 2
+
+
+def test_edit_definitions_with_output_path(
+    mocked_load_definition, mocked_definition_export, mocked_exists
+):
+    """Edit a definition file and export to new path."""
+    definitions = [
+        wiz.definition.Definition(
+            {"identifier": "foo", "definition-location": "/path/to/foo.json"})
+    ]
+    mocked_load_definition.side_effect = definitions
+    mocked_exists.return_value = False
+
+    paths = ["/path/to/foo.json"]
+
+    wiz.edit_definitions(paths, "install-location", "/path", "/new_output_path")
+    mocked_definition_export.assert_called_once_with(
+        "/new_output_path",
+        wiz.definition.Definition({
+            'definition-location': '/path/to/foo.json',
+            'identifier': 'foo',
+            'install-location': '/path'
+        }),
+        overwrite=False
+    )
+
+
+def test_edit_definitions_overwrite(
+    mocked_load_definition, mocked_definition_export, mocked_exists
+):
+    """Error when file already exists."""
+    definitions = [
+        wiz.definition.Definition(
+            {"identifier": "foo", "definition-location": "/path/to/foo.json"})
+    ]
+    mocked_load_definition.side_effect = definitions
+    mocked_exists.return_value = True
+
+    paths = ["/path/to/foo.json"]
+
+    with pytest.raises(wiz.exception.FileExists) as error:
+        wiz.edit_definitions(paths, "install-location", "/path")
+
+    assert "FileExists: Definition files already exist." in str(error)
 
 
 @pytest.fixture()
