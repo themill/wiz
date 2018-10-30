@@ -288,7 +288,36 @@ def construct_parser():
     install_subparsers.add_argument(
         "definitions",
         nargs="+",
-        help="Path to definition to install."
+        help="Paths to definitions to install."
+    )
+
+    edit_subparsers = subparsers.add_parser(
+        "edit",
+        help="Edit a package definition.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    edit_subparsers.add_argument(
+        "--keyword",
+        help="Definition keyword to update.",
+        required=True
+    )
+
+    edit_subparsers.add_argument(
+        "--value",
+        help="New value for 'keyword'.",
+        required=True
+    )
+
+    edit_subparsers.add_argument(
+        "-o", "--output_path",
+        help="Definition output path."
+    )
+
+    edit_subparsers.add_argument(
+        "definitions",
+        nargs="+",
+        help="Paths to definitions to update."
     )
 
     return parser
@@ -376,6 +405,9 @@ def main(arguments=None):
 
     elif namespace.commands == "install":
         _install_definition(namespace)
+
+    elif namespace.commands == "edit":
+        _edit_definition(namespace)
 
     # Export the history if requested.
     if namespace.record is not None:
@@ -830,6 +862,43 @@ def _install_definition(namespace):
         except wiz.exception.InstallNoChanges:
             logger.warning("No changes detected in release.")
             break
+
+        except Exception as error:
+            logger.error(error, traceback=True)
+            break
+
+
+def _edit_definition(namespace):
+    """Edit a definition using arguments in *namespace*.
+
+    Command example::
+
+        wiz edit definition1.json definition2.json --keyword install-location --value /tmp/data
+        wiz edit /path/to/definition.json --keyword install-location --value /tmp/data
+        wiz edit /path/to/definitions/* --keyword install-location --value /tmp/data
+        wiz edit /path/to/definitions/* --keyword install-location --value /tmp/data --output /tmp/definition
+
+    *namespace* is an instance of :class:`argparse.Namespace`.
+
+    """
+    logger = mlog.Logger(__name__ + "._install_definition")
+
+    overwrite = False
+
+    while True:
+        try:
+            wiz.edit_definitions(
+                namespace.definitions, namespace.keyword, namespace.value,
+                namespace.output_path, overwrite=overwrite
+            )
+            break
+
+        except wiz.exception.FileExists as error:
+            if not click.confirm(
+                "{message}\nOverwrite?".format(message=str(error))
+            ):
+                break
+            overwrite = True
 
         except Exception as error:
             logger.error(error, traceback=True)

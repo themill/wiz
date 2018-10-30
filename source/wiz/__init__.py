@@ -2,6 +2,7 @@
 
 import shlex
 import os
+import json
 
 from _version import __version__
 import wiz.registry
@@ -455,6 +456,72 @@ def install_definitions_to_vcs(
     wiz.registry.install_to_vcs(
         _definitions, registry_identifier, overwrite=overwrite
     )
+
+
+def edit_definitions(
+    paths, keyword, value, output_path=None, overwrite=False
+):
+    """Edit a list of definition files by setting a new 'value' to 'keyword'.
+
+    *paths* is the path list to all definition files.
+
+    *keyword* is the keyword to update (e.g. "install-location").
+
+    *value* is the new value for the *keyword*. This value will be validated
+    by the metaschema, when exporting the definition.
+
+    *output_path* is the path to export the definition to after the update. If
+    this is None, the current definition path will be chosen.
+
+    If *overwrite* is True, any existing definitions in the *output_path* will
+    be overwritten.
+
+    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
+    create a valid instance of :class:`wiz.definition.Definition`.
+
+    Raises :exc:`wiz.exception.FileExists` if definition already exists in
+    the target path and *overwrite* is False.
+
+    """
+    # Record existing definitions.
+    existing_definitions = []
+
+    _definitions = []
+
+    for path in paths:
+
+        _definition = wiz.definition.load(path)
+
+        if isinstance(_definition[keyword], dict):
+            _definition = _definition.set(keyword, json.loads(value))
+        else:
+            _definition = _definition.set(keyword, value)
+
+        _output_path = output_path
+        if output_path is None:
+            _output_path = os.path.dirname(_definition["definition-location"])
+
+        # Keep track of which definitions already exist to warn for overwrite.
+        file_name = wiz.utility.compute_file_name(_definition)
+        file_path = os.path.join(os.path.abspath(_output_path), file_name)
+        if os.path.exists(file_path):
+            existing_definitions.append(file_path)
+
+        _definitions.append((_definition, _output_path))
+
+    # Fail if overwrite is False and some definition paths already exist.
+    if len(existing_definitions) and overwrite is False:
+        raise wiz.exception.FileExists(
+            "Definition files already exist.\n{}".format(
+                "\n".join([
+                    "- {}".format(definition)
+                    for definition in existing_definitions
+                ])
+            )
+        )
+
+    for _definition, _output_path in _definitions:
+        wiz.definition.export(_output_path, _definition, overwrite=overwrite)
 
 
 def export_script(
