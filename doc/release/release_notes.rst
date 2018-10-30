@@ -8,6 +8,12 @@ Release Notes
 
     .. change:: changed
 
+        Sanitize the definition using :meth:`wiz.definition.Definition.sanitized`
+        in :func:`wiz.definition.export` to ensure that 'definition-location'
+        has been removed from the definition before exporting it.
+
+    .. change:: changed
+
         Added the 'definition-location' keyword in :func:`wiz.definition.load`,
         so that this is always available after a load. Previously this would
         only be added by :func:`wiz.definition.discover`.
