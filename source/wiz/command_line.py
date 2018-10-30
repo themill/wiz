@@ -303,7 +303,8 @@ def construct_parser():
 
     edit_subparsers_group.add_argument(
         "--set",
-        help="Set a new value to the keyword."
+        help="Set a new value to the keyword.",
+        action="store_true"
     )
 
     edit_subparsers.add_argument(
