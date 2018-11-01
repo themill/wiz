@@ -16,7 +16,9 @@ import wiz.exception
 import wiz.utility
 
 
-def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
+def fetch_definition_mapping(
+    paths, requests=None, max_depth=None, system_mapping=None
+):
     """Return mapping from all definitions available under *paths*.
 
     Discover all available definitions under *paths*, searching recursively
@@ -48,6 +50,10 @@ def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
             ]
         }
 
+    *requests* could be a list of element which can influence the definition
+    research. It can be in the form of "package >= 1.0.0, < 2" in order to
+    affine the research to a particular version range.
+
     *system_mapping* could be a mapping of the current system. By default, the
     current system mapping will be :func:`queried <wiz.system.query>`.
 
@@ -56,7 +62,10 @@ def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
         system_mapping = wiz.system.query()
 
     mapping = wiz.definition.fetch(
-        paths, system_mapping=system_mapping, max_depth=max_depth
+        paths,
+        requests=requests,
+        system_mapping=system_mapping,
+        max_depth=max_depth
     )
 
     mapping["registries"] = paths
