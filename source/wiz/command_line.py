@@ -1,15 +1,14 @@
 # :coding: utf-8
 
 from __future__ import print_function
-import argparse
 import os
 import itertools
 import shlex
 import collections
 import datetime
-import click
 
 import mlog
+import click
 
 import wiz.registry
 import wiz.symbol
@@ -20,510 +19,395 @@ import wiz.exception
 import wiz.filesystem
 import wiz.history
 import wiz.utility
+from wiz import __version__
 
 
-def construct_parser():
-    """Return argument parser."""
-    parser = argparse.ArgumentParser(
-        prog="wiz",
-        description="Package manager.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    # Allow setting of logging level from arguments.
-    parser.add_argument(
-        "-v", "--verbosity",
-        help="Set the logging output verbosity.",
-        choices=mlog.levels,
-        default="info"
-    )
-
-    parser.add_argument(
-        "--no-local",
-        help="Skip local registry.",
-        action="store_true"
-    )
-
-    parser.add_argument(
-        "--no-cwd",
-        help=(
-            "Do not attempt to discover definitions from current "
-            "working directory within project."
-        ),
-        action="store_true"
-    )
-
-    parser.add_argument(
-        "-dsd", "--definition-search-depth",
-        metavar="NUMBER",
-        help="Maximum depth to recursively search for definitions.",
-        type=int
-    )
-
-    parser.add_argument(
-        "-dsp", "--definition-search-paths",
-        type=lambda paths: paths.split(","),
-        metavar="PATHS",
-        help="Search paths for package definitions.",
-        default=wiz.registry.get_defaults()
-    )
-
-    parser.add_argument(
-        "--ignore-implicit",
-        help=(
-            "Do not include implicit packages (with 'auto-use' set to true) "
-            "in resolved context."
-        ),
-        action="store_true"
-    )
-
-    parser.add_argument(
-        "--platform",
-        help="Override the detected platform.",
-        metavar="PLATFORM",
-    )
-
-    parser.add_argument(
-        "--arch",
-        help="Override the detected architecture.",
-        metavar="ARCH",
-    )
-
-    parser.add_argument(
-        "--os-name",
-        help="Override the detected operating system name.",
-        metavar="OS_NAME",
-    )
-
-    parser.add_argument(
-        "--os-version",
-        help="Override the detected operating system version.",
-        metavar="OS_VERSION",
-    )
-
-    parser.add_argument(
-        "--record",
-        help="Record resolution context process for debugging.",
-        metavar="PATH"
-    )
-
-    subparsers = parser.add_subparsers(
-        title="Commands",
-        dest="commands"
-    )
-
-    list_parser = subparsers.add_parser(
-        "list",
-        help="List available command or package definitions.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    list_subparsers = list_parser.add_subparsers(
-        title="Additional subcommands",
-        dest="subcommands"
-    )
-
-    command_parser = list_subparsers.add_parser(
-        "command",
-        help="List all available commands.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    command_parser.add_argument(
-        "--all",
-        help="Return all definition versions.",
-        action="store_true"
-    )
-
-    package_parser = list_subparsers.add_parser(
-        "package",
-        help="List all available packages.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    package_parser.add_argument(
-        "--all",
-        help="Return all definition versions.",
-        action="store_true"
-    )
-
-    search_parser = subparsers.add_parser(
-        "search",
-        help="Search definitions.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    search_parser.add_argument(
-        "--all",
-        help="Return all definition versions.",
-        action="store_true"
-    )
-
-    search_parser.add_argument(
-        "-t", "--type",
-        help="Set the type of definitions requested.",
-        choices=[
-            "all",
-            wiz.symbol.PACKAGE_REQUEST_TYPE,
-            wiz.symbol.COMMAND_REQUEST_TYPE
-        ],
-        default="all"
-    )
-
-    search_parser.add_argument(
-        "requests",
-        nargs="+",
-        help="Package requested."
-    )
-
-    view_subparsers = subparsers.add_parser(
-        "view",
-        help="View content of a package definition.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    view_subparsers.add_argument(
-        "--json",
-        help="Display definition in JSON.",
-        action="store_true"
-    )
-
-    view_subparsers.add_argument(
-        "request",
-        help="Package identifier required."
-    )
-
-    run_subparsers = subparsers.add_parser(
-        "run",
-        help="Run command from package.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    run_subparsers.add_argument(
-        "--view",
-        help="Only view the resolved context.",
-        action="store_true"
-    )
-
-    run_subparsers.add_argument(
-        "request", help="Command requested to run."
-    )
-
-    use_subparsers = subparsers.add_parser(
-        "use",
-        help=(
-            "Spawn shell with resolved context from requested packages, or run "
-            "a command within the resolved context if indicated after "
-            "the '--' symbol."
-        ),
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    use_subparsers.add_argument(
-        "--view",
-        help="Only view the resolved context.",
-        action="store_true"
-    )
-
-    use_subparsers.add_argument(
-        "requests",
-        nargs="+",
-        help="Package identifiers required."
-    )
-
-    freeze_subparsers = subparsers.add_parser(
-        "freeze",
-        help="Output resolved context.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    freeze_subparsers.add_argument(
-        "-o", "--output",
-        metavar="PATH",
-        help="Indicate the output directory.",
-        required=True
-    )
-
-    freeze_subparsers.add_argument(
-        "-f", "--format",
-        help="Indicate the output format.",
-        choices=["wiz", "tcsh", "bash"],
-        default="wiz"
-    )
-
-    freeze_subparsers.add_argument(
-        "requests",
-        nargs="+",
-        help="Package identifiers required."
-    )
-
-    install_subparsers = subparsers.add_parser(
-        "install",
-        help="Add a package definition to a registry.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    install_subparsers_group = install_subparsers.add_mutually_exclusive_group(
-        required=True
-    )
-
-    install_subparsers_group.add_argument(
-        "-r", "--registry-id",
-        help="Vault registry identifier to install the package to."
-    )
-
-    install_subparsers_group.add_argument(
-        "-p", "--registry-path",
-        help="Registry path to install the package to."
-    )
-
-    install_subparsers.add_argument(
-        "--install-location",
-        help=(
-            "Path to the package data which will be set in the "
-            "'install-location' keyword of the installed definition."
-        )
-    )
-
-    install_subparsers.add_argument(
-        "definitions",
-        nargs="+",
-        help="Path to definition to install."
-    )
-
-    return parser
+#: Click default context for all commands.
+CONTEXT_SETTINGS = dict(
+    max_content_width=90,
+    help_option_names=["-h", "--help"],
+)
 
 
-def main(arguments=None):
-    """Wiz command line interface."""
-    if arguments is None:
-        arguments = []
+class _MainGroup(click.Group):
+    """Extended click Group which record initial arguments."""
 
+    def __init__(self, *args, **kwargs):
+        """Initialize main group."""
+        self.initial_args = []
+        super(_MainGroup, self).__init__(*args, **kwargs)
+
+    def main(self, *args, **kwargs):
+        """Record initial arguments before running application."""
+        self.initial_args = kwargs.get("args", [])
+        super(_MainGroup, self).main(*args, **kwargs)
+
+
+@click.group(context_settings=CONTEXT_SETTINGS, cls=_MainGroup)
+@click.version_option(version=__version__)
+@click.option(
+    "-v", "--verbosity",
+    help="Set the logging output verbosity.",
+    type=click.Choice(mlog.levels),
+    default="info",
+    show_default=True
+)
+@click.option(
+    "--no-local",
+    help="Skip local registry.",
+    is_flag=True,
+    default=False
+)
+@click.option(
+    "--no-cwd",
+    help=(
+        "Do not attempt to discover definitions from current "
+        "working directory within project."
+    ),
+    is_flag=True,
+    default=False
+)
+@click.option(
+    "-dsd", "--definition-search-depth",
+    help="Maximum depth to recursively search for definitions.",
+    type=int,
+    metavar="DEPTH_NUMBER",
+)
+@click.option(
+    "-dsp", "--definition-search-paths",
+    help="Search paths for package definitions.",
+    default=wiz.registry.get_defaults(),
+    multiple=True,
+    metavar="PATHS",
+    type=click.Path(),
+    show_default=True
+)
+@click.option(
+    "--ignore-implicit",
+    help=(
+        "Do not include implicit packages (with 'auto-use' set to true) "
+        "in resolved context."
+    ),
+    is_flag=True,
+    default=False
+)
+@click.option(
+    "--platform",
+    metavar="PLATFORM",
+    help="Override detected platform."
+)
+@click.option(
+    "--architecture",
+    metavar="ARCHITECTURE",
+    help="Override detected architecture."
+)
+@click.option(
+    "--os-name",
+    metavar="NAME",
+    help="Override detected operating system name."
+)
+@click.option(
+    "--os-version",
+    metavar="VERSION",
+    help="Override detected operating system version."
+)
+@click.option(
+    "--record",
+    help="Record resolution context process for debugging.",
+    type=click.Path()
+)
+@click.pass_context
+def main(click_context, **kwargs):
+    """Main entry point for the command line interface."""
     mlog.configure()
     logger = mlog.Logger(__name__ + ".main")
 
-    # Extract the command section of the arguments list if necessary
-    command_arguments = None
-
-    if wiz.symbol.COMMAND_SEPARATOR in arguments:
-        index = arguments.index(wiz.symbol.COMMAND_SEPARATOR)
-        command_arguments = arguments[index+1:]
-        arguments = arguments[:index]
-
-    if command_arguments is not None and len(command_arguments) == 0:
-        logger.error(
-            "The command indicated after the symbol '{}' is "
-            "incorrect.".format(wiz.symbol.COMMAND_SEPARATOR),
-        )
-        return
-
-    # Process arguments.
-    parser = construct_parser()
-    namespace = parser.parse_args(arguments)
-
-    if namespace.record is not None:
-        command = "wiz {}".format(" ".join(arguments))
+    if kwargs["record"] is not None:
+        command = "wiz {}".format(" ".join(click_context.command.initial_args))
         wiz.history.start_recording(command=command)
 
     # Set verbosity level.
-    mlog.root.handlers["stderr"].filterer.filterers[0].min = namespace.verbosity
+    mlog.root.handlers["stderr"].filterer.filterers[0].min = kwargs["verbosity"]
 
     # Identify system mapping.
     system_mapping = wiz.system.query(
-        platform=namespace.platform,
-        architecture=namespace.arch,
-        os_name=namespace.os_name,
-        os_version=namespace.os_version,
+        platform=kwargs["platform"],
+        architecture=kwargs["architecture"],
+        os_name=kwargs["os_name"],
+        os_version=kwargs["os_version"],
     )
     logger.debug("System: {}".format(system_mapping))
 
     # Fetch all registries.
     registries = wiz.registry.fetch(
-        namespace.definition_search_paths,
-        include_local=not namespace.no_local,
-        include_working_directory=not namespace.no_cwd
+        kwargs["definition_search_paths"],
+        include_local=not kwargs["no_local"],
+        include_working_directory=not kwargs["no_cwd"]
     )
     logger.debug("Registries: " + ", ".join(registries))
 
-    # Process requested operation.
-    if namespace.commands == "list":
-        _fetch_and_display_definitions(namespace, registries, system_mapping)
-
-    elif namespace.commands == "search":
-        _search_and_display_definitions(
-            namespace, registries, system_mapping
-        )
-
-    elif namespace.commands == "view":
-        _display_definition(
-            namespace, registries, system_mapping
-        )
-
-    elif namespace.commands == "use":
-        _resolve_and_use_context(
-            namespace, registries, command_arguments, system_mapping
-        )
-
-    elif namespace.commands == "run":
-        _run_command(
-            namespace, registries, command_arguments, system_mapping
-        )
-
-    elif namespace.commands == "freeze":
-        _freeze_and_export_resolved_context(
-            namespace, registries, system_mapping
-        )
-
-    elif namespace.commands == "install":
-        _install_definition(namespace)
-
-    # Export the history if requested.
-    if namespace.record is not None:
-        history = wiz.history.get(serialized=True)
-        path = os.path.join(
-            os.path.abspath(namespace.record),
-            "wiz-{}.dump".format(datetime.datetime.now().isoformat())
-        )
-        wiz.filesystem.export(path, history, compressed=True)
-        logger.info("History recorded and exported in '{}'".format(path))
+    # Update user data within click context.
+    click_context.obj = {
+        "system_mapping": system_mapping,
+        "registry_paths": registries,
+        "registry_search_depth": kwargs["definition_search_depth"],
+        "ignore_implicit_packages": kwargs["ignore_implicit"],
+        "recording_path": kwargs["record"]
+    }
 
 
-def _fetch_and_display_definitions(namespace, registries, system_mapping):
-    """Fetch and display definitions from arguments in *namespace*.
-
-    Command example::
-
-        wiz list command
-        wiz list package
-        wiz list package --all
-        wiz list command --all
-
-    *namespace* is an instance of :class:`argparse.Namespace`.
-
-    *registries* should be a list of available registry paths.
-
-    *system_mapping* should be a mapping of the current system, usually
-    retrieved via :func:`wiz.system.query`.
-
-    """
-    mapping = wiz.fetch_definition_mapping(
-        registries,
-        system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
-    )
-    display_registries(registries)
-
-    if namespace.subcommands == "command":
-        definition_mapping = {
-            k: mapping[wiz.symbol.PACKAGE_REQUEST_TYPE][v]
-            for (k, v) in mapping[wiz.symbol.COMMAND_REQUEST_TYPE].items()
-        }
-
-        display_definition_mapping(
-            definition_mapping, registries,
-            all_versions=namespace.all,
-            command=True
-        )
-
-    elif namespace.subcommands == "package":
-        display_definition_mapping(
-            mapping[wiz.symbol.PACKAGE_REQUEST_TYPE], registries,
-            all_versions=namespace.all,
-        )
-
-
-def _search_and_display_definitions(namespace, registries, system_mapping):
-    """Search and display definitions from arguments in *namespace*.
-
-    Command example::
-
-        wiz search request
-        wiz search request --all
-        wiz search request>=2
-        wiz search request other
-
-    *namespace* is an instance of :class:`argparse.Namespace`.
-
-    *registries* should be a list of available registry paths.
-
-    *system_mapping* should be a mapping of the current system, usually
-    retrieved via :func:`wiz.system.query`.
-
-    """
-    logger = mlog.Logger(__name__ + "._search_and_display_definitions")
-
-    mapping = wiz.definition.fetch(
-        registries,
-        requests=namespace.requests,
-        system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
+@main.group(
+    name="list",
+    help=(
+        """
+        Display all available commands or package definitions.
+        
+        Example:
+        
+            \b
+            wiz list command
+            wiz list package
+            wiz list command --all
+            wiz list package --all
+        
+        """
+    ),
+    short_help="List commands or package definitions.",
+    context_settings=CONTEXT_SETTINGS
+)
+@click.pass_context
+def wiz_list_group(click_context):
+    """Group command which list available commands or package definitions."""
+    click_context.obj["definition_mapping"] = (
+        _fetch_definition_mapping_from_context(click_context)
     )
 
-    display_registries(registries)
+
+@wiz_list_group.command(
+    name="package",
+    help=(
+        """
+        Display all available package definitions.
+
+        Example:
+
+            \b
+            wiz list package
+            wiz list package --all
+
+        """
+    ),
+    short_help="Display available packages.",
+    context_settings=CONTEXT_SETTINGS
+)
+@click.option(
+    "-a", "--all",
+    help="Display all package versions, not just the latest one.",
+    is_flag=True,
+    default=False
+)
+@click.pass_context
+def wiz_list_package(click_context, **kwargs):
+    """Command to list available package definitions."""
+    registry_paths = click_context.obj["registry_paths"]
+    definition_mapping = click_context.obj["definition_mapping"]
+
+    # Display available registries.
+    display_registries(registry_paths)
+
+    # Display available definitions.
+    display_definition_mapping(
+        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
+        registry_paths,
+        all_versions=kwargs["all"],
+    )
+
+    _export_history_if_requested(click_context)
+
+
+@wiz_list_group.command(
+    name="command",
+    help=(
+        """
+        Display all available commands.
+
+        Example:
+
+            \b
+            wiz list command
+            wiz list command --all
+
+        """
+    ),
+    short_help="Display available commands.",
+    context_settings=CONTEXT_SETTINGS
+)
+@click.option(
+    "-a", "--all",
+    help="Display all command versions, not just the latest one.",
+    is_flag=True,
+    default=False
+)
+@click.pass_context
+def wiz_list_command(click_context, **kwargs):
+    """Command to list available commands."""
+    registry_paths = click_context.obj["registry_paths"]
+    definition_mapping = click_context.obj["definition_mapping"]
+
+    # Display available registries.
+    display_registries(registry_paths)
+
+    # Retrieve commands from definition mapping.
+    command_mapping = {
+        command: definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE][_id]
+        for (command, _id)
+        in definition_mapping[wiz.symbol.COMMAND_REQUEST_TYPE].items()
+    }
+
+    # Display available commands.
+    display_definition_mapping(
+        command_mapping, registry_paths,
+        all_versions=kwargs["all"],
+        command=True
+    )
+
+    _export_history_if_requested(click_context)
+
+
+@main.command(
+    name="search",
+    help=(
+        """
+        Search and display definitions from request(s).
+
+        Example:
+
+            \b
+            wiz search foo
+            wiz search foo --all
+            wiz search foo>=2
+            wiz search foo bar
+
+        """
+    ),
+    short_help="Search package definitions.",
+    context_settings=CONTEXT_SETTINGS
+)
+@click.option(
+    "-a", "--all",
+    help="Display all package versions, not just the latest one.",
+    is_flag=True,
+    default=False
+)
+@click.option(
+    "-t", "--type",
+    help="Set the request type.",
+    type=click.Choice([
+        "all",
+        wiz.symbol.PACKAGE_REQUEST_TYPE,
+        wiz.symbol.COMMAND_REQUEST_TYPE
+    ]),
+    default="all",
+    show_default=True
+)
+@click.argument(
+    "requests",
+    nargs=-1,
+    required=True
+)
+@click.pass_context
+def wiz_search(click_context, **kwargs):
+    """Search and display definitions from request(s)."""
+    logger = mlog.Logger(__name__ + ".wiz_search")
+
+    registry_paths = click_context.obj["registry_paths"]
+    definition_mapping = _fetch_definition_mapping_from_context(
+        click_context, requests=list(kwargs["requests"])
+    )
+
+    display_registries(registry_paths)
     results_found = False
 
     if (
-        namespace.type in ["command", "all"] and
-        len(mapping[wiz.symbol.COMMAND_REQUEST_TYPE]) > 0
+        kwargs["type"] in ["command", "all"] and
+        len(definition_mapping[wiz.symbol.COMMAND_REQUEST_TYPE]) > 0
     ):
         results_found = True
-        definition_mapping = {
-            k: mapping[wiz.symbol.PACKAGE_REQUEST_TYPE][v]
-            for (k, v) in mapping[wiz.symbol.COMMAND_REQUEST_TYPE].items()
+        command_mapping = {
+            command: definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE][_id]
+            for (command, _id)
+            in definition_mapping[wiz.symbol.COMMAND_REQUEST_TYPE].items()
         }
 
         display_definition_mapping(
-            definition_mapping, registries,
-            all_versions=namespace.all,
+            command_mapping,
+            registry_paths,
+            all_versions=kwargs["all"],
             command=True
         )
 
     if (
-        namespace.type in ["package", "all"] and
-        len(mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]) > 0
+        kwargs["type"] in ["package", "all"] and
+        len(definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]) > 0
     ):
         results_found = True
+
         display_definition_mapping(
-            mapping[wiz.symbol.PACKAGE_REQUEST_TYPE], registries,
-            all_versions=namespace.all,
+            definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
+            registry_paths,
+            all_versions=kwargs["all"],
         )
 
     if not results_found:
         logger.warning("No results found.\n")
 
+    _export_history_if_requested(click_context)
 
-def _display_definition(namespace, registries, system_mapping):
-    """Display definition from arguments in *namespace*.
 
-    Command example::
+@main.command(
+    name="view",
+    help=(
+        """
+        Display content of a package definition from definition identifier or
+        command.
+        
+        Example:
 
-        wiz view app
-        wiz view package --json
+            \b
+            wiz view foo
+            wiz view foo --json
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
+        """
+    ),
+    short_help="View content of a package definition.",
+    context_settings=CONTEXT_SETTINGS
+)
+@click.option(
+    "--json",
+    help="Display definition in JSON.",
+    is_flag=True,
+    default=False
+)
+@click.argument(
+    "request",
+    nargs=1,
+    required=True
+)
+@click.pass_context
+def wiz_view(click_context, **kwargs):
+    """Display definition from identifier or command."""
+    logger = mlog.Logger(__name__ + ".wiz_view")
 
-    *registries* should be a list of available registry paths.
-
-    *system_mapping* should be a mapping of the current system, usually
-    retrieved via :func:`wiz.system.query`.
-
-    """
-    logger = mlog.Logger(__name__ + "._display_definition")
-
-    mapping = wiz.fetch_definition_mapping(
-        registries,
-        system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
-    )
+    definition_mapping = _fetch_definition_mapping_from_context(click_context)
 
     results_found = False
 
     # Display the corresponding definition if the request is a command.
     try:
         request = wiz.fetch_package_request_from_command(
-            namespace.request, mapping
+            kwargs["request"], definition_mapping
         )
-        definition = wiz.fetch_definition(request, mapping)
+        definition = wiz.fetch_definition(request, definition_mapping)
 
     except wiz.exception.RequestNotFound as exception:
         logger.debug(
@@ -541,7 +425,7 @@ def _display_definition(namespace, registries, system_mapping):
 
     # Display the full definition if the request is a package.
     try:
-        definition = wiz.fetch_definition(namespace.request, mapping)
+        definition = wiz.fetch_definition(kwargs["request"], definition_mapping)
 
     except wiz.exception.RequestNotFound as exception:
         logger.debug(
@@ -556,74 +440,87 @@ def _display_definition(namespace, registries, system_mapping):
             )
         )
 
-        if namespace.json:
-            print(definition.encode())
+        if kwargs["json"]:
+            click.echo(definition.encode())
         else:
             display_definition(definition)
 
         results_found = True
 
-    # Otherwise, print a warning...
+    # Otherwise, display a warning...
     if not results_found:
         logger.warning("No definition could be found.\n")
 
+    _export_history_if_requested(click_context)
 
-def _resolve_and_use_context(
-    namespace, registries, command_arguments, system_mapping
-):
-    """Resolve and use context from arguments in *namespace*.
 
-    Command example::
+@main.command(
+    name="use",
+    help=(
+        """
+        Spawn shell with resolved context from requested packages, or run
+        a command within the resolved context.
+        
+        Example:
 
-        wiz use package1>=1 package2==2.3.0 package3
-        wiz use package1>=1 package2==2.3.0 package3 -- app --option value
-        wiz use --view command
+            \b
+            wiz use package1>=1 package2==2.3.0 package3
+            wiz use package1>=1 package2==2.3.0 package3 -- app --option value
+            wiz use --view command
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
-
-    *registries* should be a list of available registry paths.
-
-    *command_arguments* could be the command list to execute within
-    the resolved context.
-
-    *system_mapping* should be a mapping of the current system, usually
-    retrieved via :func:`wiz.system.query`.
-
-    """
-    logger = mlog.Logger(__name__ + "._resolve_and_use_context")
-
-    mapping = wiz.fetch_definition_mapping(
-        registries,
-        system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
+        """
+    ),
+    short_help="Use resolved context from package definition.",
+    context_settings=dict(
+        allow_extra_args=True,
+        **CONTEXT_SETTINGS
     )
+)
+@click.option(
+    "--view",
+    help="Only view the resolved context without loading it.",
+    is_flag=True,
+    default=False
+)
+@click.argument(
+    "requests",
+    nargs=-1,
+    required=True
+)
+@click.pass_context
+def wiz_use(click_context, **kwargs):
+    """Resolve and use context from command."""
+    logger = mlog.Logger(__name__ + ".wiz_use")
+
+    definition_mapping = _fetch_definition_mapping_from_context(click_context)
+    ignore_implicit = click_context.obj["ignore_implicit_packages"]
 
     try:
-        context = wiz.resolve_context(
-            namespace.requests, mapping,
-            ignore_implicit=namespace.ignore_implicit
+        wiz_context = wiz.resolve_context(
+            list(kwargs["requests"]), definition_mapping,
+            ignore_implicit=ignore_implicit
         )
 
         # Only view the resolved context without spawning a shell nor
         # running any commands.
-        if namespace.view:
-            display_registries(registries)
-            display_packages(context["packages"], registries)
-            display_command_mapping(context.get("command", {}))
-            display_environ_mapping(context.get("environ", {}))
+        if kwargs["view"]:
+            display_registries(wiz_context["registries"])
+            display_packages(wiz_context["packages"], wiz_context["registries"])
+            display_command_mapping(wiz_context.get("command", {}))
+            display_environ_mapping(wiz_context.get("environ", {}))
 
         # If no commands are indicated, spawn a shell.
-        elif command_arguments is None:
-            wiz.spawn.shell(context["environ"])
+        elif len(click_context.args) == 0:
+            wiz.spawn.shell(wiz_context["environ"])
 
         # Otherwise, resolve the command and run it within the resolved context.
         else:
             resolved_command = wiz.resolve_command(
-                " ".join(command_arguments), context.get("command", {})
+                " ".join(click_context.args), wiz_context.get("command", {})
             )
 
             wiz.spawn.execute(
-                shlex.split(resolved_command), context["environ"]
+                shlex.split(resolved_command), wiz_context["environ"]
             )
 
     except wiz.exception.WizError as error:
@@ -633,61 +530,80 @@ def _resolve_and_use_context(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
         )
 
+    _export_history_if_requested(click_context)
 
-def _run_command(namespace, registries, command_arguments, system_mapping):
-    """Run application from arguments in *namespace*.
 
-    Command example::
+@main.command(
+    "run",
+    help=(
+        """
+        Run command from resolved context.
 
-        wiz run command
-        wiz run command -- --option value /path/to/output
+        Example:
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
-
-    *registries* should be a list of available registry paths.
-
-    *command_arguments* could be the command list to execute within
-    the resolved context.
-
-    *system_mapping* should be a mapping of the current system, usually
-    retrieved via :func:`wiz.system.query`.
-
-    """
-    logger = mlog.Logger(__name__ + "._run_command")
-
-    mapping = wiz.fetch_definition_mapping(
-        registries,
-        system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
+            \b
+            wiz run command
+            wiz run command -- --option value /path/to/output
+        
+        """
+    ),
+    short_help="Run command from package definition.",
+    context_settings=dict(
+        allow_extra_args=True,
+        ignore_unknown_options=True,
+        **CONTEXT_SETTINGS
     )
+)
+@click.option(
+    "--view",
+    help="Only view the resolved context without loading it.",
+    is_flag=True,
+    default=False
+)
+@click.argument(
+    "request",
+    nargs=1,
+    required=True
+)
+@click.pass_context
+def wiz_run(click_context, **kwargs):
+    """Run application from resolved context."""
+    logger = mlog.Logger(__name__ + ".wiz_run")
+
+    definition_mapping = _fetch_definition_mapping_from_context(click_context)
+    ignore_implicit = click_context.obj["ignore_implicit_packages"]
 
     try:
-        requirement = wiz.utility.get_requirement(namespace.request)
+        requirement = wiz.utility.get_requirement(kwargs["request"])
         request = wiz.fetch_package_request_from_command(
-            namespace.request, mapping
+            kwargs["request"], definition_mapping
         )
 
-        context = wiz.resolve_context(
-            [request], mapping,
-            ignore_implicit=namespace.ignore_implicit
+        wiz_context = wiz.resolve_context(
+            [request], definition_mapping,
+            ignore_implicit=ignore_implicit
         )
+
+        command_arguments = None
+        if len(click_context.args) > 0:
+            command_arguments = click_context.args
 
         resolved_command = wiz.resolve_command(
             " ".join([requirement.name] + (command_arguments or [])),
-            context.get("command", {})
+            wiz_context.get("command", {})
         )
 
         # Only view the resolved context without spawning a shell nor
         # running any commands.
-        if namespace.view:
-            display_registries(registries)
-            display_packages(context["packages"], registries)
-            display_command_mapping(context.get("command", {}))
-            display_environ_mapping(context.get("environ", {}))
+        if kwargs["view"]:
+            display_registries(wiz_context["registries"])
+            display_packages(wiz_context["packages"], wiz_context["registries"])
+            display_command_mapping(wiz_context.get("command", {}))
+            display_environ_mapping(wiz_context.get("environ", {}))
 
         else:
             wiz.spawn.execute(
-                shlex.split(resolved_command), context["environ"]
+                shlex.split(resolved_command), wiz_context["environ"]
             )
 
     except wiz.exception.WizError as error:
@@ -697,42 +613,62 @@ def _run_command(namespace, registries, command_arguments, system_mapping):
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
         )
 
+    _export_history_if_requested(click_context)
 
-def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
-    """Freeze resolved context from arguments in *namespace*.
 
-    Command example::
+@main.command(
+    "freeze",
+    help=(
+        """
+        Export resolved context into a package definition or a script.
+        
+        Example:
 
-        wiz freeze package1>=1 package2==2.3.0 package3 -o /tmp
-        wiz freeze --format bash package1>=1 package2==2.3.0 package3 -o /tmp
-        wiz freeze --format tcsh package1>=1 package2==2.3.0 package3 -o /tmp
+            \b
+            wiz freeze foo>=1 bar==2.3.0 baz -o /tmp
+            wiz freeze --format bash foo>=1 bar==2.3.0 baz -o /tmp
+            wiz freeze --format tcsh foo>=1 bar==2.3.0 baz -o /tmp
+        """
+    ),
+    short_help="Export resolved context.",
+    context_settings=CONTEXT_SETTINGS
+)
+@click.option(
+    "-o", "--output",
+    help="Indicate the output directory.",
+    type=click.Path(),
+    required=True
+)
+@click.option(
+    "-f", "--format",
+    help="Indicate the output format.",
+    type=click.Choice(["wiz", "tcsh", "bash"]),
+    default="wiz",
+    show_default=True
+)
+@click.argument(
+    "requests",
+    nargs=-1,
+    required=True
+)
+@click.pass_context
+def wiz_freeze(click_context, **kwargs):
+    """Freeze resolved context into a package definition or a script."""
+    logger = mlog.Logger(__name__ + ".wiz_freeze")
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
-
-    *registries* should be a list of available registry paths.
-
-    *system_mapping* should be a mapping of the current system, usually
-    retrieved via :func:`wiz.system.query`.
-
-    """
-    logger = mlog.Logger(__name__ + "._freeze_and_export_resolved_context")
-
-    mapping = wiz.fetch_definition_mapping(
-        registries,
-        system_mapping=system_mapping,
-        max_depth=namespace.definition_search_depth
-    )
+    definition_mapping = _fetch_definition_mapping_from_context(click_context)
+    ignore_implicit = click_context.obj["ignore_implicit_packages"]
 
     try:
-        context = wiz.resolve_context(
-            namespace.requests, mapping,
-            ignore_implicit=namespace.ignore_implicit
+        _context = wiz.resolve_context(
+            list(kwargs["requests"]), definition_mapping,
+            ignore_implicit=ignore_implicit
         )
-        identifier = _query_identifier(logger)
+        identifier = _query_identifier()
 
-        if namespace.format == "wiz":
-            description = _query_description(logger)
-            version = _query_version(logger)
+        if kwargs["format"] == "wiz":
+            description = _query_description()
+            version = _query_version()
 
             definition_data = {
                 "identifier": identifier,
@@ -740,34 +676,34 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
                 "version": str(version)
             }
 
-            command_mapping = context.get("command")
+            command_mapping = _context.get("command")
             if command_mapping is not None:
                 definition_data["command"] = command_mapping
 
-            environ_mapping = context.get("environ")
+            environ_mapping = _context.get("environ")
             if environ_mapping is not None:
                 definition_data["environ"] = environ_mapping
 
-            wiz.export_definition(namespace.output, definition_data)
+            wiz.export_definition(kwargs["output"], definition_data)
 
-        elif namespace.format == "bash":
-            command = _query_command(context.get("command", {}).values())
+        elif kwargs["format"] == "bash":
+            command = _query_command(_context.get("command", {}).values())
             wiz.export_script(
-                namespace.output, "bash",
+                kwargs["output"], "bash",
                 identifier,
-                environ=context.get("environ", {}),
+                environ=_context.get("environ", {}),
                 command=command,
-                packages=context.get("packages")
+                packages=_context.get("packages")
             )
 
-        elif namespace.format == "tcsh":
-            command = _query_command(context.get("command", {}).values())
+        elif kwargs["format"] == "tcsh":
+            command = _query_command(_context.get("command", {}).values())
             wiz.export_script(
-                namespace.output, "csh",
+                kwargs["output"], "csh",
                 identifier,
-                environ=context.get("environ", {}),
+                environ=_context.get("environ", {}),
                 command=command,
-                packages=context.get("packages")
+                packages=_context.get("packages")
             )
 
     except wiz.exception.WizError as error:
@@ -780,35 +716,70 @@ def _freeze_and_export_resolved_context(namespace, registries, system_mapping):
     except KeyboardInterrupt:
         logger.warning("Aborted.")
 
+    _export_history_if_requested(click_context)
 
-def _install_definition(namespace):
-    """Install a definition to a registry from arguments in *namespace*.
 
-    Command example::
+@main.command(
+    "install",
+    help=(
+        """
+        Install a package definition to a registry. A registry can be a
+        local path to the file system or a VCS registry.
+        
+        Example:
 
-        wiz install definition1.json definition2.json --registry-id primary
-        wiz install /path/to/definition.json --registry-path /path/to/registry
-        wiz install /path/to/definitions/* --registry-path /path/to/registry
+            \b
+            wiz install foo.json bar.json --registry-id primary-registry
+            wiz install /path/to/foo.json --registry-path /path/to/registry
+            wiz install /all/definitions/* --registry-path /path/to/registry
 
-    *namespace* is an instance of :class:`argparse.Namespace`.
-
-    """
-    logger = mlog.Logger(__name__ + "._install_definition")
+        """
+    ),
+    short_help="Install a package definition to a registry.",
+    context_settings=CONTEXT_SETTINGS
+)
+@click.option(
+    "-p", "--registry-path",
+    help="Registry path to install the package to.",
+    type=click.Path(),
+)
+@click.option(
+    "-r", "--registry-id",
+    help="VCS registry identifier to install the package to.",
+    metavar="ID",
+)
+@click.option(
+    "--install-location",
+    help=(
+        "Update definition(s) with new 'install-location' value during "
+        "installation."
+    ),
+    metavar="VALUE",
+)
+@click.argument(
+    "definitions",
+    nargs=-1,
+    required=True
+)
+@click.pass_context
+def wiz_install(click_context, **kwargs):
+    """Install a definition to a registry."""
+    logger = mlog.Logger(__name__ + ".wiz_install")
 
     overwrite = False
 
     while True:
         try:
-            if namespace.registry_path is not None:
+            if kwargs["registry_path"] is not None:
                 wiz.install_definitions_to_path(
-                    namespace.definitions, namespace.registry_path,
-                    install_location=namespace.install_location,
+                    kwargs["definitions"], kwargs["registry_path"],
+                    install_location=kwargs["install_location"],
                     overwrite=overwrite
                 )
-            elif namespace.registry_id is not None:
+            elif kwargs["registry_id"] is not None:
                 wiz.install_definitions_to_vcs(
-                    namespace.definitions, namespace.registry_id,
-                    install_location=namespace.install_location,
+                    kwargs["definitions"], kwargs["registry_id"],
+                    install_location=kwargs["install_location"],
                     overwrite=overwrite
                 )
             break
@@ -835,6 +806,34 @@ def _install_definition(namespace):
             logger.error(error, traceback=True)
             break
 
+    _export_history_if_requested(click_context)
+
+
+def _fetch_definition_mapping_from_context(click_context, requests=None):
+    """Return definition mapping from elements stored in *click_context*."""
+    return wiz.fetch_definition_mapping(
+        click_context.obj["registry_paths"],
+        requests=requests,
+        system_mapping=click_context.obj["system_mapping"],
+        max_depth=click_context.obj["registry_search_depth"]
+    )
+
+
+def _export_history_if_requested(click_context):
+    """Return definition mapping from elements stored in *click_context*."""
+    logger = mlog.Logger(__name__ + "._export_history_if_requested")
+
+    if click_context.obj["recording_path"] is None:
+        return
+
+    history = wiz.history.get(serialized=True)
+    path = os.path.join(
+        os.path.abspath(click_context.obj["recording_path"]),
+        "wiz-{}.dump".format(datetime.datetime.now().isoformat())
+    )
+    wiz.filesystem.export(path, history, compressed=True)
+    logger.info("History recorded and exported in '{}'".format(path))
+
 
 def display_registries(paths):
     """Display all registries from *paths* with an identifier.
@@ -848,16 +847,20 @@ def display_registries(paths):
 
     """
     title = "Registries"
-    mappings = [
-        {"size": len(title), "items": [], "title": title}
+    columns = [
+        {"size": len(title), "rows": [], "title": title}
     ]
 
     for index, path in enumerate(paths):
         item = "[{}] {}".format(index, path)
-        mappings[0]["items"].append(item)
-        mappings[0]["size"] = max(len(item), mappings[0]["size"])
+        columns[0]["rows"].append(item)
+        columns[0]["size"] = max(len(item), columns[0]["size"])
 
-    _display_table(mappings)
+    if len(paths) == 0:
+        item = "No registries to display."
+        columns[0]["rows"].append(item)
+
+    _display_table(columns)
 
 
 def display_definition(definition):
@@ -873,15 +876,15 @@ def display_definition(definition):
         if isinstance(item, collections.OrderedDict) or isinstance(item, dict):
             for key, value in item.items():
                 if isinstance(value, basestring) or isinstance(value, int):
-                    print("{}{}: {}".format(indent, key, value))
+                    click.echo("{}{}: {}".format(indent, key, value))
                 else:
-                    print("{}{}:".format(indent, key))
+                    click.echo("{}{}:".format(indent, key))
                     _display(value, level=level + 4)
 
         elif isinstance(item, list) or isinstance(item, tuple):
             for _item in item:
                 if isinstance(_item, collections.OrderedDict):
-                    print("{}identifier: {}".format(
+                    click.echo("{}identifier: {}".format(
                         indent, _item.pop("identifier")
                     ))
                     _display(_item, level=level + 4)
@@ -889,12 +892,9 @@ def display_definition(definition):
                     _display(_item, level=level)
 
         else:
-            print("{}{}".format(indent, item))
+            click.echo("{}{}".format(indent, item))
 
     _display(definition.to_ordered_dict(serialize_content=True))
-
-    # Print final blank line.
-    print()
 
 
 def display_definition_mapping(
@@ -932,8 +932,8 @@ def display_definition_mapping(
 
     header = "Command" if command else "Package"
     titles = [header, "Version", "Registry", "Description"]
-    rows = [
-        {"size": len(title), "items": [], "title": title} for title in titles
+    columns = [
+        {"size": len(title), "rows": [], "title": title} for title in titles
     ]
 
     def _format_unit(_identifier, _definition, _variant=None):
@@ -941,20 +941,20 @@ def display_definition_mapping(
         if _variant is not None:
             _identifier += " [{}]".format(_variant)
 
-        rows[0]["items"].append(_identifier)
-        rows[0]["size"] = max(len(_identifier), rows[0]["size"])
+        columns[0]["rows"].append(_identifier)
+        columns[0]["size"] = max(len(_identifier), columns[0]["size"])
 
         _version = str(_definition.version)
-        rows[1]["items"].append(_version)
-        rows[1]["size"] = max(len(_version), rows[1]["size"])
+        columns[1]["rows"].append(_version)
+        columns[1]["size"] = max(len(_version), columns[1]["size"])
 
         registry_index = str(registries.index(_definition.get("registry")))
-        rows[2]["items"].append(registry_index)
-        rows[2]["size"] = max(len(registry_index), rows[2]["size"])
+        columns[2]["rows"].append(registry_index)
+        columns[2]["size"] = max(len(registry_index), columns[2]["size"])
 
         _description = _definition.description
-        rows[3]["items"].append(_description)
-        rows[3]["size"] = max(len(_description), rows[3]["size"])
+        columns[3]["rows"].append(_description)
+        columns[3]["size"] = max(len(_description), columns[3]["size"])
 
     for identifier, definition in itertools.izip_longest(
         identifiers, definitions
@@ -967,7 +967,13 @@ def display_definition_mapping(
         else:
             _format_unit(identifier, definition)
 
-    _display_table(rows)
+    if len(identifiers) == 0:
+        item = (
+            "No commands to display." if command else "No packages to display."
+        )
+        columns[0]["rows"].append(item)
+
+    _display_table(columns)
 
 
 def display_packages(packages, registries):
@@ -979,8 +985,8 @@ def display_packages(packages, registries):
 
     """
     titles = ["Package", "Version", "Registry", "Description"]
-    rows = [
-        {"size": len(title), "items": [], "title": title} for title in titles
+    columns = [
+        {"size": len(title), "rows": [], "title": title} for title in titles
     ]
 
     for package in packages:
@@ -988,24 +994,24 @@ def display_packages(packages, registries):
         if package.variant_name is not None:
             _identifier += " [{}]".format(package.variant_name)
 
-        rows[0]["items"].append(_identifier)
-        rows[0]["size"] = max(len(_identifier), rows[0]["size"])
+        columns[0]["rows"].append(_identifier)
+        columns[0]["size"] = max(len(_identifier), columns[0]["size"])
 
         _version = str(package.version)
-        rows[1]["items"].append(_version)
-        rows[1]["size"] = max(len(_version), rows[1]["size"])
+        columns[1]["rows"].append(_version)
+        columns[1]["size"] = max(len(_version), columns[1]["size"])
 
         registry_index = str(
             registries.index(package.get("registry"))
         )
-        rows[2]["items"].append(registry_index)
-        rows[2]["size"] = max(len(registry_index), rows[2]["size"])
+        columns[2]["rows"].append(registry_index)
+        columns[2]["size"] = max(len(registry_index), columns[2]["size"])
 
         _description = package.description
-        rows[3]["items"].append(_description)
-        rows[3]["size"] = max(len(_description), rows[3]["size"])
+        columns[3]["rows"].append(_description)
+        columns[3]["size"] = max(len(_description), columns[3]["size"])
 
-    _display_table(rows)
+    _display_table(columns)
 
 
 def display_command_mapping(mapping):
@@ -1020,22 +1026,22 @@ def display_command_mapping(mapping):
 
     """
     if len(mapping) == 0:
-        print("No command to display.")
+        click.echo("No command to display.")
         return
 
     titles = ["Command", "Value"]
-    mappings = [
-        {"size": len(title), "items": [], "title": title} for title in titles
+    columns = [
+        {"size": len(title), "rows": [], "title": title} for title in titles
     ]
 
     for command, value in sorted(mapping.items()):
-        mappings[0]["items"].append(command)
-        mappings[0]["size"] = max(len(command), mappings[0]["size"])
+        columns[0]["rows"].append(command)
+        columns[0]["size"] = max(len(command), columns[0]["size"])
 
-        mappings[1]["items"].append(value)
-        mappings[1]["size"] = max(len(value), mappings[1]["size"])
+        columns[1]["rows"].append(value)
+        columns[1]["size"] = max(len(value), columns[1]["size"])
 
-    _display_table(mappings)
+    _display_table(columns)
 
 
 def display_environ_mapping(mapping):
@@ -1050,12 +1056,12 @@ def display_environ_mapping(mapping):
 
     """
     if len(mapping) == 0:
-        print("No environment variables to display.")
+        click.echo("No environment variables to display.")
         return
 
     titles = ["Environment Variable", "Environment Value"]
-    rows = [
-        {"size": len(title), "items": [], "title": title} for title in titles
+    columns = [
+        {"size": len(title), "rows": [], "title": title} for title in titles
     ]
 
     def _compute_value(_variable, value):
@@ -1071,20 +1077,22 @@ def display_environ_mapping(mapping):
             [variable], _compute_value(variable, mapping[variable])
         ):
             _key = key or ""
-            rows[0]["items"].append(_key)
-            rows[0]["size"] = max(len(_key), rows[0]["size"])
+            columns[0]["rows"].append(_key)
+            columns[0]["size"] = max(len(_key), columns[0]["size"])
 
-            rows[1]["items"].append(_value)
-            rows[1]["size"] = max(len(_value), rows[1]["size"])
+            columns[1]["rows"].append(_value)
+            columns[1]["size"] = max(len(_value), columns[1]["size"])
 
-    _display_table(rows)
+    _display_table(columns)
 
 
-def _query_identifier(logger):
+def _query_identifier():
     """Query an identifier for a resolved context."""
+    logger = mlog.Logger(__name__ + "._query_identifier")
+
     while True:
-        print("Indicate an identifier:", end=" ")
-        identifier = wiz.filesystem.sanitise_value(raw_input().strip())
+        value = click.prompt("Please enter a definition identifier")
+        identifier = wiz.filesystem.sanitise_value(value.strip())
         if len(identifier) > 3:
             return identifier
 
@@ -1094,11 +1102,13 @@ def _query_identifier(logger):
         )
 
 
-def _query_description(logger):
+def _query_description():
     """Query an description for a resolved context."""
+    logger = mlog.Logger(__name__ + "._query_description")
+
     while True:
-        print("Indicate a description:", end=" ")
-        description = raw_input().strip()
+        value = click.prompt("Please enter a description:")
+        description = value.strip()
 
         if len(description) > 5:
             return description
@@ -1109,11 +1119,12 @@ def _query_description(logger):
         )
 
 
-def _query_version(logger, default="0.1.0"):
+def _query_version(default="0.1.0"):
     """Query a version for a resolved context."""
+    logger = mlog.Logger(__name__ + "._query_version")
+
     while True:
-        print("Indicate a version [{}]:".format(default), end=" ")
-        content = raw_input() or default
+        content = click.prompt("Please indicate a version", default=default)
 
         try:
             version = wiz.utility.get_version(content)
@@ -1127,46 +1138,47 @@ def _query_version(logger, default="0.1.0"):
 def _query_command(aliases=None):
     """Query the commands to run within the exported wrapper."""
     if aliases > 0:
-        print("Available aliases:")
+        click.echo("Available aliases:")
         for _command in aliases:
-            print("- {}".format(_command))
-    print("Indicate a command (No command by default):", end=" ")
-    command = raw_input()
-    if len(command):
-        return command
+            click.echo("- {}".format(_command))
+
+    return click.prompt(
+        "Please indicate a command if necessary", default=None
+    )
 
 
-def _display_table(rows):
+def _display_table(columns):
     """Display table of *rows*."""
     spaces = []
-    for column in rows:
+    for column in columns:
         space = column["size"] - len(column["title"])
         spaces.append(space)
 
     # Print titles.
-    print(
+    click.echo(
         "\n" + "   ".join([
-            rows[i]["title"] + " " * spaces[i]
-            for i in range(len(rows))
+            columns[i]["title"] + " " * spaces[i]
+            for i in range(len(columns))
         ])
     )
 
     # Print underlines.
-    print(
+    click.echo(
         "   ".join([
-            "-" * (len(rows[i]["title"]) + spaces[i])
-            for i in range(len(rows))
+            "-" * (len(columns[i]["title"]) + spaces[i])
+            for i in range(len(columns))
         ])
     )
 
     # Print elements.
-    for elements in itertools.izip(*[column["items"] for column in rows]):
-        print(
+    for row in itertools.izip_longest(*[column["rows"] for column in columns]):
+        click.echo(
             "   ".join([
-                elements[i] + " " * (rows[i]["size"] - len(elements[i]))
-                for i in range(len(elements))
+                row[i] + " " * (columns[i]["size"] - len(row[i]))
+                for i in range(len(row))
+                if row[i] is not None
             ])
         )
 
     # Print final blank line.
-    print()
+    click.echo()
