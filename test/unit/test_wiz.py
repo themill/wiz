@@ -119,10 +119,12 @@ def mocked_utility_decode(mocker):
 
 @pytest.mark.parametrize("options", [
     {},
+    {"requests": ["foo", "bar>2"]},
     {"max_depth": 2},
     {"system_mapping": "__CUSTOM_SYSTEM_MAPPING__"}
 ], ids=[
     "paths-only",
+    "with-requests",
     "with-max-depth",
     "with-system-mapping",
 ])
@@ -143,7 +145,9 @@ def test_fetch_definition_mapping(
     assert result == definition_mapping
 
     mocked_definition_fetch.assert_called_once_with(
-        paths, max_depth=options.get("max_depth"),
+        paths,
+        requests=options.get("requests"),
+        max_depth=options.get("max_depth"),
         system_mapping=options.get("system_mapping", default_system_mapping)
     )
 
