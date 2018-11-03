@@ -791,7 +791,7 @@ def test_export_csh_script(temporary_directory, options, packages, expected):
     options.update({"packages": packages})
 
     wiz.export_script(
-        temporary_directory, "csh", "foo", **options
+        temporary_directory, "tcsh", "foo", **options
     )
 
     file_path = os.path.join(temporary_directory, "foo")
@@ -804,7 +804,7 @@ def test_export_csh_script(temporary_directory, options, packages, expected):
 def test_export_csh_script_environ_error(temporary_directory):
     """Fail to export CSH script with empty environment mapping."""
     with pytest.raises(ValueError) as error:
-        wiz.export_script(temporary_directory, "csh", "foo", {})
+        wiz.export_script(temporary_directory, "tcsh", "foo", {})
 
     assert "The environment mapping should not be empty." in str(error)
 
