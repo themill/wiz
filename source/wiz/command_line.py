@@ -30,17 +30,31 @@ CONTEXT_SETTINGS = dict(
 
 
 class _MainGroup(click.Group):
-    """Extended click Group which record initial arguments."""
+    """Extended click Group for Wiz command line main entry point."""
 
-    def __init__(self, *args, **kwargs):
-        """Initialize main group."""
-        self.initial_args = []
-        super(_MainGroup, self).__init__(*args, **kwargs)
+    def parse_args(self, context, arguments):
+        """Update *context* from passed *arguments*.
 
-    def main(self, *args, **kwargs):
-        """Record initial arguments before running application."""
-        self.initial_args = kwargs.get("args", [])
-        super(_MainGroup, self).main(*args, **kwargs)
+        Record initial command from *info_name* and *args* and identify
+        extra arguments after the "--" symbol.
+
+        We cannot only rely on the 'allow_extra_args' option of the click
+        Context as it fails to recognize extra arguments when placed after
+        an argument with "nargs=-1".
+
+        """
+        extra_args = []
+
+        if wiz.symbol.COMMAND_SEPARATOR in arguments:
+            index = arguments.index(wiz.symbol.COMMAND_SEPARATOR)
+            extra_args = arguments[index + 1:]
+            arguments = arguments[:index]
+
+        context.obj = {
+            "initial_argument": "wiz {}".format(" ".join(arguments)),
+            "extra_arguments": extra_args
+        }
+        return super(_MainGroup, self).parse_args(context, arguments)
 
 
 @click.group(context_settings=CONTEXT_SETTINGS, cls=_MainGroup)
@@ -123,8 +137,9 @@ def main(click_context, **kwargs):
     logger = mlog.Logger(__name__ + ".main")
 
     if kwargs["record"] is not None:
-        command = "wiz {}".format(" ".join(click_context.command.initial_args))
-        wiz.history.start_recording(command=command)
+        wiz.history.start_recording(
+            command=click_context.obj["initial_argument"]
+        )
 
     # Set verbosity level.
     mlog.root.handlers["stderr"].filterer.filterers[0].min = kwargs["verbosity"]
@@ -147,13 +162,13 @@ def main(click_context, **kwargs):
     logger.debug("Registries: " + ", ".join(registries))
 
     # Update user data within click context.
-    click_context.obj = {
+    click_context.obj.update({
         "system_mapping": system_mapping,
         "registry_paths": registries,
         "registry_search_depth": kwargs["definition_search_depth"],
         "ignore_implicit_packages": kwargs["ignore_implicit"],
         "recording_path": kwargs["record"]
-    }
+    })
 
 
 @main.group(
@@ -178,6 +193,9 @@ def main(click_context, **kwargs):
 @click.pass_context
 def wiz_list_group(click_context):
     """Group command which list available commands or package definitions."""
+    # Ensure that context fail if extra arguments were passed.
+    _fail_on_extra_arguments(click_context)
+
     click_context.obj["definition_mapping"] = (
         _fetch_definition_mapping_from_context(click_context)
     )
@@ -320,6 +338,9 @@ def wiz_search(click_context, **kwargs):
     """Search and display definitions from request(s)."""
     logger = mlog.Logger(__name__ + ".wiz_search")
 
+    # Ensure that context fail if extra arguments were passed.
+    _fail_on_extra_arguments(click_context)
+
     registry_paths = click_context.obj["registry_paths"]
     definition_mapping = _fetch_definition_mapping_from_context(
         click_context, requests=list(kwargs["requests"])
@@ -398,6 +419,9 @@ def wiz_view(click_context, **kwargs):
     """Display definition from identifier or command."""
     logger = mlog.Logger(__name__ + ".wiz_view")
 
+    # Ensure that context fail if extra arguments were passed.
+    _fail_on_extra_arguments(click_context)
+
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
 
     results_found = False
@@ -417,8 +441,8 @@ def wiz_view(click_context, **kwargs):
 
     else:
         logger.info(
-            "View definition from command: {}=={}".format(
-                definition.identifier, definition.version
+            "Command found in definition: {}".format(
+                wiz.package.generate_identifier(definition)
             )
         )
         results_found = True
@@ -435,8 +459,8 @@ def wiz_view(click_context, **kwargs):
 
     else:
         logger.info(
-            "View definition: {}=={}".format(
-                definition.identifier, definition.version
+            "View definition: {}".format(
+                wiz.package.generate_identifier(definition)
             )
         )
 
@@ -449,7 +473,7 @@ def wiz_view(click_context, **kwargs):
 
     # Otherwise, display a warning...
     if not results_found:
-        logger.warning("No definition could be found.\n")
+        logger.warning("No definition found.\n")
 
     _export_history_if_requested(click_context)
 
@@ -495,6 +519,9 @@ def wiz_use(click_context, **kwargs):
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
 
+    # Fetch extra arguments from context.
+    extra_arguments = _fetch_extra_arguments(click_context)
+
     try:
         wiz_context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
@@ -510,13 +537,13 @@ def wiz_use(click_context, **kwargs):
             display_environ_mapping(wiz_context.get("environ", {}))
 
         # If no commands are indicated, spawn a shell.
-        elif len(click_context.args) == 0:
+        elif len(extra_arguments) == 0:
             wiz.spawn.shell(wiz_context["environ"])
 
         # Otherwise, resolve the command and run it within the resolved context.
         else:
             resolved_command = wiz.resolve_command(
-                " ".join(click_context.args), wiz_context.get("command", {})
+                " ".join(extra_arguments), wiz_context.get("command", {})
             )
 
             wiz.spawn.execute(
@@ -529,6 +556,9 @@ def wiz_use(click_context, **kwargs):
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
         )
+
+    except KeyboardInterrupt:
+        logger.warning("Aborted.")
 
     _export_history_if_requested(click_context)
 
@@ -573,7 +603,11 @@ def wiz_run(click_context, **kwargs):
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
 
+    # Fetch extra arguments from context.
+    extra_arguments = _fetch_extra_arguments(click_context)
+
     try:
+
         requirement = wiz.utility.get_requirement(kwargs["request"])
         request = wiz.fetch_package_request_from_command(
             kwargs["request"], definition_mapping
@@ -582,15 +616,6 @@ def wiz_run(click_context, **kwargs):
         wiz_context = wiz.resolve_context(
             [request], definition_mapping,
             ignore_implicit=ignore_implicit
-        )
-
-        command_arguments = None
-        if len(click_context.args) > 0:
-            command_arguments = click_context.args
-
-        resolved_command = wiz.resolve_command(
-            " ".join([requirement.name] + (command_arguments or [])),
-            wiz_context.get("command", {})
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -602,6 +627,11 @@ def wiz_run(click_context, **kwargs):
             display_environ_mapping(wiz_context.get("environ", {}))
 
         else:
+            resolved_command = wiz.resolve_command(
+                " ".join([requirement.name] + extra_arguments),
+                wiz_context.get("command", {})
+            )
+
             wiz.spawn.execute(
                 shlex.split(resolved_command), wiz_context["environ"]
             )
@@ -612,6 +642,9 @@ def wiz_run(click_context, **kwargs):
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
         )
+
+    except KeyboardInterrupt:
+        logger.warning("Aborted.")
 
     _export_history_if_requested(click_context)
 
@@ -656,6 +689,9 @@ def wiz_freeze(click_context, **kwargs):
     """Freeze resolved context into a package definition or a script."""
     logger = mlog.Logger(__name__ + ".wiz_freeze")
 
+    # Ensure that context fail if extra arguments were passed.
+    _fail_on_extra_arguments(click_context)
+
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
 
@@ -699,7 +735,7 @@ def wiz_freeze(click_context, **kwargs):
         elif kwargs["format"] == "tcsh":
             command = _query_command(_context.get("command", {}).values())
             wiz.export_script(
-                kwargs["output"], "csh",
+                kwargs["output"], "tcsh",
                 identifier,
                 environ=_context.get("environ", {}),
                 command=command,
@@ -766,6 +802,9 @@ def wiz_install(click_context, **kwargs):
     """Install a definition to a registry."""
     logger = mlog.Logger(__name__ + ".wiz_install")
 
+    # Ensure that context fail if extra arguments were passed.
+    _fail_on_extra_arguments(click_context)
+
     overwrite = False
 
     while True:
@@ -807,6 +846,25 @@ def wiz_install(click_context, **kwargs):
             break
 
     _export_history_if_requested(click_context)
+
+
+def _fail_on_extra_arguments(click_context):
+    """Raise an error if extra arguments are found in command."""
+    arguments = _fetch_extra_arguments(click_context)
+    if len(arguments):
+        click_context.fail(
+            "Got unexpected extra argument(s) ({})".format(" ".join(arguments))
+        )
+
+
+def _fetch_extra_arguments(click_context):
+    """Return extra arguments from context.
+
+    If extra arguments have not been recorded after the "--" symbol, we check
+    if leftover arguments remain in context.
+
+    """
+    return click_context.obj["extra_arguments"] or click_context.args
 
 
 def _fetch_definition_mapping_from_context(click_context, requests=None):
@@ -1011,6 +1069,10 @@ def display_packages(packages, registries):
         columns[3]["rows"].append(_description)
         columns[3]["size"] = max(len(_description), columns[3]["size"])
 
+    if len(packages) == 0:
+        item = "No packages to display."
+        columns[0]["rows"].append(item)
+
     _display_table(columns)
 
 
@@ -1025,10 +1087,6 @@ def display_command_mapping(mapping):
         }
 
     """
-    if len(mapping) == 0:
-        click.echo("No command to display.")
-        return
-
     titles = ["Command", "Value"]
     columns = [
         {"size": len(title), "rows": [], "title": title} for title in titles
@@ -1040,6 +1098,10 @@ def display_command_mapping(mapping):
 
         columns[1]["rows"].append(value)
         columns[1]["size"] = max(len(value), columns[1]["size"])
+
+    if len(mapping) == 0:
+        item = "No commands to display."
+        columns[0]["rows"].append(item)
 
     _display_table(columns)
 
@@ -1055,10 +1117,6 @@ def display_environ_mapping(mapping):
         }
 
     """
-    if len(mapping) == 0:
-        click.echo("No environment variables to display.")
-        return
-
     titles = ["Environment Variable", "Environment Value"]
     columns = [
         {"size": len(title), "rows": [], "title": title} for title in titles
@@ -1083,6 +1141,10 @@ def display_environ_mapping(mapping):
             columns[1]["rows"].append(_value)
             columns[1]["size"] = max(len(_value), columns[1]["size"])
 
+    if len(mapping) == 0:
+        item = "No environment variables to display."
+        columns[0]["rows"].append(item)
+
     _display_table(columns)
 
 
@@ -1093,7 +1155,7 @@ def _query_identifier():
     while True:
         value = click.prompt("Please enter a definition identifier")
         identifier = wiz.filesystem.sanitise_value(value.strip())
-        if len(identifier) > 3:
+        if len(identifier) > 2:
             return identifier
 
         logger.warning(
@@ -1137,7 +1199,7 @@ def _query_version(default="0.1.0"):
 
 def _query_command(aliases=None):
     """Query the commands to run within the exported wrapper."""
-    if aliases > 0:
+    if aliases is not None and len(aliases) > 0:
         click.echo("Available aliases:")
         for _command in aliases:
             click.echo("- {}".format(_command))
