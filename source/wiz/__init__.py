@@ -123,7 +123,9 @@ def fetch_package_request_from_command(command_request, definition_mapping):
         ...     "command": {"hiero": "nuke"},
         ...     "package": {"nuke": ...}
         ... }
-        >>> fetch_package_request_from_command("hiero==10.5.*")
+        >>> fetch_package_request_from_command(
+        ...     "hiero==10.5.*", definition_mapping
+        ... )
         nuke==10.5.*
 
     *command_request* should be a string indicating the command requested
@@ -475,7 +477,7 @@ def export_script(
 
     *path* should be a valid directory to save the exported wrapper.
 
-    *script_type* should be either "csh" or "bash".
+    *script_type* should be either "tcsh" or "bash".
 
     *identifier* should define the name of the exported wrapper.
 
@@ -503,7 +505,7 @@ def export_script(
 
     if script_type == "bash":
         content = "#!/bin/bash\n"
-    elif script_type == "csh":
+    elif script_type == "tcsh":
         content = "#!/bin/tcsh -f\n"
     else:
         raise ValueError("'{}' is not a valid script type.".format(script_type))
