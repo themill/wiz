@@ -237,35 +237,31 @@ def resolve_context(
     return context
 
 
-def resolve_command(command, command_mapping):
-    """Return resolved command from *command* and *command_mapping*.
+def resolve_command(elements, command_mapping):
+    """Return resolved command elements from *elements* and *command_mapping*.
 
-    *command* should be a command line in the form off::
+    *elements* should include all command line elements in the form off::
 
-        app_exe
-        app_exe --option value
-        app_exe --option value /path/to/script
+        ["app_exe"]
+        ["app_exe", "--option", "value"]
+        ["app_exe", "--option", "value", "/path/to/script"]
 
     *command_mapping* should associate command aliases to real command.
 
     Example::
 
         >>> resolve_command(
-        ...     "app --option value /path/to/script",
+        ...     ["app", "--option", "value", "/path/to/script"],
         ...     {"app": "App0.1 --modeX"}
         ... )
 
-        "App0.1 --modeX --option value /path/to/script"
+        ["App0.1", "--modeX", "--option", "value", "/path/to/script"]
 
     """
-    commands = shlex.split(command)
+    if elements[0] in command_mapping.keys():
+        elements = shlex.split(command_mapping[elements[0]]) + elements[1:]
 
-    if commands[0] in command_mapping.keys():
-        commands = (
-            shlex.split(command_mapping[commands[0]]) + commands[1:]
-        )
-
-    return " ".join(commands)
+    return elements
 
 
 def discover_context():

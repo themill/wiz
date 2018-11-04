@@ -490,12 +490,14 @@ def test_resolve_context_with_implicit_packages_ignored(
 
 def test_resolve_command():
     """Resolve a command from command mapping."""
-    command = "app --option value /path/to/script"
-    result = wiz.resolve_command(command, {})
-    assert result == command
+    elements = ["app", "--option", "value", "/path/to/script"]
+    result = wiz.resolve_command(elements, {})
+    assert result == elements
 
-    result = wiz.resolve_command(command, {"app": "App0.1 --modeX"})
-    assert result == "App0.1 --modeX --option value /path/to/script"
+    result = wiz.resolve_command(elements, {"app": "App0.1 --modeX"})
+    assert result == [
+        "App0.1", "--modeX", "--option", "value", "/path/to/script"
+    ]
 
 
 def test_discover_context(
