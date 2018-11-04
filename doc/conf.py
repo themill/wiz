@@ -19,7 +19,7 @@ extensions = [
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
-    "sphinxcontrib.autoprogram",
+    "sphinx_click.ext",
     "lowdown"
 ]
 
@@ -90,6 +90,7 @@ def autodoc_skip(app, what, name, obj, skip, options):
 intersphinx_mapping = {
     "python": ("http://docs.python.org/", None),
     "packaging": ("https://packaging.pypa.io/en/stable/", None),
+    "click": ("https://click.palletsprojects.com/en/7.x/", None),
     "infinite-monkey": (
         "http://rtd.themill.com/docs/infinite-monkey/en/stable/", None
     ),

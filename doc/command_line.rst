@@ -4,5 +4,6 @@
 Command line
 ************
 
-.. autoprogram:: wiz.command_line:construct_parser()
-    :prog: wiz
+.. click:: wiz.command_line:main
+   :prog: wiz
+   :show-nested:

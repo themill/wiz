@@ -34,10 +34,7 @@ DOC_REQUIRES = [
     "sphinx >= 1.6, < 1.7",
     "sphinx_rtd_theme >= 0.1.6, < 1",
     "lowdown >= 0.1.0, < 2",
-
-    # Restricted as 0.1.3 causes failed builds.
-    # https://bitbucket.org/birkenfeld/sphinx-contrib/issues/168
-    "sphinxcontrib-autoprogram >= 0.1.2, !=0.1.3, < 1"
+    "sphinx-click>=1.2.0"
 ]
 
 TEST_REQUIRES = [

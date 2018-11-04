@@ -13,7 +13,7 @@ stored in one or several :ref:`registries <registry>`.
 
 It is developed in :term:`Python`.
 
-Use :option:`wiz -h` to see all the options.
+Use ``wiz --help`` to see all the options.
 
 .. seealso::
 
