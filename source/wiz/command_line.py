@@ -792,6 +792,12 @@ def wiz_freeze(click_context, **kwargs):
     ),
     metavar="VALUE",
 )
+@click.option(
+    "--overwrite",
+    help="Always overwrite existing definitions.",
+    is_flag=True,
+    default=False
+)
 @click.argument(
     "definitions",
     nargs=-1,
@@ -805,7 +811,7 @@ def wiz_install(click_context, **kwargs):
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
 
-    overwrite = False
+    overwrite = kwargs["overwrite"]
 
     while True:
         try:
@@ -843,6 +849,10 @@ def wiz_install(click_context, **kwargs):
 
         except Exception as error:
             logger.error(error, traceback=True)
+
+            wiz.history.record_action(
+                wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
+            )
             break
 
     _export_history_if_requested(click_context)
