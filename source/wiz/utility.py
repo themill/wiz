@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import re
+import pipes
 import json
 import zlib
 import base64
@@ -201,3 +202,18 @@ def compute_file_name(definition):
         name += "-{}".format(encoded.rstrip("="))
 
     return "{}.json".format(name)
+
+
+def combine_command(elements):
+    """Return command *elements* as a string.
+
+    Example::
+
+        >>> combine_command(
+        ...     ['python2.7', '-c', 'import os; print(os.environ["HOME"])'])
+        ... )
+
+        python2.7 -c 'import os; print(os.environ["HOME"])'
+
+    """
+    return " ".join([pipes.quote(element) for element in elements])

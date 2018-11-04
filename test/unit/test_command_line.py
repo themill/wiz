@@ -1490,7 +1490,7 @@ def test_use_execute_command(
     )
 
     mocked_resolve_command.assert_called_once_with(
-        "fooExeDebug -t /path/to/script.foo",
+        ["fooExeDebug", "-t", "/path/to/script.foo"],
         {
             "fooExe": "foo",
             "fooExeDebug": "foo --debug",
@@ -1498,7 +1498,7 @@ def test_use_execute_command(
     )
 
     mocked_spawn_execute.assert_called_once_with(
-        ["__RESOLVED_COMMAND__"],
+        "__RESOLVED_COMMAND__",
         {
             "KEY1": "value1",
             "KEY2": "value2"
@@ -1646,7 +1646,7 @@ def test_run(
     )
 
     mocked_resolve_command.assert_called_once_with(
-        "fooExe",
+        ["fooExe"],
         {
             "fooExe": "foo",
             "fooExeDebug": "foo --debug",
@@ -1654,7 +1654,7 @@ def test_run(
     )
 
     mocked_spawn_execute.assert_called_once_with(
-        ["__RESOLVED_COMMAND__"],
+        "__RESOLVED_COMMAND__",
         {
             "KEY1": "value1",
             "KEY2": "value2"

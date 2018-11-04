@@ -3,7 +3,6 @@
 from __future__ import print_function
 import os
 import itertools
-import shlex
 import collections
 import datetime
 
@@ -51,9 +50,10 @@ class _MainGroup(click.Group):
             arguments = arguments[:index]
 
         context.obj = {
-            "initial_argument": "wiz {}".format(" ".join(arguments)),
+            "initial_input": wiz.utility.combine_command(["wiz"] + arguments),
             "extra_arguments": extra_args
         }
+
         return super(_MainGroup, self).parse_args(context, arguments)
 
 
@@ -138,7 +138,7 @@ def main(click_context, **kwargs):
 
     if kwargs["record"] is not None:
         wiz.history.start_recording(
-            command=click_context.obj["initial_argument"]
+            command=click_context.obj["initial_input"]
         )
 
     # Set verbosity level.
@@ -542,13 +542,10 @@ def wiz_use(click_context, **kwargs):
 
         # Otherwise, resolve the command and run it within the resolved context.
         else:
-            resolved_command = wiz.resolve_command(
-                " ".join(extra_arguments), wiz_context.get("command", {})
+            command_elements = wiz.resolve_command(
+                extra_arguments, wiz_context.get("command", {})
             )
-
-            wiz.spawn.execute(
-                shlex.split(resolved_command), wiz_context["environ"]
-            )
+            wiz.spawn.execute(command_elements, wiz_context["environ"])
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
@@ -627,14 +624,11 @@ def wiz_run(click_context, **kwargs):
             display_environ_mapping(wiz_context.get("environ", {}))
 
         else:
-            resolved_command = wiz.resolve_command(
-                " ".join([requirement.name] + extra_arguments),
+            command_elements = wiz.resolve_command(
+                [requirement.name] + extra_arguments,
                 wiz_context.get("command", {})
             )
-
-            wiz.spawn.execute(
-                shlex.split(resolved_command), wiz_context["environ"]
-            )
+            wiz.spawn.execute(command_elements, wiz_context["environ"])
 
     except wiz.exception.WizError as error:
         logger.error(str(error), traceback=True)
