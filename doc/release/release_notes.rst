@@ -10,7 +10,7 @@ Release Notes
         :tags: API
 
         Added :func:`wiz.utility.combine_command` to return command elements
-        as a unify command string while preserving quoted elements.
+        as a unified command string while preserving quoted elements.
 
     .. change:: new
         :tags: command-line
@@ -28,8 +28,13 @@ Release Notes
         :tags: command-line
 
         Updated sub-commands to only accept extra arguments for the ``wiz use``
-        and ``wiz run`` sub-commands. in order to execute a custom command
+        and ``wiz run`` sub-commands in order to execute a custom command
         within a resolved context.
+
+        For instance, extra arguments could be used as follow::
+
+            wiz use python -- python -c 'print("TEST")'
+            wiz run python -- -c 'print("TEST")'
 
     .. change:: changed
         :tags: command-line
@@ -53,9 +58,9 @@ Release Notes
         :tags: API
 
         Updated :mod:`wiz.resolve_command` to return resolved list of elements
-        composing the command from elements composing input command. It prevent
+        composing the command from elements composing input command. It prevents
         unnecessary combination which could affect the nature of the command by
-        removing single and double quotes for instance.
+        removing single and double quotes.
 
     .. change:: changed
         :tags: API
