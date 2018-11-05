@@ -2,6 +2,8 @@
 
 import re
 import os
+import socket
+import getpass
 
 import mlog
 
@@ -318,7 +320,7 @@ def initiate_environ(mapping=None):
 
     The initial environment mapping contains basic variables from the external
     environment that can be used by the resolved environment, such as
-    the *USER* or the *HOME* variables.
+    the *USER*, the *HOSTNAME* or the *HOME* variables.
 
     The other variable added are:
 
@@ -341,11 +343,12 @@ def initiate_environ(mapping=None):
 
     """
     environ = {
-        "USER": os.environ.get("USER"),
-        "LOGNAME": os.environ.get("LOGNAME"),
-        "HOME": os.environ.get("HOME"),
-        "DISPLAY": os.environ.get("DISPLAY"),
-        "XAUTHORITY": os.environ.get("XAUTHORITY"),
+        "USER": getpass.getuser(),
+        "HOME": os.path.expanduser("~"),
+        "HOSTNAME": socket.gethostname(),
+        "LOGNAME": os.environ.get("LOGNAME", ""),
+        "DISPLAY": os.environ.get("DISPLAY", ""),
+        "XAUTHORITY": os.environ.get("XAUTHORITY", ""),
         "PATH": os.pathsep.join([
             "/usr/local/sbin",
             "/usr/local/bin",

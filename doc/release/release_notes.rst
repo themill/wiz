@@ -57,6 +57,12 @@ Release Notes
         unnecessary combination which could affect the nature of the command by
         removing single and double quotes for instance.
 
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.package.initiate_environ` to add the
+        :envvar:`HOSTNAME` environment variable into the initial environment.
+
 .. release:: 1.2.1
     :date: 2018-10-24
 
