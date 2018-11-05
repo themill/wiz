@@ -898,10 +898,10 @@ def wiz_install(click_context, **kwargs):
     "edit",
     help=(
         """
-        Edit one or several definition(s) with default editor or with operation 
-        option(s). 
+        Edit one or several definition(s) with default editor or with operation
+        option(s).
 
-        If an output is specified, the original definition(s) will not be 
+        If an output is specified, the original definition(s) will not be
         mutated. Otherwise, the original definition file(s) will be updated with
         edited data.
 
