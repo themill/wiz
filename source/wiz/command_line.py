@@ -914,7 +914,7 @@ def wiz_install(click_context, **kwargs):
             wiz edit foo.json --output /tmp/target
             wiz edit foo.json --set install-location --value /path/data
             wiz edit foo.json --update environ --value '{"KEY": "VALUE"}'
-            wiz edit ./* --extend requirements --value "bar > 0.1.0"
+            wiz edit * --extend requirements --value "bar > 0.1.0"
 
         """
     ),
