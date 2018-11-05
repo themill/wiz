@@ -26,7 +26,7 @@ INSTALL_REQUIRES = [
     "mlog >= 0.2.1, < 1",
     "packaging >= 17.1, < 18",
     "jsonschema >= 2.5, < 3",
-    "click >= 6.7, < 7",
+    "click >= 7, < 8",
     "requests >= 2.19.1, < 3"
 ]
 
@@ -34,10 +34,7 @@ DOC_REQUIRES = [
     "sphinx >= 1.6, < 1.7",
     "sphinx_rtd_theme >= 0.1.6, < 1",
     "lowdown >= 0.1.0, < 2",
-
-    # Restricted as 0.1.3 causes failed builds.
-    # https://bitbucket.org/birkenfeld/sphinx-contrib/issues/168
-    "sphinxcontrib-autoprogram >= 0.1.2, !=0.1.3, < 1"
+    "sphinx-click>=1.2.0"
 ]
 
 TEST_REQUIRES = [

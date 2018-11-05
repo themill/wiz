@@ -6,17 +6,79 @@ Release Notes
 
 .. release:: Upcoming
 
-    .. change:: added
+    .. change:: new
         :tags: command-line
 
         Added ``wiz edit`` sub-command to edit a definition. This command can
         be used to update a keyword in a definition with a new value.
 
-    .. change:: added
+    .. change:: new
+        :tags: command-line
+
+        Added :option:`--version <wiz --version>` to display the package
+        version.
+
+    .. change:: new
         :tags: API
 
         Added :func:`wiz.set_in_definitions` to edit a list of definition files
         by setting a new value to a keyword.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.combine_command` to return command elements
+        as a unified command string while preserving quoted elements.
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated :mod:`wiz.command_line` to use :mod:`click` instead of
+        :mod:`argparse` in order to improve code maintainability.
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated sub-commands to only accept extra arguments for the ``wiz use``
+        and ``wiz run`` sub-commands in order to execute a custom command
+        within a resolved context.
+
+        For instance, extra arguments could be used as follow::
+
+            wiz use python -- python -c 'print("TEST")'
+            wiz run python -- -c 'print("TEST")'
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated ``wiz run`` sub-command to accept unknown arguments and
+        automatically consider it as an extra argument which will be appended to
+        the command.
+
+        For instance, both of the following commands are valid::
+
+            >>> wiz run python -- -c 'print("TEST")'
+            >>> wiz run python -c 'print("TEST")'
+
+    .. change:: changed
+        :tags: API
+
+        Updated :mod:`wiz.fetch_definition_mapping` to add the *requests*
+        argument which can influence the definition research.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :mod:`wiz.resolve_command` to return resolved list of elements
+        composing the command from elements composing input command. It prevents
+        unnecessary combination which could affect the nature of the command by
+        removing single and double quotes.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.package.initiate_environ` to add the
+        :envvar:`HOSTNAME` environment variable into the initial environment.
 
     .. change:: changed
         :tags: API
@@ -668,10 +730,10 @@ Release Notes
     .. change:: changed
         :tags: command-line
 
-        Changed the :option:`view <wiz view request>` command line option to
-        only display the full definition if the request is identified as a
-        package definition. If the request is identified as a command, only the
-        corresponding definition identifier is displayed.
+        Changed the ``wiz view`` sub-command to only display the full definition
+        if the request is identified as a package definition. If the request is
+        identified as a command, only the corresponding definition identifier is
+        displayed.
 
     .. change:: changed
         :tags: API

@@ -17,7 +17,9 @@ import wiz.exception
 import wiz.utility
 
 
-def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
+def fetch_definition_mapping(
+    paths, requests=None, max_depth=None, system_mapping=None
+):
     """Return mapping from all definitions available under *paths*.
 
     Discover all available definitions under *paths*, searching recursively
@@ -49,6 +51,10 @@ def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
             ]
         }
 
+    *requests* could be a list of element which can influence the definition
+    research. It can be in the form of "package >= 1.0.0, < 2" in order to
+    affine the research to a particular version range.
+
     *system_mapping* could be a mapping of the current system. By default, the
     current system mapping will be :func:`queried <wiz.system.query>`.
 
@@ -57,7 +63,10 @@ def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
         system_mapping = wiz.system.query()
 
     mapping = wiz.definition.fetch(
-        paths, system_mapping=system_mapping, max_depth=max_depth
+        paths,
+        requests=requests,
+        system_mapping=system_mapping,
+        max_depth=max_depth
     )
 
     mapping["registries"] = paths
@@ -115,7 +124,9 @@ def fetch_package_request_from_command(command_request, definition_mapping):
         ...     "command": {"hiero": "nuke"},
         ...     "package": {"nuke": ...}
         ... }
-        >>> fetch_package_request_from_command("hiero==10.5.*")
+        >>> fetch_package_request_from_command(
+        ...     "hiero==10.5.*", definition_mapping
+        ... )
         nuke==10.5.*
 
     *command_request* should be a string indicating the command requested
@@ -227,35 +238,31 @@ def resolve_context(
     return context
 
 
-def resolve_command(command, command_mapping):
-    """Return resolved command from *command* and *command_mapping*.
+def resolve_command(elements, command_mapping):
+    """Return resolved command elements from *elements* and *command_mapping*.
 
-    *command* should be a command line in the form off::
+    *elements* should include all command line elements in the form off::
 
-        app_exe
-        app_exe --option value
-        app_exe --option value /path/to/script
+        ["app_exe"]
+        ["app_exe", "--option", "value"]
+        ["app_exe", "--option", "value", "/path/to/script"]
 
     *command_mapping* should associate command aliases to real command.
 
     Example::
 
         >>> resolve_command(
-        ...     "app --option value /path/to/script",
+        ...     ["app", "--option", "value", "/path/to/script"],
         ...     {"app": "App0.1 --modeX"}
         ... )
 
-        "App0.1 --modeX --option value /path/to/script"
+        ["App0.1", "--modeX", "--option", "value", "/path/to/script"]
 
     """
-    commands = shlex.split(command)
+    if elements[0] in command_mapping.keys():
+        elements = shlex.split(command_mapping[elements[0]]) + elements[1:]
 
-    if commands[0] in command_mapping.keys():
-        commands = (
-            shlex.split(command_mapping[commands[0]]) + commands[1:]
-        )
-
-    return " ".join(commands)
+    return elements
 
 
 def discover_context():
@@ -458,72 +465,6 @@ def install_definitions_to_vcs(
     )
 
 
-def set_in_definitions(
-    paths, keyword, value, output_path=None, overwrite=False
-):
-    """Edit a list of definition files by setting a new 'value' to 'keyword'.
-
-    *paths* is the path list to all definition files.
-
-    *keyword* is the keyword to update (e.g. "install-location").
-
-    *value* is the new value for the *keyword*. This value will be validated
-    by the metaschema, when exporting the definition.
-
-    *output_path* is the path to export the definition to after the update. If
-    this is None, the current definition path will be chosen.
-
-    If *overwrite* is True, any existing definitions in the *output_path* will
-    be overwritten.
-
-    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
-    create a valid instance of :class:`wiz.definition.Definition`.
-
-    Raises :exc:`wiz.exception.FileExists` if definition already exists in
-    the target path and *overwrite* is False.
-
-    """
-    # Record existing definitions.
-    existing_definitions = []
-
-    _definitions = []
-
-    for path in paths:
-
-        _definition = wiz.load_definition(path)
-
-        try:
-            _definition = _definition.set(keyword, json.loads(value))
-        except ValueError:
-            _definition = _definition.set(keyword, value)
-
-        _output_path = output_path
-        if output_path is None:
-            _output_path = os.path.dirname(_definition["definition-location"])
-
-        # Keep track of which definitions already exist to warn for overwrite.
-        file_name = wiz.utility.compute_file_name(_definition)
-        file_path = os.path.join(os.path.abspath(_output_path), file_name)
-        if os.path.exists(file_path):
-            existing_definitions.append(file_path)
-
-        _definitions.append((_definition, _output_path))
-
-    # Fail if overwrite is False and some definition paths already exist.
-    if len(existing_definitions) and overwrite is False:
-        raise wiz.exception.FileExists(
-            "Definition files already exist.\n{}".format(
-                "\n".join([
-                    "- {}".format(definition)
-                    for definition in existing_definitions
-                ])
-            )
-        )
-
-    for _definition, _output_path in _definitions:
-        wiz.definition.export(_output_path, _definition, overwrite=overwrite)
-
-
 def export_script(
     path, script_type, identifier, environ, command=None, packages=None,
 ):
@@ -533,7 +474,7 @@ def export_script(
 
     *path* should be a valid directory to save the exported wrapper.
 
-    *script_type* should be either "csh" or "bash".
+    *script_type* should be either "tcsh" or "bash".
 
     *identifier* should define the name of the exported wrapper.
 
@@ -561,7 +502,7 @@ def export_script(
 
     if script_type == "bash":
         content = "#!/bin/bash\n"
-    elif script_type == "csh":
+    elif script_type == "tcsh":
         content = "#!/bin/tcsh -f\n"
     else:
         raise ValueError("'{}' is not a valid script type.".format(script_type))
