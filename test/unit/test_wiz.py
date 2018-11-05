@@ -119,10 +119,12 @@ def mocked_utility_decode(mocker):
 
 @pytest.mark.parametrize("options", [
     {},
+    {"requests": ["foo", "bar>2"]},
     {"max_depth": 2},
     {"system_mapping": "__CUSTOM_SYSTEM_MAPPING__"}
 ], ids=[
     "paths-only",
+    "with-requests",
     "with-max-depth",
     "with-system-mapping",
 ])
@@ -143,7 +145,9 @@ def test_fetch_definition_mapping(
     assert result == definition_mapping
 
     mocked_definition_fetch.assert_called_once_with(
-        paths, max_depth=options.get("max_depth"),
+        paths,
+        requests=options.get("requests"),
+        max_depth=options.get("max_depth"),
         system_mapping=options.get("system_mapping", default_system_mapping)
     )
 
@@ -486,12 +490,14 @@ def test_resolve_context_with_implicit_packages_ignored(
 
 def test_resolve_command():
     """Resolve a command from command mapping."""
-    command = "app --option value /path/to/script"
-    result = wiz.resolve_command(command, {})
-    assert result == command
+    elements = ["app", "--option", "value", "/path/to/script"]
+    result = wiz.resolve_command(elements, {})
+    assert result == elements
 
-    result = wiz.resolve_command(command, {"app": "App0.1 --modeX"})
-    assert result == "App0.1 --modeX --option value /path/to/script"
+    result = wiz.resolve_command(elements, {"app": "App0.1 --modeX"})
+    assert result == [
+        "App0.1", "--modeX", "--option", "value", "/path/to/script"
+    ]
 
 
 def test_discover_context(
@@ -787,7 +793,7 @@ def test_export_csh_script(temporary_directory, options, packages, expected):
     options.update({"packages": packages})
 
     wiz.export_script(
-        temporary_directory, "csh", "foo", **options
+        temporary_directory, "tcsh", "foo", **options
     )
 
     file_path = os.path.join(temporary_directory, "foo")
@@ -800,7 +806,7 @@ def test_export_csh_script(temporary_directory, options, packages, expected):
 def test_export_csh_script_environ_error(temporary_directory):
     """Fail to export CSH script with empty environment mapping."""
     with pytest.raises(ValueError) as error:
-        wiz.export_script(temporary_directory, "csh", "foo", {})
+        wiz.export_script(temporary_directory, "tcsh", "foo", {})
 
     assert "The environment mapping should not be empty." in str(error)
 

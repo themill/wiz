@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import os
+import socket
 
 import pytest
 
@@ -8,6 +9,12 @@ from wiz.utility import Requirement, Version
 import wiz.package
 import wiz.definition
 import wiz.exception
+
+
+@pytest.fixture()
+def mocked_socket_gethostname(mocker):
+    """Return mocked 'socket.gethostname' getter."""
+    return mocker.patch.object(socket, "gethostname")
 
 
 @pytest.fixture()
@@ -636,18 +643,20 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
     )
 
 
-def test_initiate_data(monkeypatch):
+def test_initiate_data(monkeypatch, mocked_socket_gethostname):
     """Return initial data mapping."""
     monkeypatch.setenv("USER", "someone")
     monkeypatch.setenv("LOGNAME", "someone")
     monkeypatch.setenv("HOME", "/path/to/somewhere")
     monkeypatch.setenv("DISPLAY", "localhost:0.0")
     monkeypatch.setenv("XAUTHORITY", "/run/gdm/auth/database")
+    mocked_socket_gethostname.return_value = "__HOSTNAME__"
 
     assert wiz.package.initiate_environ() == {
         "USER": "someone",
         "LOGNAME": "someone",
         "HOME": "/path/to/somewhere",
+        "HOSTNAME": "__HOSTNAME__",
         "DISPLAY": "localhost:0.0",
         "XAUTHORITY": "/run/gdm/auth/database",
         "PATH": os.pathsep.join([
@@ -661,13 +670,16 @@ def test_initiate_data(monkeypatch):
     }
 
 
-def test_initiate_data_with_initial_data(monkeypatch):
+def test_initiate_data_with_initial_data(
+    monkeypatch, mocked_socket_gethostname
+):
     """Return initial data mapping with initial data mapping."""
     monkeypatch.setenv("USER", "someone")
     monkeypatch.setenv("LOGNAME", "someone")
     monkeypatch.setenv("HOME", "/path/to/somewhere")
     monkeypatch.setenv("DISPLAY", "localhost:0.0")
     monkeypatch.setenv("XAUTHORITY", "/run/gdm/auth/database")
+    mocked_socket_gethostname.return_value = "__HOSTNAME__"
 
     assert wiz.package.initiate_environ(
         mapping={
@@ -678,6 +690,7 @@ def test_initiate_data_with_initial_data(monkeypatch):
         "USER": "someone",
         "LOGNAME": "someone-else",
         "HOME": "/path/to/somewhere",
+        "HOSTNAME": "__HOSTNAME__",
         "DISPLAY": "localhost:0.0",
         "XAUTHORITY": "/run/gdm/auth/database",
         "PATH": os.pathsep.join([

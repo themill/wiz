@@ -16,7 +16,9 @@ import wiz.exception
 import wiz.utility
 
 
-def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
+def fetch_definition_mapping(
+    paths, requests=None, max_depth=None, system_mapping=None
+):
     """Return mapping from all definitions available under *paths*.
 
     Discover all available definitions under *paths*, searching recursively
@@ -48,6 +50,10 @@ def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
             ]
         }
 
+    *requests* could be a list of element which can influence the definition
+    research. It can be in the form of "package >= 1.0.0, < 2" in order to
+    affine the research to a particular version range.
+
     *system_mapping* could be a mapping of the current system. By default, the
     current system mapping will be :func:`queried <wiz.system.query>`.
 
@@ -56,7 +62,10 @@ def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
         system_mapping = wiz.system.query()
 
     mapping = wiz.definition.fetch(
-        paths, system_mapping=system_mapping, max_depth=max_depth
+        paths,
+        requests=requests,
+        system_mapping=system_mapping,
+        max_depth=max_depth
     )
 
     mapping["registries"] = paths
@@ -114,7 +123,9 @@ def fetch_package_request_from_command(command_request, definition_mapping):
         ...     "command": {"hiero": "nuke"},
         ...     "package": {"nuke": ...}
         ... }
-        >>> fetch_package_request_from_command("hiero==10.5.*")
+        >>> fetch_package_request_from_command(
+        ...     "hiero==10.5.*", definition_mapping
+        ... )
         nuke==10.5.*
 
     *command_request* should be a string indicating the command requested
@@ -226,35 +237,31 @@ def resolve_context(
     return context
 
 
-def resolve_command(command, command_mapping):
-    """Return resolved command from *command* and *command_mapping*.
+def resolve_command(elements, command_mapping):
+    """Return resolved command elements from *elements* and *command_mapping*.
 
-    *command* should be a command line in the form off::
+    *elements* should include all command line elements in the form off::
 
-        app_exe
-        app_exe --option value
-        app_exe --option value /path/to/script
+        ["app_exe"]
+        ["app_exe", "--option", "value"]
+        ["app_exe", "--option", "value", "/path/to/script"]
 
     *command_mapping* should associate command aliases to real command.
 
     Example::
 
         >>> resolve_command(
-        ...     "app --option value /path/to/script",
+        ...     ["app", "--option", "value", "/path/to/script"],
         ...     {"app": "App0.1 --modeX"}
         ... )
 
-        "App0.1 --modeX --option value /path/to/script"
+        ["App0.1", "--modeX", "--option", "value", "/path/to/script"]
 
     """
-    commands = shlex.split(command)
+    if elements[0] in command_mapping.keys():
+        elements = shlex.split(command_mapping[elements[0]]) + elements[1:]
 
-    if commands[0] in command_mapping.keys():
-        commands = (
-            shlex.split(command_mapping[commands[0]]) + commands[1:]
-        )
-
-    return " ".join(commands)
+    return elements
 
 
 def discover_context():
@@ -466,7 +473,7 @@ def export_script(
 
     *path* should be a valid directory to save the exported wrapper.
 
-    *script_type* should be either "csh" or "bash".
+    *script_type* should be either "tcsh" or "bash".
 
     *identifier* should define the name of the exported wrapper.
 
@@ -494,7 +501,7 @@ def export_script(
 
     if script_type == "bash":
         content = "#!/bin/bash\n"
-    elif script_type == "csh":
+    elif script_type == "tcsh":
         content = "#!/bin/tcsh -f\n"
     else:
         raise ValueError("'{}' is not a valid script type.".format(script_type))

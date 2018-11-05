@@ -14,6 +14,8 @@ import signal
 
 import mlog
 
+import wiz.utility
+
 
 def shell(environment, shell_type="bash"):
     """Spawn a sub-shell with an *environment* mapping.
@@ -67,17 +69,18 @@ def shell(environment, shell_type="bash"):
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
 
 
-def execute(commands, environment):
-    """Run *commands* within a specific *environment*."""
-    # Run in a new process group to enable job control
+def execute(elements, environment):
+    """Run command *elements* within a specific *environment*."""
     logger = mlog.Logger(__name__ + ".shell")
-    logger.info("Start command: {}".format(" ".join(commands)))
+    logger.info(
+        "Start command: {}".format(wiz.utility.combine_command(elements))
+    )
 
     # Register the cleanup function as handler for SIGINT and SIGTERM.
     signal.signal(signal.SIGINT, _cleanup)
     signal.signal(signal.SIGTERM, _cleanup)
 
-    subprocess.call(commands, env=environment)
+    subprocess.call(elements, env=environment)
 
 
 def _cleanup(signum, frame):
