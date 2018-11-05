@@ -703,7 +703,7 @@ Release Notes
     .. change:: changed
         :tags: command-line
 
-        Changed the c sub-command to only display the full definition
+        Changed the ``wiz view`` sub-command to only display the full definition
         if the request is identified as a package definition. If the request is
         identified as a command, only the corresponding definition identifier is
         displayed.
