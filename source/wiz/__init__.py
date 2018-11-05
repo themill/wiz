@@ -2,7 +2,6 @@
 
 import shlex
 import os
-import json
 
 from _version import __version__
 import wiz.registry
