@@ -57,7 +57,49 @@ class _MainGroup(click.Group):
         return super(_MainGroup, self).parse_args(context, arguments)
 
 
-@click.group(context_settings=CONTEXT_SETTINGS, cls=_MainGroup)
+@click.group(
+    context_settings=CONTEXT_SETTINGS,
+    cls=_MainGroup,
+    help=(
+        """
+        Wiz is a package manager which can resolve a context from one or
+        several package request. A context is defined by an environment mapping
+        and a command mapping.
+
+        Example::
+
+            \b
+            wiz use python
+            wiz use nuke ldpk-nuke
+            wiz use nuke -- /path/to/script.nk
+
+        You can list all available packages or search a specific package as
+        follow::
+
+            \b
+            wiz list package
+            wiz search python
+
+        A command can be executed from a resolved context via extracted
+        commands.
+        
+        Example::
+
+            \b
+            wiz run nuke
+            wiz run nuke -- /path/to/script.nk
+            wiz run python 
+        
+        You can list all available commands or search a specific command as
+        follow::
+
+            \b
+            wiz list command
+            wiz search python
+
+        """
+    ),
+)
 @click.version_option(version=__version__)
 @click.option(
     "-v", "--verbosity",
@@ -177,7 +219,7 @@ def main(click_context, **kwargs):
         """
         Display all available commands or package definitions.
         
-        Example:
+        Example::
         
             \b
             wiz list command
@@ -207,7 +249,7 @@ def wiz_list_group(click_context):
         """
         Display all available package definitions.
 
-        Example:
+        Example::
 
             \b
             wiz list package
@@ -249,7 +291,7 @@ def wiz_list_package(click_context, **kwargs):
         """
         Display all available commands.
 
-        Example:
+        Example::
 
             \b
             wiz list command
@@ -298,7 +340,7 @@ def wiz_list_command(click_context, **kwargs):
         """
         Search and display definitions from request(s).
 
-        Example:
+        Example::
 
             \b
             wiz search foo
@@ -392,7 +434,7 @@ def wiz_search(click_context, **kwargs):
         Display content of a package definition from definition identifier or
         command.
         
-        Example:
+        Example::
 
             \b
             wiz view foo
@@ -485,7 +527,7 @@ def wiz_view(click_context, **kwargs):
         Spawn shell with resolved context from requested packages, or run
         a command within the resolved context.
         
-        Example:
+        Example::
 
             \b
             wiz use package1>=1 package2==2.3.0 package3
@@ -566,7 +608,7 @@ def wiz_use(click_context, **kwargs):
         """
         Run command from resolved context.
 
-        Example:
+        Example::
 
             \b
             wiz run command
@@ -649,7 +691,7 @@ def wiz_run(click_context, **kwargs):
         """
         Export resolved context into a package definition or a script.
         
-        Example:
+        Example::
 
             \b
             wiz freeze foo>=1 bar==2.3.0 baz -o /tmp
@@ -756,7 +798,7 @@ def wiz_freeze(click_context, **kwargs):
         Install a package definition to a registry. A registry can be a
         local path to the file system or a VCS registry.
         
-        Example:
+        Example::
 
             \b
             wiz install foo.json bar.json --registry-id primary-registry
