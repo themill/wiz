@@ -77,17 +77,15 @@ Release Notes
     .. change:: changed
         :tags: API
 
-        Sanitize the definition using
-        :meth:`wiz.definition.Definition.sanitized` in
-        :func:`wiz.definition.export` to ensure that 'definition-location' has
-        been removed from the definition before exporting it.
+        Updated :func:`wiz.definition.export` to sanitized the definition with
+        :meth:`wiz.definition.Definition.sanitized` before exporting it.
 
     .. change:: changed
         :tags: API
 
-        Added the 'definition-location' keyword in :func:`wiz.definition.load`,
-        so that this is always available after a load. Previously this would
-        only be added by :func:`wiz.definition.discover`.
+        Updated :func:`wiz.definition.load` to add 'definition-location' keyword
+        in mapping. Previously this would only be added by
+        :func:`wiz.definition.discover`.
 
 .. release:: 1.2.1
     :date: 2018-10-24
