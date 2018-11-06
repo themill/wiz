@@ -246,6 +246,8 @@ def export(path, definition, overwrite=False):
     if not isinstance(definition, Definition):
         definition = wiz.definition.Definition(**definition)
 
+    definition = definition.sanitized()
+
     file_name = wiz.utility.compute_file_name(definition)
     file_path = os.path.join(os.path.abspath(path), file_name)
     wiz.filesystem.export(file_path, definition.encode(), overwrite=overwrite)
@@ -291,10 +293,7 @@ def discover(paths, max_depth=None):
 
                 try:
                     definition = load(
-                        definition_path, mapping={
-                            "registry": path,
-                            "definition-location": definition_path,
-                        }
+                        definition_path, mapping={"registry": path}
                     )
 
                     if definition.get("disabled", False):
@@ -334,6 +333,8 @@ def load(path, mapping=None):
     """
     if mapping is None:
         mapping = {}
+
+    mapping.setdefault("definition-location", path)
 
     with open(path, "r") as stream:
         definition_data = json.load(stream)

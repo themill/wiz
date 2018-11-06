@@ -7,16 +7,22 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: new
-        :tags: API
+        :tags: command-line
 
-        Added :func:`wiz.utility.combine_command` to return command elements
-        as a unified command string while preserving quoted elements.
+        Added ``wiz edit`` sub-command to edit one or several definitions with
+        the default editor or with operation option(s).
 
     .. change:: new
         :tags: command-line
 
         Added :option:`--version <wiz --version>` to display the package
         version.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.combine_command` to return command elements
+        as a unified command string while preserving quoted elements.
 
     .. change:: changed
         :tags: command-line
@@ -67,6 +73,19 @@ Release Notes
 
         Updated :func:`wiz.package.initiate_environ` to add the
         :envvar:`HOSTNAME` environment variable into the initial environment.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.definition.export` to sanitized the definition with
+        :meth:`wiz.definition.Definition.sanitized` before exporting it.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.definition.load` to add 'definition-location' keyword
+        in mapping. Previously this would only be added by
+        :func:`wiz.definition.discover`.
 
 .. release:: 1.2.1
     :date: 2018-10-24
