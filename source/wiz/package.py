@@ -1,16 +1,12 @@
 # :coding: utf-8
 
-import re
-import os
-import socket
-import getpass
-
 import mlog
 
 import wiz.definition
 import wiz.mapping
 import wiz.symbol
 import wiz.history
+import wiz.environ
 import wiz.exception
 
 
@@ -147,7 +143,7 @@ def extract_context(packages, environ_mapping=None):
         return dict(command=_command, environ=_environ)
 
     mapping = reduce(_combine, packages, dict(environ=environ_mapping or {}))
-    mapping["environ"] = sanitise_environ_mapping(mapping.get("environ", {}))
+    mapping["environ"] = wiz.environ.sanitise(mapping.get("environ", {}))
 
     wiz.history.record_action(
         wiz.symbol.CONTEXT_EXTRACTION_ACTION,
@@ -224,7 +220,7 @@ def combine_environ_mapping(package_identifier, mapping1, mapping2):
             mapping[key] = str(value1)
 
         else:
-            if value1 is not None and "${{{}}}".format(key) not in value2:
+            if value1 is not None and not wiz.environ.contains(value2, key):
                 logger.warning(
                     "The '{key}' variable is being overridden "
                     "in '{identifier}'".format(
@@ -232,10 +228,7 @@ def combine_environ_mapping(package_identifier, mapping1, mapping2):
                     )
                 )
 
-            mapping[key] = re.sub(
-                "\${(\w+)}", lambda m: mapping1.get(m.group(1)) or m.group(0),
-                str(value2)
-            )
+            mapping[key] = wiz.environ.substitute(str(value2), mapping1)
 
     return mapping
 
@@ -282,87 +275,6 @@ def combine_command_mapping(package_identifier, mapping1, mapping2):
             mapping[command] = str(value1 or value2)
 
     return mapping
-
-
-def sanitise_environ_mapping(mapping):
-    """Return sanitised environment *mapping*.
-
-    Resolve all key references within *mapping* values and remove all
-    self-references::
-
-        >>> sanitise_environ_mapping(
-        ...     "PLUGIN": "${HOME}/.app:/path/to/somewhere:${PLUGIN}",
-        ...     "HOME": "/usr/people/me"
-        ... )
-
-        {
-            "HOME": "/usr/people/me",
-            "PLUGIN": "/usr/people/me/.app:/path/to/somewhere"
-        }
-
-    """
-    _mapping = {}
-
-    for key, value in mapping.items():
-        _value = re.sub(
-            "(\${{{0}}}:?|:?\${{{0}}})".format(key), lambda m: "", value
-        )
-        _value = re.sub(
-            "\${(\w+)}", lambda m: mapping.get(m.group(1)) or m.group(0), _value
-        )
-        _mapping[key] = _value
-
-    return _mapping
-
-
-def initiate_environ(mapping=None):
-    """Return the minimal environment mapping to augment.
-
-    The initial environment mapping contains basic variables from the external
-    environment that can be used by the resolved environment, such as
-    the *USER*, the *HOSTNAME* or the *HOME* variables.
-
-    The other variable added are:
-
-    * DISPLAY:
-        This variable is necessary to open user interface within the current
-        X display name.
-
-    * XAUTHORITY:
-        This variable is necessary to indicate the file used to store
-        credentials in cookies used by xauth_ for authentication of X sessions.
-
-    * PATH:
-        This variable is initialised with default values to have access to the
-        basic UNIX commands.
-
-    *mapping* can be a custom environment mapping which will be added to the
-    initial environment.
-
-    .. _xauth: https://www.x.org/releases/X11R6.8.2/doc/xauth.1.html
-
-    """
-    environ = {
-        "USER": getpass.getuser(),
-        "HOME": os.path.expanduser("~"),
-        "HOSTNAME": socket.gethostname(),
-        "LOGNAME": os.environ.get("LOGNAME", ""),
-        "DISPLAY": os.environ.get("DISPLAY", ""),
-        "XAUTHORITY": os.environ.get("XAUTHORITY", ""),
-        "PATH": os.pathsep.join([
-            "/usr/local/sbin",
-            "/usr/local/bin",
-            "/usr/sbin",
-            "/usr/bin",
-            "/sbin",
-            "/bin",
-        ])
-    }
-
-    if mapping is not None:
-        environ.update(**mapping)
-
-    return environ
 
 
 class Package(wiz.mapping.Mapping):

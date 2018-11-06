@@ -9,6 +9,7 @@ from wiz._version import __version__
 import wiz
 import wiz.definition
 import wiz.package
+import wiz.environ
 import wiz.system
 import wiz.graph
 import wiz.utility
@@ -82,9 +83,9 @@ def mocked_package_extract(mocker):
 
 
 @pytest.fixture()
-def mocked_package_initiate_environ(mocker):
-    """Return mocked 'wiz.package.initiate_environ' function."""
-    return mocker.patch.object(wiz.package, "initiate_environ")
+def mocked_environ_initiate(mocker):
+    """Return mocked 'wiz.environ.initiate' function."""
+    return mocker.patch.object(wiz.environ, "initiate")
 
 
 @pytest.fixture()
@@ -236,7 +237,7 @@ def test_fetch_package_request_from_command_error():
 ])
 def test_resolve_context(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
-    mocked_graph_resolver, mocked_package_initiate_environ,
+    mocked_graph_resolver, mocked_environ_initiate,
     mocked_package_extract_context, mocked_utility_encode, mocker, options
 ):
     """Get resolved context mapping."""
@@ -252,7 +253,7 @@ def test_resolve_context(
 
     mocked_resolver = mocker.Mock(**{"compute_packages.return_value": packages})
     mocked_graph_resolver.return_value = mocked_resolver
-    mocked_package_initiate_environ.return_value = "__INITIAL_ENVIRON__"
+    mocked_environ_initiate.return_value = "__INITIAL_ENVIRON__"
     mocked_package_extract_context.return_value = context
     mocked_utility_encode.return_value = "__ENCODED_CONTEXT__"
 
@@ -282,7 +283,7 @@ def test_resolve_context(
         Requirement(request) for request in requests
     ])
 
-    mocked_package_initiate_environ.assert_called_once_with(
+    mocked_environ_initiate.assert_called_once_with(
         options.get("environ_mapping")
     )
 
@@ -300,7 +301,7 @@ def test_resolve_context(
 ])
 def test_resolve_context_with_default_definition_mapping(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
-    mocked_graph_resolver, mocked_package_initiate_environ,
+    mocked_graph_resolver, mocked_environ_initiate,
     mocked_package_extract_context, mocked_utility_encode, mocker, options
 ):
     """Get resolved context mapping with default definition mapping."""
@@ -316,7 +317,7 @@ def test_resolve_context_with_default_definition_mapping(
 
     mocked_resolver = mocker.Mock(**{"compute_packages.return_value": packages})
     mocked_graph_resolver.return_value = mocked_resolver
-    mocked_package_initiate_environ.return_value = "__INITIAL_ENVIRON__"
+    mocked_environ_initiate.return_value = "__INITIAL_ENVIRON__"
     mocked_package_extract_context.return_value = context
     mocked_utility_encode.return_value = "__ENCODED_CONTEXT__"
     mocked_registry_defaults.return_value = paths
@@ -346,7 +347,7 @@ def test_resolve_context_with_default_definition_mapping(
         Requirement(request) for request in requests
     ])
 
-    mocked_package_initiate_environ.assert_called_once_with(
+    mocked_environ_initiate.assert_called_once_with(
         options.get("environ_mapping")
     )
 
@@ -364,7 +365,7 @@ def test_resolve_context_with_default_definition_mapping(
 ])
 def test_resolve_context_with_implicit_packages(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
-    mocked_graph_resolver, mocked_package_initiate_environ,
+    mocked_graph_resolver, mocked_environ_initiate,
     mocked_package_extract_context, mocked_utility_encode, mocker, options
 ):
     """Get resolved context mapping with implicit packages."""
@@ -381,7 +382,7 @@ def test_resolve_context_with_implicit_packages(
 
     mocked_resolver = mocker.Mock(**{"compute_packages.return_value": packages})
     mocked_graph_resolver.return_value = mocked_resolver
-    mocked_package_initiate_environ.return_value = "__INITIAL_ENVIRON__"
+    mocked_environ_initiate.return_value = "__INITIAL_ENVIRON__"
     mocked_package_extract_context.return_value = context
     mocked_utility_encode.return_value = "__ENCODED_CONTEXT__"
 
@@ -412,7 +413,7 @@ def test_resolve_context_with_implicit_packages(
         Requirement(request) for request in requests + implicit
     ])
 
-    mocked_package_initiate_environ.assert_called_once_with(
+    mocked_environ_initiate.assert_called_once_with(
         options.get("environ_mapping")
     )
 
@@ -430,7 +431,7 @@ def test_resolve_context_with_implicit_packages(
 ])
 def test_resolve_context_with_implicit_packages_ignored(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
-    mocked_graph_resolver, mocked_package_initiate_environ,
+    mocked_graph_resolver, mocked_environ_initiate,
     mocked_package_extract_context, mocked_utility_encode, mocker, options
 ):
     """Get resolved context mapping with implicit packages ignored."""
@@ -447,7 +448,7 @@ def test_resolve_context_with_implicit_packages_ignored(
 
     mocked_resolver = mocker.Mock(**{"compute_packages.return_value": packages})
     mocked_graph_resolver.return_value = mocked_resolver
-    mocked_package_initiate_environ.return_value = "__INITIAL_ENVIRON__"
+    mocked_environ_initiate.return_value = "__INITIAL_ENVIRON__"
     mocked_package_extract_context.return_value = context
     mocked_utility_encode.return_value = "__ENCODED_CONTEXT__"
 
@@ -479,7 +480,7 @@ def test_resolve_context_with_implicit_packages_ignored(
         Requirement(request) for request in requests
     ])
 
-    mocked_package_initiate_environ.assert_called_once_with(
+    mocked_environ_initiate.assert_called_once_with(
         options.get("environ_mapping")
     )
 
@@ -502,7 +503,7 @@ def test_resolve_command():
 
 def test_discover_context(
     monkeypatch, mocked_utility_decode, mocked_fetch_definition_mapping,
-    mocked_fetch_package, mocked_package_initiate_environ,
+    mocked_fetch_package, mocked_environ_initiate,
     mocked_package_extract_context,
 ):
     """Discover context from environment variable."""
@@ -515,7 +516,7 @@ def test_discover_context(
     mocked_fetch_package.side_effect = [
         {"identifier": "package1==0.1.2"}, {"identifier": "package2==1.0.2"}
     ]
-    mocked_package_initiate_environ.return_value = {"KEY": "VALUE"}
+    mocked_environ_initiate.return_value = {"KEY": "VALUE"}
     mocked_package_extract_context.return_value = {
         "command": {},
         "environ": {"KEY": "VALUE"},

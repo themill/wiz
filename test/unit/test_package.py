@@ -1,20 +1,12 @@
 # :coding: utf-8
 
-import os
-import socket
-
 import pytest
 
 from wiz.utility import Requirement, Version
 import wiz.package
+import wiz.environ
 import wiz.definition
 import wiz.exception
-
-
-@pytest.fixture()
-def mocked_socket_gethostname(mocker):
-    """Return mocked 'socket.gethostname' getter."""
-    return mocker.patch.object(socket, "gethostname")
 
 
 @pytest.fixture()
@@ -251,16 +243,15 @@ def mocked_combine_command(mocker):
 
 
 @pytest.fixture()
-def mocked_sanitise_environ(mocker):
-    """Return mocked sanitise_environ_mapping function."""
+def mocked_environ_sanitise(mocker):
+    """Return mocked 'wiz.environ.sanitise' function."""
     return mocker.patch.object(
-        wiz.package, "sanitise_environ_mapping",
-        return_value={"CLEAN_KEY": "CLEAN_VALUE"}
+        wiz.environ, "sanitise", return_value={"CLEAN_KEY": "CLEAN_VALUE"}
     )
 
 
 def test_extract_context_without_packages(
-    mocked_combine_environ, mocked_combine_command, mocked_sanitise_environ
+    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitise
 ):
     """Extract context with no packages."""
     assert wiz.package.extract_context([]) == {
@@ -268,11 +259,11 @@ def test_extract_context_without_packages(
     }
     mocked_combine_environ.assert_not_called()
     mocked_combine_command.assert_not_called()
-    mocked_sanitise_environ.assert_called_once_with({})
+    mocked_environ_sanitise.assert_called_once_with({})
 
 
 def test_extract_context_with_empty_package(
-    mocked_combine_environ, mocked_combine_command, mocked_sanitise_environ
+    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitise
 ):
     """Extract context with package without environ nor command."""
     definition = wiz.definition.Definition({"identifier": "test"})
@@ -283,11 +274,11 @@ def test_extract_context_with_empty_package(
     }
     mocked_combine_environ.assert_called_once_with("test", {}, {})
     mocked_combine_command.assert_called_once_with("test", {}, {})
-    mocked_sanitise_environ.assert_called_once_with({"KEY": "VALUE"})
+    mocked_environ_sanitise.assert_called_once_with({"KEY": "VALUE"})
 
 
 def test_extract_context_with_one_package(
-    mocked_combine_environ, mocked_combine_command, mocked_sanitise_environ
+    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitise
 ):
     """Extract context with one package."""
     definition = wiz.definition.Definition({
@@ -306,11 +297,11 @@ def test_extract_context_with_one_package(
     mocked_combine_command.assert_called_once_with(
         "test", {}, {"app": "App"}
     )
-    mocked_sanitise_environ.assert_called_once_with({"KEY": "VALUE"})
+    mocked_environ_sanitise.assert_called_once_with({"KEY": "VALUE"})
 
 
 def test_extract_context_with_six_package(
-    mocked_combine_environ, mocked_combine_command, mocked_sanitise_environ
+    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitise
 ):
     """Extract context with five packages."""
     definitions = [
@@ -397,11 +388,11 @@ def test_extract_context_with_six_package(
         "test6==30.5", {"APP": "APP_EXE"}, {"app1": "AppX"}
     )
 
-    mocked_sanitise_environ.assert_called_once_with({"KEY": "VALUE"})
+    mocked_environ_sanitise.assert_called_once_with({"KEY": "VALUE"})
 
 
 @pytest.mark.usefixtures("mocked_combine_command")
-@pytest.mark.usefixtures("mocked_sanitise_environ")
+@pytest.mark.usefixtures("mocked_environ_sanitise")
 def test_extract_context_with_initial_data(mocked_combine_environ):
     """Return extracted context with initial environ mapping."""
     definitions = [
@@ -437,29 +428,16 @@ def test_extract_context_with_initial_data(mocked_combine_environ):
     )
 
 
-def test_sanitise_environ_mapping():
-    """Return sanitised environment mapping"""
-    assert wiz.package.sanitise_environ_mapping({
-        "PLUGINS_A": "/path/to/plugin1:/path/to/plugin2:${PLUGINS_A}",
-        "PLUGINS_B": "${PLUGINS_B}:/path/to/plugin1:/path/to/plugin2",
-        "PLUGINS_C": "/path/to/plugin1:${PLUGINS_C}:/path/to/plugin2",
-        "KEY1": "HELLO",
-        "KEY2": "${KEY1} WORLD!",
-        "KEY3": "${UNKNOWN}"
-    }) == {
-        "PLUGINS_A": "/path/to/plugin1:/path/to/plugin2",
-        "PLUGINS_B": "/path/to/plugin1:/path/to/plugin2",
-        "PLUGINS_C": "/path/to/plugin1:/path/to/plugin2",
-        "KEY1": "HELLO",
-        "KEY2": "HELLO WORLD!",
-        "KEY3": "${UNKNOWN}"
-    }
-
-
 @pytest.mark.parametrize("mapping1, mapping2, expected, warning", [
     (
         {"KEY": "HELLO"},
         {"KEY": "${KEY} WORLD!"},
+        {"KEY": "HELLO WORLD!"},
+        None
+    ),
+    (
+        {"KEY": "HELLO"},
+        {"KEY": "$KEY WORLD!"},
         {"KEY": "HELLO WORLD!"},
         None
     ),
@@ -477,18 +455,31 @@ def test_sanitise_environ_mapping():
             "PLUGIN": "/usr/people/me/.app:/path/to/settings"
         },
         None
+    ),
+    (
+        {"PLUGIN": "/path/to/settings", "HOME": "/usr/people/me"},
+        {"PLUGIN": "$HOME/.app:$PLUGIN"},
+        {
+            "HOME": "/usr/people/me",
+            "PLUGIN": "/usr/people/me/.app:/path/to/settings"
+        },
+        None
     )
 ], ids=[
     "combine-key",
+    "combine-key-without-curly-brackets",
     "override-key",
-    "mixed-combination"
+    "mixed-combination",
+    "mixed-combination-without-curly-brackets"
 ])
 def test_combine_environ_mapping(logger, mapping1, mapping2, expected, warning):
     """Return combined environment mapping from *mapping1* and *mapping2*."""
     package_identifier = "Test==0.1.0"
-    assert wiz.package.combine_environ_mapping(
+
+    result = wiz.package.combine_environ_mapping(
         package_identifier, mapping1, mapping2
-    ) == expected
+    )
+    assert result == expected
 
     if warning is None:
         logger.warning.assert_not_called()
@@ -641,68 +632,6 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
         {"app": "App"},
         {}
     )
-
-
-def test_initiate_data(monkeypatch, mocked_socket_gethostname):
-    """Return initial data mapping."""
-    monkeypatch.setenv("USER", "someone")
-    monkeypatch.setenv("LOGNAME", "someone")
-    monkeypatch.setenv("HOME", "/path/to/somewhere")
-    monkeypatch.setenv("DISPLAY", "localhost:0.0")
-    monkeypatch.setenv("XAUTHORITY", "/run/gdm/auth/database")
-    mocked_socket_gethostname.return_value = "__HOSTNAME__"
-
-    assert wiz.package.initiate_environ() == {
-        "USER": "someone",
-        "LOGNAME": "someone",
-        "HOME": "/path/to/somewhere",
-        "HOSTNAME": "__HOSTNAME__",
-        "DISPLAY": "localhost:0.0",
-        "XAUTHORITY": "/run/gdm/auth/database",
-        "PATH": os.pathsep.join([
-            "/usr/local/sbin",
-            "/usr/local/bin",
-            "/usr/sbin",
-            "/usr/bin",
-            "/sbin",
-            "/bin",
-        ])
-    }
-
-
-def test_initiate_data_with_initial_data(
-    monkeypatch, mocked_socket_gethostname
-):
-    """Return initial data mapping with initial data mapping."""
-    monkeypatch.setenv("USER", "someone")
-    monkeypatch.setenv("LOGNAME", "someone")
-    monkeypatch.setenv("HOME", "/path/to/somewhere")
-    monkeypatch.setenv("DISPLAY", "localhost:0.0")
-    monkeypatch.setenv("XAUTHORITY", "/run/gdm/auth/database")
-    mocked_socket_gethostname.return_value = "__HOSTNAME__"
-
-    assert wiz.package.initiate_environ(
-        mapping={
-            "LOGNAME": "someone-else",
-            "KEY": "VALUE"
-        }
-    ) == {
-        "USER": "someone",
-        "LOGNAME": "someone-else",
-        "HOME": "/path/to/somewhere",
-        "HOSTNAME": "__HOSTNAME__",
-        "DISPLAY": "localhost:0.0",
-        "XAUTHORITY": "/run/gdm/auth/database",
-        "PATH": os.pathsep.join([
-            "/usr/local/sbin",
-            "/usr/local/bin",
-            "/usr/sbin",
-            "/usr/bin",
-            "/sbin",
-            "/bin",
-        ]),
-        "KEY": "VALUE"
-    }
 
 
 def test_package_localized_environ():

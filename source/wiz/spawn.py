@@ -15,6 +15,7 @@ import signal
 import mlog
 
 import wiz.utility
+import wiz.symbol
 
 
 def shell(environment, shell_type="bash"):
@@ -75,6 +76,11 @@ def execute(elements, environment):
     logger.info(
         "Start command: {}".format(wiz.utility.combine_command(elements))
     )
+
+    # Substitute environment variables from command line elements.
+    elements = [
+        wiz.environ.substitute(element, environment) for element in elements
+    ]
 
     # Register the cleanup function as handler for SIGINT and SIGTERM.
     signal.signal(signal.SIGINT, _cleanup)
