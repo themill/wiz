@@ -898,7 +898,7 @@ def wiz_install(click_context, **kwargs):
     "edit",
     help=(
         """
-        Edit one or several definition(s) with default editor or with operation
+        Edit one or several definitions with default editor or with operation
         option(s).
 
         If an output is specified, the original definition(s) will not be

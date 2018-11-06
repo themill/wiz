@@ -9,8 +9,8 @@ Release Notes
     .. change:: new
         :tags: command-line
 
-        Added ``wiz edit`` sub-command to edit a definition. This command can
-        be used to update a keyword in a definition with a new value.
+        Added ``wiz edit`` sub-command to edit one or several definitions with
+        the default editor or with operation option(s).
 
     .. change:: new
         :tags: command-line
