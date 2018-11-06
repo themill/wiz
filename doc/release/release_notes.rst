@@ -21,12 +21,6 @@ Release Notes
     .. change:: new
         :tags: API
 
-        Added :func:`wiz.set_in_definitions` to edit a list of definition files
-        by setting a new value to a keyword.
-
-    .. change:: new
-        :tags: API
-
         Added :func:`wiz.utility.combine_command` to return command elements
         as a unified command string while preserving quoted elements.
 
