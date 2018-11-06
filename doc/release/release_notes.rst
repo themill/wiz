@@ -9,6 +9,12 @@ Release Notes
     .. change:: new
         :tags: API
 
+        Added :mod:`wiz.environ` to regroup functions dealing with the
+        environment mapping resolution.
+
+    .. change:: new
+        :tags: API
+
         Added :func:`wiz.utility.combine_command` to return command elements
         as a unified command string while preserving quoted elements.
 
@@ -47,6 +53,27 @@ Release Notes
 
             >>> wiz run python -- -c 'print("TEST")'
             >>> wiz run python -c 'print("TEST")'
+
+    .. change:: changed
+        :tags: API, command-line
+
+        Updated :func:`wiz.spawn.execute` to substitute environment variables
+        within command elements before the execution process. User can then
+        use environment variables in command, such as::
+
+            >>> wiz run python -- echo \$PIP_CONFIG_FILE
+
+    .. change:: changed
+        :tags: API
+
+        Moved :func:`wiz.package.initiate_environ` to
+        :func:`wiz.environ.initiate`.
+
+    .. change:: changed
+        :tags: API
+
+        Moved :func:`wiz.package.sanitise_environ_mapping` to
+        :func:`wiz.environ.sanitise`.
 
     .. change:: changed
         :tags: API
