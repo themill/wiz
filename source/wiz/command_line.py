@@ -1045,6 +1045,9 @@ def wiz_edit(click_context, **kwargs):
 
             while True:
                 try:
+                    # Sanitized definition before exporting it.
+                    definition = definition.sanitized()
+
                     wiz.filesystem.export(
                         path, definition.encode(), overwrite=overwrite
                     )
@@ -1059,7 +1062,7 @@ def wiz_edit(click_context, **kwargs):
                     overwrite = True
 
     except Exception as error:
-        logger.error(error, traceback=True)
+        logger.error(str(error), traceback=True)
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
