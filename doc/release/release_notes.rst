@@ -9,7 +9,7 @@ Release Notes
     .. change:: new
         :tags: API
 
-        Added :mod:`wiz.environ` to regroup functions dealing with the
+        Added :mod:`wiz.environ` module to regroup functions dealing with the
         environment mapping resolution. Added :mod:`wiz.environ.contains` to
         identify specific environment variable in string and
         :mod:`wiz.environ.substitute` to replace environment variables by their
