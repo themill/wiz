@@ -64,7 +64,7 @@ Release Notes
         within command elements before the execution process. User can then
         use environment variables in command, such as::
 
-            >>> wiz run python -- echo \$PIP_CONFIG_FILE
+            >>> wiz use python -- echo \$PIP_CONFIG_FILE
 
     .. change:: changed
         :tags: API
