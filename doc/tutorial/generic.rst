@@ -232,6 +232,9 @@ resolved using ``--``, i.e::
 
     .. code-block:: console
 
+        >>> wiz use python -- echo $PIP_CONFIG_FILE
+        PIP_CONFIG_FILE: Undefined variable.
+
         >>> wiz use python -- echo \$PIP_CONFIG_FILE
         info: Start command: echo '$PIP_CONFIG_FILE'
         /mill3d/server/apps/PYTHON/el7-x86-64/python-3.6.6/etc/pip/pip.conf
