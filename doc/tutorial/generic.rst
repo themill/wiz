@@ -224,6 +224,21 @@ resolved using ``--``, i.e::
         :align: center
         :alt: maya menu some
 
+.. warning::
+
+    When executing a command using an environment variable from the resolved
+    context, the dollar sign must be escaped in order to prevent substituting
+    the variable with the external environment:
+
+    .. code-block:: console
+
+        >>> wiz use python -- echo $PIP_CONFIG_FILE
+        PIP_CONFIG_FILE: Undefined variable.
+
+        >>> wiz use python -- echo \$PIP_CONFIG_FILE
+        info: Start command: echo '$PIP_CONFIG_FILE'
+        /mill3d/server/apps/PYTHON/el7-x86-64/python-3.6.6/etc/pip/pip.conf
+
 Default Application Environments
 --------------------------------
 

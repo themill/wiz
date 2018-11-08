@@ -7,6 +7,7 @@ from _version import __version__
 import wiz.registry
 import wiz.definition
 import wiz.package
+import wiz.environ
 import wiz.graph
 import wiz.symbol
 import wiz.spawn
@@ -219,7 +220,7 @@ def resolve_context(
     )
     packages = resolver.compute_packages(requirements)
 
-    _environ_mapping = wiz.package.initiate_environ(environ_mapping)
+    _environ_mapping = wiz.environ.initiate(environ_mapping)
     context = wiz.package.extract_context(
         packages, environ_mapping=_environ_mapping
     )
@@ -319,7 +320,7 @@ def discover_context():
         for identifier in package_identifiers
     ]
 
-    _environ_mapping = wiz.package.initiate_environ()
+    _environ_mapping = wiz.environ.initiate()
     context = wiz.package.extract_context(
         packages, environ_mapping=_environ_mapping
     )
