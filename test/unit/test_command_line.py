@@ -28,6 +28,12 @@ def mock_datetime_now(mocker):
 
 
 @pytest.fixture()
+def mocked_click_edit(mocker):
+    """Return mocked 'click.edit' function."""
+    return mocker.patch.object(click, "edit")
+
+
+@pytest.fixture()
 def mocked_click_prompt(mocker):
     """Return mocked 'click.prompt' function."""
     return mocker.patch.object(click, "prompt")
@@ -43,6 +49,12 @@ def mocked_click_confirm(mocker):
 def mocked_fetch_definition_mapping(mocker):
     """Return mocked 'wiz.fetch_definition_mapping' function."""
     return mocker.patch.object(wiz, "fetch_definition_mapping")
+
+
+@pytest.fixture()
+def mocked_load_definition(mocker):
+    """Return mocked 'wiz.load_definition' function."""
+    return mocker.patch.object(wiz, "load_definition")
 
 
 @pytest.fixture()
@@ -2695,3 +2707,776 @@ def test_install_vcs_command_error(options):
     )
     assert result.exit_code == 2
     assert result.exception
+
+
+@pytest.mark.parametrize("options, recorded", [
+    ([], False),
+    (["--record", "/path"], True)
+], ids=[
+    "normal",
+    "recorded",
+])
+@pytest.mark.usefixtures("mock_datetime_now")
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_load_definition")
+@pytest.mark.usefixtures("mocked_click_confirm")
+@pytest.mark.usefixtures("mocked_click_edit")
+@pytest.mark.usefixtures("mocked_history_record_action")
+def test_edit_recorded(
+    mocked_history_start_recording, mocked_history_get,
+    mocked_filesystem_export, options, recorded
+):
+    """Record history when editing definition(s)."""
+    mocked_history_get.return_value = "__HISTORY__"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        options + ["edit", "/path/to/foo.json"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    if recorded:
+        mocked_history_start_recording.assert_called_once_with(
+            command=" ".join(
+                ["wiz"] + options + ["edit", "/path/to/foo.json"]
+            )
+        )
+        mocked_history_get.assert_called_once_with(serialized=True)
+        mocked_filesystem_export.assert_called_once_with(
+            "/path/wiz-NOW.dump", "__HISTORY__", compressed=True
+        )
+
+    else:
+        mocked_history_start_recording.assert_not_called()
+        mocked_history_get.assert_not_called()
+        mocked_filesystem_export.assert_not_called()
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with editor."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+    mocked_click_edit.return_value = (
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}"
+    )
+    mocked_click_confirm.return_value = True
+    mocked_filesystem_export.side_effect = [wiz.exception.FileExists(), None]
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["edit", "/path/to/foo.json"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+    mocked_click_edit.assert_called_once_with(
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}",
+        extension=".json"
+    )
+
+    mocked_click_confirm.assert_called_once_with("Overwrite 'foo'?")
+
+    assert mocked_filesystem_export.call_count == 2
+    mocked_filesystem_export.assert_any_call(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\"\n"
+            "}"
+        ),
+        overwrite=False
+    )
+    mocked_filesystem_export.assert_any_call(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\"\n"
+            "}"
+        ),
+        overwrite=True
+    )
+
+    mocked_history_record_action.assert_not_called()
+
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_non_saved(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Skip definition editing when updated data is unsaved in editor."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+    mocked_click_edit.return_value = None
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["edit", "/path/to/foo.json"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+    mocked_click_edit.assert_called_once_with(
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}",
+        extension=".json"
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_filesystem_export.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+    logger.info.assert_called_once_with("Edit 'foo'.")
+    logger.warning.assert_called_once_with("Skip edition for 'foo'.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_overwrite_existing(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with editor by overwriting original."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+    mocked_click_edit.return_value = (
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["edit", "/path/to/foo.json", "--overwrite"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+    mocked_click_edit.assert_called_once_with(
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}",
+        extension=".json"
+    )
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\"\n"
+            "}"
+        ),
+        overwrite=True
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_skip_existing(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Abort definition edition by skipping overwriting."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+    mocked_click_edit.return_value = (
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}"
+    )
+
+    mocked_click_confirm.return_value = False
+    mocked_filesystem_export.side_effect = wiz.exception.FileExists()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, ["edit", "/path/to/foo.json"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+    mocked_click_edit.assert_called_once_with(
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}",
+        extension=".json"
+    )
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\"\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_called_once_with("Overwrite 'foo'?")
+
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+    logger.warning.assert_called_once_with("Skip edition for 'foo'.")
+    logger.info.assert_called_once_with("Edit 'foo'.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_output(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with editor and save in different output path."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+    mocked_click_edit.return_value = (
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["edit", "/path/to/foo.json", "--output", "/path/to/target"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+    mocked_click_edit.assert_called_once_with(
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}",
+        extension=".json"
+    )
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/target/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\"\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/target/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_set(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'set'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--set", "install-location", "/path/to/data"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"install-location\": \"/path/to/data\"\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_update(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'update'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "environ": {
+            "KEY1": "VALUE1"
+        },
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--update", "environ", "{\"KEY1\": \"VALUE2\"}"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"environ\": {\n"
+            "        \"KEY1\": \"VALUE2\"\n"
+            "    }\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_extend(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'extend'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "requirements": [
+            "bar >= 0.1.0, < 1"
+        ],
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--extend", "requirements", "[\"bim >= 2.5, < 3\", \"baz\"]"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"requirements\": [\n"
+            "        \"bar >=0.1.0, <1\",\n"
+            "        \"bim >=2.5, <3\",\n"
+            "        \"baz\"\n"
+            "    ]\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_insert(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'insert'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "requirements": [
+            "bar >= 0.1.0, < 1",
+            "bim >= 2.5, < 3"
+        ],
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--insert", "requirements", "baz", "1"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"requirements\": [\n"
+            "        \"bar >=0.1.0, <1\",\n"
+            "        \"baz\",\n"
+            "        \"bim >=2.5, <3\"\n"
+            "    ]\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_remove(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'remove'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "requirements": [
+            "bar >= 0.1.0, < 1",
+            "bim >= 2.5, < 3"
+        ],
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--remove", "requirements"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\"\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_remove_key(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'remove-key'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "environ": {
+            "KEY1": "VALUE1",
+            "KEY2": "VALUE2",
+        },
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--remove-key", "environ", "KEY2"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"environ\": {\n"
+            "        \"KEY1\": \"VALUE1\"\n"
+            "    }\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_remove_index(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'remove-index'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "requirements": [
+            "bar >= 0.1.0, < 1",
+            "bim >= 2.5, < 3"
+        ],
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--remove-index", "requirements", "0"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"requirements\": [\n"
+            "        \"bim >=2.5, <3\"\n"
+            "    ]\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_error_raised(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Fail to edit definition when error is saved."""
+    exception = Exception("Oh Shit!")
+    mocked_load_definition.side_effect = exception
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["edit", "/path/to/foo.json"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_click_edit.assert_not_called()
+    mocked_click_confirm.assert_not_called()
+    mocked_filesystem_export.assert_not_called()
+
+    logger.info.assert_not_called()
+    logger.warning.assert_not_called()
+
+    logger.error.assert_called_once_with("Oh Shit!", traceback=True)
+
+    mocked_history_record_action.assert_called_once_with(
+        "RAISE_EXCEPTION", error=exception
+    )

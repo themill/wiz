@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import os
+import json
 import itertools
 import collections
 import datetime
@@ -891,6 +892,194 @@ def wiz_install(click_context, **kwargs):
             break
 
     _export_history_if_requested(click_context)
+
+
+@main.command(
+    "edit",
+    help=(
+        """
+        Edit one or several definitions with default editor or with operation
+        option(s).
+
+        If an output is specified, the original definition(s) will not be
+        mutated. Otherwise, the original definition file(s) will be updated with
+        edited data.
+
+        The edited definition(s) will be validated before export.
+
+        Example::
+
+            \b
+            wiz edit foo.json
+            wiz edit foo.json --output /tmp/target
+            wiz edit foo.json --set install-location --value /path/data
+            wiz edit foo.json --update environ --value '{"KEY": "VALUE"}'
+            wiz edit * --extend requirements --value "bar > 0.1.0"
+
+        """
+    ),
+    short_help="Edit one or several definition(s).",
+    context_settings=CONTEXT_SETTINGS
+)
+@click.option(
+    "--set",
+    help="Set a new value to a keyword.",
+    nargs=2,
+    type=click.Tuple([str, lambda x: _casted_argument(x)]),
+    metavar="<KEYWORD VALUE>",
+    default=(None, None),
+)
+@click.option(
+    "--update",
+    help="Update mapping keyword with mapping value.",
+    nargs=2,
+    type=click.Tuple([str, lambda x: _casted_argument(x)]),
+    metavar="<KEYWORD VALUE>",
+    default=(None, None),
+)
+@click.option(
+    "--extend",
+    help="Extend list keyword with list value.",
+    nargs=2,
+    type=click.Tuple([str, lambda x: _casted_argument(x)]),
+    metavar="<KEYWORD VALUE>",
+    default=(None, None),
+)
+@click.option(
+    "--insert",
+    help="Insert value to keyword with.",
+    nargs=3,
+    type=click.Tuple([str, str, int]),
+    metavar="<KEYWORD VALUE INDEX>",
+    default=(None, None, None),
+)
+@click.option(
+    "--remove",
+    help="Remove keyword.",
+    nargs=1,
+    type=lambda x: x if isinstance(x, tuple) else (str(x),),
+    metavar="<KEYWORD>",
+    default=(None,),
+)
+@click.option(
+    "--remove-key",
+    help="Remove value from mapping keyword.",
+    nargs=2,
+    type=click.Tuple([str, str]),
+    metavar="<KEYWORD NAME>",
+    default=(None, None),
+)
+@click.option(
+    "--remove-index",
+    help="Remove index from list keyword.",
+    nargs=2,
+    type=click.Tuple([str, int]),
+    metavar="<KEYWORD INDEX>",
+    default=(None, None),
+)
+@click.option(
+    "--overwrite",
+    help="Always overwrite existing definitions.",
+    is_flag=True,
+    default=False
+)
+@click.option(
+    "-o", "--output",
+    help=(
+        "Indicate an output directory for updated definition(s). "
+        "By default, original definition will be modified."
+    ),
+    type=click.Path(),
+)
+@click.argument(
+    "definitions",
+    nargs=-1,
+    required=True
+)
+@click.pass_context
+def wiz_edit(click_context, **kwargs):
+    """Edit one or several definition(s)."""
+    logger = mlog.Logger(__name__ + ".wiz_edit")
+
+    # Ensure that context fail if extra arguments were passed.
+    _fail_on_extra_arguments(click_context)
+
+    # Fetch operations from arguments
+    all_operations = [
+        "set", "update", "extend", "insert", "remove", "remove_key",
+        "remove_index"
+    ]
+
+    operations = [_id for _id in all_operations if kwargs[_id][0] is not None]
+
+    try:
+        # Fetch definitions from arguments.
+        definitions = [
+            wiz.load_definition(path) for path in kwargs["definitions"]
+        ]
+
+        for definition in definitions:
+            label = wiz.utility.compute_label(definition)
+            logger.info("Edit {}.".format(label))
+
+            if len(operations) == 0:
+                data = click.edit(definition.encode(), extension=".json")
+                if data is None:
+                    logger.warning("Skip edition for {}.".format(label))
+                    continue
+
+                definition = wiz.definition.Definition(**json.loads(data))
+
+            else:
+                for name in operations:
+                    args = kwargs[name]
+                    definition = getattr(definition, name)(*args)
+
+            path = definition["definition-location"]
+
+            if kwargs["output"] is not None:
+                name = os.path.basename(definition["definition-location"])
+                path = os.path.join(kwargs["output"], name)
+
+            overwrite = kwargs["overwrite"]
+
+            while True:
+                try:
+                    # Sanitized definition before exporting it.
+                    definition = definition.sanitized()
+
+                    wiz.filesystem.export(
+                        path, definition.encode(), overwrite=overwrite
+                    )
+                    logger.info("Saved {} in {}.".format(label, path))
+                    break
+
+                except wiz.exception.FileExists:
+                    if not click.confirm("Overwrite {}?".format(label)):
+                        logger.warning("Skip edition for {}.".format(label))
+                        break
+
+                    overwrite = True
+
+    except Exception as error:
+        logger.error(str(error), traceback=True)
+
+        wiz.history.record_action(
+            wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
+        )
+
+    _export_history_if_requested(click_context)
+
+
+def _casted_argument(argument):
+    """Return *argument* casted into a proper type from JSON decoder."""
+    # Ensure that boolean value are in JSON format.
+    argument = argument.replace("True", "true").replace("False", "false")
+
+    try:
+        return json.loads(argument)
+    except ValueError:
+        return argument
 
 
 def _fail_on_extra_arguments(click_context):

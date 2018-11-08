@@ -7,6 +7,30 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: new
+        :tags: command-line
+
+        Added :option:`--version <wiz --version>` to display the package
+        version.
+
+    .. change:: new
+        :tags: command-line
+
+        Added ``wiz edit`` sub-command to edit one or several definitions with
+        the default editor or with operation option(s).
+
+    .. change:: new
+        :tags: command-line
+
+        Updated ``wiz run`` sub-command to accept unknown arguments and
+        automatically consider it as an extra argument which will be appended to
+        the command.
+
+        For instance, both of the following commands are valid::
+
+            >>> wiz run python -- -c 'print("TEST")'
+            >>> wiz run python -c 'print("TEST")'
+
+    .. change:: new
         :tags: API
 
         Added :mod:`wiz.environ` module to regroup functions dealing with the
@@ -19,13 +43,8 @@ Release Notes
         :tags: API
 
         Added :func:`wiz.utility.combine_command` to return command elements
-        as a unified command string while preserving quoted elements.
-
-    .. change:: new
-        :tags: command-line
-
-        Added :option:`--version <wiz --version>` to display the package
-        version.
+        as a unified command string while keeping quoted elements in order
+        to preserve the command in the log as it was typed.
 
     .. change:: changed
         :tags: command-line
@@ -38,24 +57,13 @@ Release Notes
 
         Updated sub-commands to only accept extra arguments for the ``wiz use``
         and ``wiz run`` sub-commands in order to execute a custom command
-        within a resolved context.
+        within a resolved context. Previously, extra arguments were accepted by
+        all sub-commands, which is not desired.
 
         For instance, extra arguments could be used as follow::
 
             wiz use python -- python -c 'print("TEST")'
             wiz run python -- -c 'print("TEST")'
-
-    .. change:: changed
-        :tags: command-line
-
-        Updated ``wiz run`` sub-command to accept unknown arguments and
-        automatically consider it as an extra argument which will be appended to
-        the command.
-
-        For instance, both of the following commands are valid::
-
-            >>> wiz run python -- -c 'print("TEST")'
-            >>> wiz run python -c 'print("TEST")'
 
     .. change:: changed
         :tags: API, command-line
@@ -97,6 +105,19 @@ Release Notes
 
         Updated :func:`wiz.package.initiate_environ` to add the
         :envvar:`HOSTNAME` environment variable into the initial environment.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.definition.export` to sanitized the definition with
+        :meth:`wiz.definition.Definition.sanitized` before exporting it.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.definition.load` to add 'definition-location' keyword
+        in mapping. Previously this would only be added by
+        :func:`wiz.definition.discover`.
 
 .. release:: 1.2.1
     :date: 2018-10-24
