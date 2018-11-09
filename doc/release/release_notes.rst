@@ -9,14 +9,14 @@ Release Notes
     .. change:: new
         :tags: command-line
 
-        Added ``wiz edit`` sub-command to edit one or several definitions with
-        the default editor or with operation option(s).
+        Added :option:`--version <wiz --version>` to display the package
+        version.
 
     .. change:: new
         :tags: command-line
 
-        Added :option:`--version <wiz --version>` to display the package
-        version.
+        Added ``wiz edit`` sub-command to edit one or several definitions with
+        the default editor or with operation option(s).
 
     .. change:: new
         :tags: command-line
@@ -29,6 +29,15 @@ Release Notes
 
             >>> wiz run python -- -c 'print("TEST")'
             >>> wiz run python -c 'print("TEST")'
+
+    .. change:: new
+        :tags: API
+
+        Added :mod:`wiz.environ` module to regroup functions dealing with the
+        environment mapping resolution. Added :mod:`wiz.environ.contains` to
+        identify specific environment variable in string and
+        :mod:`wiz.environ.substitute` to replace environment variables by their
+        respective values in string.
 
     .. change:: new
         :tags: API
@@ -55,6 +64,27 @@ Release Notes
 
             wiz use python -- python -c 'print("TEST")'
             wiz run python -- -c 'print("TEST")'
+
+    .. change:: changed
+        :tags: API, command-line
+
+        Updated :func:`wiz.spawn.execute` to substitute environment variables
+        within command elements before the execution process. User can then
+        use environment variables in command, such as::
+
+            >>> wiz use python -- echo \$PIP_CONFIG_FILE
+
+    .. change:: changed
+        :tags: API
+
+        Moved :func:`wiz.package.initiate_environ` to
+        :func:`wiz.environ.initiate`.
+
+    .. change:: changed
+        :tags: API
+
+        Moved :func:`wiz.package.sanitise_environ_mapping` to
+        :func:`wiz.environ.sanitise`.
 
     .. change:: changed
         :tags: API
