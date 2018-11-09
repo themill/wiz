@@ -238,23 +238,6 @@ def wiz_list_group(click_context):
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
 
-    # Fetch all definitions.
-    click_context.obj["package_mapping"] = {}
-    click_context.obj["command_mapping"] = {}
-
-    for definition in wiz.definition.discover(
-        click_context.obj["registry_paths"],
-        system_mapping=click_context.obj["system_mapping"],
-        max_depth=click_context.obj["registry_search_depth"]
-    ):
-        _add_to_mapping(definition, click_context.obj["package_mapping"])
-
-        for command in definition.command.keys():
-            click_context.obj["command_mapping"].setdefault(command, [])
-            click_context.obj["command_mapping"][command] = (
-                definition.identifier
-            )
-
 
 @wiz_list_group.command(
     name="package",
@@ -279,13 +262,37 @@ def wiz_list_group(click_context):
     is_flag=True,
     default=False
 )
+@click.option(
+    "--no-arch",
+    help="Display packages for all platforms.",
+    is_flag=True,
+    default=False
+)
 @click.pass_context
 def wiz_list_package(click_context, **kwargs):
     """Command to list available package definitions."""
+    package_mapping = {}
+    command_mapping = {}
+
+    system_mapping = (
+        None if kwargs["no_arch"] else click_context.obj["system_mapping"]
+    )
+
+    for definition in wiz.definition.discover(
+        click_context.obj["registry_paths"],
+        system_mapping=system_mapping,
+        max_depth=click_context.obj["registry_search_depth"]
+    ):
+        _add_to_mapping(definition, package_mapping)
+
+        for command in definition.command.keys():
+            command_mapping.setdefault(command, [])
+            command_mapping[command] = definition.identifier
+
     display_registries(click_context.obj["registry_paths"])
 
     display_package_mapping(
-        click_context.obj["package_mapping"],
+        package_mapping,
         click_context.obj["registry_paths"],
         all_versions=kwargs["all"],
     )
@@ -316,14 +323,38 @@ def wiz_list_package(click_context, **kwargs):
     is_flag=True,
     default=False
 )
+@click.option(
+    "--no-arch",
+    help="Display commands for all platforms.",
+    is_flag=True,
+    default=False
+)
 @click.pass_context
 def wiz_list_command(click_context, **kwargs):
     """Command to list available commands."""
+    package_mapping = {}
+    command_mapping = {}
+
+    system_mapping = (
+        None if kwargs["no_arch"] else click_context.obj["system_mapping"]
+    )
+
+    for definition in wiz.definition.discover(
+        click_context.obj["registry_paths"],
+        system_mapping=system_mapping,
+        max_depth=click_context.obj["registry_search_depth"]
+    ):
+        _add_to_mapping(definition, package_mapping)
+
+        for command in definition.command.keys():
+            command_mapping.setdefault(command, [])
+            command_mapping[command] = definition.identifier
+
     display_registries(click_context.obj["registry_paths"])
 
     display_command_mapping(
-        click_context.obj["command_mapping"],
-        click_context.obj["package_mapping"],
+        command_mapping,
+        package_mapping,
         click_context.obj["registry_paths"],
         all_versions=kwargs["all"],
     )
@@ -353,6 +384,12 @@ def wiz_list_command(click_context, **kwargs):
 @click.option(
     "-a", "--all",
     help="Display all package versions, not just the latest one.",
+    is_flag=True,
+    default=False
+)
+@click.option(
+    "--no-arch",
+    help="Display results for all platforms.",
     is_flag=True,
     default=False
 )
@@ -387,9 +424,13 @@ def wiz_search(click_context, **kwargs):
     package_mapping = {}
     command_mapping = {}
 
+    system_mapping = (
+        None if kwargs["no_arch"] else click_context.obj["system_mapping"]
+    )
+
     for definition in wiz.definition.discover(
         click_context.obj["registry_paths"],
-        system_mapping=click_context.obj["system_mapping"],
+        system_mapping=system_mapping,
         max_depth=click_context.obj["registry_search_depth"]
     ):
         requested = True
