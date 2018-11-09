@@ -16,100 +16,65 @@ import wiz.utility
 import wiz.validator
 
 
-def fetch(paths, requests=None, system_mapping=None, max_depth=None):
+def fetch(paths, system_mapping=None, max_depth=None):
     """Return mapping from all definitions available under *paths*.
 
     A definition mapping should be in the form of::
 
         {
             "command": {
-                "app": "my-app",
+                "fooExe": "foo",
                 ...
             },
             "package": {
-                "my-app": {
-                    "1.1.0": <Definition(identifier="my-app", version="1.1.0")>,
-                    "1.0.0": <Definition(identifier="my-app", version="1.0.0")>,
-                    "0.1.0": <Definition(identifier="my-app", version="0.1.0")>,
+                "foo": {
+                    "1.1.0": <Definition(identifier="foo", version="1.1.0")>,
+                    "1.0.0": <Definition(identifier="foo", version="1.0.0")>,
+                    "0.1.0": <Definition(identifier="foo", version="0.1.0")>,
                     ...
                 },
                 ...
             },
             "implicit-packages": [
-                "foo==0.1.0", ...
+                "bar==0.1.0",
+                ...
             ]
         }
 
-    *requests* could be a list of element which can influence the definition
-    research. It can be in the form of "package >= 1.0.0, < 2" in order to
-    affine the research to a particular version range.
-
-    *system_mapping* could be a mapping of the current system, usually
-    retrieved via :func:`wiz.system.query`.
-
-    :func:`discover` available definitions under *paths*, searching recursively
-    up to *max_depth*.
+    *system_mapping* could be a mapping of the current system which will filter
+    out non compatible definitions. The mapping should have been retrieved via
+    :func:`wiz.system.query`.
 
     """
-    logger = mlog.Logger(__name__ + ".fetch")
-
     mapping = {
         wiz.symbol.PACKAGE_REQUEST_TYPE: {},
         wiz.symbol.COMMAND_REQUEST_TYPE: {},
-        wiz.symbol.IMPLICIT_PACKAGE: []
     }
 
     # Record definitions which should be implicitly used.
-    implicit_definitions = []
-    implicit_definition_mapping = {}
+    implicit_identifiers = []
+    implicit_package_mapping = {}
 
-    for definition in discover(paths, max_depth=max_depth):
-        if requests is not None and not validate(definition, requests):
-            continue
-
-        if (
-            system_mapping is not None and
-            not wiz.system.validate(definition, system_mapping)
-        ):
-            continue
-
-        identifier = definition.identifier
-        version = str(definition.version)
-
-        # Record package definition.
-        package_type = wiz.symbol.PACKAGE_REQUEST_TYPE
-        command_type = wiz.symbol.COMMAND_REQUEST_TYPE
-
-        mapping[package_type].setdefault(identifier, {})
-        mapping[package_type][identifier][version] = definition
-
-        # Record package identifiers which should be used implicitly in context.
-        if definition.get("auto-use"):
-            implicit_definitions.append(identifier)
-            implicit_definition_mapping.setdefault(identifier, {})
-            implicit_definition_mapping[identifier][version] = definition
-            logger.debug(
-                "Definition '{}=={}' set to be implicitly used with 'auto-use' "
-                "keyword".format(identifier, version)
-            )
+    for definition in discover(
+        paths, system_mapping=system_mapping, max_depth=max_depth
+    ):
+        _add_to_mapping(definition, mapping[wiz.symbol.PACKAGE_REQUEST_TYPE])
 
         # Record commands from definition.
         for command in definition.command.keys():
-            mapping[command_type][command] = definition.identifier
+            mapping[wiz.symbol.COMMAND_REQUEST_TYPE][command] = (
+                definition.identifier
+            )
 
-    # Add implicit package identifiers of best matching definitions which have
-    # the 'auto-use' keyword in inverse order of discovery to give priority
-    # to the latest discovered.
-    for definition_identifier in sorted(
-        implicit_definition_mapping.keys(),
-        key=lambda _id: implicit_definitions.index(_id),
-        reverse=True
-    ):
-        requirement = wiz.utility.get_requirement(definition_identifier)
-        definition = query(requirement, implicit_definition_mapping)
-        mapping[wiz.symbol.IMPLICIT_PACKAGE].append(
-            wiz.package.generate_identifier(definition)
-        )
+        # Record package identifiers which should be used implicitly in context.
+        if definition.get("auto-use"):
+            implicit_identifiers.append(definition.identifier)
+            _add_to_mapping(definition, implicit_package_mapping)
+
+    # Extract implicit package requests.
+    mapping[wiz.symbol.IMPLICIT_PACKAGE] = _extract_implicit_requests(
+        implicit_identifiers, implicit_package_mapping
+    )
 
     wiz.history.record_action(
         wiz.symbol.DEFINITIONS_COLLECTION_ACTION,
@@ -119,39 +84,53 @@ def fetch(paths, requests=None, system_mapping=None, max_depth=None):
     return mapping
 
 
-def validate(definition, requests):
-    """Indicate whether *definition* is compatible with *requests*.
+def _add_to_mapping(definition, mapping):
+    """Mutate package *mapping* to add *definition*
 
-    *definition* should be a :class:`Definition` instance.
+    The mutated mapping should be in the form of::
 
-    *requests* could be a list of element which can influence the definition
-    research. It can be in the form of "package >= 1.0.0, < 2" in order to
-    affine the research to a particular version range.
+        {
+            "foo": {
+                "1.1.0": <Definition(identifier="foo", version="1.1.0")>,
+                "1.0.0": <Definition(identifier="foo", version="1.0.0")>,
+                "0.1.0": <Definition(identifier="foo", version="0.1.0")>,
+                ...
+            },
+            ...
+        }
 
     """
-    # Convert requests into requirements.
-    requirements = [
-        wiz.utility.get_requirement(request) for request in requests
-    ]
-    if len(requirements) == 0:
-        return False
+    identifier = definition.identifier
+    version = str(definition.version)
 
-    # Ensure that each requirement is compatible with definition.
-    compatible = True
+    mapping.setdefault(identifier, {})
+    mapping[identifier].setdefault(version, {})
+    mapping[identifier][version] = definition
 
-    for requirement in requirements:
-        if not (
-            requirement.name.lower() in definition.identifier.lower() or
-            requirement.name.lower() in definition.description.lower()
-        ):
-            compatible = False
-            break
 
-        if definition.version not in requirement.specifier:
-            compatible = False
-            break
+def _extract_implicit_requests(identifiers, mapping):
+    """Extract requests from definition *identifiers* and package *mapping*.
 
-    return compatible
+    Package requests are returned in inverse order of discovery to give priority
+    to the latest discovered
+
+    *identifiers* should be a list of definition identifiers sorted in order of
+    discovery.
+
+    *mapping* should be a mapping regrouping all implicit package definitions.
+
+    """
+    requests = []
+
+    for identifier in sorted(
+        mapping.keys(), key=lambda _id: identifiers.index(_id), reverse=True
+    ):
+        requirement = wiz.utility.get_requirement(identifier)
+        definition = query(requirement, mapping)
+        request = wiz.package.generate_identifier(definition)
+        requests.append(request)
+
+    return requests
 
 
 def query(requirement, definition_mapping):
@@ -254,8 +233,12 @@ def export(path, definition, overwrite=False):
     return file_path
 
 
-def discover(paths, max_depth=None):
+def discover(paths, system_mapping=None, max_depth=None):
     """Discover and yield all definitions found under *paths*.
+
+    *system_mapping* could be a mapping of the current system which will filter
+    out non compatible definitions. The mapping should have been retrieved via
+    :func:`wiz.system.query`.
 
     If *max_depth* is None, search all sub-trees under each path for
     definition files in JSON format. Otherwise, only search up to *max_depth*
@@ -286,39 +269,37 @@ def discover(paths, max_depth=None):
                 if extension != ".json":
                     continue
 
-                definition_path = os.path.join(base, filename)
-                logger.debug(
-                    "Discovered definition file {!r}.".format(definition_path)
-                )
+                _path = os.path.join(base, filename)
 
+                # Load and validate the definition.
                 try:
-                    definition = load(
-                        definition_path, mapping={"registry": path}
-                    )
-
-                    if definition.get("disabled", False):
-                        logger.warning(
-                            "Definition fetched from {!r} is"
-                            " disabled".format(definition_path),
-                        )
-                        continue
+                    definition = load(_path, mapping={"registry": path})
 
                 except (
                     IOError, ValueError, TypeError,
                     wiz.exception.WizError
                 ):
                     logger.warning(
-                        "Error occurred trying to load definition "
-                        "from {!r}".format(definition_path),
+                        "Error occurred trying to load definition from {!r}"
+                        .format(_path),
                         traceback=True
                     )
                     continue
-                else:
-                    logger.debug(
-                        "Loaded definition {!r} from {!r}."
-                        .format(definition.identifier, definition_path)
-                    )
-                    yield definition
+
+                # Skip definition if an incompatible system if set.
+                if (
+                    system_mapping is not None and
+                    not wiz.system.validate(definition, system_mapping)
+                ):
+                    continue
+
+                # Skip definition if "disabled" keyword is set to True.
+                if definition.get("disabled", False):
+                    _id = wiz.package.generate_identifier(definition)
+                    logger.warning("Definition '{}' is disabled".format(_id))
+                    continue
+
+                yield definition
 
 
 def load(path, mapping=None):

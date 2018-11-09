@@ -250,9 +250,9 @@ def mocked_filesystem_export(mocker):
 
 
 @pytest.fixture()
-def mocked_validate(mocker):
+def mocked_system_validate(mocker):
     """Return mocked validate function."""
-    return mocker.patch.object(wiz.definition, "validate")
+    return mocker.patch.object(wiz.system, "validate")
 
 
 @pytest.fixture()
@@ -295,14 +295,14 @@ def mocked_registry_install(mocker):
 
 @pytest.mark.parametrize("options", [
     {},
-    {"requests": ["something", "test>1"]},
-    {"max_depth": 4}
+    {"max_depth": 4},
+    {"system_mapping": "__SYSTEM__"}
 ], ids=[
     "without-option",
-    "with-requests",
-    "with-max-depth"
+    "with-max-depth",
+    "with-system"
 ])
-def test_fetch(mocked_discover, mocked_validate, definitions, options):
+def test_fetch(mocked_discover, definitions, options):
     """Fetch all definition within *paths*."""
     mocked_discover.return_value = definitions
     result = wiz.definition.fetch(
@@ -311,15 +311,9 @@ def test_fetch(mocked_discover, mocked_validate, definitions, options):
 
     mocked_discover.assert_called_once_with(
         ["/path/to/registry-1", "/path/to/registry-2"],
-        max_depth=options.get("max_depth")
+        max_depth=options.get("max_depth"),
+        system_mapping=options.get("system_mapping")
     )
-
-    if options.get("requests") is not None:
-        assert mocked_validate.call_count == len(definitions)
-        for definition in definitions:
-            mocked_validate.assert_any_call(definition, options["requests"])
-    else:
-        mocked_validate.assert_not_called()
 
     assert result == {
         "package": {
@@ -354,16 +348,14 @@ def test_fetch(mocked_discover, mocked_validate, definitions, options):
 
 @pytest.mark.parametrize("options", [
     {},
-    {"requests": ["something", "test>1"]},
-    {"max_depth": 4}
+    {"max_depth": 4},
+    {"system_mapping": "__SYSTEM__"}
 ], ids=[
     "without-option",
-    "with-requests",
-    "with-max-depth"
+    "with-max-depth",
+    "with-system"
 ])
-def test_fetch_with_implicit_packages(
-    mocked_discover, mocked_validate, options
-):
+def test_fetch_with_implicit_packages(mocked_discover, options):
     """Fetch all definition within *paths*."""
     definitions = [
         wiz.definition.Definition({
@@ -405,15 +397,9 @@ def test_fetch_with_implicit_packages(
 
     mocked_discover.assert_called_once_with(
         ["/path/to/registry-1", "/path/to/registry-2"],
-        max_depth=options.get("max_depth")
+        max_depth=options.get("max_depth"),
+        system_mapping=options.get("system_mapping"),
     )
-
-    if options.get("requests") is not None:
-        assert mocked_validate.call_count == len(definitions)
-        for definition in definitions:
-            mocked_validate.assert_any_call(definition, options["requests"])
-    else:
-        mocked_validate.assert_not_called()
 
     assert result == {
         "package": {
@@ -443,60 +429,6 @@ def test_fetch_with_implicit_packages(
             "foo==1.1.0"
         ]
     }
-
-
-def test_fetch_system(mocked_discover, definitions, mocked_system_validate):
-    """Fetch all definition within *paths* filtered by system mappings."""
-    mocked_discover.return_value = definitions
-    mocked_system_validate.return_value = False
-
-    result = wiz.definition.fetch(
-        ["/path/to/registry-1", "/path/to/registry-2"],
-        system_mapping="SOME_MAPPING"
-    )
-
-    mocked_discover.assert_called_once_with(
-        ["/path/to/registry-1", "/path/to/registry-2"], max_depth=None
-    )
-
-    assert result == {
-        "package": {},
-        "command": {},
-        "implicit-packages": []
-    }
-
-
-def test_validation_fail(mocked_discover, mocked_validate, definitions):
-    """Fail to fetch definition when requests leads to validation failure."""
-    mocked_discover.return_value = definitions
-    mocked_validate.return_value = False
-
-    result = wiz.definition.fetch(
-        ["/path/to/registry-1", "/path/to/registry-2"], requests=["KABOOM"]
-    )
-
-    mocked_discover.assert_called_once_with(
-        ["/path/to/registry-1", "/path/to/registry-2"], max_depth=None
-    )
-
-    assert mocked_validate.call_count == len(definitions)
-    for definition in definitions:
-        mocked_validate.assert_any_call(definition, ["KABOOM"])
-
-    assert result == {
-        "package": {},
-        "command": {},
-        "implicit-packages": []
-    }
-
-
-def test_validate(definitions):
-    """Search a specific definition."""
-    assert wiz.definition.validate(definitions[0], ["foo"]) is True
-    assert wiz.definition.validate(definitions[0], ["foo", "best"]) is False
-    assert wiz.definition.validate(definitions[0], ["test"]) is True
-    assert wiz.definition.validate(definitions[0], ["foo>2"]) is False
-    assert wiz.definition.validate(definitions[0], ["foo>=0.1.0"]) is True
 
 
 def test_query_definition(package_definition_mapping):
@@ -701,7 +633,7 @@ def test_export_with_version(mocked_filesystem_export):
     )
 
 
-def test_discover(mocked_load, registries, definitions):
+def test_discover(mocked_load, mocked_system_validate, registries, definitions):
     """Discover and yield *definitions*."""
     mocked_load.side_effect = definitions
 
@@ -747,9 +679,12 @@ def test_discover(mocked_load, registries, definitions):
     )
 
     assert discovered == definitions[:6]
+    mocked_system_validate.assert_not_called()
 
 
-def test_discover_with_max_depth(mocked_load, registries, definitions):
+def test_discover_with_max_depth(
+    mocked_load, mocked_system_validate, registries, definitions
+):
     """Discover and yield definitions with maximum depth."""
     mocked_load.side_effect = definitions
 
@@ -785,6 +720,109 @@ def test_discover_with_max_depth(mocked_load, registries, definitions):
     )
 
     assert discovered == definitions[:4]
+    mocked_system_validate.assert_not_called()
+
+
+def test_discover_with_system_valid(
+    mocked_load, mocked_system_validate, registries, definitions
+):
+    """Discover and yield definitions with valid system."""
+    mocked_load.side_effect = definitions
+    mocked_system_validate.return_value = True
+
+    result = wiz.definition.discover(registries, system_mapping="__SYSTEM__")
+    assert isinstance(result, types.GeneratorType)
+    assert mocked_load.call_count == 0
+
+    discovered = list(result)
+    assert len(discovered) == 6
+    assert mocked_load.call_count == 6
+
+    r1 = registries[0]
+    r2 = registries[1]
+
+    path = os.path.join(r1, "defA.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1}
+    )
+
+    path = os.path.join(r1, "level1", "level2", "defC.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1}
+    )
+
+    path = os.path.join(r1, "level1", "level2", "level3", "defF.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1}
+    )
+
+    path = os.path.join(r1, "level1", "level2", "level3", "defE.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1}
+    )
+
+    path = os.path.join(r2, "defH.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2}
+    )
+
+    path = os.path.join(r2, "defI.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2}
+    )
+
+    assert discovered == definitions[:6]
+
+
+def test_discover_with_system_invalid(
+    mocked_load, mocked_system_validate, registries, definitions
+):
+    """Discover and yield definitions with invalid system."""
+    mocked_load.side_effect = definitions
+    mocked_system_validate.return_value = False
+
+    result = wiz.definition.discover(registries, system_mapping="__SYSTEM__")
+    assert isinstance(result, types.GeneratorType)
+    assert mocked_load.call_count == 0
+
+    discovered = list(result)
+    assert len(discovered) == 0
+    assert mocked_load.call_count == 6
+
+    r1 = registries[0]
+    r2 = registries[1]
+
+    path = os.path.join(r1, "defA.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1}
+    )
+
+    path = os.path.join(r1, "level1", "level2", "defC.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1}
+    )
+
+    path = os.path.join(r1, "level1", "level2", "level3", "defF.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1}
+    )
+
+    path = os.path.join(r1, "level1", "level2", "level3", "defE.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r1}
+    )
+
+    path = os.path.join(r2, "defH.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2}
+    )
+
+    path = os.path.join(r2, "defI.json")
+    mocked_load.assert_any_call(
+        path, mapping={"registry": r2}
+    )
+
+    assert discovered == []
 
 
 def test_discover_without_disabled(mocked_load, registries, definitions):
