@@ -31,6 +31,14 @@ Release Notes
             >>> wiz run python -c 'print("TEST")'
 
     .. change:: new
+        :tags: command-line
+
+        Added :option:`wiz search --no-arch`,
+        :option:`wiz list command --no-arch` and
+        :option:`wiz list package --no-arch` options to display all definitions
+        discovered, even when not compatible with the current system.
+
+    .. change:: new
         :tags: API
 
         Added :mod:`wiz.environ` module to regroup functions dealing with the
@@ -51,6 +59,12 @@ Release Notes
 
         Updated :mod:`wiz.command_line` to use :mod:`click` instead of
         :mod:`argparse` in order to improve code maintainability.
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated ``wiz search`` sub-command to also search packages within
+        command aliases.
 
     .. change:: changed
         :tags: command-line
@@ -85,12 +99,6 @@ Release Notes
 
         Moved :func:`wiz.package.sanitise_environ_mapping` to
         :func:`wiz.environ.sanitise`.
-
-    .. change:: changed
-        :tags: API
-
-        Updated :mod:`wiz.fetch_definition_mapping` to add the *requests*
-        argument which can influence the definition research.
 
     .. change:: changed
         :tags: API
