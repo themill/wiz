@@ -801,9 +801,9 @@ def wiz_freeze(click_context, **kwargs):
         Example::
 
             \b
-            wiz install foo.json bar.json --registry-id primary-registry
-            wiz install /path/to/foo.json --registry-path /path/to/registry
-            wiz install /all/definitions/* --registry-path /path/to/registry
+            wiz install foo.json bar.json --registry wiz://primary-registry
+            wiz install /path/to/foo.json --registry /path/to/registry
+            wiz install /all/definitions/* --registry /path/to/registry
 
         """
     ),
@@ -811,14 +811,12 @@ def wiz_freeze(click_context, **kwargs):
     context_settings=CONTEXT_SETTINGS
 )
 @click.option(
-    "-p", "--registry-path",
-    help="Registry path to install the package to.",
+    "-r", "--registry",
+    help=(
+        "URI to VCS registry or path to local registry to install the "
+        "package to."
+    ),
     type=click.Path(),
-)
-@click.option(
-    "-r", "--registry-id",
-    help="VCS registry identifier to install the package to.",
-    metavar="ID",
 )
 @click.option(
     "--install-location",
@@ -851,19 +849,11 @@ def wiz_install(click_context, **kwargs):
 
     while True:
         try:
-            if kwargs["registry_path"] is not None:
-                wiz.install_definitions_to_path(
-                    kwargs["definitions"], kwargs["registry_path"],
-                    install_location=kwargs["install_location"],
-                    overwrite=overwrite
-                )
-            elif kwargs["registry_id"] is not None:
-                wiz.install_definitions_to_vcs(
-                    kwargs["definitions"], kwargs["registry_id"],
-                    install_location=kwargs["install_location"],
-                    overwrite=overwrite
-                )
-            break
+            wiz.install_definitions(
+                kwargs["definitions"], kwargs["registry"],
+                install_location=kwargs["install_location"],
+                overwrite=overwrite
+            )
 
         except wiz.exception.DefinitionsExist as error:
             if not click.confirm(

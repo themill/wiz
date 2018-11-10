@@ -14,6 +14,10 @@ import wiz.symbol
 import wiz.filesystem
 
 
+#: Schema to reach VCS registries.
+SCHEME = "wiz://"
+
+
 def get_local():
     """Return the local registry if available."""
     registry_path = os.path.join(os.path.expanduser("~"), ".wiz", "registry")
@@ -188,14 +192,14 @@ def install_to_path(definitions, registry_path, overwrite=False):
     )
 
 
-def install_to_vcs(definitions, registry_identifier, overwrite=False):
+def install_to_vcs(definitions, registry_uri, overwrite=False):
     """Install a list of definitions to a :term:`VCS` registry.
 
     *definitions* must be a list of valid :class:`~wiz.definition.Definition`
     instances.
 
-    *registry_identifier* is the identifier of the target :term:`VCS` registry
-    to install to.
+    *registry_uri* must be the valid URI of the :term:`VCS` registry to install
+    to.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -211,6 +215,8 @@ def install_to_vcs(definitions, registry_identifier, overwrite=False):
 
     """
     logger = mlog.Logger(__name__ + ".install_to_vcs")
+
+    registry_identifier = registry_uri.strip(SCHEME)
 
     response = requests.get("{}/api/registry/all".format(wiz.symbol.WIZ_SERVER))
     if not response.ok:
