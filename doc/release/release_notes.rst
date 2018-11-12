@@ -94,8 +94,9 @@ Release Notes
         Updated :func:`wiz.definition.fetch` to remove "requests" option which
         could filter definitions discovered. The filtering process has been
         moved to the command line in order to filter definitions from all
-        systems as the definition mapping return by :func:`wiz.definition.fetch`
-        only record one definition per identifier and version.
+        systems as the definition mapping returned by
+        :func:`wiz.definition.fetch` only records one definition per identifier
+        and version.
 
     .. change:: changed
         :tags: API

@@ -1117,7 +1117,7 @@ def wiz_edit(click_context, **kwargs):
 
 
 def display_registries(paths):
-    """Display registries *paths*.
+    """Display *paths* for each registry.
 
     Example::
 
@@ -1197,15 +1197,15 @@ def display_command_mapping(
 ):
     """Display command mapping.
 
-    *command_mapping* should be a mapping which associate all available commands
-    with a package definition. It should be in the form of::
+    *command_mapping* should be a mapping which associates all available
+    commands with a package definition. It should be in the form of::
 
         {
             "fooExe": "foo",
             ...
         }
 
-    *package_mapping* should be a mapping which associate each package
+    *package_mapping* should be a mapping which associates each package
     definition with an identifier, a version and a system label. It should be in
     the form of::
 
@@ -1290,7 +1290,7 @@ def display_command_mapping(
 def display_package_mapping(package_mapping, registries, all_versions=False):
     """Display package mapping
 
-    *package_mapping* should be a mapping which associate each package
+    *package_mapping* should be a mapping which associates each package
     definition with an identifier, a version and a system label. It should be in
     the form of::
 
