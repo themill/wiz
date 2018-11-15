@@ -361,14 +361,14 @@ def wiz_list_command(click_context, **kwargs):
     name="search",
     help=(
         """
-        Search and display definitions from request(s).
+        Search and display definitions from a list of filters.
 
         Example::
 
             \b
             wiz search foo
             wiz search foo --all
-            wiz search foo>=2
+            wiz search foo --no-arch
             wiz search foo bar
 
         """
@@ -400,7 +400,7 @@ def wiz_list_command(click_context, **kwargs):
     show_default=True
 )
 @click.argument(
-    "requests",
+    "filters",
     nargs=-1,
     required=True
 )
@@ -419,30 +419,30 @@ def wiz_search(click_context, **kwargs):
     package_mapping = {}
     command_mapping = {}
 
+    # Keyword element to filter
+    keywords = ["identifier", "version", "description"]
+
     system_mapping = (
         None if kwargs["no_arch"] else click_context.obj["system_mapping"]
     )
+
+    _filters = kwargs["filters"]
 
     for definition in wiz.definition.discover(
         click_context.obj["registry_paths"],
         system_mapping=system_mapping,
         max_depth=click_context.obj["registry_search_depth"]
     ):
-        requested = True
+        values = [str(definition.get(keyword)) for keyword in keywords]
+        values += definition.command.keys()
 
-        for request in kwargs["requests"]:
-            if not _filter_request(request, definition):
-                requested = False
-                break
-
-        if not requested:
-            continue
-
-        _add_to_mapping(definition, package_mapping)
+        if any(_filter in value for value in values for _filter in _filters):
+            _add_to_mapping(definition, package_mapping)
 
         for command in definition.command.keys():
-            command_mapping.setdefault(command, [])
-            command_mapping[command] = definition.identifier
+            if any(_filter in command for _filter in kwargs["filters"]):
+                command_mapping.setdefault(command, [])
+                command_mapping[command] = definition.identifier
 
     results_found = False
 
@@ -1586,19 +1586,6 @@ def _query_command(aliases=None):
     return click.prompt(
         "Please indicate a command if necessary", default=None
     )
-
-
-def _filter_request(request, definition):
-    """Indicate whether *request* is validating *definition*."""
-    elements = [
-        definition.identifier,
-        str(definition.version),
-        definition.description
-    ]
-
-    elements += definition.command.keys()
-
-    return any(request in element for element in elements)
 
 
 def _create_columns(titles):
