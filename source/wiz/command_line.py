@@ -419,7 +419,7 @@ def wiz_search(click_context, **kwargs):
     package_mapping = {}
     command_mapping = {}
 
-    # Keyword element to filter
+    # Keyword elements to filter.
     keywords = ["identifier", "version", "description"]
 
     system_mapping = (
