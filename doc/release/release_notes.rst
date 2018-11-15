@@ -63,7 +63,7 @@ Release Notes
     .. change:: changed
         :tags: command-line
 
-        Updated ``wiz search`` sub-command to also search packages within
+        Updated ``wiz search`` sub-command to also search packages using
         command aliases.
 
     .. change:: changed
