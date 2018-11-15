@@ -272,7 +272,6 @@ def wiz_list_group(click_context):
 def wiz_list_package(click_context, **kwargs):
     """Command to list available package definitions."""
     package_mapping = {}
-    command_mapping = {}
 
     system_mapping = (
         None if kwargs["no_arch"] else click_context.obj["system_mapping"]
@@ -284,10 +283,6 @@ def wiz_list_package(click_context, **kwargs):
         max_depth=click_context.obj["registry_search_depth"]
     ):
         _add_to_mapping(definition, package_mapping)
-
-        for command in definition.command.keys():
-            command_mapping.setdefault(command, [])
-            command_mapping[command] = definition.identifier
 
     display_registries(click_context.obj["registry_paths"])
 
