@@ -101,6 +101,13 @@ Release Notes
     .. change:: changed
         :tags: API
 
+        Updated :func:`wiz.definition.discover` to add a "system_mapping" option
+        which can filter out definitions :func:`invalid <wiz.system.validate>`
+        with a system mapping.
+
+    .. change:: changed
+        :tags: API
+
         Moved :func:`wiz.package.initiate_environ` to
         :func:`wiz.environ.initiate`.
 
