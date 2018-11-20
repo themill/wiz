@@ -100,6 +100,12 @@ def mocked_install_definitions_to_vcs(mocker):
 
 
 @pytest.fixture()
+def mocked_definition_discover(mocker):
+    """Return mocked 'wiz.definition.discover' function."""
+    return mocker.patch.object(wiz.definition, "discover")
+
+
+@pytest.fixture()
 def mocked_history_start_recording(mocker):
     """Return mocked 'wiz.history.start_recording' function."""
     return mocker.patch.object(wiz.history, "start_recording")
@@ -145,6 +151,111 @@ def mocked_system_query(mocker):
 def mocked_registry_fetch(mocker):
     """Return mocked 'wiz.registry.fetch' function."""
     return mocker.patch.object(wiz.registry, "fetch")
+
+
+@pytest.fixture()
+def definitions():
+    """Return mocked definitions."""
+    return [
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "version": "0.2.0",
+            "description": "This is Foo 0.2.0.",
+            "registry": "/registry1",
+            "command": {
+                "fooExe": "fooExe -X"
+            },
+            "system": {
+                "platform": "linux",
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "version": "0.2.0",
+            "description": "This is Foo 0.2.0.",
+            "registry": "/registry1",
+            "command": {
+                "fooExe": "fooExe -X"
+            },
+            "system": {
+                "platform": "mac",
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "version": "0.1.0",
+            "description": "This is Foo 0.1.0.",
+            "registry": "/registry1",
+            "command": {
+                "fooExe": "fooExe -X"
+            },
+            "system": {
+                "platform": "linux",
+            },
+            "environ": {
+                "PATH": "/path/to/bin:${PATH}",
+                "PYTHONPATH": "/path/to/lib:${PYTHONPATH}",
+            },
+            "requirements": [
+                "bim >= 0.1.0, < 1"
+            ]
+        }),
+        wiz.definition.Definition({
+            "identifier": "bar",
+            "version": "0.1.0",
+            "description": "This is Bar 0.1.0.",
+            "registry": "/registry2",
+            "environ": {
+                "PATH": "/path/to/bin:${PATH}",
+            },
+            "variants": [
+                {
+                    "identifier": "Variant1",
+                    "environ": {
+                        "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
+                    }
+                },
+                {
+                    "identifier": "Variant2",
+                    "environ": {
+                        "PYTHONPATH": "/path/to/lib/2:${PYTHONPATH}",
+                    }
+                },
+            ],
+            "requirements": [
+                "bim >= 0.1.0, < 1"
+            ],
+            "constraints": [
+                "foo == 0.1.0"
+            ]
+        }),
+        wiz.definition.Definition({
+            "identifier": "bim",
+            "version": "0.1.1",
+            "description": "This is Bim 0.1.1.",
+            "registry": "/registry2",
+            "command": {
+                "bimExe": "bimExe -X"
+            },
+            "variants": [
+                {
+                    "identifier": "Variant1",
+                    "environ": {
+                        "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
+                    }
+                },
+            ],
+        }),
+        wiz.definition.Definition({
+            "identifier": "bim",
+            "version": "0.1.0",
+            "description": "This is Bim 0.1.0.",
+            "registry": "/registry2",
+            "command": {
+                "bimExe": "bimExe -X"
+            },
+        })
+    ]
 
 
 @pytest.fixture()
@@ -363,7 +474,7 @@ def test_query_system(
     ]
 )
 def test_fetch_registry(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
     options, paths, depth, include_local, include_cwd
 ):
     """Override registries with options."""
@@ -381,9 +492,8 @@ def test_fetch_registry(
         include_working_directory=include_cwd
     )
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
+    mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None,
         system_mapping="__SYSTEM__",
         max_depth=depth
     )
@@ -429,15 +539,11 @@ def test_list_packages_recorded(
 
 
 def test_list_packages_empty(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover
 ):
     """Display list of packages when no packages are available."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = []
-    mocked_fetch_definition_mapping.return_value = {
-        "command": {},
-        "package": {}
-    }
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["list", "package"])
@@ -450,25 +556,25 @@ def test_list_packages_empty(
         "No registries to display.\n"
         "\n"
         "\n"
-        "Package   Version   Registry   Description\n"
-        "-------   -------   --------   -----------\n"
+        "Package   Version   System   Registry   Description\n"
+        "-------   -------   ------   --------   -----------\n"
         "No packages to display.\n"
         "\n"
     )
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
-        [], requests=None, system_mapping="__SYSTEM__", max_depth=None
+    mocked_definition_discover.assert_called_once_with(
+        [], system_mapping="__SYSTEM__", max_depth=None
     )
 
 
 def test_list_packages(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
-    definition_mapping
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
 ):
     """Display list of available packages."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_fetch_definition_mapping.return_value = definition_mapping
+    mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["list", "package"])
@@ -482,29 +588,30 @@ def test_list_packages(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Package          Version   Registry   Description       \n"
-        "--------------   -------   --------   ------------------\n"
-        "bar [Variant1]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bar [Variant2]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bim [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "foo              0.2.0     0          This is Foo 0.2.0.\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bar [Variant1]   0.1.0     noarch   1          This is Bar 0.1.0.\n"
+        "bar [Variant2]   0.1.0     noarch   1          This is Bar 0.1.0.\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "foo              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "foo              0.2.0     mac      0          This is Foo 0.2.0.\n"
         "\n"
     )
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
+    mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
 
 def test_list_packages_with_versions(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
-    definition_mapping
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
 ):
     """Display list of available packages with versions."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_fetch_definition_mapping.return_value = definition_mapping
+    mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["list", "package", "--all"])
@@ -518,20 +625,21 @@ def test_list_packages_with_versions(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Package          Version   Registry   Description       \n"
-        "--------------   -------   --------   ------------------\n"
-        "bar [Variant1]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bar [Variant2]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bim [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "bim              0.1.0     1          This is Bim 0.1.0.\n"
-        "foo              0.2.0     0          This is Foo 0.2.0.\n"
-        "foo              0.1.0     0          This is Foo 0.1.0.\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bar [Variant1]   0.1.0     noarch   1          This is Bar 0.1.0.\n"
+        "bar [Variant2]   0.1.0     noarch   1          This is Bar 0.1.0.\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bim              0.1.0     noarch   1          This is Bim 0.1.0.\n"
+        "foo              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "foo              0.2.0     mac      0          This is Foo 0.2.0.\n"
+        "foo              0.1.0     linux    0          This is Foo 0.1.0.\n"
         "\n"
     )
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
+    mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
 
@@ -593,15 +701,11 @@ def test_list_commands_recorded(
 
 
 def test_list_commands_empty(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover
 ):
     """Display list of commands when no commands are available."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = []
-    mocked_fetch_definition_mapping.return_value = {
-        "command": {},
-        "package": {}
-    }
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["list", "command"])
@@ -614,26 +718,26 @@ def test_list_commands_empty(
         "No registries to display.\n"
         "\n"
         "\n"
-        "Command   Version   Registry   Description\n"
-        "-------   -------   --------   -----------\n"
+        "Command   Version   System   Registry   Description\n"
+        "-------   -------   ------   --------   -----------\n"
         "No commands to display.\n"
         "\n"
     )
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
-        [], requests=None, system_mapping="__SYSTEM__", max_depth=None
+    mocked_definition_discover.assert_called_once_with(
+        [], system_mapping="__SYSTEM__", max_depth=None
     )
 
 
 @pytest.mark.usefixtures("mocked_system_query")
 def test_list_commands(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
-    definition_mapping
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
 ):
     """Display list of available commands."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_fetch_definition_mapping.return_value = definition_mapping
+    mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["list", "command"])
@@ -647,27 +751,28 @@ def test_list_commands(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Command             Version   Registry   Description       \n"
-        "-----------------   -------   --------   ------------------\n"
-        "bimExe [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "fooExe              0.2.0     0          This is Foo 0.2.0.\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "fooExe              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "fooExe              0.2.0     mac      0          This is Foo 0.2.0.\n"
         "\n"
     )
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
+    mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
 
 def test_list_commands_with_versions(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
-    definition_mapping
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
 ):
     """Display list of available commands with versions."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_fetch_definition_mapping.return_value = definition_mapping
+    mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["list", "command", "--all"])
@@ -681,18 +786,19 @@ def test_list_commands_with_versions(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Command             Version   Registry   Description       \n"
-        "-----------------   -------   --------   ------------------\n"
-        "bimExe [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "bimExe              0.1.0     1          This is Bim 0.1.0.\n"
-        "fooExe              0.2.0     0          This is Foo 0.2.0.\n"
-        "fooExe              0.1.0     0          This is Foo 0.1.0.\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bimExe              0.1.0     noarch   1          This is Bim 0.1.0.\n"
+        "fooExe              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "fooExe              0.2.0     mac      0          This is Foo 0.2.0.\n"
+        "fooExe              0.1.0     linux    0          This is Foo 0.1.0.\n"
         "\n"
     )
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
+    mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
 
@@ -753,16 +859,12 @@ def test_search_recorded(
 
 
 def test_search_empty(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
     logger
 ):
     """Display empty list of searched commands and packages."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = []
-    mocked_fetch_definition_mapping.return_value = {
-        "command": {},
-        "package": {}
-    }
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["search", "foo"])
@@ -778,8 +880,8 @@ def test_search_empty(
 
     logger.warning.assert_called_once_with("No results found.\n")
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
-        [], requests=["foo"], system_mapping="__SYSTEM__", max_depth=None
+    mocked_definition_discover.assert_called_once_with(
+        [], system_mapping="__SYSTEM__", max_depth=None
     )
 
 
@@ -790,17 +892,66 @@ def test_search_empty(
     "with-option",
 ])
 def test_search(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
-    logger, definition_mapping, options
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    logger, definitions, options
 ):
     """Display searched available commands and packages."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_fetch_definition_mapping.return_value = definition_mapping
+    mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
     result = runner.invoke(
-        wiz.command_line.main, ["search", "bim", "bar", "foo"] + options
+        wiz.command_line.main, ["search", "bim"] + options
+    )
+    # assert result.exit_code == 0
+    # assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "\n"
+        "\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "\n"
+    )
+
+    logger.warning.assert_not_called()
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__",
+        max_depth=None
+    )
+
+
+@pytest.mark.parametrize("options", [
+    [], ["--type", "all"]
+], ids=[
+    "default",
+    "with-option",
+])
+def test_search_filtered_command(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    logger, definitions, options
+):
+    """Display searched available commands and packages."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, ["search", "Exe"] + options
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -812,43 +963,42 @@ def test_search(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Command             Version   Registry   Description       \n"
-        "-----------------   -------   --------   ------------------\n"
-        "bimExe [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "fooExe              0.2.0     0          This is Foo 0.2.0.\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "fooExe              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "fooExe              0.2.0     mac      0          This is Foo 0.2.0.\n"
         "\n"
         "\n"
-        "Package          Version   Registry   Description       \n"
-        "--------------   -------   --------   ------------------\n"
-        "bar [Variant1]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bar [Variant2]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bim [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "foo              0.2.0     0          This is Foo 0.2.0.\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "foo              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "foo              0.2.0     mac      0          This is Foo 0.2.0.\n"
         "\n"
     )
 
     logger.warning.assert_not_called()
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
+    mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=["bim", "bar", "foo"],
         system_mapping="__SYSTEM__",
         max_depth=None
     )
 
 
 def test_search_with_versions(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
-    logger, definition_mapping
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    logger, definitions
 ):
     """Display searched commands and packages with all versions."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_fetch_definition_mapping.return_value = definition_mapping
+    mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
     result = runner.invoke(
-        wiz.command_line.main, ["search", "bim", "bar", "foo", "--all"]
+        wiz.command_line.main, ["search", "bim", "--all"]
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -860,47 +1010,40 @@ def test_search_with_versions(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Command             Version   Registry   Description       \n"
-        "-----------------   -------   --------   ------------------\n"
-        "bimExe [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "bimExe              0.1.0     1          This is Bim 0.1.0.\n"        
-        "fooExe              0.2.0     0          This is Foo 0.2.0.\n"
-        "fooExe              0.1.0     0          This is Foo 0.1.0.\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bimExe              0.1.0     noarch   1          This is Bim 0.1.0.\n"        
         "\n"
         "\n"
-        "Package          Version   Registry   Description       \n"
-        "--------------   -------   --------   ------------------\n"
-        "bar [Variant1]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bar [Variant2]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bim [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "bim              0.1.0     1          This is Bim 0.1.0.\n"
-        "foo              0.2.0     0          This is Foo 0.2.0.\n"
-        "foo              0.1.0     0          This is Foo 0.1.0.\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bim              0.1.0     noarch   1          This is Bim 0.1.0.\n"
         "\n"
     )
 
     logger.warning.assert_not_called()
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
+    mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=["bim", "bar", "foo"],
         system_mapping="__SYSTEM__",
         max_depth=None
     )
 
 
 def test_search_packages(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
-    definition_mapping
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
 ):
     """Display searched list of available packages."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_fetch_definition_mapping.return_value = definition_mapping
+    mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
     result = runner.invoke(
-        wiz.command_line.main, ["search", "bim", "bar", "foo", "-t", "package"]
+        wiz.command_line.main, ["search", "bim", "-t", "package"]
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -912,36 +1055,32 @@ def test_search_packages(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Package          Version   Registry   Description       \n"
-        "--------------   -------   --------   ------------------\n"
-        "bar [Variant1]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bar [Variant2]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bim [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "foo              0.2.0     0          This is Foo 0.2.0.\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
         "\n"
     )
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
+    mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=["bim", "bar", "foo"],
         system_mapping="__SYSTEM__",
         max_depth=None
     )
 
 
 def test_search_packages_with_versions(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
-    definition_mapping
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
 ):
     """Display searched available packages with all versions."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_fetch_definition_mapping.return_value = definition_mapping
+    mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["search", "bim", "bar", "foo", "-t", "package", "--all"]
+        ["search", "bim", "-t", "package", "--all"]
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -953,37 +1092,32 @@ def test_search_packages_with_versions(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Package          Version   Registry   Description       \n"
-        "--------------   -------   --------   ------------------\n"
-        "bar [Variant1]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bar [Variant2]   0.1.0     1          This is Bar 0.1.0.\n"
-        "bim [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "bim              0.1.0     1          This is Bim 0.1.0.\n"
-        "foo              0.2.0     0          This is Foo 0.2.0.\n"
-        "foo              0.1.0     0          This is Foo 0.1.0.\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bim              0.1.0     noarch   1          This is Bim 0.1.0.\n"
         "\n"
     )
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
+    mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=["bim", "bar", "foo"],
         system_mapping="__SYSTEM__",
         max_depth=None
     )
 
 
 def test_search_commands(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
-    definition_mapping
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
 ):
     """Display searched list of available commands."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_fetch_definition_mapping.return_value = definition_mapping
+    mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
     result = runner.invoke(
-        wiz.command_line.main, ["search", "bim", "bar", "foo", "-t", "command"]
+        wiz.command_line.main, ["search", "bim", "-t", "command"]
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -995,34 +1129,32 @@ def test_search_commands(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Command             Version   Registry   Description       \n"
-        "-----------------   -------   --------   ------------------\n"
-        "bimExe [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "fooExe              0.2.0     0          This is Foo 0.2.0.\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
         "\n"
     )
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
+    mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=["bim", "bar", "foo"],
         system_mapping="__SYSTEM__",
         max_depth=None
     )
 
 
 def test_search_commands_with_versions(
-    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
-    definition_mapping
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
 ):
     """Display searched available commands with all versions."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_fetch_definition_mapping.return_value = definition_mapping
+    mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["search", "bim", "bar", "foo", "-t", "command", "--all"]
+        ["search", "bim", "-t", "command", "--all"]
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -1034,18 +1166,15 @@ def test_search_commands_with_versions(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Command             Version   Registry   Description       \n"
-        "-----------------   -------   --------   ------------------\n"
-        "bimExe [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
-        "bimExe              0.1.0     1          This is Bim 0.1.0.\n"
-        "fooExe              0.2.0     0          This is Foo 0.2.0.\n"
-        "fooExe              0.1.0     0          This is Foo 0.1.0.\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bimExe              0.1.0     noarch   1          This is Bim 0.1.0.\n"
         "\n"
     )
 
-    mocked_fetch_definition_mapping.assert_called_once_with(
+    mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=["bim", "bar", "foo"],
         system_mapping="__SYSTEM__",
         max_depth=None
     )
@@ -1129,7 +1258,7 @@ def test_view_not_found(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
 
@@ -1171,7 +1300,7 @@ def test_view_definition(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
 
@@ -1225,7 +1354,7 @@ def test_view_definition_json(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
 
@@ -1251,7 +1380,7 @@ def test_view_definition_from_command(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
 
@@ -1335,7 +1464,7 @@ def test_use_spawn_shell(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_resolve_context.assert_called_once_with(
@@ -1397,7 +1526,7 @@ def test_use_spawn_shell_view(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_resolve_context.assert_called_once_with(
@@ -1457,7 +1586,7 @@ def test_use_spawn_shell_view_empty(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_resolve_context.assert_called_once_with(
@@ -1494,7 +1623,7 @@ def test_use_execute_command(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_resolve_context.assert_called_once_with(
@@ -1542,7 +1671,7 @@ def test_use_with_resolution_error(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_resolve_context.assert_called_once_with(
@@ -1646,7 +1775,7 @@ def test_run(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_fetch_package_request_from_command.assert_called_once_with(
@@ -1724,7 +1853,7 @@ def test_run_view(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_fetch_package_request_from_command.assert_called_once_with(
@@ -1790,7 +1919,7 @@ def test_run_view_empty(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_fetch_package_request_from_command.assert_called_once_with(
@@ -1829,7 +1958,7 @@ def test_run_with_resolution_error(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_resolve_context.assert_called_once_with(
@@ -1929,7 +2058,7 @@ def test_freeze(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_resolve_context.assert_called_once_with(
@@ -1988,7 +2117,7 @@ def test_freeze_empty(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_resolve_context.assert_called_once_with(
@@ -2049,7 +2178,7 @@ def test_freeze_as_script(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_resolve_context.assert_called_once_with(
@@ -2106,7 +2235,7 @@ def test_freeze_as_script_without_commands(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_resolve_context.assert_called_once_with(
@@ -2149,7 +2278,7 @@ def test_freeze_with_resolution_error(
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
-        requests=None, system_mapping="__SYSTEM__", max_depth=None
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
     mocked_resolve_context.assert_called_once_with(

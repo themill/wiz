@@ -174,7 +174,7 @@ def compute_system_label(definition):
         for element in ["platform", "arch", "os"]
         if definition.system.get(element) is not None
     ]
-    return " : ".join(elements)
+    return " : ".join(elements) or "noarch"
 
 
 def compute_file_name(definition):
