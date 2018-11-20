@@ -238,10 +238,6 @@ def wiz_list_group(click_context):
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
 
-    click_context.obj["definition_mapping"] = (
-        _fetch_definition_mapping_from_context(click_context)
-    )
-
 
 @wiz_list_group.command(
     name="package",
@@ -266,19 +262,33 @@ def wiz_list_group(click_context):
     is_flag=True,
     default=False
 )
+@click.option(
+    "--no-arch",
+    help="Display packages for all platforms.",
+    is_flag=True,
+    default=False
+)
 @click.pass_context
 def wiz_list_package(click_context, **kwargs):
     """Command to list available package definitions."""
-    registry_paths = click_context.obj["registry_paths"]
-    definition_mapping = click_context.obj["definition_mapping"]
+    package_mapping = {}
 
-    # Display available registries.
-    display_registries(registry_paths)
+    system_mapping = (
+        None if kwargs["no_arch"] else click_context.obj["system_mapping"]
+    )
 
-    # Display available definitions.
-    display_definition_mapping(
-        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
-        registry_paths,
+    for definition in wiz.definition.discover(
+        click_context.obj["registry_paths"],
+        system_mapping=system_mapping,
+        max_depth=click_context.obj["registry_search_depth"]
+    ):
+        _add_to_mapping(definition, package_mapping)
+
+    display_registries(click_context.obj["registry_paths"])
+
+    display_package_mapping(
+        package_mapping,
+        click_context.obj["registry_paths"],
         all_versions=kwargs["all"],
     )
 
@@ -308,27 +318,40 @@ def wiz_list_package(click_context, **kwargs):
     is_flag=True,
     default=False
 )
+@click.option(
+    "--no-arch",
+    help="Display commands for all platforms.",
+    is_flag=True,
+    default=False
+)
 @click.pass_context
 def wiz_list_command(click_context, **kwargs):
     """Command to list available commands."""
-    registry_paths = click_context.obj["registry_paths"]
-    definition_mapping = click_context.obj["definition_mapping"]
+    package_mapping = {}
+    command_mapping = {}
 
-    # Display available registries.
-    display_registries(registry_paths)
+    system_mapping = (
+        None if kwargs["no_arch"] else click_context.obj["system_mapping"]
+    )
 
-    # Retrieve commands from definition mapping.
-    command_mapping = {
-        command: definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE][_id]
-        for (command, _id)
-        in definition_mapping[wiz.symbol.COMMAND_REQUEST_TYPE].items()
-    }
+    for definition in wiz.definition.discover(
+        click_context.obj["registry_paths"],
+        system_mapping=system_mapping,
+        max_depth=click_context.obj["registry_search_depth"]
+    ):
+        _add_to_mapping(definition, package_mapping)
 
-    # Display available commands.
-    display_definition_mapping(
-        command_mapping, registry_paths,
+        for command in definition.command.keys():
+            command_mapping.setdefault(command, [])
+            command_mapping[command] = definition.identifier
+
+    display_registries(click_context.obj["registry_paths"])
+
+    display_command_mapping(
+        command_mapping,
+        package_mapping,
+        click_context.obj["registry_paths"],
         all_versions=kwargs["all"],
-        command=True
     )
 
     _export_history_if_requested(click_context)
@@ -338,14 +361,14 @@ def wiz_list_command(click_context, **kwargs):
     name="search",
     help=(
         """
-        Search and display definitions from request(s).
+        Search and display definitions from a list of filters.
 
         Example::
 
             \b
             wiz search foo
             wiz search foo --all
-            wiz search foo>=2
+            wiz search foo --no-arch
             wiz search foo bar
 
         """
@@ -356,6 +379,12 @@ def wiz_list_command(click_context, **kwargs):
 @click.option(
     "-a", "--all",
     help="Display all package versions, not just the latest one.",
+    is_flag=True,
+    default=False
+)
+@click.option(
+    "--no-arch",
+    help="Display results for all platforms.",
     is_flag=True,
     default=False
 )
@@ -371,7 +400,7 @@ def wiz_list_command(click_context, **kwargs):
     show_default=True
 )
 @click.argument(
-    "requests",
+    "filters",
     nargs=-1,
     required=True
 )
@@ -383,41 +412,56 @@ def wiz_search(click_context, **kwargs):
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
 
-    registry_paths = click_context.obj["registry_paths"]
-    definition_mapping = _fetch_definition_mapping_from_context(
-        click_context, requests=list(kwargs["requests"])
+    # Display registries.
+    display_registries(click_context.obj["registry_paths"])
+
+    # Fetch all definitions.
+    package_mapping = {}
+    command_mapping = {}
+
+    # Keyword elements to filter.
+    keywords = ["identifier", "version", "description"]
+
+    system_mapping = (
+        None if kwargs["no_arch"] else click_context.obj["system_mapping"]
     )
 
-    display_registries(registry_paths)
+    _filters = kwargs["filters"]
+
+    for definition in wiz.definition.discover(
+        click_context.obj["registry_paths"],
+        system_mapping=system_mapping,
+        max_depth=click_context.obj["registry_search_depth"]
+    ):
+        values = [str(definition.get(keyword)) for keyword in keywords]
+        values += definition.command.keys()
+
+        if any(_filter in value for value in values for _filter in _filters):
+            _add_to_mapping(definition, package_mapping)
+
+        for command in definition.command.keys():
+            if any(_filter in command for _filter in kwargs["filters"]):
+                command_mapping.setdefault(command, [])
+                command_mapping[command] = definition.identifier
+
     results_found = False
 
-    if (
-        kwargs["type"] in ["command", "all"] and
-        len(definition_mapping[wiz.symbol.COMMAND_REQUEST_TYPE]) > 0
-    ):
+    if kwargs["type"] in ["command", "all"] and len(command_mapping) > 0:
         results_found = True
-        command_mapping = {
-            command: definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE][_id]
-            for (command, _id)
-            in definition_mapping[wiz.symbol.COMMAND_REQUEST_TYPE].items()
-        }
 
-        display_definition_mapping(
+        display_command_mapping(
             command_mapping,
-            registry_paths,
+            package_mapping,
+            click_context.obj["registry_paths"],
             all_versions=kwargs["all"],
-            command=True
         )
 
-    if (
-        kwargs["type"] in ["package", "all"] and
-        len(definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]) > 0
-    ):
+    if kwargs["type"] in ["package", "all"] and len(package_mapping) > 0:
         results_found = True
 
-        display_definition_mapping(
-            definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
-            registry_paths,
+        display_package_mapping(
+            package_mapping,
+            click_context.obj["registry_paths"],
             all_versions=kwargs["all"],
         )
 
@@ -574,9 +618,7 @@ def wiz_use(click_context, **kwargs):
         # running any commands.
         if kwargs["view"]:
             display_registries(wiz_context["registries"])
-            display_packages(wiz_context["packages"], wiz_context["registries"])
-            display_command_mapping(wiz_context.get("command", {}))
-            display_environ_mapping(wiz_context.get("environ", {}))
+            display_resolved_context(wiz_context)
 
         # If no commands are indicated, spawn a shell.
         elif len(extra_arguments) == 0:
@@ -661,9 +703,7 @@ def wiz_run(click_context, **kwargs):
         # running any commands.
         if kwargs["view"]:
             display_registries(wiz_context["registries"])
-            display_packages(wiz_context["packages"], wiz_context["registries"])
-            display_command_mapping(wiz_context.get("command", {}))
-            display_environ_mapping(wiz_context.get("environ", {}))
+            display_resolved_context(wiz_context)
 
         else:
             command_elements = wiz.resolve_command(
@@ -1071,64 +1111,8 @@ def wiz_edit(click_context, **kwargs):
     _export_history_if_requested(click_context)
 
 
-def _casted_argument(argument):
-    """Return *argument* casted into a proper type from JSON decoder."""
-    # Ensure that boolean value are in JSON format.
-    argument = argument.replace("True", "true").replace("False", "false")
-
-    try:
-        return json.loads(argument)
-    except ValueError:
-        return argument
-
-
-def _fail_on_extra_arguments(click_context):
-    """Raise an error if extra arguments are found in command."""
-    arguments = _fetch_extra_arguments(click_context)
-    if len(arguments):
-        click_context.fail(
-            "Got unexpected extra argument(s) ({})".format(" ".join(arguments))
-        )
-
-
-def _fetch_extra_arguments(click_context):
-    """Return extra arguments from context.
-
-    If extra arguments have not been recorded after the "--" symbol, we check
-    if leftover arguments remain in context.
-
-    """
-    return click_context.obj["extra_arguments"] or click_context.args
-
-
-def _fetch_definition_mapping_from_context(click_context, requests=None):
-    """Return definition mapping from elements stored in *click_context*."""
-    return wiz.fetch_definition_mapping(
-        click_context.obj["registry_paths"],
-        requests=requests,
-        system_mapping=click_context.obj["system_mapping"],
-        max_depth=click_context.obj["registry_search_depth"]
-    )
-
-
-def _export_history_if_requested(click_context):
-    """Return definition mapping from elements stored in *click_context*."""
-    logger = mlog.Logger(__name__ + "._export_history_if_requested")
-
-    if click_context.obj["recording_path"] is None:
-        return
-
-    history = wiz.history.get(serialized=True)
-    path = os.path.join(
-        os.path.abspath(click_context.obj["recording_path"]),
-        "wiz-{}.dump".format(datetime.datetime.now().isoformat())
-    )
-    wiz.filesystem.export(path, history, compressed=True)
-    logger.info("History recorded and exported in '{}'".format(path))
-
-
 def display_registries(paths):
-    """Display all registries from *paths* with an identifier.
+    """Display *paths* for each registry.
 
     Example::
 
@@ -1138,31 +1122,45 @@ def display_registries(paths):
         [1] /path/to/registry-2
 
     """
-    title = "Registries"
-    columns = [
-        {"size": len(title), "rows": [], "title": title}
-    ]
+    columns = _create_columns(["Registries"])
 
     for index, path in enumerate(paths):
-        item = "[{}] {}".format(index, path)
-        columns[0]["rows"].append(item)
-        columns[0]["size"] = max(len(item), columns[0]["size"])
+        _create_row("[{}] {}".format(index, path), columns[0])
 
     if len(paths) == 0:
-        item = "No registries to display."
-        columns[0]["rows"].append(item)
+        message = "No registries to display."
+        _create_row(message, columns[0], resize=False)
 
     _display_table(columns)
 
 
 def display_definition(definition):
-    """Display *definition* instance.
+    """Display *definition*.
 
     *definition* should be a :class:`wiz.definition.Definition` instance.
 
+    Example::
+
+        >>> display_definition(definition)
+
+        identifier: Foo
+        version: 0.1.0
+        description: Description of Foo
+        registry: /path/to/registry
+        definition-location: /path/to/registry/foo-0.1.0.json
+        install-location: /path/to/foo
+        system:
+            os: el >= 7, < 8
+            arch: x86_64
+        command:
+            foo: FooExe
+        environ:
+            PATH: ${INSTALL_LOCATION}/bin:${PATH}
+            LD_LIBRARY_PATH: ${INSTALL_LOCATION}/lib:${LD_LIBRARY_PATH}
+
     """
     def _display(item, level=0):
-        """Display *mapping*"""
+        """Display *item*"""
         indent = " "*level
 
         if isinstance(item, collections.OrderedDict) or isinstance(item, dict):
@@ -1189,86 +1187,228 @@ def display_definition(definition):
     _display(definition.to_ordered_dict(serialize_content=True))
 
 
-def display_definition_mapping(
-    mapping, registries, all_versions=False, command=False
+def display_command_mapping(
+    command_mapping, package_mapping, registries, all_versions=False
 ):
-    """Display definition contained in *mapping*.
+    """Display command mapping.
 
-    *mapping* is a mapping regrouping all available definition versions
-    associated with their unique identifier.
+    *command_mapping* should be a mapping which associates all available
+    commands with a package definition. It should be in the form of::
 
-    *registries* should be a list of available registry paths.
+        {
+            "fooExe": "foo",
+            ...
+        }
 
-    *all_versions* indicate whether all versions from the definition must be
-    returned. If not, only the latest version of each definition identifier is
-    displayed.
+    *package_mapping* should be a mapping which associates each package
+    definition with an identifier, a version and a system label. It should be in
+    the form of::
 
-    *command* indicate whether the mapping identifiers represent commands.
+        {
+            "foo": {
+                "1.1.0": {
+                    "linux : el >=6, <7": <Definition(identifier="foo")>,
+                    "linux : el >=7, <8": <Definition(identifier="foo")>,
+                "0.1.0": {
+                    "linux : el >=6, <7": <Definition(identifier="foo")>,
+                ...
+            },
+            ...
+        }
+
+    *registries* should be a list of registry paths from which definitions were
+    fetched.
+
+    *all_versions* indicate whether all package definition versions should be
+    displayed. Default is False, which means that only the latest version will
+    be displayed.
+
+    Example::
+
+        >>> display_command_mapping(
+        ...     command_mapping, package_mapping, registries, all_versions=True
+        ... )
+
+        Command   Version   System                Registry   Description
+        -------   -------   -------------------   --------   ------------------
+        fooExe    1.0.0     noarch                0          Description of Foo
+        fooExe    0.1.0     noarch                0          Description of Foo
+        python    3.6.6     linux : el >= 6, <7   1          Python interpreter
+        python    2.7.4     linux : el >= 6, <7   1          Python interpreter
 
     """
-    identifiers = []
-    definitions = []
+    columns = _create_columns([
+        "Command", "Version", "System", "Registry", "Description"
+    ])
 
-    for identifier in sorted(mapping.keys()):
-        versions = sorted(
-            map(lambda d: d.version, mapping[identifier].values()),
-            reverse=True
-        )
+    success = False
 
-        for index in range(len(versions)):
-            if index > 0 and not all_versions:
-                break
+    for command, identifier in sorted(command_mapping.items()):
+        versions = sorted(package_mapping[identifier].keys(), reverse=True)
 
-            identifiers.append(identifier)
-            definitions.append(mapping[identifier][str(versions[index])])
+        # Filter latest version if requested.
+        if not all_versions:
+            versions = [versions[0]]
 
-    header = "Command" if command else "Package"
-    titles = [header, "Version", "Registry", "Description"]
-    columns = [
-        {"size": len(title), "rows": [], "title": title} for title in titles
-    ]
+        for version in versions:
+            for system_label in sorted(
+                package_mapping[identifier][version].keys()
+            ):
+                definition = package_mapping[identifier][version][system_label]
 
-    def _format_unit(_identifier, _definition, _variant=None):
-        """Format row unit."""
-        if _variant is not None:
-            _identifier += " [{}]".format(_variant)
+                identifiers = [
+                    "{} [{}]".format(command, variant.identifier)
+                    for variant in definition.variants
+                ] or [command]
 
-        columns[0]["rows"].append(_identifier)
-        columns[0]["size"] = max(len(_identifier), columns[0]["size"])
+                for _identifier in identifiers:
+                    rows = [
+                        _identifier,
+                        definition.version,
+                        system_label,
+                        registries.index(definition.get("registry")),
+                        definition.description
+                    ]
 
-        _version = str(_definition.version)
-        columns[1]["rows"].append(_version)
-        columns[1]["size"] = max(len(_version), columns[1]["size"])
+                    for index, row in enumerate(rows):
+                        _create_row(row, columns[index])
 
-        registry_index = str(registries.index(_definition.get("registry")))
-        columns[2]["rows"].append(registry_index)
-        columns[2]["size"] = max(len(registry_index), columns[2]["size"])
+        success = True
 
-        _description = _definition.description
-        columns[3]["rows"].append(_description)
-        columns[3]["size"] = max(len(_description), columns[3]["size"])
-
-    for identifier, definition in itertools.izip_longest(
-        identifiers, definitions
-    ):
-        if len(definition.variants) > 0:
-            for variant in definition.variants:
-                _variant = variant.identifier
-                _format_unit(identifier, definition, _variant)
-
-        else:
-            _format_unit(identifier, definition)
-
-    if len(identifiers) == 0:
-        item = (
-            "No commands to display." if command else "No packages to display."
-        )
-        columns[0]["rows"].append(item)
+    if not success:
+        message = "No commands to display."
+        _create_row(message, columns[0], resize=False)
 
     _display_table(columns)
 
 
-def display_packages(packages, registries):
+def display_package_mapping(package_mapping, registries, all_versions=False):
+    """Display package mapping
+
+    *package_mapping* should be a mapping which associates each package
+    definition with an identifier, a version and a system label. It should be in
+    the form of::
+
+        {
+            "foo": {
+                "1.1.0": {
+                    "linux : el >=6, <7": <Definition(identifier="foo")>,
+                    "linux : el >=7, <8": <Definition(identifier="foo")>,
+                "0.1.0": {
+                    "linux : el >=6, <7": <Definition(identifier="foo")>,
+                ...
+            },
+            ...
+        }
+
+    *registries* should be a list of registry paths from which definitions were
+    fetched.
+
+    *all_versions* indicate whether all package definition versions should be
+    displayed. Default is False, which means that only the latest version will
+    be displayed.
+
+    Example::
+
+        >>> display_command_mapping(
+        ...     package_mapping, registries, all_versions=True
+        ... )
+
+        Package    Version   System                Registry   Description
+        --------   -------   -------------------   --------   ------------------
+        foo        1.0.0     noarch                0          Description of Foo
+        foo        0.1.0     noarch                0          Description of Foo
+        bar [V1]   0.1.0     linux                 0          Description of Bar
+        bar [V2]   0.1.0     linux                 0          Description of Bar
+        bar [V3]   0.1.0     linux                 0          Description of Bar
+        python     3.6.6     linux : el >= 6, <7   0          Python interpreter
+        python     2.7.4     linux : el >= 6, <7   0          Python interpreter
+
+    """
+    columns = _create_columns([
+        "Package", "Version", "System", "Registry", "Description"
+    ])
+
+    success = False
+
+    for identifier in sorted(package_mapping.keys()):
+        versions = sorted(package_mapping[identifier].keys(), reverse=True)
+
+        # Filter latest version if requested.
+        if not all_versions:
+            versions = [versions[0]]
+
+        for version in versions:
+            for system_label in sorted(
+                package_mapping[identifier][version].keys()
+            ):
+                definition = package_mapping[identifier][version][system_label]
+
+                identifiers = [
+                    "{} [{}]".format(identifier, variant.identifier)
+                    for variant in definition.variants
+                ] or [identifier]
+
+                for _identifier in identifiers:
+                    rows = [
+                        _identifier,
+                        definition.version,
+                        system_label,
+                        registries.index(definition.get("registry")),
+                        definition.description
+                    ]
+
+                    for index, row in enumerate(rows):
+                        _create_row(row, columns[index])
+
+        success = True
+
+    if not success:
+        message = "No packages to display."
+        _create_row(message, columns[0], resize=False)
+
+    _display_table(columns)
+
+
+def display_resolved_context(context):
+    """Display resolved *context* mapping.
+
+    Example::
+
+        >>> display_resolved_context(context)
+
+        Package   Version   Registry   Description
+        -------   -------   --------   -------------------
+        foo       0.1.0     0          Description of Foo.
+        bar       1.1.0     0          Description of Bar.
+
+        Command   Value
+        -------   ------
+        foo       fooExe
+
+
+        Environment Variable   Environment Value
+        --------------------   --------------------
+        HOME                   /usr/people/john-doe
+        LD_LIBRARY_PATH        /path/to/foo/lib
+                               /path/to/bar/lib
+        PATH                   /path/to/foo/bin
+                               /path/to/bar/bin
+                               /usr/local/sbin
+                               /usr/local/bin
+                               /usr/sbin
+                               /usr/bin
+                               /sbin
+                               /bin
+        USER                   john-doe
+
+    """
+    _display_packages_from_context(context)
+    _display_command_from_context(context)
+    _display_environ_from_context(context)
+
+
+def _display_packages_from_context(context):
     """Display *packages*.
 
     *packages* should be a list of :class:`wiz.package.Package` instances.
@@ -1276,41 +1416,36 @@ def display_packages(packages, registries):
     *registries* should be a list of available registry paths.
 
     """
-    titles = ["Package", "Version", "Registry", "Description"]
-    columns = [
-        {"size": len(title), "rows": [], "title": title} for title in titles
-    ]
+    columns = _create_columns(["Package", "Version", "Registry", "Description"])
+    registries = context.get("registries", [])
 
-    for package in packages:
+    success = False
+
+    for package in context.get("packages", []):
         _identifier = package.definition_identifier
         if package.variant_name is not None:
             _identifier += " [{}]".format(package.variant_name)
 
-        columns[0]["rows"].append(_identifier)
-        columns[0]["size"] = max(len(_identifier), columns[0]["size"])
+        rows = [
+            _identifier,
+            package.version,
+            registries.index(package.get("registry")),
+            package.description
+        ]
 
-        _version = str(package.version)
-        columns[1]["rows"].append(_version)
-        columns[1]["size"] = max(len(_version), columns[1]["size"])
+        for index, row in enumerate(rows):
+            _create_row(row, columns[index])
 
-        registry_index = str(
-            registries.index(package.get("registry"))
-        )
-        columns[2]["rows"].append(registry_index)
-        columns[2]["size"] = max(len(registry_index), columns[2]["size"])
+        success = True
 
-        _description = package.description
-        columns[3]["rows"].append(_description)
-        columns[3]["size"] = max(len(_description), columns[3]["size"])
-
-    if len(packages) == 0:
-        item = "No packages to display."
-        columns[0]["rows"].append(item)
+    if not success:
+        message = "No packages to display."
+        _create_row(message, columns[0], resize=False)
 
     _display_table(columns)
 
 
-def display_command_mapping(mapping):
+def _display_command_from_context(context):
     """Display commands contained in *mapping*.
 
     *mapping* should be in the form of::
@@ -1321,26 +1456,26 @@ def display_command_mapping(mapping):
         }
 
     """
-    titles = ["Command", "Value"]
-    columns = [
-        {"size": len(title), "rows": [], "title": title} for title in titles
-    ]
+    columns = _create_columns(["Command", "Value"])
 
-    for command, value in sorted(mapping.items()):
-        columns[0]["rows"].append(command)
-        columns[0]["size"] = max(len(command), columns[0]["size"])
+    command_mapping = context.get("command", {})
 
-        columns[1]["rows"].append(value)
-        columns[1]["size"] = max(len(value), columns[1]["size"])
+    success = False
 
-    if len(mapping) == 0:
-        item = "No commands to display."
-        columns[0]["rows"].append(item)
+    for command, value in sorted(command_mapping.items()):
+        _create_row(command, columns[0])
+        _create_row(value, columns[1])
+
+        success = True
+
+    if not success:
+        message = "No commands to display."
+        _create_row(message, columns[0], resize=False)
 
     _display_table(columns)
 
 
-def display_environ_mapping(mapping):
+def _display_environ_from_context(context):
     """Display environment variables contained in *mapping*.
 
     *mapping* should be in the form of::
@@ -1351,10 +1486,9 @@ def display_environ_mapping(mapping):
         }
 
     """
-    titles = ["Environment Variable", "Environment Value"]
-    columns = [
-        {"size": len(title), "rows": [], "title": title} for title in titles
-    ]
+    columns = _create_columns(["Environment Variable", "Environment Value"])
+
+    environ_mapping = context.get("environ", {})
 
     def _compute_value(_variable, value):
         """Compute value to display."""
@@ -1364,22 +1498,33 @@ def display_environ_mapping(mapping):
             return [value[:50] + "..."]
         return str(value).split(os.pathsep)
 
-    for variable in sorted(mapping.keys()):
+    success = False
+
+    for variable in sorted(environ_mapping.keys()):
         for key, _value in itertools.izip_longest(
-            [variable], _compute_value(variable, mapping[variable])
+            [variable], _compute_value(variable, environ_mapping[variable])
         ):
-            _key = key or ""
-            columns[0]["rows"].append(_key)
-            columns[0]["size"] = max(len(_key), columns[0]["size"])
+            _create_row(key or "", columns[0])
+            _create_row(_value, columns[1])
 
-            columns[1]["rows"].append(_value)
-            columns[1]["size"] = max(len(_value), columns[1]["size"])
+        success = True
 
-    if len(mapping) == 0:
-        item = "No environment variables to display."
-        columns[0]["rows"].append(item)
+    if not success:
+        message = "No environment variables to display."
+        _create_row(message, columns[0], resize=False)
 
     _display_table(columns)
+
+
+def _casted_argument(argument):
+    """Return *argument* casted into a proper type from JSON decoder."""
+    # Ensure that boolean value are in JSON format.
+    argument = argument.replace("True", "true").replace("False", "false")
+
+    try:
+        return json.loads(argument)
+    except ValueError:
+        return argument
 
 
 def _query_identifier():
@@ -1443,6 +1588,22 @@ def _query_command(aliases=None):
     )
 
 
+def _create_columns(titles):
+    """Create columns from *titles*."""
+    return [
+        {"size": len(title), "rows": [], "title": title} for title in titles
+    ]
+
+
+def _create_row(element, column, resize=True):
+    """Add row with *element* in *column*."""
+    _element = str(element)
+    column["rows"].append(_element)
+
+    if resize:
+        column["size"] = max(len(_element), column["size"])
+
+
 def _display_table(columns):
     """Display table of *rows*."""
     spaces = []
@@ -1478,3 +1639,81 @@ def _display_table(columns):
 
     # Print final blank line.
     click.echo()
+
+
+def _add_to_mapping(definition, mapping):
+    """Mutate package *mapping* to add *definition*
+
+    The mutated mapping should be in the form of::
+
+        {
+            "foo": {
+                "1.1.0": {
+                    "linux : el >=6, <7": <Definition(identifier="foo")>,
+                    "linux : el >=7, <8": <Definition(identifier="foo")>,
+                "0.1.0": {
+                    "linux : el >=6, <7": <Definition(identifier="foo")>,
+                ...
+            },
+            "bar": {
+                "1.1.0": {
+                    "noarch": <Definition(identifier="bar")>
+                }
+                ...
+            },
+            ...
+        }
+
+    """
+    identifier = definition.identifier
+    version = str(definition.version)
+    system_label = wiz.utility.compute_system_label(definition)
+
+    mapping.setdefault(identifier, {})
+    mapping[identifier].setdefault(version, {})
+    mapping[identifier][version].setdefault(system_label, {})
+    mapping[identifier][version][system_label] = definition
+
+
+def _fail_on_extra_arguments(click_context):
+    """Raise an error if extra arguments are found in command."""
+    arguments = _fetch_extra_arguments(click_context)
+    if len(arguments):
+        click_context.fail(
+            "Got unexpected extra argument(s) ({})".format(" ".join(arguments))
+        )
+
+
+def _fetch_extra_arguments(click_context):
+    """Return extra arguments from context.
+
+    If extra arguments have not been recorded after the "--" symbol, we check
+    if leftover arguments remain in context.
+
+    """
+    return click_context.obj["extra_arguments"] or click_context.args
+
+
+def _fetch_definition_mapping_from_context(click_context):
+    """Return definition mapping from elements stored in *click_context*."""
+    return wiz.fetch_definition_mapping(
+        click_context.obj["registry_paths"],
+        system_mapping=click_context.obj["system_mapping"],
+        max_depth=click_context.obj["registry_search_depth"]
+    )
+
+
+def _export_history_if_requested(click_context):
+    """Return definition mapping from elements stored in *click_context*."""
+    logger = mlog.Logger(__name__ + "._export_history_if_requested")
+
+    if click_context.obj["recording_path"] is None:
+        return
+
+    history = wiz.history.get(serialized=True)
+    path = os.path.join(
+        os.path.abspath(click_context.obj["recording_path"]),
+        "wiz-{}.dump".format(datetime.datetime.now().isoformat())
+    )
+    wiz.filesystem.export(path, history, compressed=True)
+    logger.info("History recorded and exported in '{}'".format(path))

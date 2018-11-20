@@ -31,6 +31,14 @@ Release Notes
             >>> wiz run python -c 'print("TEST")'
 
     .. change:: new
+        :tags: command-line
+
+        Added :option:`wiz search --no-arch`,
+        :option:`wiz list command --no-arch` and
+        :option:`wiz list package --no-arch` options to display all definitions
+        discovered, even when not compatible with the current system.
+
+    .. change:: new
         :tags: API
 
         Added :mod:`wiz.environ` module to regroup functions dealing with the
@@ -55,6 +63,12 @@ Release Notes
     .. change:: changed
         :tags: command-line
 
+        Updated ``wiz search`` sub-command to also search packages using
+        command aliases.
+
+    .. change:: changed
+        :tags: command-line
+
         Updated sub-commands to only accept extra arguments for the ``wiz use``
         and ``wiz run`` sub-commands in order to execute a custom command
         within a resolved context. Previously, extra arguments were accepted by
@@ -75,6 +89,23 @@ Release Notes
             >>> wiz use python -- echo \$PIP_CONFIG_FILE
 
     .. change:: changed
+        :tags: API, command-line
+
+        Updated :func:`wiz.definition.fetch` to remove "requests" option which
+        could filter definitions discovered. The filtering process has been
+        moved to the command line in order to filter definitions from all
+        systems as the definition mapping returned by
+        :func:`wiz.definition.fetch` only records one definition per identifier
+        and version.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.definition.discover` to add a "system_mapping" option
+        which can filter out definitions :func:`invalid <wiz.system.validate>`
+        with a system mapping.
+
+    .. change:: changed
         :tags: API
 
         Moved :func:`wiz.package.initiate_environ` to
@@ -85,12 +116,6 @@ Release Notes
 
         Moved :func:`wiz.package.sanitise_environ_mapping` to
         :func:`wiz.environ.sanitise`.
-
-    .. change:: changed
-        :tags: API
-
-        Updated :mod:`wiz.fetch_definition_mapping` to add the *requests*
-        argument which can influence the definition research.
 
     .. change:: changed
         :tags: API
