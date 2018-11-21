@@ -355,6 +355,7 @@ class Package(wiz.mapping.Mapping):
             "registry",
             "definition-location",
             "install-location",
+            "namespace",
             "auto-use",
             "system",
             "command",

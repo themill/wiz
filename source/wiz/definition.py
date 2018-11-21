@@ -100,12 +100,15 @@ def _add_to_mapping(definition, mapping):
         }
 
     """
-    identifier = definition.identifier
+    name = definition.identifier
+    if definition.namespace is not None:
+        name = "{}::{}".format(definition.namespace, definition.identifier)
+
     version = str(definition.version)
 
-    mapping.setdefault(identifier, {})
-    mapping[identifier].setdefault(version, {})
-    mapping[identifier][version] = definition
+    mapping.setdefault(name, {})
+    mapping[name].setdefault(version, {})
+    mapping[name][version] = definition
 
 
 def _extract_implicit_requests(identifiers, mapping):
@@ -420,7 +423,7 @@ class Definition(wiz.mapping.Mapping):
             "registry",
             "definition-location",
             "install-location",
-            'group',
+            "namespace",
             "auto-use",
             "system",
             "command",
