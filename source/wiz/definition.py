@@ -153,8 +153,8 @@ def query(requirement, definition_mapping, namespaces=None):
     *definition_mapping* is a mapping regrouping all available definition
     associated with their unique identifier.
 
-    *namespaces* could be a list of namespaces which could hint to the default
-    namespace if not specified.
+    *namespaces* could be a list which provides hints to select a default
+    namespace if necessary.
 
     :exc:`wiz.exception.RequestNotFound` is raised if the requirement can not
     be resolved.
@@ -162,23 +162,14 @@ def query(requirement, definition_mapping, namespaces=None):
     """
     identifier = requirement.name
 
+    # Extend identifier with namespace if necessary.
     namespace_mapping = definition_mapping.get("__namespace__", {})
-    if identifier not in definition_mapping:
-        _namespaces = [
-            namespace for namespace in namespace_mapping.get(identifier, [])
-            if not namespaces or namespace in namespaces
-        ]
+    if identifier not in definition_mapping and not identifier.count("::"):
+        _namespaces = _compute_namespaces(
+            identifier, namespace_mapping, namespaces=namespaces
+        )
 
         if len(_namespaces) > 1:
-            raise wiz.exception.RequestNotFound(
-                "Too many namespaces available for '{definition}' "
-                "[{namespaces}].".format(
-                    definition=identifier,
-                    namespaces=_namespaces
-                )
-            )
-
-        if len(_namespaces) > 0:
             identifier = "{}::{}".format(_namespaces[0], identifier)
 
     if identifier not in definition_mapping:
@@ -210,6 +201,45 @@ def query(requirement, definition_mapping, namespaces=None):
         raise wiz.exception.RequestNotFound(requirement)
 
     return definition
+
+
+def _compute_namespaces(identifier, namespace_mapping, namespaces=None):
+    """Return namespaces corresponding to *identifier*.
+
+    *identifier* should be a definition identifier.
+
+    *namespace_mapping* should be a mapping in the form of::
+
+        {
+            "foo": ["namespace1", "namespace2"]
+            ...
+        }
+
+    *namespaces* could be a list which provides hints to select a default
+    namespace if necessary.
+
+    """
+    _namespaces = namespace_mapping.get(identifier, [])
+    if len(_namespaces) == 0:
+        return _namespaces
+
+    # Filter out some namespaces from hints if necessary.
+    if len(_namespaces) > 1:
+        _namespaces = [
+            namespace for namespace in _namespaces
+            if not namespaces or namespace in namespaces
+        ]
+
+    if len(_namespaces) > 1:
+        raise wiz.exception.RequestNotFound(
+            "Too many namespaces available for '{definition}' "
+            "[{namespaces}].".format(
+                definition=identifier,
+                namespaces=_namespaces
+            )
+        )
+
+    return _namespaces
 
 
 def export(path, definition, overwrite=False):
