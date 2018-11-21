@@ -27,10 +27,17 @@ def fetch(paths, system_mapping=None, max_depth=None):
                 ...
             },
             "package": {
+                "__namespace__": {
+                    "bar": ["test"]
+                },
                 "foo": {
                     "1.1.0": <Definition(identifier="foo", version="1.1.0")>,
                     "1.0.0": <Definition(identifier="foo", version="1.0.0")>,
                     "0.1.0": <Definition(identifier="foo", version="0.1.0")>,
+                    ...
+                },
+                "test::bar": {
+                    "0.1.0": <Definition(identifier="bar", version="0.1.0")>,
                     ...
                 },
                 ...
@@ -100,15 +107,17 @@ def _add_to_mapping(definition, mapping):
         }
 
     """
-    name = definition.identifier
+    identifier = definition.identifier
     if definition.namespace is not None:
-        name = "{}::{}".format(definition.namespace, definition.identifier)
+        identifier = "{}::{}".format(
+            definition.namespace, definition.identifier
+        )
 
     version = str(definition.version)
 
-    mapping.setdefault(name, {})
-    mapping[name].setdefault(version, {})
-    mapping[name][version] = definition
+    mapping.setdefault(identifier, {})
+    mapping[identifier].setdefault(version, {})
+    mapping[identifier][version] = definition
 
 
 def _extract_implicit_requests(identifiers, mapping):
@@ -136,7 +145,7 @@ def _extract_implicit_requests(identifiers, mapping):
     return requests
 
 
-def query(requirement, definition_mapping):
+def query(requirement, definition_mapping, namespaces=None):
     """Return best matching definition version from *requirement*.
 
     *requirement* is an instance of :class:`packaging.requirements.Requirement`.
@@ -144,11 +153,34 @@ def query(requirement, definition_mapping):
     *definition_mapping* is a mapping regrouping all available definition
     associated with their unique identifier.
 
+    *namespaces* could be a list of namespaces which could hint to the default
+    namespace if not specified.
+
     :exc:`wiz.exception.RequestNotFound` is raised if the requirement can not
     be resolved.
 
     """
     identifier = requirement.name
+
+    namespace_mapping = definition_mapping.get("__namespace__", {})
+    if identifier not in definition_mapping:
+        _namespaces = [
+            namespace for namespace in namespace_mapping.get(identifier, [])
+            if not namespaces or namespace in namespaces
+        ]
+
+        if len(_namespaces) > 1:
+            raise wiz.exception.RequestNotFound(
+                "Too many namespaces available for '{definition}' "
+                "[{namespaces}].".format(
+                    definition=identifier,
+                    namespaces=_namespaces
+                )
+            )
+
+        if len(_namespaces) > 0:
+            identifier = "{}::{}".format(_namespaces[0], identifier)
+
     if identifier not in definition_mapping:
         raise wiz.exception.RequestNotFound(requirement)
 
