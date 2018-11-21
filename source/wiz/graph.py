@@ -744,6 +744,9 @@ class Graph(object):
         # identifier.
         self._variants_per_definition = {}
 
+        # Namespaces recorded from definitions.
+        self._namespaces = []
+
     def __deepcopy__(self, memo):
         """Ensure that only necessary element are copied in the new graph."""
         result = Graph(self._resolver)
@@ -758,6 +761,8 @@ class Graph(object):
         result._variants_per_definition = (
             copy.deepcopy(self._variants_per_definition)
         )
+
+        result._namespaces = copy.deepcopy(self._namespaces)
 
         memo[id(self)] = result
         return result
@@ -785,6 +790,7 @@ class Graph(object):
                 for _id, constraints in self._constraints_per_definition.items()
             },
             "variants_per_definition": self._variants_per_definition,
+            "namespaces": self._namespaces,
         }
 
     def node(self, identifier):
