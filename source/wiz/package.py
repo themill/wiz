@@ -53,7 +53,7 @@ def generate_identifier(definition, variant_identifier=None):
     return identifier
 
 
-def extract(requirement, definition_mapping):
+def extract(requirement, definition_mapping, namespaces=None):
     """Extract list of :class:`Package` instances from *requirement*.
 
     The best matching :class:`~wiz.definition.Definition` version instances
@@ -67,8 +67,13 @@ def extract(requirement, definition_mapping):
     *definition_mapping* is a mapping regrouping all available definitions
     associated with their unique identifier.
 
+    *namespaces* could be a list which provides hints to select a default
+    namespace if necessary.
+
     """
-    definition = wiz.definition.query(requirement, definition_mapping)
+    definition = wiz.definition.query(
+        requirement, definition_mapping, namespaces=namespaces
+    )
 
     # Extract variants from definition if available.
     variants = definition.variants
