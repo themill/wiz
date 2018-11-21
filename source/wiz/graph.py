@@ -744,8 +744,8 @@ class Graph(object):
         # identifier.
         self._variants_per_definition = {}
 
-        # Namespaces recorded from definitions.
-        self._namespaces = []
+        # Set of namespaces found in packages added.
+        self._namespaces = set()
 
     def __deepcopy__(self, memo):
         """Ensure that only necessary element are copied in the new graph."""
@@ -790,7 +790,7 @@ class Graph(object):
                 for _id, constraints in self._constraints_per_definition.items()
             },
             "variants_per_definition": self._variants_per_definition,
-            "namespaces": self._namespaces,
+            "namespaces": sorted(self._namespaces),
         }
 
     def node(self, identifier):
@@ -1001,7 +1001,8 @@ class Graph(object):
 
         # Get packages from requirement.
         packages = wiz.package.extract(
-            requirement, self._resolver.definition_mapping
+            requirement, self._resolver.definition_mapping,
+            namespaces=self._namespaces
         )
 
         # Create a node for each package if necessary.
@@ -1034,6 +1035,10 @@ class Graph(object):
 
             node = self._node_mapping[package.identifier]
             node.add_parent(parent_identifier or self.ROOT)
+
+            # Record namespace if necessary to provide hints for other requests.
+            if package.namespace is not None:
+                self._namespaces.add(package.namespace)
 
             # Create link with requirement and weight.
             self.create_link(
