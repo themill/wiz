@@ -28,7 +28,7 @@ def fetch(paths, system_mapping=None, max_depth=None):
             },
             "package": {
                 "__namespace__": {
-                    "bar": ["test"]
+                    "bar": {"test"}
                 },
                 "foo": {
                     "1.1.0": <Definition(identifier="foo", version="1.1.0")>,
@@ -109,6 +109,11 @@ def _add_to_mapping(definition, mapping):
     """
     identifier = definition.identifier
     if definition.namespace is not None:
+        mapping.setdefault("__namespace__", {})
+        mapping["__namespace__"].setdefault(identifier, set())
+        mapping["__namespace__"][identifier].add(definition.namespace)
+
+        # Update identifier with namespace
         identifier = "{}::{}".format(
             definition.namespace, definition.identifier
         )
