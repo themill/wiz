@@ -41,6 +41,14 @@ Release Notes
     .. change:: new
         :tags: API
 
+        Added support for :ref:`namespace <definition/namespace>` keyword which
+        can be used to provide a scope to a definition. It replaces the
+        "group" keyword as it is also used to define where in the hierarchy of a
+        :term:`VCS Registry` a definition will be installed.
+
+    .. change:: new
+        :tags: API
+
         Added :mod:`wiz.environ` module to regroup functions dealing with the
         environment mapping resolution. Added :mod:`wiz.environ.contains` to
         identify specific environment variable in string and
@@ -144,6 +152,20 @@ Release Notes
         in mapping. Previously this would only be added by
         :func:`wiz.definition.discover`.
 
+    .. change:: changed
+        :tags: API
+
+        Removed :func:`wiz.package.generate_identifier` and add the following
+        properties to get version identifiers (qualified or not) from
+        :class:`~wiz.definition.Definition` and :class:`~wiz.package.Package`
+        instances:
+
+        * :attr:`wiz.definition.Definition.qualified_identifier`
+        * :attr:`wiz.definition.Definition.version_identifier`
+        * :attr:`wiz.definition.Definition.qualified_version_identifier`
+        * :attr:`wiz.package.Package.identifier`
+        * :attr:`wiz.package.Package.qualified_identifier`
+
 .. release:: 1.2.1
     :date: 2018-10-24
 
@@ -170,7 +192,7 @@ Release Notes
     .. change:: new
         :tags: definition
 
-        Added optional :ref:`group <definition/group>` keyword to definition
+        Added optional :ref:`group <definition/namespace>` keyword to definition
         schema, which can be used to define where in the hierarchy of a
         :term:`VCS Registry` a definition will be installed (e.g. "python",
         "maya").
