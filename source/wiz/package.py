@@ -332,7 +332,6 @@ class Package(wiz.mapping.Mapping):
         """Return ordered keywords."""
         return [
             "identifier",
-            "definition-identifier",
             "variant_name",
             "version",
             "description",
