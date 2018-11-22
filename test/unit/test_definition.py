@@ -85,6 +85,10 @@ def definitions():
 def package_definition_mapping():
     """Return mocked package mapping."""
     return {
+        "__namespace__": {
+            "bim": {"test"},
+            "baz": {"test1", "test2", "test3"}
+        },
         "foo": {
             "0.3.4": wiz.definition.Definition({
                 "identifier": "foo",
@@ -117,6 +121,31 @@ def package_definition_mapping():
                 "version": "0.1.0",
             }),
         },
+        "test::bim": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "bim",
+                "namespace": "test",
+                "version": "0.1.0",
+            }),
+        },
+        "test1::baz": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "baz",
+                "namespace": "test1",
+            }),
+        },
+        "test2::baz": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "baz",
+                "namespace": "test2",
+            }),
+        },
+        "test3::baz": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "baz",
+                "namespace": "test3",
+            }),
+        }
     }
 
 
@@ -372,6 +401,75 @@ def test_query_definition(package_definition_mapping):
         wiz.definition.query(requirement, package_definition_mapping) ==
         package_definition_mapping["bar"]["0.1.5"]
     )
+
+    requirement = Requirement("bim")
+    assert (
+        wiz.definition.query(requirement, package_definition_mapping) ==
+        package_definition_mapping["test::bim"]["0.1.0"]
+    )
+
+    requirement = Requirement("test::bim")
+    assert (
+        wiz.definition.query(requirement, package_definition_mapping) ==
+        package_definition_mapping["test::bim"]["0.1.0"]
+    )
+
+
+def test_query_definition_with_namespace_hints(package_definition_mapping):
+    """Return best matching definition with namespace hints."""
+    requirement = Requirement("baz")
+    definition = wiz.definition.query(
+        requirement, package_definition_mapping, namespaces=["test1"]
+    )
+
+    assert definition == package_definition_mapping["test1::baz"]["unknown"]
+
+    requirement = Requirement("baz")
+    definition = wiz.definition.query(
+        requirement, package_definition_mapping, namespaces=["test1", "other"]
+    )
+
+    assert definition == package_definition_mapping["test1::baz"]["unknown"]
+
+    requirement = Requirement("baz")
+    definition = wiz.definition.query(
+        requirement, package_definition_mapping, namespaces=["test2"]
+    )
+
+    assert definition == package_definition_mapping["test2::baz"]["unknown"]
+
+    requirement = Requirement("bim")
+    definition = wiz.definition.query(
+        requirement, package_definition_mapping, namespaces=["test2"]
+    )
+
+    assert definition == package_definition_mapping["test::bim"]["0.1.0"]
+
+    requirement = Requirement("baz")
+
+    with pytest.raises(wiz.exception.RequestNotFound) as error:
+        wiz.definition.query(
+            requirement, package_definition_mapping,
+            namespaces=["test1", "test2"]
+        )
+
+    assert (
+        "Impossible to guess default namespace for 'baz' "
+        "[available: test1, test2]"
+    ) in str(error)
+
+
+def test_query_definition_namespace_error(package_definition_mapping):
+    """Fails to guess default namespace for definition."""
+    requirement = Requirement("baz")
+
+    with pytest.raises(wiz.exception.RequestNotFound) as error:
+        wiz.definition.query(requirement, package_definition_mapping)
+
+    assert (
+        "Impossible to guess default namespace for 'baz' "
+        "[available: test1, test2, test3]"
+    ) in str(error)
 
 
 def test_query_definition_name_error(package_definition_mapping):

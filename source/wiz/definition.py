@@ -166,12 +166,12 @@ def query(requirement, definition_mapping, namespaces=None):
     # Extend identifier with namespace if necessary.
     namespace_mapping = definition_mapping.get("__namespace__", {})
     if identifier not in definition_mapping and not identifier.count("::"):
-        _namespaces = _compute_namespaces(
+        _namespace = _guess_default_namespace(
             identifier, namespace_mapping, namespaces=namespaces
         )
 
-        if len(_namespaces) > 1:
-            identifier = "{}::{}".format(_namespaces[0], identifier)
+        if _namespace is not None:
+            identifier = "{}::{}".format(_namespace, identifier)
 
     if identifier not in definition_mapping:
         raise wiz.exception.RequestNotFound(requirement)
@@ -204,8 +204,8 @@ def query(requirement, definition_mapping, namespaces=None):
     return definition
 
 
-def _compute_namespaces(identifier, namespace_mapping, namespaces=None):
-    """Return namespaces corresponding to *identifier*.
+def _guess_default_namespace(identifier, namespace_mapping, namespaces=None):
+    """Return namespace corresponding to *identifier* if available.
 
     *identifier* should be a definition identifier.
 
@@ -222,7 +222,7 @@ def _compute_namespaces(identifier, namespace_mapping, namespaces=None):
     """
     _namespaces = namespace_mapping.get(identifier, [])
     if len(_namespaces) == 0:
-        return _namespaces
+        return
 
     # Filter out some namespaces from hints if necessary.
     if len(_namespaces) > 1:
@@ -233,14 +233,15 @@ def _compute_namespaces(identifier, namespace_mapping, namespaces=None):
 
     if len(_namespaces) > 1:
         raise wiz.exception.RequestNotFound(
-            "Too many namespaces available for '{definition}' "
-            "[{namespaces}].".format(
+            "Impossible to guess default namespace for '{definition}' "
+            "[available: {namespaces}].".format(
                 definition=identifier,
-                namespaces=_namespaces
+                namespaces=", ".join(sorted(_namespaces))
             )
         )
 
-    return _namespaces
+    if len(_namespaces) > 0:
+        return _namespaces.pop()
 
 
 def export(path, definition, overwrite=False):
