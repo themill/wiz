@@ -1645,3 +1645,154 @@ def test_scenario_14(
     assert spied_extract_parents.call_count == 0
     assert spied_remove_node_and_relink.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_15(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Fail to compute packages for the following graph.
+
+    Root
+     |
+     `--(A): Test1::A==0.1.0 || Test2::A==0.2.0
+
+    Expected: Unable to guess default namespace for 'A'
+
+    """
+    definition_mapping = {
+        "__namespace__": {
+            "A": ["Test1", "Test2"]
+        },
+        "Test1::A": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0",
+                "namespace": "Test1"
+            })
+        },
+        "Test2::A": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+                "namespace": "Test2"
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    with pytest.raises(wiz.exception.RequestNotFound) as error:
+        resolver.compute_packages([Requirement("A")])
+
+    assert (
+        "Impossible to guess default namespace for 'A' "
+        "[available: Test1, Test2]"
+    ) in str(error)
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 0
+    assert spied_fetch_distance_mapping.call_count == 0
+    assert spied_extract_combinations.call_count == 0
+    assert spied_resolve_conflicts.call_count == 0
+    assert spied_compute_distance_mapping.call_count == 0
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_updated_by_distance.call_count == 0
+    assert spied_extract_conflicting_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 0
+
+
+def test_scenario_16(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    When a definition is found, its namespace is used to give hint when looking
+    for default namespace belonging to the next definition.
+
+    Root
+     |
+     |--(A): Test1::A
+     |
+     `--(B): Test1::B==0.1.0 || Test2::B==0.2.0
+
+    Expected: Test1::B==0.1.0, Test1::A
+
+    """
+    definition_mapping = {
+        "__namespace__": {
+            "A": ["Test1"],
+            "B": ["Test1", "Test2"]
+        },
+        "Test1::A": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "A",
+                "namespace": "Test1"
+            })
+        },
+        "Test1::B": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "namespace": "Test1"
+            })
+        },
+        "Test2::B": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.2.0",
+                "namespace": "Test2"
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    packages = resolver.compute_packages([Requirement("A"), Requirement("B")])
+    assert len(packages) == 2
+    assert packages[0].identifier == "B==0.1.0"
+    assert packages[0].qualified_identifier == "Test1::B==0.1.0"
+    assert packages[1].identifier == "A"
+    assert packages[1].qualified_identifier == "Test1::A"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 1
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_distance_mapping.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_updated_by_distance.call_count == 0
+    assert spied_extract_conflicting_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
