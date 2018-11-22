@@ -930,6 +930,7 @@ def test_definition_mapping():
     data = {
         "identifier": "test",
         "version": "0.1.0",
+        "namespace": "foo",
         "description": "This is a definition",
         "registry": "/path/to/registry",
         "definition-location": "/path/to/registry/test-0.1.0.json",
@@ -967,6 +968,7 @@ def test_definition_mapping():
     assert environment.to_dict() == {
         "identifier": "test",
         "version": Version("0.1.0"),
+        "namespace": "foo",
         "description": "This is a definition",
         "registry": "/path/to/registry",
         "definition-location": "/path/to/registry/test-0.1.0.json",
@@ -1003,6 +1005,7 @@ def test_definition_mapping():
         "{\n"
         "    \"identifier\": \"test\",\n"
         "    \"version\": \"0.1.0\",\n"
+        "    \"namespace\": \"foo\",\n"
         "    \"description\": \"This is a definition\",\n"
         "    \"registry\": \"/path/to/registry\",\n"
         "    \"definition-location\": \"/path/to/registry/test-0.1.0.json\",\n"
@@ -1054,7 +1057,11 @@ def test_minimal_definition():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "unknown"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -1065,6 +1072,34 @@ def test_minimal_definition():
 
     assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
+    ])
+
+
+def test_minimal_definition_with_namespace():
+    """Create a minimal definition with namespace."""
+    data = {
+        "identifier": "test",
+        "namespace": "foo",
+    }
+
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.qualified_identifier == "foo::test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "foo::test"
+    assert definition.version == "unknown"
+    assert definition.namespace == "foo"
+    assert definition.description == "unknown"
+    assert definition.environ == {}
+    assert definition.requirements == []
+    assert definition.constraints == []
+    assert definition.command == {}
+    assert definition.system == {}
+    assert definition.variants == []
+
+    assert definition.to_ordered_dict() == OrderedDict([
+        ("identifier", "test"),
+        ("namespace", "foo"),
     ])
 
 
@@ -1084,7 +1119,11 @@ def test_definition_with_version(options, expected_version):
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test==0.1.0"
+    assert definition.qualified_version_identifier == "test==0.1.0"
     assert definition.version == Version("0.1.0")
+    assert definition.namespace is None
     assert definition.description == "unknown"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -1099,6 +1138,43 @@ def test_definition_with_version(options, expected_version):
     ])
 
 
+@pytest.mark.parametrize("options, expected_version", [
+    ({}, Version("0.1.0")),
+    ({"serialize_content": True}, "0.1.0")
+], ids=[
+    "non-serialized",
+    "serialized",
+])
+def test_definition_with_version_and_namespace(options, expected_version):
+    """Create a definition with version and namespace."""
+    data = {
+        "identifier": "test",
+        "namespace": "foo",
+        "version": "0.1.0",
+    }
+
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.qualified_identifier == "foo::test"
+    assert definition.version_identifier == "test==0.1.0"
+    assert definition.qualified_version_identifier == "foo::test==0.1.0"
+    assert definition.version == Version("0.1.0")
+    assert definition.namespace == "foo"
+    assert definition.description == "unknown"
+    assert definition.environ == {}
+    assert definition.requirements == []
+    assert definition.constraints == []
+    assert definition.command == {}
+    assert definition.system == {}
+    assert definition.variants == []
+
+    assert definition.to_ordered_dict(**options) == OrderedDict([
+        ("identifier", "test"),
+        ("version", expected_version),
+        ("namespace", "foo"),
+    ])
+
+
 def test_definition_with_description():
     """Create a definition with description."""
     data = {
@@ -1108,7 +1184,11 @@ def test_definition_with_description():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -1137,7 +1217,11 @@ def test_definition_with_environ():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.requirements == []
     assert definition.constraints == []
@@ -1176,7 +1260,11 @@ def test_definition_with_requirements():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.command == {}
@@ -1213,7 +1301,11 @@ def test_definition_with_constraints():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.command == {}
@@ -1249,7 +1341,11 @@ def test_definition_with_command():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -1285,7 +1381,11 @@ def test_definition_with_system():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.command == {}
@@ -1349,7 +1449,11 @@ def test_definition_with_variant():
 
     definition = wiz.definition.Definition(copy.deepcopy(data))
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -1394,6 +1498,18 @@ def test_definition_with_variant():
             assert isinstance(requirement, Requirement)
         for requirement in variant.get("constraints", []):
             assert isinstance(requirement, Requirement)
+
+
+def test_definition_with_error():
+    """Fail to create a definition with data error."""
+    data = {}
+
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.definition.Definition(data)
+
+    assert (
+        "IncorrectDefinition: u'identifier' is a required property (/)"
+    ) in str(error)
 
 
 def test_definition_with_version_error():

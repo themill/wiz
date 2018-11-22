@@ -502,11 +502,11 @@ class Definition(wiz.mapping.Mapping):
         return [
             "identifier",
             "version",
+            "namespace",
             "description",
             "registry",
             "definition-location",
             "install-location",
-            "namespace",
             "auto-use",
             "system",
             "command",
