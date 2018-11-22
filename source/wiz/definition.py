@@ -75,7 +75,7 @@ def fetch(paths, system_mapping=None, max_depth=None):
 
         # Record package identifiers which should be used implicitly in context.
         if definition.get("auto-use"):
-            implicit_identifiers.append(definition.identifier)
+            implicit_identifiers.append(definition.qualified_identifier)
             _add_to_mapping(definition, implicit_package_mapping)
 
     # Extract implicit package requests.
@@ -136,7 +136,8 @@ def _extract_implicit_requests(identifiers, mapping):
     requests = []
 
     for identifier in sorted(
-        mapping.keys(), key=lambda _id: identifiers.index(_id), reverse=True
+        (_id for _id in mapping.keys() if _id != "__namespace__"),
+        key=lambda _id: identifiers.index(_id), reverse=True
     ):
         requirement = wiz.utility.get_requirement(identifier)
         definition = query(requirement, mapping)

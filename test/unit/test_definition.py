@@ -20,136 +20,63 @@ def definitions():
     """Return list of mocked definitions."""
     return [
         wiz.definition.Definition({
-            "identifier": "foo-package",
+            "identifier": "foo",
+            "namespace": "test",
             "version": "0.1.0",
-            "description": "A test package for foo."
         }),
         wiz.definition.Definition({
-            "identifier": "foo-package",
+            "identifier": "foo",
+            "namespace": "test",
             "version": "1.1.0",
-            "description": "Another test package for foo.",
             "command": {
                 "foo": "Foo1.1",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "bar-package",
+            "identifier": "bar",
             "version": "1.0.0",
-            "description": "A test package for bar.",
             "command": {
                 "bar": "Bar1.0",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "bar-package",
+            "identifier": "bar",
             "version": "0.9.2",
-            "description": "Another test package for bar.",
             "command": {
                 "bar": "Bar0.9",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "baz-package",
+            "identifier": "baz",
             "version": "0.1.1",
-            "description": "A test package for baz.",
             "command": {
                 "baz": "Baz0.1",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "bim-package",
+            "identifier": "bim",
             "version": "0.2.1",
-            "description": "A test package for bim.",
             "command": {
                 "bim": "Bim0.2",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "bim-package",
+            "identifier": "bim",
             "version": "0.2.1",
-            "description": "Another test package for bim.",
             "command": {
                 "bim-test": "Bim0.2 --test",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "bim-package",
+            "identifier": "bim",
             "version": "0.1.0",
-            "description": "Yet another test package for bim.",
             "command": {
                 "bim": "Bim0.1",
             }
-        })
-    ]
-
-
-@pytest.fixture()
-def definitions_with_auto_use():
-    """Return list of mocked definitions with 'auto-use' keyword."""
-    return [
-        wiz.definition.Definition({
-            "identifier": "foo-package",
-            "version": "0.1.0",
-            "description": "A test package for foo.",
-            "auto-use": True
         }),
         wiz.definition.Definition({
-            "identifier": "foo-package",
-            "version": "1.1.0",
-            "description": "Another test package for foo.",
-            "auto-use": True,
-            "command": {
-                "foo": "Foo1.1",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "bar-package",
-            "version": "1.0.0",
-            "description": "A test package for bar.",
-            "command": {
-                "bar": "Bar1.0",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "bar-package",
-            "version": "0.9.2",
-            "description": "Another test package for bar.",
-            "command": {
-                "bar": "Bar0.9",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "baz-package",
-            "version": "0.1.1",
-            "description": "A test package for baz.",
-            "command": {
-                "baz": "Baz0.1",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "bim-package",
-            "version": "0.2.1",
-            "description": "A test package for bim.",
-            "command": {
-                "bim": "Bim0.2",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "bim-package",
-            "version": "0.2.1",
-            "description": "Another test package for bim.",
-            "command": {
-                "bim-test": "Bim0.2 --test",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "bim-package",
-            "version": "0.1.0",
-            "description": "Yet another test package for bim.",
-            "auto-use": True,
-            "command": {
-                "bim": "Bim0.1",
-            }
+            "identifier": "foo",
+            "namespace": "other"
         })
     ]
 
@@ -317,30 +244,36 @@ def test_fetch(mocked_discover, definitions, options):
 
     assert result == {
         "package": {
-            "foo-package": {
+            "__namespace__": {
+                "foo": {"test", "other"}
+            },
+            "test::foo": {
                 "0.1.0": definitions[0],
                 "1.1.0": definitions[1]
             },
-            "bar-package": {
+            "bar": {
                 "1.0.0": definitions[2],
                 "0.9.2": definitions[3]
             },
-            "baz-package": {
+            "baz": {
                 "0.1.1": definitions[4]
             },
-            "bim-package": {
+            "bim": {
                 # The 5th definition in the incoming list is overridden by the
                 # 6th one which has the same identifier and version.
                 "0.2.1": definitions[6],
                 "0.1.0": definitions[7]
+            },
+            "other::foo": {
+                "unknown": definitions[8]
             }
         },
         "command": {
-            "foo": "foo-package",
-            "bar": "bar-package",
-            "baz": "baz-package",
-            "bim-test": "bim-package",
-            "bim": "bim-package"
+            "foo": "foo",
+            "bar": "bar",
+            "baz": "baz",
+            "bim-test": "bim",
+            "bim": "bim"
         },
         "implicit-packages": []
     }
@@ -355,40 +288,12 @@ def test_fetch(mocked_discover, definitions, options):
     "with-max-depth",
     "with-system"
 ])
-def test_fetch_with_implicit_packages(mocked_discover, options):
+def test_fetch_with_implicit_packages(mocked_discover, definitions, options):
     """Fetch all definition within *paths*."""
-    definitions = [
-        wiz.definition.Definition({
-            "identifier": "foo",
-            "version": "0.1.0",
-            "auto-use": True
-        }),
-        wiz.definition.Definition({
-            "identifier": "foo",
-            "version": "1.1.0",
-            "auto-use": True
-        }),
-        wiz.definition.Definition({
-            "identifier": "bar",
-            "version": "1.0.0",
-        }),
-        wiz.definition.Definition({
-            "identifier": "bar",
-            "version": "0.9.2",
-            "auto-use": True
-        }),
-        wiz.definition.Definition({
-            "identifier": "baz",
-        }),
-        wiz.definition.Definition({
-            "identifier": "bim",
-            "auto-use": True
-        }),
-        wiz.definition.Definition({
-            "identifier": "bam",
-            "auto-use": True
-        }),
-    ]
+    definitions[0] = definitions[0].set("auto-use", True)
+    definitions[1] = definitions[1].set("auto-use", True)
+    definitions[3] = definitions[3].set("auto-use", True)
+    definitions[8] = definitions[8].set("auto-use", True)
 
     mocked_discover.return_value = definitions
     result = wiz.definition.fetch(
@@ -403,7 +308,10 @@ def test_fetch_with_implicit_packages(mocked_discover, options):
 
     assert result == {
         "package": {
-            "foo": {
+            "__namespace__": {
+                "foo": {"test", "other"}
+            },
+            "test::foo": {
                 "0.1.0": definitions[0],
                 "1.1.0": definitions[1]
             },
@@ -412,21 +320,29 @@ def test_fetch_with_implicit_packages(mocked_discover, options):
                 "0.9.2": definitions[3]
             },
             "baz": {
-                "unknown": definitions[4]
+                "0.1.1": definitions[4]
             },
             "bim": {
-                "unknown": definitions[5],
+                # The 5th definition in the incoming list is overridden by the
+                # 6th one which has the same identifier and version.
+                "0.2.1": definitions[6],
+                "0.1.0": definitions[7]
             },
-            "bam": {
-                "unknown": definitions[6],
+            "other::foo": {
+                "unknown": definitions[8]
             }
         },
-        "command": {},
+        "command": {
+            "foo": "foo",
+            "bar": "bar",
+            "baz": "baz",
+            "bim-test": "bim",
+            "bim": "bim"
+        },
         "implicit-packages": [
-            "bam",
-            "bim",
+            "other::foo",
             "bar==0.9.2",
-            "foo==1.1.0"
+            "test::foo==1.1.0"
         ]
     }
 
