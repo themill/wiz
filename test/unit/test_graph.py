@@ -742,10 +742,11 @@ def test_graph_update_from_requirements(
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "A==0.2.0": mocker.Mock(
-            identifier="A==0.2.0",
+        "Foo::A==0.2.0": mocker.Mock(
+            identifier="Foo::A==0.2.0",
             variant_name=None,
             definition_identifier="A",
+            namespace="Foo",
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_A==0.2.0"}
@@ -754,6 +755,7 @@ def test_graph_update_from_requirements(
             identifier="B==2.1.1",
             variant_name=None,
             definition_identifier="B",
+            namespace=None,
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_B==2.1.1"}
@@ -761,7 +763,7 @@ def test_graph_update_from_requirements(
     }
 
     mocked_package_extract.side_effect = [
-        [_mapping["A==0.2.0"]],
+        [_mapping["Foo::A==0.2.0"]],
         [_mapping["B==2.1.1"]]
     ]
 
@@ -770,21 +772,22 @@ def test_graph_update_from_requirements(
     assert graph.to_dict() == {
         "identifier": mock.ANY,
         "node_mapping": {
-            "A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
+            "Foo::A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
             "B==2.1.1": {"package": "_B==2.1.1", "parents": ["root"]}
         },
         "link_mapping": {
             "root": {
-                "A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
+                "Foo::A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
                 "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2}
             }
         },
         "identifiers_per_definition": {
-            "A": ["A==0.2.0"],
+            "A": ["Foo::A==0.2.0"],
             "B": ["B==2.1.1"],
         },
         "variants_per_definition": {},
-        "constraints_per_definition": {}
+        "constraints_per_definition": {},
+        "namespaces": ["Foo"]
     }
 
 
@@ -795,10 +798,11 @@ def test_graph_update_from_requirements_with_dependencies(
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "A==0.1.0": mocker.Mock(
-            identifier="A==0.1.0",
+        "Foo::A==0.1.0": mocker.Mock(
+            identifier="Foo::A==0.1.0",
             variant_name=None,
             definition_identifier="A",
+            namespace="Foo",
             requirements=[Requirement("B>=2"), Requirement("C")],
             constraints=[],
             **{"to_dict.return_value": "_A==0.1.0"}
@@ -807,6 +811,7 @@ def test_graph_update_from_requirements_with_dependencies(
             identifier="B==3.0.0",
             variant_name=None,
             definition_identifier="B",
+            namespace=None,
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_B==3.0.0"}
@@ -815,6 +820,7 @@ def test_graph_update_from_requirements_with_dependencies(
             identifier="C==1.2.3",
             variant_name=None,
             definition_identifier="C",
+            namespace=None,
             requirements=[Requirement("D")],
             constraints=[],
             **{"to_dict.return_value": "_C==1.2.3"}
@@ -823,6 +829,7 @@ def test_graph_update_from_requirements_with_dependencies(
             identifier="D==0.1.0",
             variant_name=None,
             definition_identifier="D",
+            namespace=None,
             requirements=[Requirement("E")],
             constraints=[],
             **{"to_dict.return_value": "_D==0.1.0"}
@@ -831,6 +838,7 @@ def test_graph_update_from_requirements_with_dependencies(
             identifier="E==0.2.0",
             variant_name=None,
             definition_identifier="E",
+            namespace=None,
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_E==0.2.0"}
@@ -838,7 +846,7 @@ def test_graph_update_from_requirements_with_dependencies(
     }
 
     mocked_package_extract.side_effect = [
-        [_mapping["A==0.1.0"]],
+        [_mapping["Foo::A==0.1.0"]],
         [_mapping["B==3.0.0"]],
         [_mapping["C==1.2.3"]],
         [_mapping["D==0.1.0"]],
@@ -850,17 +858,17 @@ def test_graph_update_from_requirements_with_dependencies(
     assert graph.to_dict() == {
         "identifier": mock.ANY,
         "node_mapping": {
-            "A==0.1.0": {"package": "_A==0.1.0", "parents": ["root"]},
-            "B==3.0.0": {"package": "_B==3.0.0", "parents": ["A==0.1.0"]},
-            "C==1.2.3": {"package": "_C==1.2.3", "parents": ["A==0.1.0"]},
+            "Foo::A==0.1.0": {"package": "_A==0.1.0", "parents": ["root"]},
+            "B==3.0.0": {"package": "_B==3.0.0", "parents": ["Foo::A==0.1.0"]},
+            "C==1.2.3": {"package": "_C==1.2.3", "parents": ["Foo::A==0.1.0"]},
             "D==0.1.0": {"package": "_D==0.1.0", "parents": ["C==1.2.3"]},
             "E==0.2.0": {"package": "_E==0.2.0", "parents": ["D==0.1.0"]}
         },
         "link_mapping": {
             "root": {
-                "A==0.1.0": {"requirement": Requirement("A"), "weight": 1}
+                "Foo::A==0.1.0": {"requirement": Requirement("A"), "weight": 1}
             },
-            "A==0.1.0": {
+            "Foo::A==0.1.0": {
                 "B==3.0.0": {"requirement": Requirement("B>=2"), "weight": 1},
                 "C==1.2.3": {"requirement": Requirement("C"), "weight": 2}
             },
@@ -872,14 +880,15 @@ def test_graph_update_from_requirements_with_dependencies(
             }
         },
         "identifiers_per_definition": {
-            "A": ["A==0.1.0"],
+            "A": ["Foo::A==0.1.0"],
             "B": ["B==3.0.0"],
             "C": ["C==1.2.3"],
             "D": ["D==0.1.0"],
             "E": ["E==0.2.0"]
         },
         "variants_per_definition": {},
-        "constraints_per_definition": {}
+        "constraints_per_definition": {},
+        "namespaces": ["Foo"]
     }
 
 
@@ -890,10 +899,11 @@ def test_graph_update_from_requirements_with_variants(
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "A[V1]==0.2.0": mocker.Mock(
-            identifier="A[V1]==0.2.0",
+        "Foo::A[V1]==0.2.0": mocker.Mock(
+            identifier="Foo::A[V1]==0.2.0",
             variant_name="V1",
             definition_identifier="A",
+            namespace="Foo",
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_A[V1]==0.2.0"}
@@ -902,6 +912,7 @@ def test_graph_update_from_requirements_with_variants(
             identifier="A[V2]==0.2.0",
             variant_name="V2",
             definition_identifier="A",
+            namespace=None,
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_A[V2]==0.2.0"}
@@ -910,6 +921,7 @@ def test_graph_update_from_requirements_with_variants(
             identifier="A[V3]==0.2.0",
             variant_name="V3",
             definition_identifier="A",
+            namespace=None,
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_A[V3]==0.2.0"}
@@ -918,7 +930,7 @@ def test_graph_update_from_requirements_with_variants(
 
     mocked_package_extract.side_effect = [
         [
-            _mapping["A[V1]==0.2.0"],
+            _mapping["Foo::A[V1]==0.2.0"],
             _mapping["A[V2]==0.2.0"],
             _mapping["A[V3]==0.2.0"],
         ],
@@ -929,24 +941,28 @@ def test_graph_update_from_requirements_with_variants(
     assert graph.to_dict() == {
         "identifier": mock.ANY,
         "node_mapping": {
-            "A[V1]==0.2.0": {"package": "_A[V1]==0.2.0", "parents": ["root"]},
+            "Foo::A[V1]==0.2.0": {
+                "package": "_A[V1]==0.2.0", "parents": ["root"]
+            },
             "A[V2]==0.2.0": {"package": "_A[V2]==0.2.0", "parents": ["root"]},
             "A[V3]==0.2.0": {"package": "_A[V3]==0.2.0", "parents": ["root"]},
         },
         "link_mapping": {
             "root": {
-                "A[V1]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
+                "Foo::A[V1]==0.2.0": {
+                    "requirement": Requirement("A"), "weight": 1},
                 "A[V2]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
                 "A[V3]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
             },
         },
         "identifiers_per_definition": {
-            "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"],
+            "A": ["A[V2]==0.2.0", "A[V3]==0.2.0", "Foo::A[V1]==0.2.0"],
         },
         "variants_per_definition": {
-            "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"]
+            "A": ["Foo::A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"]
         },
-        "constraints_per_definition": {}
+        "constraints_per_definition": {},
+        "namespaces": ["Foo"]
     }
 
 
@@ -957,10 +973,11 @@ def test_graph_update_from_requirements_with_unused_constraints(
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "A==0.2.0": mocker.Mock(
-            identifier="A==0.2.0",
+        "Foo::A==0.2.0": mocker.Mock(
+            identifier="Foo::A==0.2.0",
             variant_name=None,
             definition_identifier="A",
+            namespace="Foo",
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_A==0.2.0"}
@@ -969,6 +986,7 @@ def test_graph_update_from_requirements_with_unused_constraints(
             identifier="B==2.1.1",
             variant_name=None,
             definition_identifier="B",
+            namespace=None,
             requirements=[],
             constraints=[Requirement("C==2.0.4")],
             **{"to_dict.return_value": "_B==2.1.1"}
@@ -976,7 +994,7 @@ def test_graph_update_from_requirements_with_unused_constraints(
     }
 
     mocked_package_extract.side_effect = [
-        [_mapping["A==0.2.0"]],
+        [_mapping["Foo::A==0.2.0"]],
         [_mapping["B==2.1.1"]]
     ]
 
@@ -985,17 +1003,17 @@ def test_graph_update_from_requirements_with_unused_constraints(
     assert graph.to_dict() == {
         "identifier": mock.ANY,
         "node_mapping": {
-            "A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
+            "Foo::A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
             "B==2.1.1": {"package": "_B==2.1.1", "parents": ["root"]}
         },
         "link_mapping": {
             "root": {
-                "A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
+                "Foo::A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
                 "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2}
             }
         },
         "identifiers_per_definition": {
-            "A": ["A==0.2.0"],
+            "A": ["Foo::A==0.2.0"],
             "B": ["B==2.1.1"],
         },
         "constraints_per_definition": {
@@ -1007,7 +1025,8 @@ def test_graph_update_from_requirements_with_unused_constraints(
                 }
             ]
         },
-        "variants_per_definition": {}
+        "variants_per_definition": {},
+        "namespaces": ["Foo"]
     }
 
 
@@ -1018,10 +1037,11 @@ def test_graph_update_from_requirements_with_used_constraints(
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "A==0.2.0": mocker.Mock(
-            identifier="A==0.2.0",
+        "Foo::A==0.2.0": mocker.Mock(
+            identifier="Foo::A==0.2.0",
             variant_name=None,
             definition_identifier="A",
+            namespace="Foo",
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_A==0.2.0"}
@@ -1030,6 +1050,7 @@ def test_graph_update_from_requirements_with_used_constraints(
             identifier="B==2.1.1",
             variant_name=None,
             definition_identifier="B",
+            namespace=None,
             requirements=[],
             constraints=[Requirement("C==2.0.4")],
             **{"to_dict.return_value": "_B==2.1.1"}
@@ -1038,6 +1059,7 @@ def test_graph_update_from_requirements_with_used_constraints(
             identifier="C==2.0.4",
             variant_name=None,
             definition_identifier="C",
+            namespace=None,
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_C==2.0.4"}
@@ -1046,6 +1068,7 @@ def test_graph_update_from_requirements_with_used_constraints(
             identifier="C==3.0.0",
             variant_name=None,
             definition_identifier="C",
+            namespace=None,
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_C==3.0.0"}
@@ -1053,7 +1076,7 @@ def test_graph_update_from_requirements_with_used_constraints(
     }
 
     mocked_package_extract.side_effect = [
-        [_mapping["A==0.2.0"]],
+        [_mapping["Foo::A==0.2.0"]],
         [_mapping["B==2.1.1"]],
         [_mapping["C==3.0.0"]],
         [_mapping["C==2.0.4"]]
@@ -1066,14 +1089,14 @@ def test_graph_update_from_requirements_with_used_constraints(
     assert graph.to_dict() == {
         "identifier": mock.ANY,
         "node_mapping": {
-            "A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
+            "Foo::A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
             "B==2.1.1": {"package": "_B==2.1.1", "parents": ["root"]},
             "C==2.0.4": {"package": "_C==2.0.4", "parents": ["B==2.1.1"]},
             "C==3.0.0": {"package": "_C==3.0.0", "parents": ["root"]}
         },
         "link_mapping": {
             "root": {
-                "A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
+                "Foo::A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
                 "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2},
                 "C==3.0.0": {"requirement": Requirement("C"), "weight": 3}
             },
@@ -1084,12 +1107,13 @@ def test_graph_update_from_requirements_with_used_constraints(
             }
         },
         "identifiers_per_definition": {
-            "A": ["A==0.2.0"],
+            "A": ["Foo::A==0.2.0"],
             "B": ["B==2.1.1"],
             "C": ["C==2.0.4", "C==3.0.0"]
         },
         "constraints_per_definition": {},
         "variants_per_definition": {},
+        "namespaces": ["Foo"]
     }
 
 

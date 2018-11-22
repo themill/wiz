@@ -10,49 +10,6 @@ import wiz.environ
 import wiz.exception
 
 
-def generate_identifier(definition, variant_identifier=None):
-    """Generate package identifier from *definition*.
-
-    *definition* should be an instance of :class:`~wiz.definition.Definition`.
-
-    If *variant_identifier* is specified, the package identifier will be
-    generated accordingly.
-
-    Raise :exc:`wiz.exception.IncorrectDefinition` if *variant_identifier*
-    is not found in *definition*.
-
-    .. note::
-
-        The package identifier returned is usable as a request to query the
-        corresponding :class:`Package` instance.
-
-    """
-    identifier = definition.identifier
-
-    if variant_identifier is not None:
-        identifiers = [variant.identifier for variant in definition.variants]
-        if variant_identifier not in identifiers:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}{version}' does not contain a "
-                "variant identified as '{variant}'".format(
-                    identifier=identifier,
-                    version=(
-                        "=={}".format(definition.version)
-                        if definition.version != wiz.symbol.UNKNOWN_VALUE
-                        else ""
-                    ),
-                    variant=variant_identifier
-                )
-            )
-
-        identifier += "[{}]".format(variant_identifier)
-
-    if definition.version != wiz.symbol.UNKNOWN_VALUE:
-        identifier += "=={}".format(definition.version)
-
-    return identifier
-
-
 def extract(requirement, definition_mapping, namespaces=None):
     """Extract list of :class:`Package` instances from *requirement*.
 
@@ -305,21 +262,19 @@ class Package(wiz.mapping.Mapping):
             (k, v) for k, v in definition_data.items() if k != "variants"
         )
 
-        mapping["identifier"] = generate_identifier(
-            definition, variant.identifier if variant else None
-        )
-        mapping["definition-identifier"] = definition.identifier
         mapping["variant_name"] = None
 
         if variant is not None:
             mapping["variant_name"] = variant.identifier
 
             mapping["environ"] = combine_environ_mapping(
-                mapping["identifier"], definition.environ, variant.environ
+                self._generate_identifier(mapping),
+                definition.environ, variant.environ
             )
 
             mapping["command"] = combine_command_mapping(
-                mapping["identifier"], definition.command, variant.command
+                self._generate_identifier(mapping),
+                definition.command, variant.command
             )
 
             if len(variant.get("requirements", [])) > 0:
@@ -338,10 +293,34 @@ class Package(wiz.mapping.Mapping):
 
         super(Package, self).__init__(mapping)
 
+    def _generate_identifier(self, mapping):
+        """Generate package identifier."""
+        identifier = mapping["identifier"]
+
+        if mapping.get("variant_name") is not None:
+            identifier += "[{}]".format(mapping.get("variant_name"))
+
+        if mapping.get("version") is not None:
+            identifier += "=={}".format(mapping.get("version"))
+
+        return identifier
+
+    @property
+    def identifier(self):
+        """Return package identifier."""
+        return self._generate_identifier(self)
+
+    @property
+    def qualified_identifier(self):
+        """Return qualified identifier with optional namespace."""
+        if self.namespace is not None:
+            return "{}::{}".format(self.namespace, self.identifier)
+        return self.identifier
+
     @property
     def definition_identifier(self):
         """Return definition identifier."""
-        return self.get("definition-identifier")
+        return self.get("identifier")
 
     @property
     def variant_name(self):

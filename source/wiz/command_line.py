@@ -13,7 +13,6 @@ import click
 import wiz.registry
 import wiz.symbol
 import wiz.definition
-import wiz.package
 import wiz.spawn
 import wiz.exception
 import wiz.filesystem
@@ -528,7 +527,7 @@ def wiz_view(click_context, **kwargs):
     else:
         logger.info(
             "Command found in definition: {}".format(
-                wiz.package.generate_identifier(definition)
+                definition.qualified_version_identifier
             )
         )
         results_found = True
@@ -546,7 +545,7 @@ def wiz_view(click_context, **kwargs):
     else:
         logger.info(
             "View definition: {}".format(
-                wiz.package.generate_identifier(definition)
+                definition.qualified_version_identifier
             )
         )
 

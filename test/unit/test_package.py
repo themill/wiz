@@ -21,82 +21,6 @@ def mocked_package(mocker):
     return mocker.patch.object(wiz.package, "Package", return_value="PACKAGE")
 
 
-def test_generate_identifier():
-    """Generate package name from definition."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-    })
-
-    assert wiz.package.generate_identifier(definition) == "foo"
-
-
-def test_generate_identifier_with_version():
-    """Generate package name from definition with version."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "version": "0.1.0",
-    })
-
-    assert wiz.package.generate_identifier(definition) == "foo==0.1.0"
-
-
-def test_generate_identifier_with_variant():
-    """Generate package name from definition with variant."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "variants": [
-            {"identifier": "bar1"},
-            {"identifier": "bar2"},
-            {"identifier": "bar3"}
-        ]
-    })
-
-    assert wiz.package.generate_identifier(definition) == "foo"
-    assert wiz.package.generate_identifier(definition, "bar1") == "foo[bar1]"
-    assert wiz.package.generate_identifier(definition, "bar2") == "foo[bar2]"
-    assert wiz.package.generate_identifier(definition, "bar3") == "foo[bar3]"
-
-    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
-        wiz.package.generate_identifier(definition, "incorrect")
-
-    assert (
-        "The definition 'foo' does not contain a variant identified "
-        "as 'incorrect'"
-    ) in str(error)
-
-
-def test_generate_identifier_with_version_and_variant():
-    """Generate package name from definition with version and variant."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "version": "0.1.0",
-        "variants": [
-            {"identifier": "bar1"},
-            {"identifier": "bar2"},
-            {"identifier": "bar3"}
-        ]
-    })
-
-    assert wiz.package.generate_identifier(definition) == "foo==0.1.0"
-    assert wiz.package.generate_identifier(
-        definition, "bar1"
-    ) == "foo[bar1]==0.1.0"
-    assert wiz.package.generate_identifier(
-        definition, "bar2"
-    ) == "foo[bar2]==0.1.0"
-    assert wiz.package.generate_identifier(
-        definition, "bar3"
-    ) == "foo[bar3]==0.1.0"
-
-    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
-        wiz.package.generate_identifier(definition, "incorrect")
-
-    assert (
-        "The definition 'foo==0.1.0' does not contain a variant identified "
-        "as 'incorrect'"
-    ) in str(error)
-
-
 def test_extract_without_variant(mocked_definition_query, mocked_package):
     """Extract one Package from definition."""
     definition = wiz.definition.Definition({
@@ -112,7 +36,9 @@ def test_extract_without_variant(mocked_definition_query, mocked_package):
 
     requirement = Requirement("test")
     result = wiz.package.extract(requirement, {})
-    mocked_definition_query.assert_called_once_with(requirement, {})
+    mocked_definition_query.assert_called_once_with(
+        requirement, {}, namespaces=None
+    )
 
     mocked_package.assert_called_once_with(definition)
     assert result == ["PACKAGE"]
@@ -143,7 +69,9 @@ def test_extract_with_all_variants(mocked_definition_query, mocked_package):
 
     requirement = Requirement("test")
     result = wiz.package.extract(requirement, {})
-    mocked_definition_query.assert_called_once_with(requirement, {})
+    mocked_definition_query.assert_called_once_with(
+        requirement, {}, namespaces=None
+    )
 
     assert mocked_package.call_count == 3
     mocked_package.assert_any_call(definition, {
@@ -189,7 +117,9 @@ def test_extract_with_one_requested_variant(
 
     requirement = Requirement("test[Variant2]")
     result = wiz.package.extract(requirement, {})
-    mocked_definition_query.assert_called_once_with(requirement, {})
+    mocked_definition_query.assert_called_once_with(
+        requirement, {}, namespaces=None
+    )
 
     mocked_package.assert_called_once_with(definition, {
         "identifier": "Variant2",
@@ -217,7 +147,9 @@ def test_extract_error(mocked_definition_query, mocked_package):
     with pytest.raises(wiz.exception.RequestNotFound) as error:
         wiz.package.extract(requirement, {})
 
-    mocked_definition_query.assert_called_once_with(requirement, {})
+    mocked_definition_query.assert_called_once_with(
+        requirement, {}, namespaces=None
+    )
     mocked_package.assert_not_called()
 
     assert (
@@ -527,10 +459,8 @@ def test_minimal_package_without_variant():
     assert package.requirements == []
     assert package.constraints == []
 
-    assert len(package) == 3
-    assert sorted(package) == [
-        "definition-identifier", "identifier", "variant_name"
-    ]
+    assert len(package) == 2
+    assert sorted(package) == ["identifier", "variant_name"]
 
 
 def test_full_package_without_variant():
