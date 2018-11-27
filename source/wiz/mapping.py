@@ -63,6 +63,11 @@ class Mapping(collections.Mapping):
         """Return constraint list."""
         return self.get("constraints", [])
 
+    @property
+    def conditions(self):
+        """Return conditions."""
+        return self.get("conditions", [])
+
     def copy(self, *args, **kwargs):
         """Return copy of instance."""
         return self.__class__(*args, **kwargs)
