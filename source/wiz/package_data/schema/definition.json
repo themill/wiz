@@ -19,15 +19,6 @@
             "type": "boolean",
             "default": false
         },
-        "conditions": {
-            "description": "Indicate a list of conditions to use the definition.",
-            "type": "array",
-            "minItems": 1,
-            "uniqueItems": true,
-            "items": {
-                "type": "string"
-            }
-        },
         "disabled": {
             "description": "Indicate whether the definition can be discover.",
             "type": "boolean",
@@ -99,6 +90,15 @@
                 "type": "string"
             }
         },
+        "conditions": {
+            "description": "List of preliminary conditions to use the definition.",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+                "type": "string"
+            }
+        },
         "variants": {
             "description": "List of ordered mapping which define variation of the definition.",
             "type": "array",
@@ -134,6 +134,15 @@
                     },
                     "constraints": {
                         "description": "List of package constraints imposed by the definition variant.",
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "conditions": {
+                        "description": "List of preliminary conditions to use the definition variant.",
                         "type": "array",
                         "minItems": 1,
                         "uniqueItems": true,
