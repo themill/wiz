@@ -19,6 +19,15 @@
             "type": "boolean",
             "default": false
         },
+        "conditions": {
+            "description": "Indicate a list of conditions to use the definition.",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+                "type": "string"
+            }
+        },
         "disabled": {
             "description": "Indicate whether the definition can be discover.",
             "type": "boolean",
