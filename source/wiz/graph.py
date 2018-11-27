@@ -1001,6 +1001,15 @@ class Graph(object):
         # Create a node for each package if necessary.
         for package in packages:
             if not self.exists(package.identifier):
+
+                # Ensure that all package conditions are full-filled.
+                if not self._validate_package_conditions(package):
+                    self._logger.debug(
+                        "Discard package '{}' as its conditions are not "
+                        "fulfilled.".format(package.identifier)
+                    )
+                    continue
+
                 self._create_node_from_package(package)
 
                 # Update queue with dependent requirement.
@@ -1058,6 +1067,18 @@ class Graph(object):
             wiz.symbol.GRAPH_NODE_CREATION_ACTION,
             graph=self, node=package.identifier
         )
+
+    def _validate_package_conditions(self, package):
+        """Indicate whether *package* conditions are full-filled."""
+        for condition in package.conditions:
+            packages = wiz.package.extract(
+                condition, self._resolver.definition_mapping
+            )
+
+            if not any(self.exists(package.identifier) for package in packages):
+                return False
+
+        return True
 
     def _update_variant_mapping(self, identifier):
         """Update variant mapping according to node *identifier*.
