@@ -7,6 +7,13 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: new
+
+        Added optional :ref:`install-root <definition/install_root>`
+        keyword to definition schema to indicate the root location of package
+        data. The value set for this keyword can be referenced in the definition
+        with ${INSTALL_ROOT} and should form the base of the 'install-location'.
+
+    .. change:: new
         :tags: command-line
 
         Added :option:`--version <wiz --version>` to display the package
@@ -179,7 +186,7 @@ Release Notes
         :tags: definition
 
         Added optional :ref:`install-location <definition/install_location>`
-        keyword to definition schema to indicate the root location of a package
+        keyword to definition schema to indicate the location of a package
         data.
 
     .. change:: new

@@ -300,8 +300,8 @@ Install Location
 ----------------
 
 If a package definition is referencing data on the file system it can be useful
-to define the ``install-location`` which would indicate the root location for
-that data:
+to define the ``install-location`` which would indicate the location for that
+data:
 
 .. code-block:: json
 
@@ -325,3 +325,36 @@ This location can be referenced within each ``environ`` value (including the
 
 When the context is resolved, the :envvar:`INSTALL_LOCATION` environment
 variable is replaced by the ``install-location`` value within the definition.
+
+.. _definition/install_root:
+
+Install Root
+------------
+
+The optional keyword ``install-root`` in a package definition can be used for
+referencing data on the file system, similar to ``install-location``.
+
+.. code-block:: json
+
+    {
+        "install-root": "/path/to/data"
+    }
+
+The value behind this keyword can be referenced within the definitions, using
+the :envvar:`INSTALL_ROOT` environment variable:
+
+.. code-block:: json
+
+    {
+        "definition": "foo",
+        "install-root": "/path/to/data",
+        "install-location": "${INSTALL_ROOT}/path/to/data",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin:${PATH}",
+            "PYTHONPATH": "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}",
+        }
+    }
+
+It is recommended to use the ``install-root`` as the base for the
+``install-location``, offering greater flexibility as to where the data is
+located or moved to on the file system.
