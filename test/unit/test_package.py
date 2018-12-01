@@ -657,6 +657,30 @@ def test_package_localized_environ():
     }
 
 
+def test_package_localized_environ_with_root():
+    """Return localized environment."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "install-root": "/path/to/package",
+        "install-location": "${INSTALL_ROOT}/some/more",
+        "environ": {
+            "PATH": "${INSTALL_LOCATION}/bin:${PATH}",
+            "PYTHONPATH": (
+                "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}"
+            )
+        }
+    })
+
+    package = wiz.package.Package(definition)
+
+    assert package.localized_environ() == {
+        "PATH": "/path/to/package/some/more/bin:${PATH}",
+        "PYTHONPATH": (
+            "/path/to/package/some/more/lib/python2.7/site-packages:${PYTHONPATH}"
+        )
+    }
+
+
 def test_package_localized_environ_without_key():
     """Return localized environment with 'install-location' key."""
     definition = wiz.definition.Definition({
