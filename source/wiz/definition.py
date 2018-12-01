@@ -419,6 +419,7 @@ class Definition(wiz.mapping.Mapping):
             "description",
             "registry",
             "definition-location",
+            "install-root",
             "install-location",
             'group',
             "auto-use",
