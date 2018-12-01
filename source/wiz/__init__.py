@@ -377,18 +377,13 @@ def export_definition(path, data, overwrite=False):
 
 
 def install_definitions_to_path(
-    paths, registry_path, install_location=None, overwrite=False
+    paths, registry_path, overwrite=False
 ):
     """Install a definition file to a registry on the file system.
 
     *paths* is the path list to all definition files.
 
     *registry_path* is the path to the target registry to install to.
-
-    *install_location* could be the path to the package data which will be set
-    in the 'install-location' keyword of the installed definition. This path
-    will be used to resolve the :envvar:`INSTALL_LOCATION` environment variable
-    within the environment mapping.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -406,10 +401,6 @@ def install_definitions_to_path(
 
     for path in paths:
         _definition = wiz.load_definition(path)
-
-        if install_location is not None:
-            _definition = _definition.set("install-location", install_location)
-
         _definitions.append(_definition)
 
     wiz.registry.install_to_path(
@@ -418,7 +409,7 @@ def install_definitions_to_path(
 
 
 def install_definitions_to_vcs(
-    paths, registry_identifier, install_location=None, overwrite=False
+    paths, registry_identifier, overwrite=False
 ):
     """Install a list of definition files to a :term:`Wiz Vault` registry.
 
@@ -426,11 +417,6 @@ def install_definitions_to_vcs(
 
     *registry_identifier* is the ID of the target :term:`Wiz Vault` registry to
     install to (e.g. "primary-registry").
-
-    *install_location* could be the path to the package data which will be set
-    in the 'install-location' keyword of the installed definition. This path
-    will be used to resolve the :envvar:`INSTALL_LOCATION` environment variable
-    within the environment mapping.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -446,9 +432,6 @@ def install_definitions_to_vcs(
 
     for path in paths:
         _definition = wiz.load_definition(path)
-        if install_location is not None:
-            _definition = _definition.set("install-location", install_location)
-
         _definitions.append(_definition)
 
     wiz.registry.install_to_vcs(

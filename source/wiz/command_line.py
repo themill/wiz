@@ -861,14 +861,6 @@ def wiz_freeze(click_context, **kwargs):
     metavar="ID",
 )
 @click.option(
-    "--install-location",
-    help=(
-        "Update definition(s) with new 'install-location' value during "
-        "installation."
-    ),
-    metavar="VALUE",
-)
-@click.option(
     "--overwrite",
     help="Always overwrite existing definitions.",
     is_flag=True,
@@ -894,13 +886,11 @@ def wiz_install(click_context, **kwargs):
             if kwargs["registry_path"] is not None:
                 wiz.install_definitions_to_path(
                     kwargs["definitions"], kwargs["registry_path"],
-                    install_location=kwargs["install_location"],
                     overwrite=overwrite
                 )
             elif kwargs["registry_id"] is not None:
                 wiz.install_definitions_to_vcs(
                     kwargs["definitions"], kwargs["registry_id"],
-                    install_location=kwargs["install_location"],
                     overwrite=overwrite
                 )
             break
