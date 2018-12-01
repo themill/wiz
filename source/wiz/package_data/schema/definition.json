@@ -32,6 +32,10 @@
             "description": "Path to the definition file.",
             "type": "string"
         },
+        "install-root": {
+            "description": "Root path of the install location for the package data.",
+            "type": "string"
+        },
         "install-location": {
             "description": "Install location to the package data.",
             "type": "string"
