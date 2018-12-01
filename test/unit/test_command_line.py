@@ -2367,30 +2367,18 @@ def test_install_recorded(
         mocked_filesystem_export.assert_not_called()
 
 
-@pytest.mark.parametrize("options, definitions, install_location", [
-    (["/foo.json"], ("/foo.json",), None),
-    (["/foo.json", "/bar.json"], ("/foo.json", "/bar.json"), None),
-    (
-        ["/foo.json", "--install-location", "/installation/path"],
-        ("/foo.json",),
-        "/installation/path"
-    ),
-    (
-        ["/foo.json", "/bar.json", "--install-location", "/installation/path"],
-        ("/foo.json", "/bar.json"),
-        "/installation/path"
-    )
+@pytest.mark.parametrize("options, definitions", [
+    (["/foo.json"], ("/foo.json",)),
+    (["/foo.json", "/bar.json"], ("/foo.json", "/bar.json"))
 ], ids=[
     "one-definition",
-    "several-definitions",
-    "one-definition-with-install-location",
-    "several-definitions-with-install-location",
+    "several-definitions"
 ])
 def test_install_local(
     mocked_system_query, mocked_registry_fetch,
     mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
     mocked_click_confirm, mocked_history_record_action, logger,
-    options, definitions, install_location
+    options, definitions
 ):
     """Install definition in local registry."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -2406,9 +2394,7 @@ def test_install_local(
     assert result.output == ""
 
     mocked_install_definitions_to_path.assert_called_once_with(
-        definitions, "/registry",
-        install_location=install_location,
-        overwrite=False
+        definitions, "/registry", overwrite=False
     )
 
     mocked_install_definitions_to_vcs.assert_not_called()
@@ -2418,30 +2404,18 @@ def test_install_local(
     logger.error.assert_not_called()
 
 
-@pytest.mark.parametrize("options, definitions, install_location", [
-    (["/foo.json"], ("/foo.json",), None),
-    (["/foo.json", "/bar.json"], ("/foo.json", "/bar.json"), None),
-    (
-        ["/foo.json", "--install-location", "/installation/path"],
-        ("/foo.json",),
-        "/installation/path"
-    ),
-    (
-        ["/foo.json", "/bar.json", "--install-location", "/installation/path"],
-        ("/foo.json", "/bar.json"),
-        "/installation/path"
-    )
+@pytest.mark.parametrize("options, definitions", [
+    (["/foo.json"], ("/foo.json",)),
+    (["/foo.json", "/bar.json"], ("/foo.json", "/bar.json"))
 ], ids=[
     "one-definition",
-    "several-definitions",
-    "one-definition-with-install-location",
-    "several-definitions-with-install-location",
+    "several-definitions"
 ])
 def test_install_vcs(
     mocked_system_query, mocked_registry_fetch,
     mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
     mocked_click_confirm, mocked_history_record_action, logger,
-    options, definitions, install_location
+    options, definitions
 ):
     """Install definition in VCS registry."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -2457,9 +2431,7 @@ def test_install_vcs(
     assert result.output == ""
 
     mocked_install_definitions_to_vcs.assert_called_once_with(
-        definitions, "registry-id",
-        install_location=install_location,
-        overwrite=False
+        definitions, "registry-id", overwrite=False
     )
 
     mocked_install_definitions_to_path.assert_not_called()
@@ -2494,14 +2466,10 @@ def test_install_local_overwrite_existing(
 
     assert mocked_install_definitions_to_path.call_count == 2
     mocked_install_definitions_to_path.assert_any_call(
-        ("/foo.json",), "/registry",
-        install_location=None,
-        overwrite=False
+        ("/foo.json",), "/registry", overwrite=False
     )
     mocked_install_definitions_to_path.assert_any_call(
-        ("/foo.json",), "/registry",
-        install_location=None,
-        overwrite=True
+        ("/foo.json",), "/registry", overwrite=True
     )
 
     mocked_click_confirm.assert_called_once_with(
@@ -2539,9 +2507,7 @@ def test_install_local_skip_existing(
     assert result.output == ""
 
     mocked_install_definitions_to_path.assert_called_once_with(
-        ("/foo.json",), "/registry",
-        install_location=None,
-        overwrite=False
+        ("/foo.json",), "/registry", overwrite=False
     )
 
     mocked_click_confirm.assert_called_once_with(
@@ -2581,14 +2547,10 @@ def test_install_vcs_overwrite_existing(
 
     assert mocked_install_definitions_to_vcs.call_count == 2
     mocked_install_definitions_to_vcs.assert_any_call(
-        ("/foo.json",), "registry-id",
-        install_location=None,
-        overwrite=False
+        ("/foo.json",), "registry-id", overwrite=False
     )
     mocked_install_definitions_to_vcs.assert_any_call(
-        ("/foo.json",), "registry-id",
-        install_location=None,
-        overwrite=True
+        ("/foo.json",), "registry-id", overwrite=True
     )
 
     mocked_click_confirm.assert_called_once_with(
@@ -2627,9 +2589,7 @@ def test_install_vcs_skip_existing(
     assert result.output == ""
 
     mocked_install_definitions_to_vcs.assert_called_once_with(
-        ("/foo.json",), "registry-id",
-        install_location=None,
-        overwrite=False
+        ("/foo.json",), "registry-id", overwrite=False
     )
 
     mocked_click_confirm.assert_called_once_with(
@@ -2666,9 +2626,7 @@ def test_install_local_no_change(
     assert result.output == ""
 
     mocked_install_definitions_to_path.assert_called_once_with(
-        ("/foo.json",), "/registry",
-        install_location=None,
-        overwrite=False
+        ("/foo.json",), "/registry", overwrite=False
     )
 
     logger.warning.assert_called_once_with("No changes detected in release.")
@@ -2701,9 +2659,7 @@ def test_install_vcs_no_change(
     assert result.output == ""
 
     mocked_install_definitions_to_vcs.assert_called_once_with(
-        ("/foo.json",), "registry-id",
-        install_location=None,
-        overwrite=False
+        ("/foo.json",), "registry-id", overwrite=False
     )
 
     logger.warning.assert_called_once_with("No changes detected in release.")
@@ -2735,9 +2691,7 @@ def test_install_local_error(
     assert result.output == ""
 
     mocked_install_definitions_to_path.assert_called_once_with(
-        ("/foo.json",), "/registry",
-        install_location=None,
-        overwrite=False
+        ("/foo.json",), "/registry", overwrite=False
     )
 
     logger.error.assert_called_once_with(exception, traceback=True)
@@ -2772,9 +2726,7 @@ def test_install_vcs_error(
     assert result.output == ""
 
     mocked_install_definitions_to_vcs.assert_called_once_with(
-        ("/foo.json",), "registry-id",
-        install_location=None,
-        overwrite=False
+        ("/foo.json",), "registry-id", overwrite=False
     )
 
     logger.error.assert_called_once_with(exception, traceback=True)

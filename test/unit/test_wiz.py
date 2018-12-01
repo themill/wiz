@@ -625,18 +625,15 @@ def test_install_definitions_to_path_with_install_location(
     mocked_load_definition.side_effect = definitions
 
     wiz.install_definitions_to_path(
-        ["/path/to/foo.json", "/path/to/bar.json"],
-        "/path/to/registry", install_location="/path/to/package"
+        ["/path/to/foo.json", "/path/to/bar.json"], "/path/to/registry"
     )
 
     _definitions = [
         wiz.definition.Definition({
-            "identifier": "foo",
-            "install-location": "/path/to/package"
+            "identifier": "foo"
         }),
         wiz.definition.Definition({
-            "identifier": "bar",
-            "install-location": "/path/to/package"
+            "identifier": "bar"
         })
     ]
 
@@ -690,19 +687,15 @@ def test_install_definitions_to_vcs_with_install_location(
     mocked_load_definition.side_effect = definitions
 
     wiz.install_definitions_to_vcs(
-        ["/path/to/foo.json", "/path/to/bar.json"],
-        "registry-id",
-        install_location="/path/to/package"
+        ["/path/to/foo.json", "/path/to/bar.json"], "registry-id"
     )
 
     _definitions = [
         wiz.definition.Definition({
-            "identifier": "foo",
-            "install-location": "/path/to/package"
+            "identifier": "foo"
         }),
         wiz.definition.Definition({
-            "identifier": "bar",
-            "install-location": "/path/to/package"
+            "identifier": "bar"
         })
     ]
 
