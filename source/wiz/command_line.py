@@ -148,6 +148,15 @@ class _MainGroup(click.Group):
     default=False
 )
 @click.option(
+    "--init",
+    help=(
+        "Initial Environment which will be augmented by the resolved "
+        "environment."
+    ),
+    metavar="ENVIRONMENT_VARIABLE=VALUE",
+    multiple=True
+)
+@click.option(
     "--platform",
     metavar="PLATFORM",
     help="Override detected platform."
@@ -209,6 +218,7 @@ def main(click_context, **kwargs):
         "registry_paths": registries,
         "registry_search_depth": kwargs["definition_search_depth"],
         "ignore_implicit_packages": kwargs["ignore_implicit"],
+        "initial_environment": kwargs["init"],
         "recording_path": kwargs["record"]
     })
 
@@ -604,6 +614,9 @@ def wiz_use(click_context, **kwargs):
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
+    environ_mapping = dict(
+        v.split("=") for v in click_context.obj["initial_environment"]
+    )
 
     # Fetch extra arguments from context.
     extra_arguments = _fetch_extra_arguments(click_context)
@@ -611,7 +624,7 @@ def wiz_use(click_context, **kwargs):
     try:
         wiz_context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit
+            ignore_implicit, environ_mapping
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -683,6 +696,9 @@ def wiz_run(click_context, **kwargs):
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
+    environ_mapping = dict(
+        v.split("=") for v in click_context.obj["initial_environment"]
+    )
 
     # Fetch extra arguments from context.
     extra_arguments = _fetch_extra_arguments(click_context)
@@ -696,7 +712,7 @@ def wiz_run(click_context, **kwargs):
 
         wiz_context = wiz.resolve_context(
             [request], definition_mapping,
-            ignore_implicit=ignore_implicit
+            ignore_implicit, environ_mapping
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -770,11 +786,14 @@ def wiz_freeze(click_context, **kwargs):
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
+    environ_mapping = dict(
+        v.split("=") for v in click_context.obj["initial_environment"]
+    )
 
     try:
         _context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit
+            ignore_implicit, environ_mapping
         )
         identifier = _query_identifier()
 
