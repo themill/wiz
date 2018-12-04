@@ -10,7 +10,8 @@ Release Notes
 
         Changed :mod:`wiz.validator` to open the definition JSON schema once
         the module is loaded, rather than once per validation.
-        Previously a "too many files opened" issue had been encountered.
+        Previously a "too many files opened" issue could be encountered when
+        creating multiple definitions in parallel.
 
     .. change:: new
         :tags: command-line
