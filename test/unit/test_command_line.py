@@ -1711,6 +1711,35 @@ def test_use_error(options):
     assert result.exception
 
 
+def test_use_initial_environment(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
+    wiz_context
+):
+    """Execurting a command to extend an initial environment."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+    mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, [
+            "--init", "PATH=/path", "--init", "PYTHONPATH=/other-path",
+            "use", "foo", "--", "fooExeDebug", "-t", "/path/to/script.foo"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False,
+        environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"}
+    )
+
+
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
     (["--record", "/path"], True)
@@ -1982,6 +2011,35 @@ def test_run_with_resolution_error(
     )
 
     logger.error.assert_called_once_with("Oh Shit!", traceback=True)
+
+
+def test_run_initial_environment(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_fetch_package_request_from_command, mocked_resolve_context,
+    mocked_resolve_command, mocked_spawn_execute, wiz_context
+):
+    """Execute a command to extend an initial environment."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+    mocked_fetch_package_request_from_command.return_value = "__PACKAGE__"
+    mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, [
+            "--init", "PATH=/path", "--init", "PYTHONPATH=/other-path",
+            "run", "fooExe"
+        ])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_resolve_context.assert_called_once_with(
+        ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
+        environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"}
+    )
 
 
 @pytest.mark.parametrize("options, recorded", [
@@ -2322,6 +2380,33 @@ def test_freeze_error(options):
     result = runner.invoke(wiz.command_line.main, ["freeze", "foo"] + options)
     assert result.exit_code == 2
     assert result.exception
+
+
+def test_freeze_initial_environment(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, wiz_context
+):
+    """Freeze a resolved environment with initial environment."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, [
+           "--init", "PATH=/path", "--init", "PYTHONPATH=/other-path",
+           "freeze", "foo", "-o", "/output/path"
+       ],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False,
+        environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"}
+    )
 
 
 @pytest.mark.parametrize("options, recorded", [
