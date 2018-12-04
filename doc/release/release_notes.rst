@@ -6,6 +6,12 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: fixed
+
+        Changed :mod:`wiz.validator` to open the definition JSON schema once
+        the module is loaded, rather than once per validation.
+        Previously a "too many files opened" issue had been encountered.
+
     .. change:: new
         :tags: command-line
 
