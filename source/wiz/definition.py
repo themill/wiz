@@ -127,7 +127,7 @@ def _extract_implicit_requests(identifiers, mapping):
     ):
         requirement = wiz.utility.get_requirement(identifier)
         definition = query(requirement, mapping)
-        request = wiz.package.generate_identifier(definition)
+        request = wiz.package.generate_request(definition)
         requests.append(request)
 
     return requests
@@ -295,7 +295,7 @@ def discover(paths, system_mapping=None, max_depth=None):
 
                 # Skip definition if "disabled" keyword is set to True.
                 if definition.get("disabled", False):
-                    _id = wiz.package.generate_identifier(definition)
+                    _id = wiz.package.generate_request(definition)
                     logger.warning("Definition '{}' is disabled".format(_id))
                     continue
 

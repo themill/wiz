@@ -6,6 +6,12 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: changed
+
+        Renamed :func:`wiz.package.generate_identifier` to
+        :func:`wiz.package.generate_request` as it is a more appropriate name,
+        since it actually returns a request format (ie. "foo==0.1.0").
+
     .. change:: new
         :tags: command-line
 

@@ -10,7 +10,7 @@ import wiz.environ
 import wiz.exception
 
 
-def generate_identifier(definition, variant_identifier=None):
+def generate_request(definition, variant_identifier=None):
     """Generate package identifier from *definition*.
 
     *definition* should be an instance of :class:`~wiz.definition.Definition`.
@@ -300,7 +300,7 @@ class Package(wiz.mapping.Mapping):
             (k, v) for k, v in definition_data.items() if k != "variants"
         )
 
-        mapping["identifier"] = generate_identifier(
+        mapping["identifier"] = generate_request(
             definition, variant.identifier if variant else None
         )
         mapping["definition-identifier"] = definition.identifier

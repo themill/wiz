@@ -21,26 +21,26 @@ def mocked_package(mocker):
     return mocker.patch.object(wiz.package, "Package", return_value="PACKAGE")
 
 
-def test_generate_identifier():
+def test_generate_request():
     """Generate package name from definition."""
     definition = wiz.definition.Definition({
         "identifier": "foo",
     })
 
-    assert wiz.package.generate_identifier(definition) == "foo"
+    assert wiz.package.generate_request(definition) == "foo"
 
 
-def test_generate_identifier_with_version():
+def test_generate_request_with_version():
     """Generate package name from definition with version."""
     definition = wiz.definition.Definition({
         "identifier": "foo",
         "version": "0.1.0",
     })
 
-    assert wiz.package.generate_identifier(definition) == "foo==0.1.0"
+    assert wiz.package.generate_request(definition) == "foo==0.1.0"
 
 
-def test_generate_identifier_with_variant():
+def test_generate_request_with_variant():
     """Generate package name from definition with variant."""
     definition = wiz.definition.Definition({
         "identifier": "foo",
@@ -51,13 +51,13 @@ def test_generate_identifier_with_variant():
         ]
     })
 
-    assert wiz.package.generate_identifier(definition) == "foo"
-    assert wiz.package.generate_identifier(definition, "bar1") == "foo[bar1]"
-    assert wiz.package.generate_identifier(definition, "bar2") == "foo[bar2]"
-    assert wiz.package.generate_identifier(definition, "bar3") == "foo[bar3]"
+    assert wiz.package.generate_request(definition) == "foo"
+    assert wiz.package.generate_request(definition, "bar1") == "foo[bar1]"
+    assert wiz.package.generate_request(definition, "bar2") == "foo[bar2]"
+    assert wiz.package.generate_request(definition, "bar3") == "foo[bar3]"
 
     with pytest.raises(wiz.exception.IncorrectDefinition) as error:
-        wiz.package.generate_identifier(definition, "incorrect")
+        wiz.package.generate_request(definition, "incorrect")
 
     assert (
         "The definition 'foo' does not contain a variant identified "
@@ -65,7 +65,7 @@ def test_generate_identifier_with_variant():
     ) in str(error)
 
 
-def test_generate_identifier_with_version_and_variant():
+def test_generate_request_with_version_and_variant():
     """Generate package name from definition with version and variant."""
     definition = wiz.definition.Definition({
         "identifier": "foo",
@@ -77,19 +77,19 @@ def test_generate_identifier_with_version_and_variant():
         ]
     })
 
-    assert wiz.package.generate_identifier(definition) == "foo==0.1.0"
-    assert wiz.package.generate_identifier(
+    assert wiz.package.generate_request(definition) == "foo==0.1.0"
+    assert wiz.package.generate_request(
         definition, "bar1"
     ) == "foo[bar1]==0.1.0"
-    assert wiz.package.generate_identifier(
+    assert wiz.package.generate_request(
         definition, "bar2"
     ) == "foo[bar2]==0.1.0"
-    assert wiz.package.generate_identifier(
+    assert wiz.package.generate_request(
         definition, "bar3"
     ) == "foo[bar3]==0.1.0"
 
     with pytest.raises(wiz.exception.IncorrectDefinition) as error:
-        wiz.package.generate_identifier(definition, "incorrect")
+        wiz.package.generate_request(definition, "incorrect")
 
     assert (
         "The definition 'foo==0.1.0' does not contain a variant identified "
