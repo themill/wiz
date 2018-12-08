@@ -11,7 +11,12 @@ import wiz.exception
 
 
 def generate_request(definition, variant_identifier=None):
-    """Generate package identifier from *definition*.
+    """Generate package request from *definition*.
+
+    Returns a request in the form of::
+
+        "foo=0.1.0"
+        "foo[variant]=0.1.0"
 
     *definition* should be an instance of :class:`~wiz.definition.Definition`.
 
