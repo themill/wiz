@@ -6,6 +6,18 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: changed
+
+        Improved the way
+        :option:`--definition-search-paths <wiz --definition-search-paths>` are
+        being added, by accepting a relative path as a valid input and removing
+        trailing slashes automatically.
+
+        The following previously failing inputs are now accepted::
+
+            wiz -dsp .wiz/registry use xyz
+            wiz -dsp ~/.wiz/registry/ use xyz
+
     .. change:: new
         :tags: command-line
 
