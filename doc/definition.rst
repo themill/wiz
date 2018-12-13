@@ -113,12 +113,14 @@ then both commands will be correct:
 
 If many namespaces are available for one package identifier, it must be
 specified in the command line. However, namespaces from packages previously
-fetched can be reused as a hint to guess the namespace of the following
-requests if only the identifier is used:
+fetched, as well as package names that were part of the original request, can be
+used as a hint to guess the namespace of the following requests if only the
+identifier is used:
 
 .. code-block:: console
 
     >>> wiz use maya xmlf
+    >>> wiz use xmlf maya
     >>> wiz use maya::maya maya::xmlf
 
 .. _definition/description:

@@ -220,6 +220,10 @@ def _guess_default_namespace(identifier, namespace_mapping, namespaces=None):
     namespace if necessary.
 
     """
+    # Use the list of initial requests from the namespace_mapping as additional
+    # namespace hints to help determining an appropriate namespace.
+    namespaces.update(namespace_mapping.keys())
+
     _namespaces = namespace_mapping.get(identifier, [])
     if len(_namespaces) == 0:
         return
