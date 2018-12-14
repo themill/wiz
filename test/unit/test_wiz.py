@@ -604,7 +604,7 @@ def test_install_definitions_to_path(
     ]
     mocked_load_definition.side_effect = definitions
 
-    wiz.install_definitions_to_path(
+    wiz.install_definitions(
         ["/path/to/foo.json", "/path/to/bar.json"],
         "/path/to/registry", **options
     )
@@ -624,7 +624,7 @@ def test_install_definitions_to_path_with_install_location(
     ]
     mocked_load_definition.side_effect = definitions
 
-    wiz.install_definitions_to_path(
+    wiz.install_definitions(
         ["/path/to/foo.json", "/path/to/bar.json"],
         "/path/to/registry", install_location="/path/to/package"
     )
@@ -669,13 +669,13 @@ def test_install_definitions_to_vcs(
     ]
     mocked_load_definition.side_effect = definitions
 
-    wiz.install_definitions_to_vcs(
+    wiz.install_definitions(
         ["/path/to/foo.json", "/path/to/bar.json"],
-        "registry-id", **options
+        "wiz://registry-id", **options
     )
 
     mocked_registry_install_to_vcs.assert_called_once_with(
-        definitions, "registry-id", **install_options
+        definitions, "wiz://registry-id", **install_options
     )
 
 
@@ -689,9 +689,9 @@ def test_install_definitions_to_vcs_with_install_location(
     ]
     mocked_load_definition.side_effect = definitions
 
-    wiz.install_definitions_to_vcs(
+    wiz.install_definitions(
         ["/path/to/foo.json", "/path/to/bar.json"],
-        "registry-id",
+        "wiz://registry-id",
         install_location="/path/to/package"
     )
 
@@ -707,7 +707,7 @@ def test_install_definitions_to_vcs_with_install_location(
     ]
 
     mocked_registry_install_to_vcs.assert_called_once_with(
-        _definitions, "registry-id", overwrite=False
+        _definitions, "wiz://registry-id", overwrite=False
     )
 
 
