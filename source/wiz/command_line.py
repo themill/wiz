@@ -894,6 +894,7 @@ def wiz_install(click_context, **kwargs):
                 install_location=kwargs["install_location"],
                 overwrite=overwrite
             )
+            break
 
         except wiz.exception.DefinitionsExist as error:
             if not click.confirm(
