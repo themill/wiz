@@ -6,6 +6,24 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: changed
+
+        Update command line arguments to use the same option
+        :option:`--registry <wiz install --registry>` for installing to a
+        :term:`Local Registry` and installing to a :term:`VCS Registry`.
+        Previously the argument was split into `--registry-path` and
+        `--registry-id`.
+
+        Now definitions can be installed using the following commands syntax::
+
+            # For local registries
+            >>> wiz install foo.json --registry /path/to/registry
+            >>> wiz install foo.json -r /path/to/registry
+
+            # For VCS registries
+            >>> wiz install foo.json -registry wiz://primary-registry
+            >>> wiz install foo.json -r wiz://primary-registry
+
     .. change:: new
         :tags: command-line
 
