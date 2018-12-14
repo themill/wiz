@@ -88,15 +88,9 @@ def mocked_export_script(mocker):
 
 
 @pytest.fixture()
-def mocked_install_definitions_to_path(mocker):
-    """Return mocked 'wiz.install_definitions_to_path' function."""
-    return mocker.patch.object(wiz, "install_definitions_to_path")
-
-
-@pytest.fixture()
-def mocked_install_definitions_to_vcs(mocker):
-    """Return mocked 'wiz.install_definitions_to_vcs' function."""
-    return mocker.patch.object(wiz, "install_definitions_to_vcs")
+def mocked_install_definitions(mocker):
+    """Return mocked 'wiz.install_definitions' function."""
+    return mocker.patch.object(wiz, "install_definitions")
 
 
 @pytest.fixture()
@@ -2330,8 +2324,7 @@ def test_freeze_error(options):
 @pytest.mark.usefixtures("mocked_system_query")
 @pytest.mark.usefixtures("mocked_registry_fetch")
 @pytest.mark.usefixtures("mocked_fetch_definition_mapping")
-@pytest.mark.usefixtures("mocked_install_definitions_to_path")
-@pytest.mark.usefixtures("mocked_install_definitions_to_vcs")
+@pytest.mark.usefixtures("mocked_install_definitions")
 @pytest.mark.usefixtures("mocked_click_confirm")
 @pytest.mark.usefixtures("mocked_history_record_action")
 def test_install_recorded(
@@ -2386,11 +2379,10 @@ def test_install_recorded(
     "one-definition-with-install-location",
     "several-definitions-with-install-location",
 ])
-def test_install_local(
+def test_install_to_path(
     mocked_system_query, mocked_registry_fetch,
-    mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
-    mocked_click_confirm, mocked_history_record_action, logger,
-    options, definitions, install_location
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger, options, definitions, install_location
 ):
     """Install definition in local registry."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -2399,19 +2391,18 @@ def test_install_local(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install"] + options + ["--registry-path", "/registry"],
+        ["install"] + options + ["--registry", "/registry"],
     )
-    assert result.exit_code == 0
     assert not result.exception
+    assert result.exit_code == 0
     assert result.output == ""
 
-    mocked_install_definitions_to_path.assert_called_once_with(
+    mocked_install_definitions.assert_called_once_with(
         definitions, "/registry",
         install_location=install_location,
         overwrite=False
     )
 
-    mocked_install_definitions_to_vcs.assert_not_called()
     mocked_click_confirm.assert_not_called()
     mocked_history_record_action.assert_not_called()
     logger.warning.assert_not_called()
@@ -2439,9 +2430,8 @@ def test_install_local(
 ])
 def test_install_vcs(
     mocked_system_query, mocked_registry_fetch,
-    mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
-    mocked_click_confirm, mocked_history_record_action, logger,
-    options, definitions, install_location
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger, options, definitions, install_location
 ):
     """Install definition in VCS registry."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -2450,19 +2440,18 @@ def test_install_vcs(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install"] + options + ["--registry-id", "registry-id"],
+        ["install"] + options + ["--registry", "registry-id"],
     )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
 
-    mocked_install_definitions_to_vcs.assert_called_once_with(
+    mocked_install_definitions.assert_called_once_with(
         definitions, "registry-id",
         install_location=install_location,
         overwrite=False
     )
 
-    mocked_install_definitions_to_path.assert_not_called()
     mocked_click_confirm.assert_not_called()
     mocked_history_record_action.assert_not_called()
     logger.warning.assert_not_called()
@@ -2471,13 +2460,13 @@ def test_install_vcs(
 
 def test_install_local_overwrite_existing(
     mocked_system_query, mocked_registry_fetch,
-    mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
-    mocked_click_confirm, mocked_history_record_action, logger
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
 ):
     """Overwrite definition in local registry."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_install_definitions_to_path.side_effect = (
+    mocked_install_definitions.side_effect = (
         wiz.exception.DefinitionsExist(["foo [0.1.0]"]),
         None
     )
@@ -2486,19 +2475,19 @@ def test_install_local_overwrite_existing(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry-path", "/registry"],
+        ["install", "/foo.json", "--registry", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
 
-    assert mocked_install_definitions_to_path.call_count == 2
-    mocked_install_definitions_to_path.assert_any_call(
+    assert mocked_install_definitions.call_count == 2
+    mocked_install_definitions.assert_any_call(
         ("/foo.json",), "/registry",
         install_location=None,
         overwrite=False
     )
-    mocked_install_definitions_to_path.assert_any_call(
+    mocked_install_definitions.assert_any_call(
         ("/foo.json",), "/registry",
         install_location=None,
         overwrite=True
@@ -2510,7 +2499,6 @@ def test_install_local_overwrite_existing(
         "Overwrite?"
     )
 
-    mocked_install_definitions_to_vcs.assert_not_called()
     mocked_history_record_action.assert_not_called()
     logger.warning.assert_not_called()
     logger.error.assert_not_called()
@@ -2518,13 +2506,13 @@ def test_install_local_overwrite_existing(
 
 def test_install_local_skip_existing(
     mocked_system_query, mocked_registry_fetch,
-    mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
-    mocked_click_confirm, mocked_history_record_action, logger
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
 ):
     """Skip definition in local registry."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_install_definitions_to_path.side_effect = (
+    mocked_install_definitions.side_effect = (
         wiz.exception.DefinitionsExist(["foo [0.1.0]"]),
     )
     mocked_click_confirm.return_value = False
@@ -2532,13 +2520,13 @@ def test_install_local_skip_existing(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry-path", "/registry"],
+        ["install", "/foo.json", "--registry", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
 
-    mocked_install_definitions_to_path.assert_called_once_with(
+    mocked_install_definitions.assert_called_once_with(
         ("/foo.json",), "/registry",
         install_location=None,
         overwrite=False
@@ -2550,7 +2538,6 @@ def test_install_local_skip_existing(
         "Overwrite?"
     )
 
-    mocked_install_definitions_to_vcs.assert_not_called()
     mocked_history_record_action.assert_not_called()
     logger.warning.assert_not_called()
     logger.error.assert_not_called()
@@ -2558,13 +2545,13 @@ def test_install_local_skip_existing(
 
 def test_install_vcs_overwrite_existing(
     mocked_system_query, mocked_registry_fetch,
-    mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
-    mocked_click_confirm, mocked_history_record_action, logger
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
 ):
     """Overwrite definition in VCS registry."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_install_definitions_to_vcs.side_effect = (
+    mocked_install_definitions.side_effect = (
         wiz.exception.DefinitionsExist(["foo [0.1.0]"]),
         None
     )
@@ -2573,22 +2560,17 @@ def test_install_vcs_overwrite_existing(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry-id", "registry-id"],
+        ["install", "/foo.json", "--registry", "registry-id"],
     )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
 
-    assert mocked_install_definitions_to_vcs.call_count == 2
-    mocked_install_definitions_to_vcs.assert_any_call(
+    assert mocked_install_definitions.call_count == 2
+    mocked_install_definitions.assert_any_call(
         ("/foo.json",), "registry-id",
         install_location=None,
         overwrite=False
-    )
-    mocked_install_definitions_to_vcs.assert_any_call(
-        ("/foo.json",), "registry-id",
-        install_location=None,
-        overwrite=True
     )
 
     mocked_click_confirm.assert_called_once_with(
@@ -2597,7 +2579,6 @@ def test_install_vcs_overwrite_existing(
         "Overwrite?"
     )
 
-    mocked_install_definitions_to_path.assert_not_called()
     mocked_history_record_action.assert_not_called()
     logger.warning.assert_not_called()
     logger.error.assert_not_called()
@@ -2605,13 +2586,13 @@ def test_install_vcs_overwrite_existing(
 
 def test_install_vcs_skip_existing(
     mocked_system_query, mocked_registry_fetch,
-    mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
-    mocked_click_confirm, mocked_history_record_action, logger
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
 ):
     """Skip definition in VCS registry."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_install_definitions_to_vcs.side_effect = (
+    mocked_install_definitions.side_effect = (
         wiz.exception.DefinitionsExist(["foo [0.1.0]"]),
         None
     )
@@ -2620,13 +2601,13 @@ def test_install_vcs_skip_existing(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry-id", "registry-id"],
+        ["install", "/foo.json", "--registry", "registry-id"],
     )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
 
-    mocked_install_definitions_to_vcs.assert_called_once_with(
+    mocked_install_definitions.assert_called_once_with(
         ("/foo.json",), "registry-id",
         install_location=None,
         overwrite=False
@@ -2638,7 +2619,6 @@ def test_install_vcs_skip_existing(
         "Overwrite?"
     )
 
-    mocked_install_definitions_to_path.assert_not_called()
     mocked_history_record_action.assert_not_called()
     logger.warning.assert_not_called()
     logger.error.assert_not_called()
@@ -2646,26 +2626,26 @@ def test_install_vcs_skip_existing(
 
 def test_install_local_no_change(
     mocked_system_query, mocked_registry_fetch,
-    mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
-    mocked_click_confirm, mocked_history_record_action, logger
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
 ):
     """Installation to local registry with no changes."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_install_definitions_to_path.side_effect = (
+    mocked_install_definitions.side_effect = (
         wiz.exception.InstallNoChanges()
     )
 
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry-path", "/registry"],
+        ["install", "/foo.json", "--registry", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
 
-    mocked_install_definitions_to_path.assert_called_once_with(
+    mocked_install_definitions.assert_called_once_with(
         ("/foo.json",), "/registry",
         install_location=None,
         overwrite=False
@@ -2674,33 +2654,32 @@ def test_install_local_no_change(
     logger.warning.assert_called_once_with("No changes detected in release.")
 
     mocked_click_confirm.assert_not_called()
-    mocked_install_definitions_to_vcs.assert_not_called()
     mocked_history_record_action.assert_not_called()
     logger.error.assert_not_called()
 
 
 def test_install_vcs_no_change(
     mocked_system_query, mocked_registry_fetch,
-    mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
-    mocked_click_confirm, mocked_history_record_action, logger
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
 ):
     """Installation to VCS registry with no changes."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_install_definitions_to_vcs.side_effect = (
+    mocked_install_definitions.side_effect = (
         wiz.exception.InstallNoChanges()
     )
 
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry-id", "registry-id"],
+        ["install", "/foo.json", "--registry", "registry-id"],
     )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
 
-    mocked_install_definitions_to_vcs.assert_called_once_with(
+    mocked_install_definitions.assert_called_once_with(
         ("/foo.json",), "registry-id",
         install_location=None,
         overwrite=False
@@ -2709,32 +2688,31 @@ def test_install_vcs_no_change(
     logger.warning.assert_called_once_with("No changes detected in release.")
 
     mocked_click_confirm.assert_not_called()
-    mocked_install_definitions_to_path.assert_not_called()
     mocked_history_record_action.assert_not_called()
     logger.error.assert_not_called()
 
 
 def test_install_local_error(
     mocked_system_query, mocked_registry_fetch,
-    mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
-    mocked_click_confirm, mocked_history_record_action, logger
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
 ):
     """Fail to install definition to local registry."""
     exception = wiz.exception.WizError("Oh Shit!")
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_install_definitions_to_path.side_effect = exception
+    mocked_install_definitions.side_effect = exception
 
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry-path", "/registry"],
+        ["install", "/foo.json", "--registry", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
 
-    mocked_install_definitions_to_path.assert_called_once_with(
+    mocked_install_definitions.assert_called_once_with(
         ("/foo.json",), "/registry",
         install_location=None,
         overwrite=False
@@ -2747,31 +2725,30 @@ def test_install_local_error(
     )
 
     mocked_click_confirm.assert_not_called()
-    mocked_install_definitions_to_vcs.assert_not_called()
     logger.warning.assert_not_called()
 
 
 def test_install_vcs_error(
     mocked_system_query, mocked_registry_fetch,
-    mocked_install_definitions_to_path, mocked_install_definitions_to_vcs,
-    mocked_click_confirm, mocked_history_record_action, logger
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
 ):
     """Fail to install definition to VCS registry."""
     exception = wiz.exception.WizError("Oh Shit!")
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
-    mocked_install_definitions_to_vcs.side_effect = exception
+    mocked_install_definitions.side_effect = exception
 
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry-id", "registry-id"],
+        ["install", "/foo.json", "--registry", "registry-id"],
     )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
 
-    mocked_install_definitions_to_vcs.assert_called_once_with(
+    mocked_install_definitions.assert_called_once_with(
         ("/foo.json",), "registry-id",
         install_location=None,
         overwrite=False
@@ -2784,7 +2761,6 @@ def test_install_vcs_error(
     )
 
     mocked_click_confirm.assert_not_called()
-    mocked_install_definitions_to_path.assert_not_called()
     logger.warning.assert_not_called()
 
 
@@ -2798,8 +2774,7 @@ def test_install_vcs_error(
 @pytest.mark.usefixtures("mocked_system_query")
 @pytest.mark.usefixtures("mocked_registry_fetch")
 @pytest.mark.usefixtures("mocked_fetch_definition_mapping")
-@pytest.mark.usefixtures("mocked_install_definitions_to_path")
-@pytest.mark.usefixtures("mocked_install_definitions_to_vcs")
+@pytest.mark.usefixtures("mocked_install_definitions")
 @pytest.mark.usefixtures("mocked_click_confirm")
 @pytest.mark.usefixtures("mocked_history_record_action")
 def test_install_local_command_error(options):
@@ -2823,8 +2798,7 @@ def test_install_local_command_error(options):
 @pytest.mark.usefixtures("mocked_system_query")
 @pytest.mark.usefixtures("mocked_registry_fetch")
 @pytest.mark.usefixtures("mocked_fetch_definition_mapping")
-@pytest.mark.usefixtures("mocked_install_definitions_to_path")
-@pytest.mark.usefixtures("mocked_install_definitions_to_vcs")
+@pytest.mark.usefixtures("mocked_install_definitions")
 @pytest.mark.usefixtures("mocked_click_confirm")
 @pytest.mark.usefixtures("mocked_history_record_action")
 def test_install_vcs_command_error(options):
