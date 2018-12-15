@@ -456,7 +456,7 @@ def test_query_definition_with_namespace_hints(package_definition_mapping):
 
     assert (
         "Impossible to guess default namespace for 'baz' "
-        "[available: test1, test2]"
+        "[available: test1, test2, test3]"
     ) in str(error)
 
 
