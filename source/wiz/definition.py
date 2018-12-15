@@ -154,8 +154,8 @@ def query(requirement, definition_mapping, namespaces=None):
     *definition_mapping* is a mapping regrouping all available definition
     associated with their unique identifier.
 
-    *namespaces* could be a list which provides hints to select a default
-    namespace if necessary.
+    *namespaces* is a set which provides hints to select a default namespace if
+    necessary.
 
     :exc:`wiz.exception.RequestNotFound` is raised if the requirement can not
     be resolved.
@@ -216,8 +216,8 @@ def _guess_default_namespace(identifier, namespace_mapping, namespaces=None):
             ...
         }
 
-    *namespaces* could be a list which provides hints to select a default
-    namespace if necessary.
+    *namespaces* is a list which provides hints to select a default namespace if
+    necessary.
 
     """
     # Use the list of initial requests from the namespace_mapping as additional
