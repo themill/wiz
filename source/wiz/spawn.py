@@ -86,7 +86,11 @@ def execute(elements, environment):
     signal.signal(signal.SIGINT, _cleanup)
     signal.signal(signal.SIGTERM, _cleanup)
 
-    subprocess.call(elements, env=environment)
+    try:
+        subprocess.call(elements, env=environment)
+    except OSError as error:
+        logger.error("Command has not been found.")
+        logger.debug(error, traceback=True)
 
 
 def _cleanup(signum, frame):
