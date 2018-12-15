@@ -238,17 +238,16 @@ def _guess_default_namespace(identifier, namespace_mapping, namespaces=None):
             if not namespaces or namespace in namespaces
         ]
 
-    if len(_namespaces) > 1:
-        raise wiz.exception.RequestNotFound(
-            "Impossible to guess default namespace for '{definition}' "
-            "[available: {namespaces}].".format(
-                definition=identifier,
-                namespaces=", ".join(sorted(_namespaces))
-            )
-        )
-
-    if len(_namespaces) > 0:
+    if len(_namespaces) == 1:
         return _namespaces.pop()
+
+    raise wiz.exception.RequestNotFound(
+        "Impossible to guess default namespace for '{definition}' "
+        "[available: {namespaces}].".format(
+            definition=identifier,
+            namespaces=", ".join(sorted(namespace_mapping.get(identifier, [])))
+        )
+    )
 
 
 def export(path, definition, overwrite=False):
