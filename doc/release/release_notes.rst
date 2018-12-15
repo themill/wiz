@@ -7,6 +7,13 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: new
+
+        Added nicer error handling for the shell, when a command can not be
+        found or executed. Now, when an OSError is detected, it will throw
+        an error message instead of a traceback (A traceback is available if
+        verbosity is set to 'debug').
+
+    .. change:: new
         :tags: command-line
 
         Added :option:`--version <wiz --version>` to display the package
