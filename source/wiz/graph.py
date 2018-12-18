@@ -1072,7 +1072,8 @@ class Graph(object):
         """Indicate whether *package* conditions are full-filled."""
         for condition in package.conditions:
             packages = wiz.package.extract(
-                condition, self._resolver.definition_mapping
+                wiz.utility.get_requirement(condition),
+                self._resolver.definition_mapping
             )
 
             if not any(self.exists(package.identifier) for package in packages):
