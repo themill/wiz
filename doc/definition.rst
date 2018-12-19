@@ -325,3 +325,73 @@ This location can be referenced within each ``environ`` value (including the
 
 When the context is resolved, the :envvar:`INSTALL_LOCATION` environment
 variable is replaced by the ``install-location`` value within the definition.
+
+.. _definition/constraints:
+
+Constraints
+-----------
+
+A package definitions can have an optional list of 'constraints' set, which will
+add additional restrictions to the graph resolve.
+
+Using 'constraints' package versions can be limited to certain versions or
+version ranges.
+For example, a package definition can specify a 'constraint' like this:
+
+.. code-block:: json
+
+    {
+        "constraints": [
+            "houdini == 16.5.323"
+        ]
+    }
+
+Then a wiz query like this would resolve to that specific houdini version, even
+if newer versions are available::
+
+    > wiz use houdini -- houdini
+
+.. note::
+
+    This keyword is most commonly used in combination with "auto-use", as that
+    allows the constraint to be consistently picked up even in more complex
+    requests.
+
+.. _definition/conditions:
+
+Conditions
+----------
+
+A package definitions can have an optional list of 'conditions' set, which will
+allow for a package to only be added to the graph resolve, if that condition is
+met.
+
+For example:
+
+.. code-block:: json
+
+    {
+        "identifier": "test"
+        "conditions": [
+            "houdini"
+        ]
+    }
+
+A package with this 'condition' in its definition would be picked up with any
+query containing 'houdini' in either the original requests, or any
+requirements::
+
+    > wiz use houdini --view
+
+    Package   Version   Registry   Description
+    -------   -------   --------   -----------
+    houdini   16.5.323  0          Houdini Application.
+    test      0.1.0     0
+
+.. warning::
+
+    Conditions do not exist for Variants.
+
+    Since packages are being silently ignored when conditions are not met, they
+    would break variants, because to pick up another variant, the system relies
+    on requirements conflicting. This would not happen when conditions are used.
