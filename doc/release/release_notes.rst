@@ -7,6 +7,22 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: new
+        :tags: definition
+
+        Added optional 'conditions' keyword to definition schema which
+        indicates a list of packages which must be in the resolved graph for
+        the package to be resolved.
+
+        Any requirements or environment set in the definition will only be
+        added if the 'condition' is being met.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :meth:`wiz.graph.Graph.update_from_requirements` to take
+        conditions into account while resolving the graph.
+
+    .. change:: new
         :tags: command-line
 
         Added :option:`--version <wiz --version>` to display the package
