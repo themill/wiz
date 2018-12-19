@@ -740,6 +740,9 @@ class Graph(object):
         # List of constraint instances organised per definition identifier.
         self._constraints_per_definition = {}
 
+        # List of condition instances organised per definition identifier.
+        self._conditions_per_definition = {}
+
         # List of node identifiers with variant organised per definition
         # identifier.
         self._variants_per_definition = {}
@@ -754,6 +757,9 @@ class Graph(object):
         )
         result._constraints_per_definition = (
             copy.deepcopy(self._constraints_per_definition)
+        )
+        result._conditions_per_definition = (
+            copy.deepcopy(self._conditions_per_definition)
         )
         result._variants_per_definition = (
             copy.deepcopy(self._variants_per_definition)
@@ -783,6 +789,10 @@ class Graph(object):
             "constraints_per_definition": {
                 _id: [constraint.to_dict() for constraint in constraints]
                 for _id, constraints in self._constraints_per_definition.items()
+            },
+            "conditions_per_definition": {
+                _id: [condition.to_dict() for condition in conditions]
+                for _id, conditions in self._conditions_per_definition.items()
             },
             "variants_per_definition": self._variants_per_definition,
         }
@@ -896,7 +906,12 @@ class Graph(object):
         <https://en.wikipedia.org/wiki/Breadth-first_search>`_ algorithm so that
         potential errors are raised for top-level packages first.
 
-        Constraint packages will be recorded as :class:`Constraint` instances.
+        Constraints will be recorded as :class:`StoredNode` instances.
+        Corresponding packages will be added to the graph only if at least one
+        package with the same definition identifier has previously been added
+        to the graph.
+
+        Conditions will be recorded as :class:`StoredNode` instances.
         Corresponding packages will be added to the graph only if at least one
         package with the same definition identifier has previously been added
         to the graph.
@@ -918,7 +933,6 @@ class Graph(object):
         # If constraints have been found, identify those which have
         # corresponding definition identifier in the graph and add it to the
         # queue to convert them into nodes.
-
         constraints_needed = self._constraints_identified_in_graph()
 
         while len(constraints_needed) > 0:
@@ -935,8 +949,49 @@ class Graph(object):
             # updating graph with previous constraints.
             constraints_needed = self._constraints_identified_in_graph()
 
+        # If conditions have been found, identify those which have
+        # corresponding definition identifier in the graph and add it to the
+        # queue to convert them into nodes.
+        conditions_needed = self._conditions_identified_in_graph()
+
+        while len(conditions_needed) > 0:
+            for condition in conditions_needed:
+                queue.put({
+                    "requirement": condition.requirement,
+                    "parent_identifier": condition.parent_identifier,
+                    "weight": condition.weight
+                })
+
+            self._update_from_queue(queue)
+
+            # Check if new conditions need to be added to graph after
+            # updating graph with previous conditions.
+            conditions_needed = self._conditions_identified_in_graph()
+
+    def _conditions_identified_in_graph(self):
+        """Return :class:`StoredNode` instances which should be added to graph.
+
+        A condition should be added to the graph once its definition identifier
+        is found in the graph. The conditions returned will be removed from
+        condition mapping recorded by the graph.
+
+        """
+        conditions = []
+
+        for identifier in self._conditions_per_definition.keys():
+            if identifier in self._identifiers_per_definition.keys():
+                conditions += self._conditions_per_definition[identifier]
+                del self._conditions_per_definition[identifier]
+
+        self._logger.debug(
+            "Conditions which needs to be added to the graph: {}".format(
+                [str(condition.requirement) for condition in conditions]
+            )
+        )
+        return conditions
+
     def _constraints_identified_in_graph(self):
-        """Return :class:`Constraint` instances which should be added to graph.
+        """Return :class:`StoredNode` instances which should be added to graph.
 
         A constraint should be added to the graph once its definition identifier
         is found in the graph. The constraints returned will be removed from
@@ -1018,7 +1073,18 @@ class Graph(object):
                     _identifier = _requirement.name
                     self._constraints_per_definition.setdefault(_identifier, [])
                     self._constraints_per_definition[_identifier].append(
-                        Constraint(
+                        StoredNode(
+                            _requirement, package.identifier, weight=index + 1
+                        )
+                    )
+
+                # Record conditions so that it could be added later to the
+                # graph as nodes if necessary.
+                for index, _requirement in enumerate(package.conditions):
+                    _identifier = wiz.utility.get_requirement(_requirement).name
+                    self._conditions_per_definition.setdefault(_identifier, [])
+                    self._conditions_per_definition[_identifier].append(
+                        StoredNode(
                             _requirement, package.identifier, weight=index + 1
                         )
                     )
@@ -1220,23 +1286,23 @@ class Node(object):
         }
 
 
-class Constraint(object):
-    """Representation of a constraint mapping within the :class:`Graph`.
+class StoredNode(object):
+    """Representation of a node mapping within the :class:`Graph`.
 
     It encapsulates one :class:`packaging.requirements.Requirement` instance,
     its parent package identifier and a weight number.
 
-    A constraint will be converted into one or several :class:`Node` instances
+    A stored node will be converted into one or several :class:`Node` instances
     as soon as the corresponding definition identifier is found in the graph.
 
-    For instance, if a constraint has a requirement such as
+    For instance, if a 'constraint' has a requirement such as
     `foo >= 0.1.0, < 0.2.0`, it will be added to the graph only if another
     package from the `foo` definition(s) has been previously added to the graph.
 
     """
 
     def __init__(self, requirement, parent_identifier, weight=1):
-        """Initialize Constraint.
+        """Initialize StoredNode.
 
         *requirement* should be an instance of
         :class:`packaging.requirements.Requirement`.
