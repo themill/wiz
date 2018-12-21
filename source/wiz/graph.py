@@ -737,11 +737,11 @@ class Graph(object):
         # Set of node identifiers organised per definition identifier.
         self._identifiers_per_definition = {}
 
-        # List of constraint instances organised per definition identifier.
-        self._constraints_per_definition = {}
+        # List of stored nodes organised per definition identifier.
+        self._constraint_mapping = {}
 
-        # List of condition instances organised per definition identifier.
-        self._conditions_per_definition = {}
+        # List of stored nodes organised per condition.
+        self._condition_mapping = {}
 
         # List of node identifiers with variant organised per definition
         # identifier.
@@ -755,11 +755,11 @@ class Graph(object):
         result._identifiers_per_definition = (
             copy.deepcopy(self._identifiers_per_definition)
         )
-        result._constraints_per_definition = (
-            copy.deepcopy(self._constraints_per_definition)
+        result._constraint_mapping = (
+            copy.deepcopy(self._constraint_mapping)
         )
-        result._conditions_per_definition = (
-            copy.deepcopy(self._conditions_per_definition)
+        result._condition_mapping = (
+            copy.deepcopy(self._condition_mapping)
         )
         result._variants_per_definition = (
             copy.deepcopy(self._variants_per_definition)
@@ -786,13 +786,13 @@ class Graph(object):
                 _id: sorted(node_ids) for _id, node_ids
                 in self._identifiers_per_definition.items()
             },
-            "constraints_per_definition": {
+            "constraint_mapping": {
                 _id: [constraint.to_dict() for constraint in constraints]
-                for _id, constraints in self._constraints_per_definition.items()
+                for _id, constraints in self._constraint_mapping.items()
             },
-            "conditions_per_definition": {
+            "condition_mapping": {
                 _id: [condition.to_dict() for condition in conditions]
-                for _id, conditions in self._conditions_per_definition.items()
+                for _id, conditions in self._condition_mapping.items()
             },
             "variants_per_definition": self._variants_per_definition,
         }
@@ -978,9 +978,9 @@ class Graph(object):
         """
         conditions = []
 
-        for identifier in self._conditions_per_definition.keys():
+        for identifier in self._condition_mapping.keys():
             if identifier in self._identifiers_per_definition.keys():
-                conditions += self._conditions_per_definition[identifier]
+                conditions += self._condition_mapping[identifier]
 
         self._logger.debug(
             "Packages that now fulfill their conditions and need to be added to "
@@ -1000,10 +1000,10 @@ class Graph(object):
         """
         constraints = []
 
-        for identifier in self._constraints_per_definition.keys():
+        for identifier in self._constraint_mapping.keys():
             if identifier in self._identifiers_per_definition.keys():
-                constraints += self._constraints_per_definition[identifier]
-                del self._constraints_per_definition[identifier]
+                constraints += self._constraint_mapping[identifier]
+                del self._constraint_mapping[identifier]
 
         self._logger.debug(
             "Constraints which needs to be added to the graph: {}".format(
@@ -1060,20 +1060,21 @@ class Graph(object):
                 # Record conditions so that it could be added later to the
                 # graph as nodes if necessary.
                 conditional = False
+
                 for index, condition in enumerate(package.conditions):
                     _identifier = condition.name
-                    if _identifier not in self._conditions_per_definition:
-                        self._conditions_per_definition.setdefault(_identifier, [])
+                    if _identifier not in self._condition_mapping:
+                        self._condition_mapping.setdefault(_identifier, [])
                     else:
-                        for node in self._conditions_per_definition[_identifier]:
+                        for node in self._condition_mapping[_identifier]:
                             if node.parent_identifier == package.identifier:
-                                self._conditions_per_definition[_identifier].remove(node)
+                                self._condition_mapping[_identifier].remove(node)
                                 break
                         else:
                             continue
                         break
 
-                    self._conditions_per_definition[_identifier].append(
+                    self._condition_mapping[_identifier].append(
                         StoredNode(
                             condition, package.identifier, weight=index + 1
                         )
@@ -1097,8 +1098,8 @@ class Graph(object):
                 # graph as nodes if necessary.
                 for index, _requirement in enumerate(package.constraints):
                     _identifier = _requirement.name
-                    self._constraints_per_definition.setdefault(_identifier, [])
-                    self._constraints_per_definition[_identifier].append(
+                    self._constraint_mapping.setdefault(_identifier, [])
+                    self._constraint_mapping[_identifier].append(
                         StoredNode(
                             _requirement, package.identifier, weight=index + 1
                         )
