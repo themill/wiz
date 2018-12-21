@@ -957,8 +957,8 @@ class Graph(object):
         while len(conditions_needed) > 0:
             for condition in conditions_needed:
                 queue.put({
-                    "requirement": condition.requirement,
-                    "parent_identifier": condition.parent_identifier,
+                    "requirement": wiz.utility.get_requirement(
+                        condition.parent_identifier),
                     "weight": condition.weight
                 })
 
@@ -981,11 +981,11 @@ class Graph(object):
         for identifier in self._conditions_per_definition.keys():
             if identifier in self._identifiers_per_definition.keys():
                 conditions += self._conditions_per_definition[identifier]
-                del self._conditions_per_definition[identifier]
 
         self._logger.debug(
-            "Conditions which needs to be added to the graph: {}".format(
-                [str(condition.requirement) for condition in conditions]
+            "Packages that now fulfill their conditions and need to be added to "
+            "the graph: {}".format(
+                [str(condition.parent_identifier) for condition in conditions]
             )
         )
         return conditions
@@ -1057,6 +1057,33 @@ class Graph(object):
         for package in packages:
             if not self.exists(package.identifier):
 
+                # Record conditions so that it could be added later to the
+                # graph as nodes if necessary.
+                conditional = False
+                for index, _requirement in enumerate(package.conditions):
+                    _identifier = wiz.utility.get_requirement(_requirement).name
+                    if _identifier not in self._conditions_per_definition:
+                        self._conditions_per_definition.setdefault(_identifier, [])
+                    else:
+                        for node in self._conditions_per_definition[_identifier]:
+                            if node.parent_identifier == package.identifier:
+                                self._conditions_per_definition[_identifier].remove(node)
+                                break
+                        else:
+                            continue
+                        break
+
+                    self._conditions_per_definition[_identifier].append(
+                        StoredNode(
+                            wiz.utility.get_requirement(_requirement),
+                            package.identifier, weight=index + 1
+                        )
+                    )
+                    conditional = True
+
+                if conditional:
+                    continue
+
                 self._create_node_from_package(package)
 
                 # Update queue with dependent requirement.
@@ -1073,17 +1100,6 @@ class Graph(object):
                     _identifier = _requirement.name
                     self._constraints_per_definition.setdefault(_identifier, [])
                     self._constraints_per_definition[_identifier].append(
-                        StoredNode(
-                            _requirement, package.identifier, weight=index + 1
-                        )
-                    )
-
-                # Record conditions so that it could be added later to the
-                # graph as nodes if necessary.
-                for index, _requirement in enumerate(package.conditions):
-                    _identifier = wiz.utility.get_requirement(_requirement).name
-                    self._conditions_per_definition.setdefault(_identifier, [])
-                    self._conditions_per_definition[_identifier].append(
                         StoredNode(
                             _requirement, package.identifier, weight=index + 1
                         )
