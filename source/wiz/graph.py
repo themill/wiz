@@ -932,87 +932,96 @@ class Graph(object):
 
         self._update_from_queue(queue)
 
-        # If constraints have been found, identify those which have
-        # corresponding definition identifier in the graph and add it to the
-        # queue to convert them into nodes.
-        constraints_needed = self._constraints_identified_in_graph()
+        # Update graph with constraints stored if necessary.
+        stored_nodes = self._constraints_identified_in_graph()
 
-        while len(constraints_needed) > 0:
-            for constraint in constraints_needed:
+        while len(stored_nodes) > 0:
+            for stored_node in stored_nodes:
                 queue.put({
-                    "requirement": constraint.requirement,
-                    "parent_identifier": constraint.parent_identifier,
-                    "weight": constraint.weight
+                    "requirement": stored_node.requirement,
+                    "parent_identifier": stored_node.parent_identifier,
+                    "weight": stored_node.weight
                 })
 
             self._update_from_queue(queue)
 
-            # Check if other new constraints need to be added to graph after
-            # updating graph with previous constraints.
-            constraints_needed = self._constraints_identified_in_graph()
+            # Check if new stored nodes need to be added to graph.
+            stored_nodes = self._constraints_identified_in_graph()
 
-        # If conditions have been found, identify those which have
-        # corresponding definition identifier in the graph and add it to the
-        # queue to convert them into nodes.
-        conditions_needed = self._conditions_identified_in_graph()
+        # Update graph with package with conditions stored if necessary.
+        stored_nodes = self._conditions_validated()
 
-        while len(conditions_needed) > 0:
-            for condition in conditions_needed:
+        while len(stored_nodes) > 0:
+            for stored_node in stored_nodes:
                 queue.put({
-                    "requirement": wiz.utility.get_requirement(
-                        condition.parent_identifier),
-                    "weight": condition.weight
+                    "requirement": stored_node.requirement,
+                    "parent_identifier": stored_node.parent_identifier,
+                    "weight": stored_node.weight
                 })
 
             self._update_from_queue(queue)
 
-            # Check if new conditions need to be added to graph after
-            # updating graph with previous conditions.
-            conditions_needed = self._conditions_identified_in_graph()
+            # Check if new stored nodes need to be added to graph.
+            stored_nodes = self._conditions_validated()
 
-    def _conditions_identified_in_graph(self):
+    def _conditions_validated(self):
         """Return :class:`StoredNode` instances which should be added to graph.
 
-        A condition should be added to the graph once its definition identifier
-        is found in the graph. The conditions returned will be removed from
-        condition mapping recorded by the graph.
+        A :class:`StoredNode` instance has been created for each package which
+        has one or several conditions.
+
+        Only :class:`StoredNode` instances from which conditions are fulfilled
+        are returned and removed from the condition mapping.
 
         """
-        conditions = []
+        stored_nodes = []
 
-        for identifier in self._condition_mapping.keys():
-            if identifier in self._identifiers_per_definition.keys():
-                conditions += self._condition_mapping[identifier]
+        for conditions in self._condition_mapping.keys():
+            packages = itertools.chain(
+                wiz.package.extract(
+                    condition, self._resolver.definition_mapping
+                ) for condition in conditions
+            )
+
+            if all(
+                package.identifier in self._node_mapping.keys()
+                for package in packages
+            ):
+                stored_nodes.append(self._condition_mapping[conditions])
+                del self._condition_mapping[conditions]
 
         self._logger.debug(
-            "Packages that now fulfill their conditions and need to be added to "
-            "the graph: {}".format(
-                [str(condition.parent_identifier) for condition in conditions]
+            "Packages that now fulfill their conditions and need to be added "
+            "to the graph: {}".format(
+                [str(stored_node.requirement) for stored_node in stored_nodes]
             )
         )
-        return conditions
+        return stored_nodes
 
     def _constraints_identified_in_graph(self):
         """Return :class:`StoredNode` instances which should be added to graph.
 
-        A constraint should be added to the graph once its definition identifier
-        is found in the graph. The constraints returned will be removed from
-        constraint mapping recorded by graph.
+        A :class:`StoredNode` instance has been created for each constraint
+        found in packages.
+
+        Only :class:`StoredNode` instances from which one or several packages
+        with similar definition identifier exist in the graph are returned and
+        removed from constraint mapping.
 
         """
-        constraints = []
+        stored_nodes = []
 
         for identifier in self._constraint_mapping.keys():
             if identifier in self._identifiers_per_definition.keys():
-                constraints += self._constraint_mapping[identifier]
+                stored_nodes += self._constraint_mapping[identifier]
                 del self._constraint_mapping[identifier]
 
         self._logger.debug(
             "Constraints which needs to be added to the graph: {}".format(
-                [str(constraint.requirement) for constraint in constraints]
+                [str(stored_node.requirement) for stored_node in stored_nodes]
             )
         )
-        return constraints
+        return stored_nodes
 
     def _update_from_queue(self, queue):
         """Recursively update graph from data contained in *queue*.
