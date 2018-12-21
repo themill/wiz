@@ -1307,12 +1307,20 @@ class StoredNode(object):
     It encapsulates one :class:`packaging.requirements.Requirement` instance,
     its parent package identifier and a weight number.
 
-    A stored node will be converted into one or several :class:`Node` instances
-    as soon as the corresponding definition identifier is found in the graph.
+    A StoredNode instance is used when a package request cannot be  immediately
+    converted into one or several :class:`Node` instances in the graph.
 
-    For instance, if a 'constraint' has a requirement such as
-    `foo >= 0.1.0, < 0.2.0`, it will be added to the graph only if another
-    package from the `foo` definition(s) has been previously added to the graph.
+    Examples:
+
+    * When a package contains constraints, a StoredNode instance is created for
+    each constraint in case it is judged necessary to be added to the graph. If
+    a package has a constraint such as `foo >= 0.1.0, < 0.2.0`, it will be
+    added to the graph only if another package from the `foo` definition(s) has
+    been added to the graph.
+
+    * When a package contains conditions, a StoredNode instance is created for
+    this package request until the validation can be validated. If the
+    conditions are not validated, the package will not be added to the graph.
 
     """
 
