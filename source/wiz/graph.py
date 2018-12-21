@@ -791,10 +791,8 @@ class Graph(object):
                 for _id, stored_nodes in self._constraint_mapping.items()
             },
             "condition_mapping": {
-                ", ".join(conditions): [
-                    stored_node.to_dict() for stored_node in stored_nodes
-                ]
-                for conditions, stored_nodes in self._condition_mapping.items()
+                tuple(str(c) for c in conditions): stored_node.to_dict()
+                for conditions, stored_node in self._condition_mapping.items()
             },
             "variants_per_definition": self._variants_per_definition,
         }
@@ -968,9 +966,11 @@ class Graph(object):
 
         for conditions in self._condition_mapping.keys():
             packages = itertools.chain(
-                wiz.package.extract(
-                    condition, self._resolver.definition_mapping
-                ) for condition in conditions
+                *[
+                    wiz.package.extract(
+                        condition, self._resolver.definition_mapping
+                    ) for condition in conditions
+                ]
             )
 
             if all(
@@ -1062,7 +1062,8 @@ class Graph(object):
                 if len(package.conditions) > 0:
                     conditions = tuple(package.conditions)
                     self._condition_mapping[conditions] = StoredNode(
-                        package.identifier, parent_identifier, weight=weight
+                        wiz.utility.get_requirement(package.identifier),
+                        parent_identifier, weight=weight
                     )
                     continue
 

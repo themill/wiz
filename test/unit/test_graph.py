@@ -1114,6 +1114,75 @@ def test_graph_update_from_requirements_with_used_constraints(
     }
 
 
+def test_graph_update_from_requirements_with_skipped_conditional_packages(
+    mocker, mocked_resolver, mocked_package_extract
+):
+    """Update graph from requirements with skipped conditional packages."""
+    graph = wiz.graph.Graph(mocked_resolver)
+
+    _mapping = {
+        "A==0.2.0": mocker.Mock(
+            identifier="A==0.2.0",
+            variant_name=None,
+            definition_identifier="A",
+            requirements=[],
+            conditions=[],
+            constraints=[],
+            **{"to_dict.return_value": "_A==0.2.0"}
+        ),
+        "B==2.1.1": mocker.Mock(
+            identifier="B==2.1.1",
+            variant_name=None,
+            definition_identifier="B",
+            requirements=[],
+            conditions=[Requirement("C==2.0.4")],
+            constraints=[],
+            **{"to_dict.return_value": "_B==2.1.1"}
+        ),
+        "C==2.0.4": mocker.Mock(
+            identifier="C==2.0.4",
+            variant_name=None,
+            definition_identifier="C",
+            requirements=[],
+            conditions=[],
+            constraints=[],
+            **{"to_dict.return_value": "_C==2.0.4"}
+        ),
+    }
+
+    mocked_package_extract.side_effect = [
+        [_mapping["A==0.2.0"]],
+        [_mapping["B==2.1.1"]],
+        [_mapping["C==2.0.4"]]
+    ]
+
+    graph.update_from_requirements([Requirement("A"), Requirement("B>=2")])
+
+    assert graph.to_dict() == {
+        "identifier": mock.ANY,
+        "node_mapping": {
+            "A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]}
+        },
+        "link_mapping": {
+            "root": {
+                "A==0.2.0": {"requirement": Requirement("A"), "weight": 1}
+            }
+        },
+        "identifiers_per_definition": {
+            "A": ["A==0.2.0"]
+        },
+        "constraint_mapping": {},
+        "condition_mapping": {
+            ("C ==2.0.4",): {
+                "requirement": Requirement("B==2.1.1"),
+                "parent_identifier": None,
+                "weight": 2
+            }
+        },
+        "variants_per_definition": {}
+    }
+
+
 @pytest.mark.parametrize("options", [
     {},
     {"parent_identifier": "foo"},
