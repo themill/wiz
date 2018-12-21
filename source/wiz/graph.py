@@ -787,12 +787,14 @@ class Graph(object):
                 in self._identifiers_per_definition.items()
             },
             "constraint_mapping": {
-                _id: [constraint.to_dict() for constraint in constraints]
-                for _id, constraints in self._constraint_mapping.items()
+                _id: [stored_node.to_dict() for stored_node in stored_nodes]
+                for _id, stored_nodes in self._constraint_mapping.items()
             },
             "condition_mapping": {
-                _id: [condition.to_dict() for condition in conditions]
-                for _id, conditions in self._condition_mapping.items()
+                ", ".join(conditions): [
+                    stored_node.to_dict() for stored_node in stored_nodes
+                ]
+                for conditions, stored_nodes in self._condition_mapping.items()
             },
             "variants_per_definition": self._variants_per_definition,
         }
@@ -1057,31 +1059,12 @@ class Graph(object):
         for package in packages:
             if not self.exists(package.identifier):
 
-                # Record conditions so that it could be added later to the
-                # graph as nodes if necessary.
-                conditional = False
-
-                for index, condition in enumerate(package.conditions):
-                    _identifier = condition.name
-                    if _identifier not in self._condition_mapping:
-                        self._condition_mapping.setdefault(_identifier, [])
-                    else:
-                        for node in self._condition_mapping[_identifier]:
-                            if node.parent_identifier == package.identifier:
-                                self._condition_mapping[_identifier].remove(node)
-                                break
-                        else:
-                            continue
-                        break
-
-                    self._condition_mapping[_identifier].append(
-                        StoredNode(
-                            condition, package.identifier, weight=index + 1
-                        )
+                # Do not add the node in the graph if conditions are set.
+                if len(package.conditions) > 0:
+                    conditions = tuple(package.conditions)
+                    self._condition_mapping[conditions] = StoredNode(
+                        package.identifier, parent_identifier, weight=weight
                     )
-                    conditional = True
-
-                if conditional:
                     continue
 
                 self._create_node_from_package(package)
