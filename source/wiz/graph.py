@@ -1060,8 +1060,8 @@ class Graph(object):
                 # Record conditions so that it could be added later to the
                 # graph as nodes if necessary.
                 conditional = False
-                for index, _requirement in enumerate(package.conditions):
-                    _identifier = wiz.utility.get_requirement(_requirement).name
+                for index, condition in enumerate(package.conditions):
+                    _identifier = condition.name
                     if _identifier not in self._conditions_per_definition:
                         self._conditions_per_definition.setdefault(_identifier, [])
                     else:
@@ -1075,8 +1075,7 @@ class Graph(object):
 
                     self._conditions_per_definition[_identifier].append(
                         StoredNode(
-                            wiz.utility.get_requirement(_requirement),
-                            package.identifier, weight=index + 1
+                            condition, package.identifier, weight=index + 1
                         )
                     )
                     conditional = True
