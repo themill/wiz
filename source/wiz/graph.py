@@ -740,7 +740,7 @@ class Graph(object):
         # List of stored nodes organised per definition identifier.
         self._constraint_mapping = {}
 
-        # List of stored nodes organised per condition.
+        # List of stored nodes organised per condition tuple.
         self._condition_mapping = {}
 
         # List of node identifiers with variant organised per definition
