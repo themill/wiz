@@ -932,8 +932,11 @@ class Graph(object):
 
         self._update_from_queue(queue)
 
-        # Update graph with constraints stored if necessary.
-        stored_nodes = self._constraints_identified_in_graph()
+        # Update graph with nodes stored if necessary.
+        stored_nodes = (
+            self._conditions_validated()
+            + self._constraints_identified_in_graph()
+        )
 
         while len(stored_nodes) > 0:
             for stored_node in stored_nodes:
@@ -946,23 +949,10 @@ class Graph(object):
             self._update_from_queue(queue)
 
             # Check if new stored nodes need to be added to graph.
-            stored_nodes = self._constraints_identified_in_graph()
-
-        # Update graph with package with conditions stored if necessary.
-        stored_nodes = self._conditions_validated()
-
-        while len(stored_nodes) > 0:
-            for stored_node in stored_nodes:
-                queue.put({
-                    "requirement": stored_node.requirement,
-                    "parent_identifier": stored_node.parent_identifier,
-                    "weight": stored_node.weight
-                })
-
-            self._update_from_queue(queue)
-
-            # Check if new stored nodes need to be added to graph.
-            stored_nodes = self._conditions_validated()
+            stored_nodes = (
+                self._conditions_validated()
+                + self._constraints_identified_in_graph()
+            )
 
     def _conditions_validated(self):
         """Return :class:`StoredNode` instances which should be added to graph.
