@@ -747,6 +747,7 @@ def test_graph_update_from_requirements(
             variant_name=None,
             definition_identifier="A",
             requirements=[],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_A==0.2.0"}
         ),
@@ -755,6 +756,7 @@ def test_graph_update_from_requirements(
             variant_name=None,
             definition_identifier="B",
             requirements=[],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_B==2.1.1"}
         ),
@@ -784,7 +786,8 @@ def test_graph_update_from_requirements(
             "B": ["B==2.1.1"],
         },
         "variants_per_definition": {},
-        "constraints_per_definition": {}
+        "constraint_mapping": {},
+        "condition_mapping": {}
     }
 
 
@@ -800,6 +803,7 @@ def test_graph_update_from_requirements_with_dependencies(
             variant_name=None,
             definition_identifier="A",
             requirements=[Requirement("B>=2"), Requirement("C")],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_A==0.1.0"}
         ),
@@ -808,6 +812,7 @@ def test_graph_update_from_requirements_with_dependencies(
             variant_name=None,
             definition_identifier="B",
             requirements=[],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_B==3.0.0"}
         ),
@@ -816,6 +821,7 @@ def test_graph_update_from_requirements_with_dependencies(
             variant_name=None,
             definition_identifier="C",
             requirements=[Requirement("D")],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_C==1.2.3"}
         ),
@@ -824,6 +830,7 @@ def test_graph_update_from_requirements_with_dependencies(
             variant_name=None,
             definition_identifier="D",
             requirements=[Requirement("E")],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_D==0.1.0"}
         ),
@@ -832,6 +839,7 @@ def test_graph_update_from_requirements_with_dependencies(
             variant_name=None,
             definition_identifier="E",
             requirements=[],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_E==0.2.0"}
         ),
@@ -879,7 +887,8 @@ def test_graph_update_from_requirements_with_dependencies(
             "E": ["E==0.2.0"]
         },
         "variants_per_definition": {},
-        "constraints_per_definition": {}
+        "constraint_mapping": {},
+        "condition_mapping": {}
     }
 
 
@@ -895,6 +904,7 @@ def test_graph_update_from_requirements_with_variants(
             variant_name="V1",
             definition_identifier="A",
             requirements=[],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_A[V1]==0.2.0"}
         ),
@@ -903,6 +913,7 @@ def test_graph_update_from_requirements_with_variants(
             variant_name="V2",
             definition_identifier="A",
             requirements=[],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_A[V2]==0.2.0"}
         ),
@@ -911,6 +922,7 @@ def test_graph_update_from_requirements_with_variants(
             variant_name="V3",
             definition_identifier="A",
             requirements=[],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_A[V3]==0.2.0"}
         ),
@@ -946,7 +958,8 @@ def test_graph_update_from_requirements_with_variants(
         "variants_per_definition": {
             "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"]
         },
-        "constraints_per_definition": {}
+        "constraint_mapping": {},
+        "condition_mapping": {}
     }
 
 
@@ -962,6 +975,7 @@ def test_graph_update_from_requirements_with_unused_constraints(
             variant_name=None,
             definition_identifier="A",
             requirements=[],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_A==0.2.0"}
         ),
@@ -970,6 +984,7 @@ def test_graph_update_from_requirements_with_unused_constraints(
             variant_name=None,
             definition_identifier="B",
             requirements=[],
+            conditions=[],
             constraints=[Requirement("C==2.0.4")],
             **{"to_dict.return_value": "_B==2.1.1"}
         ),
@@ -998,7 +1013,7 @@ def test_graph_update_from_requirements_with_unused_constraints(
             "A": ["A==0.2.0"],
             "B": ["B==2.1.1"],
         },
-        "constraints_per_definition": {
+        "constraint_mapping": {
             "C": [
                 {
                     "requirement": Requirement("C==2.0.4"),
@@ -1007,6 +1022,7 @@ def test_graph_update_from_requirements_with_unused_constraints(
                 }
             ]
         },
+        "condition_mapping": {},
         "variants_per_definition": {}
     }
 
@@ -1023,6 +1039,7 @@ def test_graph_update_from_requirements_with_used_constraints(
             variant_name=None,
             definition_identifier="A",
             requirements=[],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_A==0.2.0"}
         ),
@@ -1031,6 +1048,7 @@ def test_graph_update_from_requirements_with_used_constraints(
             variant_name=None,
             definition_identifier="B",
             requirements=[],
+            conditions=[],
             constraints=[Requirement("C==2.0.4")],
             **{"to_dict.return_value": "_B==2.1.1"}
         ),
@@ -1039,6 +1057,7 @@ def test_graph_update_from_requirements_with_used_constraints(
             variant_name=None,
             definition_identifier="C",
             requirements=[],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_C==2.0.4"}
         ),
@@ -1047,6 +1066,7 @@ def test_graph_update_from_requirements_with_used_constraints(
             variant_name=None,
             definition_identifier="C",
             requirements=[],
+            conditions=[],
             constraints=[],
             **{"to_dict.return_value": "_C==3.0.0"}
         ),
@@ -1088,7 +1108,8 @@ def test_graph_update_from_requirements_with_used_constraints(
             "B": ["B==2.1.1"],
             "C": ["C==2.0.4", "C==3.0.0"]
         },
-        "constraints_per_definition": {},
+        "constraint_mapping": {},
+        "condition_mapping": {},
         "variants_per_definition": {},
     }
 
@@ -1153,7 +1174,10 @@ def test_graph_update_from_requirement_non_existing(
 ):
     """Update graph from requirement."""
     package = mocker.Mock(
-        identifier="A==0.1.0", requirements=[], constraints=[]
+        identifier="A==0.1.0",
+        requirements=[],
+        conditions = [],
+        constraints=[]
     )
     node = mocker.Mock(identifier="_A==0.1.0")
     requirement = Requirement("A")
@@ -1199,7 +1223,10 @@ def test_graph_update_from_requirement_non_existing_with_requirements(
 ):
     """Update graph from requirement."""
     package = mocker.Mock(
-        identifier="A==0.1.0", requirements=["B", "C", "D"], constraints=[]
+        identifier="A==0.1.0",
+        requirements=["B", "C", "D"],
+        conditions=[],
+        constraints=[]
     )
     node = mocker.Mock(identifier="_A==0.1.0")
     requirement = Requirement("A")
@@ -1255,13 +1282,22 @@ def test_graph_update_from_requirement_multi_packages(
     """Update graph from requirement."""
     packages = [
         mocker.Mock(
-            identifier="A[variant1]==0.1.0", requirements=[], constraints=[]
+            identifier="A[variant1]==0.1.0",
+            requirements=[],
+            conditions=[],
+            constraints=[]
         ),
         mocker.Mock(
-            identifier="A[variant2]==0.1.0", requirements=[], constraints=[]
+            identifier="A[variant2]==0.1.0",
+            requirements=[],
+            conditions=[],
+            constraints=[]
         ),
         mocker.Mock(
-            identifier="A[variant3]==0.1.0", requirements=[], constraints=[]
+            identifier="A[variant3]==0.1.0",
+            requirements=[],
+            conditions=[],
+            constraints=[]
         )
     ]
 
