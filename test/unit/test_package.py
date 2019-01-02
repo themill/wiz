@@ -624,3 +624,613 @@ def test_package_localized_environ_without_key():
             "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}"
         )
     }
+
+
+def test_package_set():
+    """Create new package from existing package with new element."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+    package2 = package1.set("description", "This is a test")
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "description": "This is a test",
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+
+def test_package_update():
+    """Create new package from existing package with updated element."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+    package2 = package1.update(
+        "environ", {"key1": "value1", "key2": "value2"}
+    )
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+    package3 = package2.update(
+        "environ", {"key1": "VALUE1", "key3": "value3"}
+    )
+    assert package3.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "VALUE1",
+            "key2": "value2",
+            "key3": "value3"
+        }
+    }
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+
+def test_package_update_error():
+    """Fail to create new package with non-dictionary element updated."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+    with pytest.raises(ValueError):
+        package1.update("identifier", {"key1": "value1"})
+
+
+def test_package_extend():
+    """Create new package from existing package with extended element."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+    package2 = package1.extend(
+        "requirements", [Requirement("bar"), Requirement("bim>=1")]
+    )
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+    package3 = package2.extend(
+        "requirements", [Requirement("test")]
+    )
+    assert package3.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1",
+            "test"
+        ]
+    }
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+
+def test_package_extend_error():
+    """Fail to create new package with non-list element extended."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+    with pytest.raises(ValueError):
+        package1.extend("identifier", ["test"])
+
+
+def test_package_insert():
+    """Create new package from existing package with extended element."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+    package2 = package1.set(
+        "requirements", [Requirement("bar"), Requirement("bim>=1")]
+    )
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+    package3 = package2.insert(
+        "requirements", Requirement("test"), 0
+    )
+    assert package3.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+
+def test_package_insert_error():
+    """Fail to create new package with non-list element extended."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+    with pytest.raises(ValueError):
+        package1.insert("identifier", ["test"], 0)
+
+
+def test_package_remove():
+    """Create new package from existing package without element."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+        "description": "This is a test"
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "description": "This is a test"
+    }
+
+    package2 = package1.remove("description")
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "description": "This is a test"
+    }
+
+
+def test_package_remove_non_existing():
+    """Do not raise when removing non existing element."""
+    package = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+    })
+
+    assert package.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+    _package = package.remove("error")
+    assert _package == package
+
+
+def test_package_remove_key():
+    """Create new package from existing package without element key."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    }
+
+    package2 = package1.remove_key("environ", "key1")
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "environ": {
+            "key2": "value2"
+        }
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "value1",
+            "key2": "value2"
+        }
+    }
+
+
+def test_package_remove_last_key():
+    """Create new package from existing package without element."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    }
+
+    package2 = package1.remove_key("environ", "key1")
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+
+
+def test_package_remove_key_error():
+    """Fail to create new package without un-existing element or element key.
+    """
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    }
+
+    with pytest.raises(ValueError) as error:
+        package1.remove_key("identifier", "key42")
+
+    assert (
+       "Impossible to remove key from 'identifier' as it is not a dictionary."
+    ) in str(error)
+
+
+def test_package_remove_non_existing_key():
+    """Do not raise when removing non existing element key."""
+    package = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    })
+
+    assert package.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "environ": {
+            "key1": "value1",
+        }
+    }
+
+    _package = package.remove_key("test", "error")
+    assert package == _package
+
+    _package = package.remove_key("environ", "key42")
+    assert package == _package
+
+
+def test_package_remove_index():
+    """Create new package from existing package without element index."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            Requirement("test"),
+            Requirement("bar"),
+            Requirement("bim >=1")
+        ]
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+    package2 = package1.remove_index("requirements", 0)
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+    package3 = package2.remove_index("requirements", 1)
+    assert package3.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "bar",
+        ]
+    }
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "bar",
+            "bim >=1"
+        ]
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+
+def test_package_remove_last_index():
+    """Create new package from existing package without element."""
+    package1 = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "test",
+        ]
+    })
+
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "test",
+        ]
+    }
+
+    package2 = package1.remove_index("requirements", 0)
+    assert package2.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+    }
+    assert package1.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "test",
+        ]
+    }
+
+
+def test_package_remove_index_error():
+    """Fail to create package without un-existing element or element index.
+    """
+    package = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            Requirement("test"),
+            Requirement("bar"),
+            Requirement("bim >=1")
+        ]
+    })
+
+    assert package.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "test",
+            "bar",
+            "bim >=1"
+        ]
+    }
+
+    with pytest.raises(ValueError) as error:
+        package.remove_index("identifier", 42)
+
+    assert (
+       "Impossible to remove index from 'identifier' as it is not a list."
+    ) in str(error)
+
+
+def test_package_remove_non_existing_index():
+    """Do not raise when removing non existing element index."""
+    package = wiz.package.Package({
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            Requirement("test"),
+        ]
+    })
+
+    assert package.to_dict(serialize_content=True) == {
+        "identifier": "foo==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "foo",
+        "requirements": [
+            "test",
+        ]
+    }
+
+    _package = package.remove_index("requirements", 5)
+    assert package == _package
+
+    _package = package.remove_index("test", "error")
+    assert package == _package
