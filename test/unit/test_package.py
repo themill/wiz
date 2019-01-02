@@ -21,82 +21,6 @@ def mocked_package(mocker):
     return mocker.patch.object(wiz.package, "Package", return_value="PACKAGE")
 
 
-def test_generate_identifier():
-    """Generate package name from definition."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-    })
-
-    assert wiz.package.generate_identifier(definition) == "foo"
-
-
-def test_generate_identifier_with_version():
-    """Generate package name from definition with version."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "version": "0.1.0",
-    })
-
-    assert wiz.package.generate_identifier(definition) == "foo==0.1.0"
-
-
-def test_generate_identifier_with_variant():
-    """Generate package name from definition with variant."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "variants": [
-            {"identifier": "bar1"},
-            {"identifier": "bar2"},
-            {"identifier": "bar3"}
-        ]
-    })
-
-    assert wiz.package.generate_identifier(definition) == "foo"
-    assert wiz.package.generate_identifier(definition, "bar1") == "foo[bar1]"
-    assert wiz.package.generate_identifier(definition, "bar2") == "foo[bar2]"
-    assert wiz.package.generate_identifier(definition, "bar3") == "foo[bar3]"
-
-    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
-        wiz.package.generate_identifier(definition, "incorrect")
-
-    assert (
-        "The definition 'foo' does not contain a variant identified "
-        "as 'incorrect'"
-    ) in str(error)
-
-
-def test_generate_identifier_with_version_and_variant():
-    """Generate package name from definition with version and variant."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "version": "0.1.0",
-        "variants": [
-            {"identifier": "bar1"},
-            {"identifier": "bar2"},
-            {"identifier": "bar3"}
-        ]
-    })
-
-    assert wiz.package.generate_identifier(definition) == "foo==0.1.0"
-    assert wiz.package.generate_identifier(
-        definition, "bar1"
-    ) == "foo[bar1]==0.1.0"
-    assert wiz.package.generate_identifier(
-        definition, "bar2"
-    ) == "foo[bar2]==0.1.0"
-    assert wiz.package.generate_identifier(
-        definition, "bar3"
-    ) == "foo[bar3]==0.1.0"
-
-    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
-        wiz.package.generate_identifier(definition, "incorrect")
-
-    assert (
-        "The definition 'foo==0.1.0' does not contain a variant identified "
-        "as 'incorrect'"
-    ) in str(error)
-
-
 def test_extract_without_variant(mocked_definition_query, mocked_package):
     """Extract one Package from definition."""
     definition = wiz.definition.Definition({
@@ -114,7 +38,15 @@ def test_extract_without_variant(mocked_definition_query, mocked_package):
     result = wiz.package.extract(requirement, {})
     mocked_definition_query.assert_called_once_with(requirement, {})
 
-    mocked_package.assert_called_once_with(definition)
+    mocked_package.assert_called_once_with({
+        "identifier": "test==0.3.4",
+        "definition-identifier": "test",
+        "version": Version("0.3.4"),
+        "environ": {
+            "KEY1": "VALUE1",
+            "KEY2": "VALUE2"
+        }
+    })
     assert result == ["PACKAGE"]
 
 
@@ -146,16 +78,27 @@ def test_extract_with_all_variants(mocked_definition_query, mocked_package):
     mocked_definition_query.assert_called_once_with(requirement, {})
 
     assert mocked_package.call_count == 3
-    mocked_package.assert_any_call(definition, {
-        "identifier": "Variant1",
+    mocked_package.assert_any_call({
+        "identifier": "test[Variant1]==0.3.4",
+        "definition-identifier": "test",
+        "version": Version("0.3.4"),
+        "variant_name": "Variant1",
         "environ": {"KEY1": "VALUE1"}
     })
-    mocked_package.assert_any_call(definition, {
-        "identifier": "Variant2",
+
+    mocked_package.assert_any_call({
+        "identifier": "test[Variant2]==0.3.4",
+        "definition-identifier": "test",
+        "version": Version("0.3.4"),
+        "variant_name": "Variant2",
         "environ": {"KEY2": "VALUE2"}
     })
-    mocked_package.assert_any_call(definition, {
-        "identifier": "Variant3",
+
+    mocked_package.assert_any_call({
+        "identifier": "test[Variant3]==0.3.4",
+        "definition-identifier": "test",
+        "version": Version("0.3.4"),
+        "variant_name": "Variant3",
         "environ": {"KEY3": "VALUE3"}
     })
 
@@ -191,8 +134,11 @@ def test_extract_with_one_requested_variant(
     result = wiz.package.extract(requirement, {})
     mocked_definition_query.assert_called_once_with(requirement, {})
 
-    mocked_package.assert_called_once_with(definition, {
-        "identifier": "Variant2",
+    mocked_package.assert_called_once_with({
+        "identifier": "test[Variant2]==0.3.4",
+        "definition-identifier": "test",
+        "version": Version("0.3.4"),
+        "variant_name": "Variant2",
         "environ": {"KEY2": "VALUE2"}
     })
 
@@ -342,7 +288,7 @@ def test_extract_context_with_six_package(
         })
     ]
 
-    packages = [wiz.package.Package(definition) for definition in definitions]
+    packages = [wiz.package.create(definition) for definition in definitions]
 
     assert wiz.package.extract_context(packages) == {
         "command": {"APP": "APP_EXE"}, "environ": {"CLEAN_KEY": "CLEAN_VALUE"}
@@ -414,7 +360,7 @@ def test_extract_context_with_initial_data(mocked_combine_environ):
         }),
     ]
 
-    packages = [wiz.package.Package(definition) for definition in definitions]
+    packages = [wiz.package.create(definition) for definition in definitions]
 
     assert wiz.package.extract_context(
         packages, environ_mapping={"INITIAL_KEY": "INITIAL_VALUE"}
@@ -516,7 +462,7 @@ def test_minimal_package_without_variant():
     """Create minimal package instance created with no variant."""
     definition = wiz.definition.Definition({"identifier": "test"})
 
-    package = wiz.package.Package(definition)
+    package = wiz.package.create(definition)
     assert package.identifier == "test"
     assert package.definition_identifier == "test"
     assert package.version == "unknown"
@@ -527,10 +473,8 @@ def test_minimal_package_without_variant():
     assert package.requirements == []
     assert package.constraints == []
 
-    assert len(package) == 3
-    assert sorted(package) == [
-        "definition-identifier", "identifier", "variant_name"
-    ]
+    assert len(package) == 2
+    assert sorted(package) == ["definition-identifier", "identifier"]
 
 
 def test_full_package_without_variant():
@@ -556,7 +500,7 @@ def test_full_package_without_variant():
         ]
     })
 
-    package = wiz.package.Package(definition)
+    package = wiz.package.create(definition)
     assert package.identifier == "test==0.3.4"
     assert package.version == Version("0.3.4")
     assert package.variant_name is None
@@ -577,7 +521,7 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
             "app": "App",
         },
         "environ": {
-            "A_KEY": "A_VALUE",
+            "key": "value",
         },
         "requirements": [
             "test1 >= 2",
@@ -590,7 +534,10 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
             {
                 "identifier": "Variant1",
                 "environ": {
-                    "KEY1": "VALUE1",
+                    "key1": "value1",
+                },
+                "command": {
+                    "app1": "App1",
                 },
                 "requirements": [
                     "test3 >= 1.0, < 2"
@@ -602,8 +549,8 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
         ]
     })
 
-    package = wiz.package.Package(
-        definition, variant=definition.variants[0]
+    package = wiz.package.create(
+        definition, variant_identifier="Variant1"
     )
     assert package.identifier == "test[Variant1]==0.1.0"
     assert package.version == Version("0.1.0")
@@ -623,14 +570,14 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
 
     mocked_combine_environ.assert_called_once_with(
         "test[Variant1]==0.1.0",
-        {"A_KEY": "A_VALUE"},
-        {"KEY1": "VALUE1"}
+        {"key": "value"},
+        {"key1": "value1"}
     )
 
     mocked_combine_command.assert_called_once_with(
         "test[Variant1]==0.1.0",
         {"app": "App"},
-        {}
+        {"app1": "App1"}
     )
 
 
