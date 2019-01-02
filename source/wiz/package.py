@@ -255,7 +255,7 @@ def create(definition, variant_identifier=None):
 
         for _mapping in variants:
             if variant_identifier == _mapping.get("identifier"):
-                mapping["variant_name"] = variant_identifier
+                mapping["variant-name"] = variant_identifier
 
                 if len(_mapping.get("environ", {})) > 0:
                     mapping["environ"] = combine_environ_mapping(
@@ -314,7 +314,7 @@ class Package(wiz.mapping.Mapping):
     @property
     def variant_name(self):
         """Return variant name."""
-        return self.get("variant_name")
+        return self.get("variant-name")
 
     @property
     def _ordered_keywords(self):
@@ -322,7 +322,7 @@ class Package(wiz.mapping.Mapping):
         return [
             "identifier",
             "definition-identifier",
-            "variant_name",
+            "variant-name",
             "version",
             "description",
             "registry",

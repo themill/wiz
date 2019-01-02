@@ -82,7 +82,7 @@ def test_extract_with_all_variants(mocked_definition_query, mocked_package):
         "identifier": "test[Variant1]==0.3.4",
         "definition-identifier": "test",
         "version": Version("0.3.4"),
-        "variant_name": "Variant1",
+        "variant-name": "Variant1",
         "environ": {"KEY1": "VALUE1"}
     })
 
@@ -90,7 +90,7 @@ def test_extract_with_all_variants(mocked_definition_query, mocked_package):
         "identifier": "test[Variant2]==0.3.4",
         "definition-identifier": "test",
         "version": Version("0.3.4"),
-        "variant_name": "Variant2",
+        "variant-name": "Variant2",
         "environ": {"KEY2": "VALUE2"}
     })
 
@@ -98,7 +98,7 @@ def test_extract_with_all_variants(mocked_definition_query, mocked_package):
         "identifier": "test[Variant3]==0.3.4",
         "definition-identifier": "test",
         "version": Version("0.3.4"),
-        "variant_name": "Variant3",
+        "variant-name": "Variant3",
         "environ": {"KEY3": "VALUE3"}
     })
 
@@ -138,7 +138,7 @@ def test_extract_with_one_requested_variant(
         "identifier": "test[Variant2]==0.3.4",
         "definition-identifier": "test",
         "version": Version("0.3.4"),
-        "variant_name": "Variant2",
+        "variant-name": "Variant2",
         "environ": {"KEY2": "VALUE2"}
     })
 
