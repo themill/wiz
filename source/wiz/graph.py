@@ -940,6 +940,7 @@ class Graph(object):
             for stored_node in stored_nodes:
                 queue.put({
                     "requirement": stored_node.requirement,
+                    "package": stored_node.package,
                     "parent_identifier": stored_node.parent_identifier,
                     "weight": stored_node.weight
                 })
@@ -965,17 +966,15 @@ class Graph(object):
         stored_nodes = []
 
         for conditions in self._condition_mapping.keys():
-            packages = itertools.chain(
-                *[
-                    wiz.package.extract(
-                        condition, self._resolver.definition_mapping
-                    ) for condition in conditions
-                ]
+            packages = (
+                wiz.package.extract(
+                    condition, self._resolver.definition_mapping
+                ) for condition in conditions
             )
 
             if all(
                 package.identifier in self._node_mapping.keys()
-                for package in packages
+                for package in itertools.chain(*packages)
             ):
                 stored_nodes.append(self._condition_mapping[conditions])
                 del self._condition_mapping[conditions]
@@ -1022,17 +1021,24 @@ class Graph(object):
         while not queue.empty():
             data = queue.get()
 
-            # The queue will be augmented with all dependent requirements.
-            self._update_from_requirement(
-                data.get("requirement"), queue,
-                parent_identifier=data.get("parent_identifier"),
-                weight=data.get("weight")
-            )
+            if data.get("package") is None:
+                self._update_from_requirement(
+                    data.get("requirement"), queue,
+                    parent_identifier=data.get("parent_identifier"),
+                    weight=data.get("weight"),
+                )
+
+            else:
+                self._update_from_package(
+                    data.get("package"), data.get("requirement"), queue,
+                    parent_identifier=data.get("parent_identifier"),
+                    weight=data.get("weight"),
+                )
 
     def _update_from_requirement(
-        self, requirement, queue, parent_identifier=None, weight=1
+        self, requirement, queue, parent_identifier=None, weight=1,
     ):
-        """Update graph from *requirement* and return updated *queue*.
+        """Update graph from *requirement*.
 
         *requirement* should be an instance of
         :class:`packaging.requirements.Requirement`.
@@ -1056,52 +1062,83 @@ class Graph(object):
 
         # Create a node for each package if necessary.
         for package in packages:
-            if not self.exists(package.identifier):
-
-                # Do not add the node in the graph if conditions are set.
-                if len(package.conditions) > 0:
-                    conditions = tuple(package.conditions)
-                    self._condition_mapping[conditions] = StoredNode(
-                        wiz.utility.get_requirement(package.identifier),
-                        parent_identifier, weight=weight
-                    )
-                    continue
-
-                self._create_node_from_package(package)
-
-                # Update queue with dependent requirement.
-                for index, _requirement in enumerate(package.requirements):
-                    queue.put({
-                        "requirement": _requirement,
-                        "parent_identifier": package.identifier,
-                        "weight": index + 1
-                    })
-
-                # Record constraints so that it could be added later to the
-                # graph as nodes if necessary.
-                for index, _requirement in enumerate(package.constraints):
-                    _identifier = _requirement.name
-                    self._constraint_mapping.setdefault(_identifier, [])
-                    self._constraint_mapping[_identifier].append(
-                        StoredNode(
-                            _requirement, package.identifier, weight=index + 1
-                        )
-                    )
-
-            else:
-                # Update variant mapping if necessary
-                self._update_variant_mapping(package.identifier)
-
-            node = self._node_mapping[package.identifier]
-            node.add_parent(parent_identifier or self.ROOT)
-
-            # Create link with requirement and weight.
-            self.create_link(
-                node.identifier,
-                parent_identifier or self.ROOT,
-                requirement,
+            self._update_from_package(
+                package, requirement, queue,
+                parent_identifier=parent_identifier,
                 weight=weight
             )
+
+    def _update_from_package(
+        self, package, requirement, queue, parent_identifier=None, weight=1
+    ):
+        """Update graph from *package*.
+
+        *package* should be an instance of :class:`wiz.package.Package`.
+
+        *requirement* should be an instance of
+        :class:`packaging.requirements.Requirement`.
+
+        *queue* should be a :class:`Queue` instance that will be updated with
+        all dependent requirements data.
+
+        *parent_identifier* can indicate the identifier of a parent node.
+
+        *weight* is a number which indicate the importance of the dependency
+        link from the node to its parent. The lesser this number, the higher is
+        the importance of the link. Default is 1.
+
+        """
+        if not self.exists(package.identifier):
+
+            # Do not add the node in the graph if conditions are set.
+            if len(package.conditions) > 0:
+                conditions = tuple(package.conditions)
+                self._condition_mapping[conditions] = StoredNode(
+                    wiz.utility.get_requirement(package.identifier),
+                    # TODO: This command doesn't work at the moment.
+                    package=package.remove("conditions"),
+                    parent_identifier=parent_identifier,
+                    weight=weight
+                )
+                return
+
+            self._create_node_from_package(package)
+
+            # Update queue with dependent requirement.
+            for index, _requirement in enumerate(package.requirements):
+                queue.put({
+                    "requirement": _requirement,
+                    "parent_identifier": package.identifier,
+                    "weight": index + 1
+                })
+
+            # Record constraints so that it could be added later to the
+            # graph as nodes if necessary.
+            for index, _requirement in enumerate(package.constraints):
+                _identifier = _requirement.name
+                self._constraint_mapping.setdefault(_identifier, [])
+                self._constraint_mapping[_identifier].append(
+                    StoredNode(
+                        _requirement,
+                        parent_identifier=package.identifier,
+                        weight=index + 1
+                    )
+                )
+
+        else:
+            # Update variant mapping if necessary
+            self._update_variant_mapping(package.identifier)
+
+        node = self._node_mapping[package.identifier]
+        node.add_parent(parent_identifier or self.ROOT)
+
+        # Create link with requirement and weight.
+        self.create_link(
+            node.identifier,
+            parent_identifier or self.ROOT,
+            requirement,
+            weight=weight
+        )
 
     def _create_node_from_package(self, package):
         """Create node in graph from *package*.
@@ -1132,6 +1169,7 @@ class Graph(object):
         if node.variant_name is None:
             return
 
+        # TODO: Shouldn't it be a set?
         self._variants_per_definition.setdefault(node.definition, [])
         self._variants_per_definition[node.definition].append(identifier)
 
@@ -1308,7 +1346,9 @@ class StoredNode(object):
 
     """
 
-    def __init__(self, requirement, parent_identifier, weight=1):
+    def __init__(
+        self, requirement, package=None, parent_identifier=None, weight=1
+    ):
         """Initialize StoredNode.
 
         *requirement* should be an instance of
@@ -1321,6 +1361,7 @@ class StoredNode(object):
 
         """
         self._requirement = requirement
+        self._package = package
         self._parent_identifier = parent_identifier
         self._weight = weight
 
@@ -1328,6 +1369,11 @@ class StoredNode(object):
     def requirement(self):
         """Return :class:`packaging.requirements.Requirement` instance."""
         return self._requirement
+
+    @property
+    def package(self):
+        """Return :class:`wiz.package.Package` instance."""
+        return self._package
 
     @property
     def parent_identifier(self):
@@ -1343,6 +1389,10 @@ class StoredNode(object):
         """Return corresponding dictionary."""
         return {
             "requirement": self._requirement,
+            "package": (
+                self.package.to_dict(serialize_content=True)
+                if self.package else None
+            ),
             "parent_identifier": self._parent_identifier,
             "weight": self._weight,
         }

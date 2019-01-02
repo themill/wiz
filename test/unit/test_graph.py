@@ -1017,6 +1017,7 @@ def test_graph_update_from_requirements_with_unused_constraints(
             "C": [
                 {
                     "requirement": Requirement("C==2.0.4"),
+                    "package": None,
                     "parent_identifier": "B==2.1.1",
                     "weight": 1
                 }
@@ -1115,44 +1116,29 @@ def test_graph_update_from_requirements_with_used_constraints(
 
 
 def test_graph_update_from_requirements_with_skipped_conditional_packages(
-    mocker, mocked_resolver, mocked_package_extract
+    mocked_resolver, mocked_package_extract
 ):
     """Update graph from requirements with skipped conditional packages."""
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "A==0.2.0": mocker.Mock(
-            identifier="A==0.2.0",
-            variant_name=None,
-            definition_identifier="A",
-            requirements=[],
-            conditions=[],
-            constraints=[],
-            **{"to_dict.return_value": "_A==0.2.0"}
+        "A==0.2.0": wiz.package.Package(
+            wiz.definition.Definition(identifier="A", version="0.2.0")
         ),
-        "B==2.1.1": mocker.Mock(
-            identifier="B==2.1.1",
-            variant_name=None,
-            definition_identifier="B",
-            requirements=[],
-            conditions=[Requirement("C==2.0.4")],
-            constraints=[],
-            **{"to_dict.return_value": "_B==2.1.1"}
+        "B==2.1.1": wiz.package.Package(
+            wiz.definition.Definition(
+                identifier="B", version="2.1.1", conditions=["C > 2"]
+            )
         ),
-        "C==2.0.4": mocker.Mock(
-            identifier="C==2.0.4",
-            variant_name=None,
-            definition_identifier="C",
-            requirements=[],
-            conditions=[],
-            constraints=[],
-            **{"to_dict.return_value": "_C==2.0.4"}
+        "C==2.0.4": wiz.package.Package(
+            wiz.definition.Definition(identifier="C", version="2.0.4")
         ),
     }
 
     mocked_package_extract.side_effect = [
         [_mapping["A==0.2.0"]],
         [_mapping["B==2.1.1"]],
+        # Extract conditional package
         [_mapping["C==2.0.4"]]
     ]
 
@@ -1173,12 +1159,73 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
         },
         "constraint_mapping": {},
         "condition_mapping": {
-            ("C ==2.0.4",): {
+            ("C >2",): {
                 "requirement": Requirement("B==2.1.1"),
+                "package": mock.ANY,
                 "parent_identifier": None,
                 "weight": 2
             }
         },
+        "variants_per_definition": {}
+    }
+
+
+def test_graph_update_from_requirements_with_used_conditional_packages(
+    mocker, mocked_resolver, mocked_package_extract
+):
+    """Update graph from requirements with used conditional packages."""
+    graph = wiz.graph.Graph(mocked_resolver)
+
+    _mapping = {
+        "A==0.2.0": mocker.Mock(
+            identifier="A==0.2.0",
+            variant_name=None,
+            definition_identifier="A",
+            requirements=[],
+            conditions=[],
+            constraints=[],
+            **{"to_dict.return_value": "_A==0.2.0"}
+        ),
+        "B==2.1.1": mocker.Mock(
+            identifier="B==2.1.1",
+            variant_name=None,
+            definition_identifier="B",
+            requirements=[],
+            conditions=[Requirement("A")],
+            constraints=[],
+            **{"to_dict.return_value": "_B==2.1.1"}
+        )
+    }
+
+    mocked_package_extract.side_effect = [
+        [_mapping["A==0.2.0"]],
+        [_mapping["B==2.1.1"]],
+        # Extract package from condition
+        [_mapping["A==0.2.0"]],
+        # Update conditional package
+        [_mapping["B==2.1.1"]]
+    ]
+
+    graph.update_from_requirements([Requirement("A"), Requirement("B>=2")])
+
+    assert graph.to_dict() == {
+        "identifier": mock.ANY,
+        "node_mapping": {
+            "A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
+            "B==2.1.1": {"package": "_B==2.1.1", "parents": ["root"]}
+        },
+        "link_mapping": {
+            "root": {
+                "A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
+                "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2}
+            }
+        },
+        "identifiers_per_definition": {
+            "A": ["A==0.2.0"],
+            "B": ["B==2.1.1"]
+        },
+        "constraint_mapping": {},
+        "condition_mapping": {},
         "variants_per_definition": {}
     }
 
