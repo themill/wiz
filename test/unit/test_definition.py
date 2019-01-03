@@ -1510,21 +1510,21 @@ def test_definition_set():
         "identifier": "foo",
     })
 
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     # Change identifier
     definition2 = definition1.set("identifier", "bar")
-    assert definition2.to_dict(serialize_content=True) == {"identifier": "bar"}
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition2.to_dict() == {"identifier": "bar"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     # Add version
     definition3 = definition2.set("version", "0.1.0")
-    assert definition3.to_dict(serialize_content=True) == {
+    assert definition3.to_dict() == {
         "identifier": "bar",
-        "version": "0.1.0"
+        "version": Version("0.1.0")
     }
-    assert definition2.to_dict(serialize_content=True) == {"identifier": "bar"}
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition2.to_dict() == {"identifier": "bar"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
 
 def test_definition_variant_set():
@@ -1533,23 +1533,23 @@ def test_definition_variant_set():
         "identifier": "foo",
     })
 
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     # Add variant
     definition2 = definition1.set(
         "variants", [
-            {"identifier": "Variant1", "requirements": ["bar"]},
-            {"identifier": "Variant2", "requirements": ["bar>1"]}
+            {"identifier": "Variant1", "requirements": [Requirement("bar")]},
+            {"identifier": "Variant2", "requirements": [Requirement("bar>1")]}
         ]
     )
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
         "variants": [
-            {"identifier": "Variant1", "requirements": ["bar"]},
-            {"identifier": "Variant2", "requirements": ["bar >1"]}
+            {"identifier": "Variant1", "requirements": [Requirement("bar")]},
+            {"identifier": "Variant2", "requirements": [Requirement("bar >1")]}
         ]
     }
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     # Overwrite variant
     definition3 = definition2.set(
@@ -1557,20 +1557,20 @@ def test_definition_variant_set():
             {"identifier": "test"},
         ]
     )
-    assert definition3.to_dict(serialize_content=True) == {
+    assert definition3.to_dict() == {
         "identifier": "foo",
         "variants": [
             {"identifier": "test"}
         ]
     }
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
         "variants": [
-            {"identifier": "Variant1", "requirements": ["bar"]},
-            {"identifier": "Variant2", "requirements": ["bar >1"]}
+            {"identifier": "Variant1", "requirements": [Requirement("bar")]},
+            {"identifier": "Variant2", "requirements": [Requirement("bar >1")]}
         ]
     }
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
 
 def test_definition_update():
@@ -1579,24 +1579,24 @@ def test_definition_update():
         "identifier": "foo",
     })
 
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     definition2 = definition1.update(
         "environ", {"key1": "value1", "key2": "value2"}
     )
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
         "environ": {
             "key1": "value1",
             "key2": "value2"
         }
     }
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     definition3 = definition2.update(
         "environ", {"key1": "VALUE1", "key3": "value3"}
     )
-    assert definition3.to_dict(serialize_content=True) == {
+    assert definition3.to_dict() == {
         "identifier": "foo",
         "environ": {
             "key1": "VALUE1",
@@ -1604,14 +1604,14 @@ def test_definition_update():
             "key3": "value3"
         }
     }
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
         "environ": {
             "key1": "value1",
             "key2": "value2"
         }
     }
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
 
 def test_definition_update_error():
@@ -1620,7 +1620,7 @@ def test_definition_update_error():
         "identifier": "foo",
     })
 
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     with pytest.raises(ValueError):
         definition1.update("identifier", {"key1": "value1"})
@@ -1632,39 +1632,39 @@ def test_definition_extend():
         "identifier": "foo",
     })
 
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     definition2 = definition1.extend(
         "requirements", ["bar", "bim>=1"]
     )
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "bar",
-            "bim >=1"
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     definition3 = definition2.extend(
         "requirements", ["test"]
     )
-    assert definition3.to_dict(serialize_content=True) == {
+    assert definition3.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "bar",
-            "bim >=1",
-            "test"
+            Requirement("bar"),
+            Requirement("bim >=1"),
+            Requirement("test")
         ]
     }
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "bar",
-            "bim >=1"
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
 
 def test_definition_extend_error():
@@ -1673,7 +1673,7 @@ def test_definition_extend_error():
         "identifier": "foo",
     })
 
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     with pytest.raises(ValueError):
         definition1.extend("identifier", ["test"])
@@ -1685,39 +1685,39 @@ def test_definition_insert():
         "identifier": "foo",
     })
 
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     definition2 = definition1.set(
         "requirements", ["bar", "bim>=1"]
     )
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "bar",
-            "bim >=1"
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     definition3 = definition2.insert(
         "requirements", "test", 0
     )
-    assert definition3.to_dict(serialize_content=True) == {
+    assert definition3.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "test",
-            "bar",
-            "bim >=1"
+            Requirement("test"),
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "bar",
-            "bim >=1"
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
 
 def test_definition_insert_error():
@@ -1726,7 +1726,7 @@ def test_definition_insert_error():
         "identifier": "foo",
     })
 
-    assert definition1.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition1.to_dict() == {"identifier": "foo"}
 
     with pytest.raises(ValueError):
         definition1.insert("identifier", ["test"], 0)
@@ -1739,16 +1739,16 @@ def test_definition_remove():
         "version": "0.1.0"
     })
 
-    assert definition1.to_dict(serialize_content=True) == {
+    assert definition1.to_dict() == {
         "identifier": "foo",
-        "version": "0.1.0"
+        "version": Version("0.1.0")
     }
 
     definition2 = definition1.remove("version")
-    assert definition2.to_dict(serialize_content=True) == {"identifier": "foo"}
-    assert definition1.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {"identifier": "foo"}
+    assert definition1.to_dict() == {
         "identifier": "foo",
-        "version": "0.1.0"
+        "version": Version("0.1.0")
     }
 
 
@@ -1758,7 +1758,7 @@ def test_definition_remove_non_existing():
         "identifier": "foo",
     })
 
-    assert definition.to_dict(serialize_content=True) == {"identifier": "foo"}
+    assert definition.to_dict() == {"identifier": "foo"}
 
     _definition = definition.remove("error")
     assert _definition == definition
@@ -1774,7 +1774,7 @@ def test_definition_remove_key():
         }
     })
 
-    assert definition1.to_dict(serialize_content=True) == {
+    assert definition1.to_dict() == {
         "identifier": "foo",
         "environ": {
             "key1": "value1",
@@ -1783,13 +1783,13 @@ def test_definition_remove_key():
     }
 
     definition2 = definition1.remove_key("environ", "key1")
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
         "environ": {
             "key2": "value2"
         }
     }
-    assert definition1.to_dict(serialize_content=True) == {
+    assert definition1.to_dict() == {
         "identifier": "foo",
         "environ": {
             "key1": "value1",
@@ -1807,7 +1807,7 @@ def test_definition_remove_last_key():
         }
     })
 
-    assert definition1.to_dict(serialize_content=True) == {
+    assert definition1.to_dict() == {
         "identifier": "foo",
         "environ": {
             "key1": "value1",
@@ -1815,7 +1815,7 @@ def test_definition_remove_last_key():
     }
 
     definition2 = definition1.remove_key("environ", "key1")
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
     }
 
@@ -1830,7 +1830,7 @@ def test_definition_remove_key_error():
         }
     })
 
-    assert definition1.to_dict(serialize_content=True) == {
+    assert definition1.to_dict() == {
         "identifier": "foo",
         "environ": {
             "key1": "value1",
@@ -1854,7 +1854,7 @@ def test_definition_remove_non_existing_key():
         }
     })
 
-    assert definition.to_dict(serialize_content=True) == {
+    assert definition.to_dict() == {
         "identifier": "foo",
         "environ": {
             "key1": "value1",
@@ -1879,52 +1879,52 @@ def test_definition_remove_index():
         ]
     })
 
-    assert definition1.to_dict(serialize_content=True) == {
+    assert definition1.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "test",
-            "bar",
-            "bim >=1"
+            Requirement("test"),
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
 
     definition2 = definition1.remove_index("requirements", 0)
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "bar",
-            "bim >=1"
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
-    assert definition1.to_dict(serialize_content=True) == {
+    assert definition1.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "test",
-            "bar",
-            "bim >=1"
+            Requirement("test"),
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
 
     definition3 = definition2.remove_index("requirements", 1)
-    assert definition3.to_dict(serialize_content=True) == {
+    assert definition3.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "bar",
+            Requirement("bar"),
         ]
     }
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "bar",
-            "bim >=1"
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
-    assert definition1.to_dict(serialize_content=True) == {
+    assert definition1.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "test",
-            "bar",
-            "bim >=1"
+            Requirement("test"),
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
 
@@ -1938,15 +1938,15 @@ def test_definition_remove_last_index():
         ]
     })
 
-    assert definition1.to_dict(serialize_content=True) == {
+    assert definition1.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "test",
+            Requirement("test"),
         ]
     }
 
     definition2 = definition1.remove_index("requirements", 0)
-    assert definition2.to_dict(serialize_content=True) == {
+    assert definition2.to_dict() == {
         "identifier": "foo",
     }
 
@@ -1963,12 +1963,12 @@ def test_definition_remove_index_error():
         ]
     })
 
-    assert definition1.to_dict(serialize_content=True) == {
+    assert definition1.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "test",
-            "bar",
-            "bim >=1"
+            Requirement("test"),
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
 
@@ -1989,10 +1989,10 @@ def test_definition_remove_non_existing_index():
         ]
     })
 
-    assert definition.to_dict(serialize_content=True) == {
+    assert definition.to_dict() == {
         "identifier": "foo",
         "requirements": [
-            "test",
+            Requirement("test"),
         ]
     }
 
