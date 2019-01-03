@@ -458,6 +458,92 @@ def test_combine_command_mapping(mapping1, mapping2, expected):
     ) == expected
 
 
+def test_package_mapping():
+    """Create package and return mapping and serialized mapping."""
+    data = {
+        "identifier": "test[V1]==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "test",
+        "variant-name": "V1",
+        "description": "This is a definition",
+        "registry": "/path/to/registry",
+        "definition-location": "/path/to/registry/test-0.1.0.json",
+        "auto-use": True,
+        "system": {
+            "platform": "linux",
+            "os": "el >= 6, < 7",
+            "arch": "x86_64"
+        },
+        "command": {
+            "app": "AppX"
+        },
+        "environ": {
+            "KEY1": "VALUE1"
+        },
+        "requirements": ["foo"],
+        "constraints": ["bar==2.1.0"]
+    }
+
+    environment = wiz.package.Package(data)
+
+    assert environment.to_dict() == {
+        "identifier": "test[V1]==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "test",
+        "variant-name": "V1",
+        "description": "This is a definition",
+        "registry": "/path/to/registry",
+        "definition-location": "/path/to/registry/test-0.1.0.json",
+        "auto-use": True,
+        "system": {
+            "platform": "linux",
+            "os": "el >= 6, < 7",
+            "arch": "x86_64"
+        },
+        "command": {
+            "app": "AppX"
+        },
+        "environ": {
+            "KEY1": "VALUE1"
+        },
+        "requirements": [Requirement("foo")],
+        "constraints": [Requirement("bar==2.1.0")]
+    }
+
+    assert environment.encode() == (
+        "{\n"
+        "    \"identifier\": \"test[V1]==0.1.0\",\n"
+        "    \"definition-identifier\": \"test\",\n"
+        "    \"variant-name\": \"V1\",\n"
+        "    \"version\": \"0.1.0\",\n"
+        "    \"description\": \"This is a definition\",\n"
+        "    \"registry\": \"/path/to/registry\",\n"
+        "    \"definition-location\": \"/path/to/registry/test-0.1.0.json\",\n"
+        "    \"auto-use\": true,\n"
+        "    \"system\": {\n"
+        "        \"platform\": \"linux\",\n"
+        "        \"os\": \"el >= 6, < 7\",\n"
+        "        \"arch\": \"x86_64\"\n"
+        "    },\n"
+        "    \"command\": {\n"
+        "        \"app\": \"AppX\"\n"
+        "    },\n"
+        "    \"environ\": {\n"
+        "        \"KEY1\": \"VALUE1\"\n"
+        "    },\n"
+        "    \"requirements\": [\n"
+        "        \"foo\"\n"
+        "    ],\n"
+        "    \"constraints\": [\n"
+        "        \"bar ==2.1.0\"\n"
+        "    ]\n"
+        "}"
+    )
+
+    assert len(environment) == len(data)
+    assert sorted(environment) == sorted(data)
+
+
 def test_minimal_package_without_variant():
     """Create minimal package instance created with no variant."""
     definition = wiz.definition.Definition({"identifier": "test"})
