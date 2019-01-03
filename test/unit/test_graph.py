@@ -1552,7 +1552,9 @@ def test_graph_remove_node():
     graph.remove_node("A1")
 
     assert graph._node_mapping == {"A2": "_A2", "B": "B"}
-    assert graph._identifiers_per_definition == {"defA": ["A1", "A2"], "defB": ["B"]}
+    assert graph._identifiers_per_definition == {
+        "defA": ["A1", "A2"], "defB": ["B"]
+    }
     assert graph._variants_per_definition == {"_id": ["A1", "A2"]}
     assert graph._link_mapping == {"A1": {"B": "LINK"}}
 
