@@ -371,6 +371,11 @@ class Resolver(object):
                             "The current graph has conflicting variants."
                         )
 
+            # Search and trim invalid nodes from graph if conditions are
+            # no longer fulfilled. If so reset the distance mapping.
+            if trim_invalid_from_graph(graph, distance_mapping):
+                self._distance_mapping = None
+
 
 def compute_distance_mapping(graph):
     """Return distance mapping for each node of *graph*.
@@ -530,6 +535,40 @@ def trim_unreachable_from_graph(graph, distance_mapping):
         if distance_mapping[node.identifier].get("distance") is None:
             logger.debug("Remove '{}'".format(node.identifier))
             graph.remove_node(node.identifier)
+
+
+def trim_invalid_from_graph(graph, distance_mapping):
+    """Remove invalid nodes from *graph* based on *distance_mapping*.
+
+    Return boolean value indicating whether invalid nodes have been removed.
+
+    If packages a node is conditioned by are no longer in the graph, the node
+    is marked invalid and must be removed from the graph.
+
+    *graph* must be an instance of :class:`Graph`.
+
+    *distance_mapping* is a mapping indicating the shortest possible distance
+    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+    *graph* with its corresponding parent node identifier.
+
+    """
+    logger = mlog.Logger(__name__ + ".trim_invalid_from_graph")
+
+    nodes_removed = False
+
+    for node in graph.nodes():
+        if any(
+            distance_mapping[identifier].get("distance") is None
+            for identifier in node.conditioned_by
+        ):
+            logger.debug(
+                "Remove '{}' as conditions are no longer "
+                "fulfilled".format(node.identifier)
+            )
+            graph.remove_node(node.identifier)
+            nodes_removed = True
+
+    return nodes_removed
 
 
 def updated_by_distance(identifiers, distance_mapping):
@@ -972,11 +1011,17 @@ class Graph(object):
                 ) for condition in conditions
             )
 
-            if all(
-                package.identifier in self._node_mapping.keys()
-                for package in itertools.chain(*packages)
-            ):
-                stored_nodes.append(self._condition_mapping[conditions])
+            # Require all of this package identifiers to be in the node mapping.
+            identifiers = [
+                package.identifier for package in itertools.chain(*packages)
+            ]
+
+            if all(_id in self._node_mapping.keys() for _id in identifiers):
+                stored_node = self._condition_mapping[conditions]
+                stored_node.set_condition_packages(identifiers)
+                stored_nodes.append(stored_node)
+
+                # Remove condition from graph once it is fulfilled.
                 del self._condition_mapping[conditions]
 
         self._logger.debug(
@@ -1310,6 +1355,11 @@ class Node(object):
         """Return set of parent identifiers."""
         return self._parent_identifiers
 
+    @property
+    def conditioned_by(self):
+        """Return list of package identifiers the package is conditioned by."""
+        return self._package.get("conditioned-by", [])
+
     def add_parent(self, identifier):
         """Add *identifier* as a parent to the node."""
         self._parent_identifiers.add(identifier)
@@ -1383,6 +1433,10 @@ class StoredNode(object):
     def weight(self):
         """Return weight number."""
         return self._weight
+
+    def set_condition_packages(self, identifiers):
+        """Store *identifier* which fulfill package conditions."""
+        self._package = self._package.set("conditioned-by", identifiers)
 
     def to_dict(self):
         """Return corresponding dictionary."""

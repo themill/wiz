@@ -2042,3 +2042,148 @@ def test_scenario_18(
     assert spied_extract_parents.call_count == 0
     assert spied_remove_node_and_relink.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_19(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    A package which has been added to the graph when its conditions were
+    fulfilled will be removed once conflict resolution has resulted in the
+    removal of a node the package is conditioned by.
+
+    Root
+     |
+     |--(A): A==0.2.0 (Condition: E)
+     |   |
+     |   `--(C >=0.3.2, <1): C==0.3.2
+     |       |
+     |       `--(D==0.1.0): D==0.1.0
+     |
+     `--(G): G==2.0.2
+         |
+         `--(B<0.2.0): B==0.1.0
+             |
+             |--(D>=0.1.0): D==0.1.4
+             |   |
+             |   `--(E>=2): E==2.3.0
+             |       |
+             |       `--(F>=0.2): F==1.0.0
+             |
+             `--(F>=1): F==1.0.0
+
+    Expected: F==1.0.0, D==0.1.0, B==0.1.0, G==2.0.2
+
+    """
+    definition_mapping = {
+        "A": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+                "requirements": ["C>=0.3.2, <1"],
+                "conditions": ["E"]
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0"
+            })
+        },
+        "B": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.2.0"
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "requirements": ["D>=0.1.0", "F>=1"]
+            })
+        },
+        "C": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "1.0.0"
+            }),
+            "0.3.2": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.3.2",
+                "requirements": ["D==0.1.0"]
+            })
+        },
+        "D": {
+            "0.1.4": wiz.definition.Definition({
+                "identifier": "D",
+                "version": "0.1.4",
+                "requirements": ["E>=2"]
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "D",
+                "version": "0.1.0"
+            })
+        },
+        "E": {
+            "2.3.0": wiz.definition.Definition({
+                "identifier": "E",
+                "version": "2.3.0",
+                "requirements": ["F>=0.2"]
+            })
+        },
+        "F": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "F",
+                "version": "1.0.0"
+            }),
+            "0.9.0": wiz.definition.Definition({
+                "identifier": "F",
+                "version": "0.9.0"
+            })
+        },
+        "G": {
+            "2.0.2": wiz.definition.Definition({
+                "identifier": "G",
+                "version": "2.0.2",
+                "requirements": ["B<0.2.0"]
+            }),
+            "2.0.1": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.1"
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([Requirement("A"), Requirement("G")])
+
+    assert len(packages) == 4
+    assert packages[0].identifier == "F==1.0.0"
+    assert packages[1].identifier == "D==0.1.0"
+    assert packages[2].identifier == "B==0.1.0"
+    assert packages[3].identifier == "G==2.0.2"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 4
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_distance_mapping.call_count == 3
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 3
+    assert spied_updated_by_distance.call_count == 3
+    assert spied_extract_conflicting_nodes.call_count == 2
+    assert spied_combined_requirements.call_count == 2
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_extract_ordered_packages.call_count == 1

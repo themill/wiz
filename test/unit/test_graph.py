@@ -328,9 +328,14 @@ def test_trim_unreachable_from_graph(
     mocker, mocked_graph, mocked_graph_remove_node
 ):
     """Remove unreachable nodes from graph based on distance mapping."""
-    identifiers = ["A", "B", "C", "D", "E", "F"]
-    nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
-    mocked_graph.nodes.return_value = nodes
+    mocked_graph.nodes.return_value = [
+        mocker.Mock(identifier="A"),
+        mocker.Mock(identifier="B"),
+        mocker.Mock(identifier="C"),
+        mocker.Mock(identifier="D"),
+        mocker.Mock(identifier="E"),
+        mocker.Mock(identifier="F"),
+    ]
 
     distance_mapping = {
         "root": {"distance": 0, "parent": "root"},
@@ -347,6 +352,79 @@ def test_trim_unreachable_from_graph(
     assert mocked_graph_remove_node.call_count == 2
     mocked_graph_remove_node.assert_any_call("B")
     mocked_graph_remove_node.assert_any_call("D")
+
+
+@pytest.mark.parametrize("distance_mapping, nodes_removed", [
+    (
+        {
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"},
+            "C": {"distance": 3, "parent": "root"},
+            "D": {"distance": None, "parent": None},
+        },
+        ["B"]
+    ),
+    (
+        {
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"},
+            "C": {"distance": 3, "parent": "root"},
+            "D": {"distance": 4, "parent": "A"},
+        },
+        []
+    ),
+], ids=[
+    "true",
+    "false",
+])
+def test_trim_invalid_from_graph(
+    mocker, mocked_graph, mocked_graph_remove_node, distance_mapping,
+    nodes_removed
+):
+    """Remove invalid nodes from graph based on distance mapping."""
+    mocked_graph.nodes.return_value = [
+        mocker.Mock(identifier="A", conditioned_by=["B", "C"]),
+        mocker.Mock(identifier="B", conditioned_by=["C", "D"]),
+        mocker.Mock(identifier="C", conditioned_by=[]),
+        mocker.Mock(identifier="D", conditioned_by=[]),
+    ]
+
+    result = wiz.graph.trim_invalid_from_graph(mocked_graph, distance_mapping)
+    assert result == (len(nodes_removed) > 0)
+
+    assert mocked_graph_remove_node.call_count == len(nodes_removed)
+    for node in nodes_removed:
+        mocked_graph_remove_node.assert_any_call(node)
+
+
+def test_trim_invalid_from_graph_not_found(
+    mocker, mocked_graph, mocked_graph_remove_node
+):
+    """Remove invalid nodes from graph based on distance mapping."""
+    mocked_graph.nodes.return_value = [
+        mocker.Mock(identifier="A", conditioned_by=["B", "C"]),
+        mocker.Mock(identifier="B", conditioned_by=["C", "D"]),
+        mocker.Mock(identifier="C", conditioned_by=[]),
+        mocker.Mock(identifier="D", conditioned_by=[]),
+    ]
+
+    distance_mapping = {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": 2, "parent": "root"},
+        "C": {"distance": 3, "parent": "root"},
+        "D": {"distance": None, "parent": None},
+        "E": {"distance": 3, "parent": "A"},
+        "F": {"distance": 4, "parent": "A"},
+    }
+
+    result = wiz.graph.trim_invalid_from_graph(mocked_graph, distance_mapping)
+    assert result is True
+
+    assert mocked_graph_remove_node.call_count == 1
+    mocked_graph_remove_node.assert_any_call("B")
 
 
 def test_updated_by_distance():
@@ -1250,7 +1328,8 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
             "B==2.1.1": {
                 "package": {
                     "identifier": "B==2.1.1",
-                    "definition-identifier": "B"
+                    "definition-identifier": "B",
+                    "conditioned-by": ["A==0.2.0"],
                 },
                 "parents": ["root"]
             }
