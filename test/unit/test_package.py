@@ -458,6 +458,92 @@ def test_combine_command_mapping(mapping1, mapping2, expected):
     ) == expected
 
 
+def test_package_mapping():
+    """Create package and return mapping and serialized mapping."""
+    data = {
+        "identifier": "test[V1]==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "test",
+        "variant-name": "V1",
+        "description": "This is a definition",
+        "registry": "/path/to/registry",
+        "definition-location": "/path/to/registry/test-0.1.0.json",
+        "auto-use": True,
+        "system": {
+            "platform": "linux",
+            "os": "el >= 6, < 7",
+            "arch": "x86_64"
+        },
+        "command": {
+            "app": "AppX"
+        },
+        "environ": {
+            "KEY1": "VALUE1"
+        },
+        "requirements": ["foo"],
+        "constraints": ["bar==2.1.0"]
+    }
+
+    environment = wiz.package.Package(data)
+
+    assert environment.to_dict() == {
+        "identifier": "test[V1]==0.1.0",
+        "version": Version("0.1.0"),
+        "definition-identifier": "test",
+        "variant-name": "V1",
+        "description": "This is a definition",
+        "registry": "/path/to/registry",
+        "definition-location": "/path/to/registry/test-0.1.0.json",
+        "auto-use": True,
+        "system": {
+            "platform": "linux",
+            "os": "el >= 6, < 7",
+            "arch": "x86_64"
+        },
+        "command": {
+            "app": "AppX"
+        },
+        "environ": {
+            "KEY1": "VALUE1"
+        },
+        "requirements": [Requirement("foo")],
+        "constraints": [Requirement("bar==2.1.0")]
+    }
+
+    assert environment.encode() == (
+        "{\n"
+        "    \"identifier\": \"test[V1]==0.1.0\",\n"
+        "    \"definition-identifier\": \"test\",\n"
+        "    \"variant-name\": \"V1\",\n"
+        "    \"version\": \"0.1.0\",\n"
+        "    \"description\": \"This is a definition\",\n"
+        "    \"registry\": \"/path/to/registry\",\n"
+        "    \"definition-location\": \"/path/to/registry/test-0.1.0.json\",\n"
+        "    \"auto-use\": true,\n"
+        "    \"system\": {\n"
+        "        \"platform\": \"linux\",\n"
+        "        \"os\": \"el >= 6, < 7\",\n"
+        "        \"arch\": \"x86_64\"\n"
+        "    },\n"
+        "    \"command\": {\n"
+        "        \"app\": \"AppX\"\n"
+        "    },\n"
+        "    \"environ\": {\n"
+        "        \"KEY1\": \"VALUE1\"\n"
+        "    },\n"
+        "    \"requirements\": [\n"
+        "        \"foo\"\n"
+        "    ],\n"
+        "    \"constraints\": [\n"
+        "        \"bar ==2.1.0\"\n"
+        "    ]\n"
+        "}"
+    )
+
+    assert len(environment) == len(data)
+    assert sorted(environment) == sorted(data)
+
+
 def test_minimal_package_without_variant():
     """Create minimal package instance created with no variant."""
     definition = wiz.definition.Definition({"identifier": "test"})
@@ -634,22 +720,22 @@ def test_package_set():
         "definition-identifier": "foo",
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
     package2 = package1.set("description", "This is a test")
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "description": "This is a test",
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
@@ -662,36 +748,36 @@ def test_package_update():
         "definition-identifier": "foo",
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
     package2 = package1.update(
         "environ", {"key1": "value1", "key2": "value2"}
     )
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "environ": {
             "key1": "value1",
             "key2": "value2"
         }
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
     package3 = package2.update(
         "environ", {"key1": "VALUE1", "key3": "value3"}
     )
-    assert package3.to_dict(serialize_content=True) == {
+    assert package3.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "environ": {
             "key1": "VALUE1",
@@ -699,18 +785,18 @@ def test_package_update():
             "key3": "value3"
         }
     }
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "environ": {
             "key1": "value1",
             "key2": "value2"
         }
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
@@ -723,9 +809,9 @@ def test_package_update_error():
         "definition-identifier": "foo",
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
@@ -741,55 +827,47 @@ def test_package_extend():
         "definition-identifier": "foo",
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
     package2 = package1.extend(
         "requirements", [Requirement("bar"), Requirement("bim>=1")]
     )
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
-        "requirements": [
-            "bar",
-            "bim >=1"
-        ]
+        "requirements": [Requirement("bar"), Requirement("bim>=1")]
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
     package3 = package2.extend(
         "requirements", [Requirement("test")]
     )
-    assert package3.to_dict(serialize_content=True) == {
+    assert package3.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "bar",
-            "bim >=1",
-            "test"
+            Requirement("bar"), Requirement("bim>=1"), Requirement("test")
         ]
     }
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
-        "requirements": [
-            "bar",
-            "bim >=1"
-        ]
+        "requirements": [Requirement("bar"), Requirement("bim>=1")]
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
@@ -802,9 +880,9 @@ def test_package_extend_error():
         "definition-identifier": "foo",
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
@@ -820,55 +898,47 @@ def test_package_insert():
         "definition-identifier": "foo",
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
     package2 = package1.set(
         "requirements", [Requirement("bar"), Requirement("bim>=1")]
     )
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
-        "requirements": [
-            "bar",
-            "bim >=1"
-        ]
+        "requirements": [Requirement("bar"), Requirement("bim>=1")]
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
     package3 = package2.insert(
         "requirements", Requirement("test"), 0
     )
-    assert package3.to_dict(serialize_content=True) == {
+    assert package3.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "test",
-            "bar",
-            "bim >=1"
+            Requirement("test"), Requirement("bar"), Requirement("bim>=1")
         ]
     }
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
-        "requirements": [
-            "bar",
-            "bim >=1"
-        ]
+        "requirements": [Requirement("bar"), Requirement("bim>=1")]
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
@@ -881,9 +951,9 @@ def test_package_insert_error():
         "definition-identifier": "foo",
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
@@ -900,22 +970,22 @@ def test_package_remove():
         "description": "This is a test"
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "description": "This is a test"
     }
 
     package2 = package1.remove("description")
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "description": "This is a test"
     }
@@ -929,9 +999,9 @@ def test_package_remove_non_existing():
         "definition-identifier": "foo",
     })
 
-    assert package.to_dict(serialize_content=True) == {
+    assert package.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
@@ -951,9 +1021,9 @@ def test_package_remove_key():
         }
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "environ": {
             "key1": "value1",
@@ -962,17 +1032,17 @@ def test_package_remove_key():
     }
 
     package2 = package1.remove_key("environ", "key1")
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "environ": {
             "key2": "value2"
         }
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "environ": {
             "key1": "value1",
@@ -992,9 +1062,9 @@ def test_package_remove_last_key():
         }
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "environ": {
             "key1": "value1",
@@ -1002,9 +1072,9 @@ def test_package_remove_last_key():
     }
 
     package2 = package1.remove_key("environ", "key1")
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
 
@@ -1021,9 +1091,9 @@ def test_package_remove_key_error():
         }
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "environ": {
             "key1": "value1",
@@ -1042,16 +1112,16 @@ def test_package_remove_non_existing_key():
     """Do not raise when removing non existing element key."""
     package = wiz.package.Package({
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "environ": {
             "key1": "value1",
         }
     })
 
-    assert package.to_dict(serialize_content=True) == {
+    assert package.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "environ": {
             "key1": "value1",
@@ -1069,7 +1139,7 @@ def test_package_remove_index():
     """Create new package from existing package without element index."""
     package1 = wiz.package.Package({
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
             Requirement("test"),
@@ -1078,64 +1148,64 @@ def test_package_remove_index():
         ]
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "test",
-            "bar",
-            "bim >=1"
+            Requirement("test"),
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
 
     package2 = package1.remove_index("requirements", 0)
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "bar",
-            "bim >=1"
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "test",
-            "bar",
-            "bim >=1"
+            Requirement("test"),
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
 
     package3 = package2.remove_index("requirements", 1)
-    assert package3.to_dict(serialize_content=True) == {
+    assert package3.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "bar",
+            Requirement("bar"),
         ]
     }
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "bar",
-            "bim >=1"
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "test",
-            "bar",
-            "bim >=1"
+            Requirement("test"),
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
 
@@ -1144,34 +1214,34 @@ def test_package_remove_last_index():
     """Create new package from existing package without element."""
     package1 = wiz.package.Package({
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "test",
+            Requirement("test"),
         ]
     })
 
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "test",
+            Requirement("test"),
         ]
     }
 
     package2 = package1.remove_index("requirements", 0)
-    assert package2.to_dict(serialize_content=True) == {
+    assert package2.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
     }
-    assert package1.to_dict(serialize_content=True) == {
+    assert package1.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "test",
+            Requirement("test"),
         ]
     }
 
@@ -1181,7 +1251,7 @@ def test_package_remove_index_error():
     """
     package = wiz.package.Package({
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
             Requirement("test"),
@@ -1190,14 +1260,14 @@ def test_package_remove_index_error():
         ]
     })
 
-    assert package.to_dict(serialize_content=True) == {
+    assert package.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "test",
-            "bar",
-            "bim >=1"
+            Requirement("test"),
+            Requirement("bar"),
+            Requirement("bim >=1")
         ]
     }
 
@@ -1213,19 +1283,19 @@ def test_package_remove_non_existing_index():
     """Do not raise when removing non existing element index."""
     package = wiz.package.Package({
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
             Requirement("test"),
         ]
     })
 
-    assert package.to_dict(serialize_content=True) == {
+    assert package.to_dict() == {
         "identifier": "foo==0.1.0",
-        "version": "0.1.0",
+        "version": Version("0.1.0"),
         "definition-identifier": "foo",
         "requirements": [
-            "test",
+            Requirement("test"),
         ]
     }
 

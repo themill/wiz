@@ -13,8 +13,12 @@
         "version": {
             "description": "Version of the definition.",
             "anyOf": [
-                { "type": "string" },
-                { "type": "version" }
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "version"
+                }
             ]
         },
         "auto-use": {
@@ -82,8 +86,12 @@
             "uniqueItems": true,
             "items": {
                 "anyOf": [
-                    { "type": "string" },
-                    { "type": "requirement" }
+                    {
+                        "type": "string"
+                    },
+                    {
+                        "type": "requirement"
+                    }
                 ]
             }
         },
@@ -94,8 +102,12 @@
             "uniqueItems": true,
             "items": {
                 "anyOf": [
-                    { "type": "string" },
-                    { "type": "requirement" }
+                    {
+                        "type": "string"
+                    },
+                    {
+                        "type": "requirement"
+                    }
                 ]
             }
         },
@@ -106,8 +118,12 @@
             "uniqueItems": true,
             "items": {
                 "anyOf": [
-                    { "type": "string" },
-                    { "type": "requirement" }
+                    {
+                        "type": "string"
+                    },
+                    {
+                        "type": "requirement"
+                    }
                 ]
             }
         },
@@ -127,13 +143,17 @@
                         "description": "Mapping of commands that can be exposed for this definition variant.",
                         "type": "object",
                         "minProperties": 1,
-                        "additionalProperties": {"type": "string"}
+                        "additionalProperties": {
+                            "type": "string"
+                        }
                     },
                     "environ": {
                         "description": "Mapping of environment variables for this definition variant.",
                         "type": "object",
                         "minProperties": 1,
-                        "additionalProperties": {"type": "string"}
+                        "additionalProperties": {
+                            "type": "string"
+                        }
                     },
                     "requirements": {
                         "description": "List of package requirement ordered by priority needed by the definition variant.",
@@ -142,8 +162,12 @@
                         "uniqueItems": true,
                         "items": {
                             "anyOf": [
-                                { "type": "string" },
-                                { "type": "requirement" }
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "requirement"
+                                }
                             ]
                         }
                     },
@@ -154,8 +178,12 @@
                         "uniqueItems": true,
                         "items": {
                             "anyOf": [
-                                { "type": "string" },
-                                { "type": "requirement" }
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "requirement"
+                                }
                             ]
                         }
                     },
@@ -166,8 +194,12 @@
                         "uniqueItems": true,
                         "items": {
                             "anyOf": [
-                                { "type": "string" },
-                                { "type": "requirement" }
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "requirement"
+                                }
                             ]
                         }
                     }
