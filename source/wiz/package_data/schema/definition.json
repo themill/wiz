@@ -12,7 +12,10 @@
         },
         "version": {
             "description": "Version of the definition.",
-            "type": "string"
+            "anyOf": [
+                { "type": "string" },
+                { "type": "version" }
+            ]
         },
         "auto-use": {
             "description": "Indicate whether the definition should be used implicitly.",
@@ -78,7 +81,10 @@
             "minItems": 1,
             "uniqueItems": true,
             "items": {
-                "type": "string"
+                "anyOf": [
+                    { "type": "string" },
+                    { "type": "requirement" }
+                ]
             }
         },
         "conditions": {
@@ -87,7 +93,10 @@
             "minItems": 1,
             "uniqueItems": true,
             "items": {
-                "type": "string"
+                "anyOf": [
+                    { "type": "string" },
+                    { "type": "requirement" }
+                ]
             }
         },
         "constraints": {
@@ -96,7 +105,10 @@
             "minItems": 1,
             "uniqueItems": true,
             "items": {
-                "type": "string"
+                "anyOf": [
+                    { "type": "string" },
+                    { "type": "requirement" }
+                ]
             }
         },
         "variants": {
@@ -129,7 +141,10 @@
                         "minItems": 1,
                         "uniqueItems": true,
                         "items": {
-                            "type": "string"
+                            "anyOf": [
+                                { "type": "string" },
+                                { "type": "requirement" }
+                            ]
                         }
                     },
                     "conditions": {
@@ -138,7 +153,10 @@
                         "minItems": 1,
                         "uniqueItems": true,
                         "items": {
-                            "type": "string"
+                            "anyOf": [
+                                { "type": "string" },
+                                { "type": "requirement" }
+                            ]
                         }
                     },
                     "constraints": {
@@ -147,7 +165,10 @@
                         "minItems": 1,
                         "uniqueItems": true,
                         "items": {
-                            "type": "string"
+                            "anyOf": [
+                                { "type": "string" },
+                                { "type": "requirement" }
+                            ]
                         }
                     }
                 },
