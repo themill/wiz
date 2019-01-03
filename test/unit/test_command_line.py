@@ -393,9 +393,9 @@ def wiz_context():
             "KEY2": "value2",
         },
         "packages": [
-            wiz.package.Package(foo_definition),
-            wiz.package.Package(
-                bim_definition, bim_definition.variants[0]
+            wiz.package.create(foo_definition),
+            wiz.package.create(
+                bim_definition, variant_identifier="Variant1"
             ),
         ],
         "registries": ["/registry1", "/registry2"]
