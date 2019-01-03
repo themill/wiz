@@ -1183,7 +1183,11 @@ def test_definition_with_requirements():
     assert definition.system == {}
     assert definition.variants == []
     assert definition.constraints == []
-    assert definition.requirements == map(Requirement, data["requirements"])
+    assert definition.requirements == [
+        Requirement("envA >= 1.0.0"),
+        Requirement("envB >= 3.4.2, < 4"),
+        Requirement("envC")
+    ]
 
     assert definition.to_ordered_dict(serialize_content=True) == OrderedDict([
         ("identifier", "test"),
@@ -1219,7 +1223,11 @@ def test_definition_with_constraints():
     assert definition.command == {}
     assert definition.system == {}
     assert definition.variants == []
-    assert definition.constraints == map(Requirement, data["constraints"])
+    assert definition.constraints == [
+        Requirement("envA >= 1.0.0"),
+        Requirement("envB >= 3.4.2, < 4"),
+        Requirement("envC"),
+    ]
     assert definition.requirements == []
 
     assert definition.to_ordered_dict(serialize_content=True) == OrderedDict([
@@ -1362,9 +1370,9 @@ def test_definition_with_variant():
         assert variant.identifier == variant_data["identifier"]
         assert variant.environ == variant_data.get("environ", {})
         assert variant.command == variant_data.get("command", {})
-        assert variant.requirements == map(
-            Requirement, variant_data.get("requirements", [])
-        )
+        assert variant.requirements == [
+            Requirement(req) for req in variant_data.get("requirements", [])
+        ]
 
     assert definition.to_ordered_dict(serialize_content=True) == OrderedDict([
         ("identifier", "test"),

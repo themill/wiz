@@ -105,9 +105,11 @@ def test_incorrect_version_type(value):
 
     assert list(wiz.validator.yield_definition_errors(data)) == [
         {
-            "message": "{!r} is not of type u'string'".format(value),
+            "message": (
+                "{!r} is not valid under any of the given schemas".format(value)
+            ),
             "path": "/version",
-            "schema_path": "/properties/version/type"
+            "schema_path": "/properties/version/anyOf"
         }
     ]
 
@@ -606,24 +608,30 @@ def test_incorrect_requirement_item_type():
 
     assert list(wiz.validator.yield_definition_errors(data)) == [
         {
-            "message": "42 is not of type u'string'",
+            "message": "42 is not valid under any of the given schemas",
             "path": "/requirements/0",
-            "schema_path": "/properties/requirements/items/type"
+            "schema_path": "/properties/requirements/items/anyOf"
         },
         {
-            "message": "True is not of type u'string'",
+            "message": "True is not valid under any of the given schemas",
             "path": "/requirements/1",
-            "schema_path": "/properties/requirements/items/type"
+            "schema_path": "/properties/requirements/items/anyOf"
         },
         {
-            "message": "{'package1': 'version'} is not of type u'string'",
+            "message": (
+                "{'package1': 'version'} is not valid under any of the "
+                "given schemas"
+            ),
             "path": "/requirements/2",
-            "schema_path": "/properties/requirements/items/type"
+            "schema_path": "/properties/requirements/items/anyOf"
         },
         {
-            "message": "['package1', 'package2'] is not of type u'string'",
+            "message": (
+                "['package1', 'package2'] is not valid under any of the "
+                "given schemas"
+            ),
             "path": "/requirements/3",
-            "schema_path": "/properties/requirements/items/type"
+            "schema_path": "/properties/requirements/items/anyOf"
         },
     ]
 
@@ -1114,31 +1122,37 @@ def test_incorrect_variant_requirement_item_type():
 
     assert list(wiz.validator.yield_definition_errors(data)) == [
         {
-            "message": "42 is not of type u'string'",
+            "message": "42 is not valid under any of the given schemas",
             "path": "/variants/0/requirements/0",
             "schema_path": (
-                "/properties/variants/items/properties/requirements/items/type"
+                "/properties/variants/items/properties/requirements/items/anyOf"
             )
         },
         {
-            "message": "True is not of type u'string'",
+            "message": "True is not valid under any of the given schemas",
             "path": "/variants/0/requirements/1",
             "schema_path": (
-                "/properties/variants/items/properties/requirements/items/type"
+                "/properties/variants/items/properties/requirements/items/anyOf"
             )
         },
         {
-            "message": "{'package1': 'version'} is not of type u'string'",
+            "message": (
+                "{'package1': 'version'} is not valid under any of the "
+                "given schemas"
+            ),
             "path": "/variants/0/requirements/2",
             "schema_path": (
-                "/properties/variants/items/properties/requirements/items/type"
+                "/properties/variants/items/properties/requirements/items/anyOf"
             )
         },
         {
-            "message": "['package1', 'package2'] is not of type u'string'",
+            "message": (
+                "['package1', 'package2'] is not valid under any of the "
+                "given schemas"
+            ),
             "path": "/variants/0/requirements/3",
             "schema_path": (
-                "/properties/variants/items/properties/requirements/items/type"
+                "/properties/variants/items/properties/requirements/items/anyOf"
             )
         },
     ]
