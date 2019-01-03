@@ -1645,3 +1645,170 @@ def test_scenario_14(
     assert spied_extract_parents.call_count == 0
     assert spied_remove_node_and_relink.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_15(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    When a package has a condition which is not fulfilled, it is not included
+    in the resolved packages.
+
+    Root
+     |
+     |--(A): A==1.1.0
+     |
+     `--(B): B==1.0.0 (Condition: A < 1)
+         |
+         `--(C > 0.1.0): C==0.5.0
+
+    Expected: A==0.2.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.1.0",
+            }),
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+            }),
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0",
+                "conditions": ["A < 1"],
+                "requirements": ["C > 0.1.0"],
+            })
+        },
+        "C": {
+            "0.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.5.0"
+            })
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("B")
+    ])
+
+    assert len(packages) == 1
+    assert packages[0].identifier == "A==1.1.0"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 1
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_distance_mapping.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_updated_by_distance.call_count == 0
+    assert spied_extract_conflicting_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_16(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    When a package has a condition which is fulfilled, it is properly included
+    in the resolved packages with expected distance priority.
+
+    Root
+     |
+     |--(A): A==1.1.0
+     |
+     `--(B): B==1.0.0 (Condition: A > 1)
+         |
+         `--(C > 0.1.0): C==0.5.0
+
+    Expected: A==0.2.0, B==1.0.0, C==0.5.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.1.0",
+            }),
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+            }),
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0",
+                "conditions": ["A > 1"],
+                "requirements": ["C > 0.1.0"],
+
+            })
+        },
+        "C": {
+            "0.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.5.0"
+            })
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("B")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].identifier == "C==0.5.0"
+    assert packages[1].identifier == "B==1.0.0"
+    assert packages[2].identifier == "A==1.1.0"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 1
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_distance_mapping.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_updated_by_distance.call_count == 0
+    assert spied_extract_conflicting_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
