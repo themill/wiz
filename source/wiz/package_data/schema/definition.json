@@ -13,8 +13,8 @@
         "version": {
             "description": "Version of the definition.",
             "anyOf": [
-                { "type": "string" },
-                { "type": "version" }
+                {"type": "string"},
+                {"type": "version"}
             ]
         },
         "auto-use": {
@@ -82,8 +82,8 @@
             "uniqueItems": true,
             "items": {
                 "anyOf": [
-                    { "type": "string" },
-                    { "type": "requirement" }
+                    {"type": "string"},
+                    {"type": "requirement"}
                 ]
             }
         },
@@ -94,8 +94,8 @@
             "uniqueItems": true,
             "items": {
                 "anyOf": [
-                    { "type": "string" },
-                    { "type": "requirement" }
+                    {"type": "string"},
+                    {"type": "requirement"}
                 ]
             }
         },
@@ -130,8 +130,8 @@
                         "uniqueItems": true,
                         "items": {
                             "anyOf": [
-                                { "type": "string" },
-                                { "type": "requirement" }
+                                {"type": "string"},
+                                {"type": "requirement"}
                             ]
                         }
                     },
@@ -142,8 +142,8 @@
                         "uniqueItems": true,
                         "items": {
                             "anyOf": [
-                                { "type": "string" },
-                                { "type": "requirement" }
+                                {"type": "string"},
+                                {"type": "requirement"}
                             ]
                         }
                     }
