@@ -1849,6 +1849,9 @@ def test_scenario_17(
 
     Expected: E==2.3.0, D==0.1.4, B==0.1.0, C==0.3.2, G==2.0.2, A==0.2.0
 
+    The position of 'C==0.3.2' / 'G==2.0.2' can vary as they have similar
+    priority numbers.
+
     """
     definition_mapping = {
         "A": {
