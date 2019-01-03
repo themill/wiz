@@ -1539,52 +1539,6 @@ def test_definition_set():
     assert definition1.to_dict() == {"identifier": "foo"}
 
 
-def test_definition_variant_set():
-    """Create new definition from existing definition with new variant."""
-    definition1 = wiz.definition.Definition({
-        "identifier": "foo",
-    })
-
-    assert definition1.to_dict() == {"identifier": "foo"}
-
-    # Add variant
-    definition2 = definition1.set(
-        "variants", [
-            {"identifier": "Variant1", "requirements": [Requirement("bar")]},
-            {"identifier": "Variant2", "requirements": [Requirement("bar>1")]}
-        ]
-    )
-    assert definition2.to_dict() == {
-        "identifier": "foo",
-        "variants": [
-            {"identifier": "Variant1", "requirements": [Requirement("bar")]},
-            {"identifier": "Variant2", "requirements": [Requirement("bar >1")]}
-        ]
-    }
-    assert definition1.to_dict() == {"identifier": "foo"}
-
-    # Overwrite variant
-    definition3 = definition2.set(
-        "variants", [
-            {"identifier": "test"},
-        ]
-    )
-    assert definition3.to_dict() == {
-        "identifier": "foo",
-        "variants": [
-            {"identifier": "test"}
-        ]
-    }
-    assert definition2.to_dict() == {
-        "identifier": "foo",
-        "variants": [
-            {"identifier": "Variant1", "requirements": [Requirement("bar")]},
-            {"identifier": "Variant2", "requirements": [Requirement("bar >1")]}
-        ]
-    }
-    assert definition1.to_dict() == {"identifier": "foo"}
-
-
 def test_definition_update():
     """Create new definition from existing definition with updated element."""
     definition1 = wiz.definition.Definition({
@@ -2013,3 +1967,66 @@ def test_definition_remove_non_existing_index():
 
     _definition = definition.remove_index("test", "error")
     assert definition == _definition
+
+
+def test_definition_variant_set():
+    """Create new definition from existing definition with new variant."""
+    definition1 = wiz.definition.Definition({
+        "identifier": "foo",
+    })
+
+    # Add variant
+    definition2 = definition1.set(
+        "variants", [
+            {
+                "identifier": "Variant1",
+                "requirements": [
+                    Requirement("bar")
+                ]
+            },
+        ]
+    )
+    assert definition2.to_dict() == {
+        "identifier": "foo",
+        "variants": [
+            {
+                "identifier": "Variant1",
+                "requirements": [
+                    Requirement("bar")
+                ]
+            },
+        ]
+    }
+    assert definition1.to_dict() == {"identifier": "foo"}
+
+    # Update variant
+    variant = definition2.variants[0].extend("requirements", ["bim > 1"])
+    variant = variant.set("identifier", "Test")
+
+    definition3 = definition2.set(
+        "variants", [variant]
+    )
+    assert definition3.to_dict() == {
+        "identifier": "foo",
+        "variants": [
+            {
+                "identifier": "Test",
+                "requirements": [
+                    Requirement("bar"),
+                    Requirement("bim > 1")
+                ]
+            },
+        ]
+    }
+    assert definition2.to_dict() == {
+        "identifier": "foo",
+        "variants": [
+            {
+                "identifier": "Variant1",
+                "requirements": [
+                    Requirement("bar")
+                ]
+            },
+        ]
+    }
+    assert definition1.to_dict() == {"identifier": "foo"}
