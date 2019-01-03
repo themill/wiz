@@ -1094,8 +1094,7 @@ class Graph(object):
             if len(package.conditions) > 0:
                 conditions = tuple(package.conditions)
                 self._condition_mapping[conditions] = StoredNode(
-                    wiz.utility.get_requirement(package.identifier),
-                    # TODO: This command doesn't work at the moment.
+                    requirement,
                     package=package.remove("conditions"),
                     parent_identifier=parent_identifier,
                     weight=weight
