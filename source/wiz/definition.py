@@ -127,8 +127,7 @@ def _extract_implicit_requests(identifiers, mapping):
     ):
         requirement = wiz.utility.get_requirement(identifier)
         definition = query(requirement, mapping)
-        request = wiz.package.generate_identifier(definition)
-        requests.append(request)
+        requests.append(definition.version_identifier)
 
     return requests
 
@@ -295,7 +294,7 @@ def discover(paths, system_mapping=None, max_depth=None):
 
                 # Skip definition if "disabled" keyword is set to True.
                 if definition.get("disabled", False):
-                    _id = wiz.package.generate_identifier(definition)
+                    _id = definition.version_identifier
                     logger.warning("Definition '{}' is disabled".format(_id))
                     continue
 
@@ -404,6 +403,13 @@ class Definition(wiz.mapping.Mapping):
         _definition = self.remove("definition-location")
         _definition = _definition.remove("registry")
         return _definition
+
+    @property
+    def version_identifier(self):
+        """Return version identifier."""
+        if self.version != wiz.symbol.UNKNOWN_VALUE:
+            return "{}=={}".format(self.identifier, self.version)
+        return self.identifier
 
     @property
     def variants(self):
