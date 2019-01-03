@@ -1404,6 +1404,18 @@ def test_definition_with_variant():
             assert isinstance(requirement, Requirement)
 
 
+def test_definition_with_error():
+    """Fail to create a definition with error."""
+    data = {}
+
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.definition.Definition(data)
+
+    assert (
+        "IncorrectDefinition: u'identifier' is a required property (/)"
+    ) in str(error)
+
+
 def test_definition_with_version_error():
     """Fail to create a definition with incorrect version."""
     data = {
