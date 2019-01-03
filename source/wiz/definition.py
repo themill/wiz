@@ -480,6 +480,23 @@ class _Variant(wiz.mapping.Mapping):
             )
 
         try:
+            if "conditions" in mapping.keys():
+                mapping["conditions"] = [
+                    wiz.utility.get_requirement(requirement)
+                    for requirement in mapping["conditions"]
+                ]
+
+        except wiz.exception.InvalidRequirement as exception:
+            raise wiz.exception.IncorrectDefinition(
+                "The definition '{identifier}' [{variant}] contains an "
+                "incorrect package condition [{error}]".format(
+                    identifier=self.definition_identifier,
+                    variant=mapping.get("identifier"),
+                    error=exception
+                )
+            )
+
+        try:
             if "constraints" in mapping.keys():
                 mapping["constraints"] = [
                     wiz.utility.get_requirement(requirement)

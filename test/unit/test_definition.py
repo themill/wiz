@@ -1589,6 +1589,30 @@ def test_definition_with_variant_constraint_error():
     ) in str(error)
 
 
+def test_definition_with_variant_condition_error():
+    """Fail to create a definition with incorrect variant condition."""
+    data = {
+        "identifier": "test",
+        "variants": [
+            {
+                "identifier": "1.0",
+                "conditions": [
+                    "envA -!!!"
+                ]
+            }
+        ]
+    }
+
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.definition.Definition(data)
+
+    assert (
+        "IncorrectDefinition: The definition 'test' [1.0] contains an "
+        "incorrect package condition [The requirement 'envA -!!!' "
+        "is incorrect]"
+    ) in str(error)
+
+
 def test_definition_set():
     """Create new definition from existing definition with new element."""
     definition1 = wiz.definition.Definition({
