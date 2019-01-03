@@ -1847,7 +1847,7 @@ def test_scenario_17(
                  |
                  `--(E>=2): E==2.3.0
 
-    Expected: F==1.0.0, D==0.1.0, B==0.1.0, C==0.3.2, G==2.0.2, A==0.2.0
+    Expected: E==2.3.0, D==0.1.4, B==0.1.0, C==0.3.2, G==2.0.2, A==0.2.0
 
     """
     definition_mapping = {
@@ -1949,7 +1949,7 @@ def test_scenario_18(
 
     Root
      |
-     |--(A): A==0.2.0 (Condition: E >= 1, <2)
+     |--(A): A==0.2.0 (Condition: E, F)
      |   |
      |   `--(C >=0.3.2, <1): C==0.3.2
      |
@@ -1961,7 +1961,7 @@ def test_scenario_18(
                  |
                  `--(E>=2): E==2.3.0
 
-    Expected: F==1.0.0, D==0.1.0, B==0.1.0, C==0.3.2, G==2.0.2, A==0.2.0
+    Expected: E==2.3.0, D==0.1.4, B==0.1.0, G==2.0.2
 
     """
     definition_mapping = {
@@ -1969,7 +1969,7 @@ def test_scenario_18(
             "0.2.0": wiz.definition.Definition({
                 "identifier": "A",
                 "version": "0.2.0",
-                "conditions": ["E >= 1, <2"],
+                "conditions": ["E", "F"],
                 "requirements": ["C >=0.3.2, <1"]
             }),
         },
@@ -1998,10 +1998,12 @@ def test_scenario_18(
                 "identifier": "E",
                 "version": "2.3.0"
             }),
-            "1.3.0": wiz.definition.Definition({
-                "identifier": "E",
-                "version": "1.3.0"
-            })
+        },
+        "F": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "F",
+                "version": "0.1.0"
+            }),
         },
         "G": {
             "2.0.2": wiz.definition.Definition({
