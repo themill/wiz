@@ -413,51 +413,6 @@ class Definition(wiz.mapping.Mapping):
                 )
             )
 
-        try:
-            if "version" in mapping.keys():
-                mapping["version"] = wiz.utility.get_version(mapping["version"])
-
-        except wiz.exception.InvalidVersion:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}' has an incorrect "
-                "version [{version}]".format(
-                    identifier=mapping.get("identifier"),
-                    version=mapping["version"]
-                )
-            )
-
-        try:
-            if "requirements" in mapping.keys():
-                mapping["requirements"] = [
-                    wiz.utility.get_requirement(requirement)
-                    for requirement in mapping["requirements"]
-                ]
-
-        except wiz.exception.InvalidRequirement as exception:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}' contains an incorrect "
-                "package requirement [{error}]".format(
-                    identifier=mapping.get("identifier"),
-                    error=exception
-                )
-            )
-
-        try:
-            if "constraints" in mapping.keys():
-                mapping["constraints"] = [
-                    wiz.utility.get_requirement(requirement)
-                    for requirement in mapping["constraints"]
-                ]
-
-        except wiz.exception.InvalidRequirement as exception:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}' contains an incorrect "
-                "package constraint [{error}]".format(
-                    identifier=mapping.get("identifier"),
-                    error=exception
-                )
-            )
-
         if "variants" in mapping.keys():
             mapping["variants"] = [
                 _Variant(
@@ -532,42 +487,14 @@ class _Variant(wiz.mapping.Mapping):
         """Initialise variant definition."""
         mapping = dict(*args, **kwargs)
         self.definition_identifier = mapping.pop("definition")
-
-        try:
-            if "requirements" in mapping.keys():
-                mapping["requirements"] = [
-                    wiz.utility.get_requirement(requirement)
-                    for requirement in mapping["requirements"]
-                ]
-
-        except wiz.exception.InvalidRequirement as exception:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}' [{variant}] contains an "
-                "incorrect package requirement [{error}]".format(
-                    identifier=self.definition_identifier,
-                    variant=mapping.get("identifier"),
-                    error=exception
-                )
-            )
-
-        try:
-            if "constraints" in mapping.keys():
-                mapping["constraints"] = [
-                    wiz.utility.get_requirement(requirement)
-                    for requirement in mapping["constraints"]
-                ]
-
-        except wiz.exception.InvalidRequirement as exception:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}' [{variant}] contains an "
-                "incorrect package constraint [{error}]".format(
-                    identifier=self.definition_identifier,
-                    variant=mapping.get("identifier"),
-                    error=exception
-                )
-            )
-
         super(_Variant, self).__init__(mapping)
+
+    def _label(self):
+        """Return object label to include in exception messages."""
+        return "The definition '{identifier}' [{variant}]".format(
+            identifier=self.definition_identifier,
+            variant=self.identifier
+        )
 
     def copy(self, *args, **kwargs):
         """Return copy of instance."""

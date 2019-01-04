@@ -39,12 +39,23 @@ Release Notes
         discovered, even when not compatible with the current system.
 
     .. change:: new
-        :tags: API
+        :tags: definition
 
         Added support for :ref:`namespace <definition/namespace>` keyword which
         can be used to provide a scope to a definition. It replaces the
         "group" keyword as it is also used to define where in the hierarchy of a
         :term:`VCS Registry` a definition will be installed.
+
+    .. change:: changed
+        :tags: API
+
+        Added the following properties to get qualified identifiers from
+        :class:`~wiz.definition.Definition` and :class:`~wiz.package.Package`
+        instances:
+
+        * :attr:`wiz.definition.Definition.qualified_identifier`
+        * :attr:`wiz.definition.Definition.qualified_version_identifier`
+        * :attr:`wiz.package.Package.qualified_identifier`
 
     .. change:: new
         :tags: API
@@ -155,16 +166,20 @@ Release Notes
     .. change:: changed
         :tags: API
 
-        Removed :func:`wiz.package.generate_identifier` and add the following
-        properties to get version identifiers (qualified or not) from
-        :class:`~wiz.definition.Definition` and :class:`~wiz.package.Package`
-        instances:
+        Added :func:`wiz.package.create` to instantiate a
+        :class:`~wiz.package.Package` instance from a
+        :class:`~wiz.definition.Definition` instance and variant identifier,
+        and updated :class:`~wiz.package.Package` constructor to just take a
+        mapping. This modification ensure that edition methods will work with
+        packages (e.g. :meth:`~wiz.mapping.Mapping.set`,
+        :meth:`~wiz.mapping.Mapping.remove`,...).
 
-        * :attr:`wiz.definition.Definition.qualified_identifier`
-        * :attr:`wiz.definition.Definition.version_identifier`
-        * :attr:`wiz.definition.Definition.qualified_version_identifier`
-        * :attr:`wiz.package.Package.identifier`
-        * :attr:`wiz.package.Package.qualified_identifier`
+    .. change:: changed
+        :tags: API
+
+        Removed :func:`wiz.package.generate_identifier` and add
+        :attr:`wiz.definition.Definition.version_identifier` property to get
+        version identifiers from :class:`~wiz.definition.Definition` instance.
 
 .. release:: 1.2.1
     :date: 2018-10-24

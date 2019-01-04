@@ -32,37 +32,22 @@ def extract(requirement, definition_mapping, namespaces=None):
         requirement, definition_mapping, namespaces=namespaces
     )
 
-    # Extract variants from definition if available.
-    variants = definition.variants
-
     # Extract and return the requested variant if necessary.
     if len(requirement.extras) > 0:
-        variant_identifier = next(iter(requirement.extras))
-        variant_mapping = reduce(
-            lambda res, mapping: dict(res, **{mapping["identifier"]: mapping}),
-            variants, {}
-        )
-
-        if variant_identifier not in variant_mapping.keys():
-            raise wiz.exception.RequestNotFound(
-                "The variant '{variant}' could not been resolved for "
-                "'{definition}' [{version}].".format(
-                    variant=variant_identifier,
-                    definition=definition.identifier,
-                    version=definition.version
-                )
-            )
-
-        return [Package(definition, variant_mapping[variant_identifier])]
+        variant = next(iter(requirement.extras))
+        return [create(definition, variant_identifier=variant)]
 
     # Simply return the package corresponding to the main definition if no
     # variants are available.
-    elif len(variants) == 0:
-        return [Package(definition)]
+    elif len(definition.variants) == 0:
+        return [create(definition)]
 
     # Otherwise, extract and return all possible variants.
     else:
-        return map(lambda variant: Package(definition, variant), variants)
+        return [
+            create(definition, variant_identifier=variant.identifier)
+            for variant in definition.variants
+        ]
 
 
 def extract_context(packages, environ_mapping=None):
@@ -239,76 +224,92 @@ def combine_command_mapping(package_identifier, mapping1, mapping2):
     return mapping
 
 
+def create(definition, variant_identifier=None):
+    """Create and return a package from *definition*.
+
+    *definition* must be a valid :class:`~wiz.definition.Definition` instance.
+
+    *variant_identifier* could be a valid variant identifier.
+
+    .. note::
+
+        In case of conflicted elements in 'data' or 'command' elements, the
+        elements from the variant will have priority.
+
+    Raise :exc:`wiz.exception.RequestNotFound` if *variant_identifier* is not a
+    valid variant identifier of *definition*.
+
+    """
+    mapping = definition.to_dict()
+
+    # Set definition identifier
+    mapping["definition-identifier"] = mapping["identifier"]
+
+    # Update identifier.
+    if variant_identifier is not None:
+        mapping["identifier"] += "[{}]".format(variant_identifier)
+
+    if mapping.get("version") is not None:
+        mapping["identifier"] += "=={}".format(mapping.get("version"))
+
+    # Extract data from variants.
+    variants = mapping.pop("variants", [])
+
+    if variant_identifier is not None:
+        success = False
+
+        for _mapping in variants:
+            if variant_identifier == _mapping.get("identifier"):
+                mapping["variant-name"] = variant_identifier
+
+                if len(_mapping.get("environ", {})) > 0:
+                    mapping["environ"] = combine_environ_mapping(
+                        mapping["identifier"],
+                        definition.environ, _mapping.environ
+                    )
+
+                if len(_mapping.get("command", {})) > 0:
+                    mapping["command"] = combine_command_mapping(
+                        mapping["identifier"],
+                        definition.command, _mapping.command
+                    )
+
+                if len(_mapping.get("requirements", [])) > 0:
+                    mapping["requirements"] = (
+                        # To prevent mutating the the original requirement list.
+                        mapping.get("requirements", [])[:]
+                        + _mapping["requirements"]
+                    )
+
+                if len(_mapping.get("constraints", [])) > 0:
+                    mapping["constraints"] = (
+                        # To prevent mutating the the original constraint list.
+                        mapping.get("constraints", [])[:]
+                        + _mapping["constraints"]
+                    )
+
+                success = True
+                break
+
+        if not success:
+            raise wiz.exception.RequestNotFound(
+                "The variant '{variant}' could not been resolved for "
+                "'{definition}' [{version}].".format(
+                    variant=variant_identifier,
+                    definition=definition.identifier,
+                    version=definition.version
+                )
+            )
+
+    return Package(mapping)
+
+
 class Package(wiz.mapping.Mapping):
     """Package object."""
 
-    def __init__(self, definition, variant=None):
-        """Initialise Package from *definition*.
-
-        *definition* must be a valid :class:`~wiz.definition.Definition`
-        instance.
-
-        *variant* could be a valid variant mapping which should have at least
-        an 'identifier' keyword.
-
-        .. note::
-
-            In case of conflicted elements in 'data' or 'command' elements,
-            the elements from the *variant* will have priority.
-
-        """
-        definition_data = definition.to_dict()
-        mapping = dict(
-            (k, v) for k, v in definition_data.items() if k != "variants"
-        )
-
-        mapping["variant_name"] = None
-
-        if variant is not None:
-            mapping["variant_name"] = variant.identifier
-
-            mapping["environ"] = combine_environ_mapping(
-                self._generate_identifier(mapping),
-                definition.environ, variant.environ
-            )
-
-            mapping["command"] = combine_command_mapping(
-                self._generate_identifier(mapping),
-                definition.command, variant.command
-            )
-
-            if len(variant.get("requirements", [])) > 0:
-                mapping["requirements"] = (
-                    # To prevent mutating the the original requirement list.
-                    definition_data.get("requirements", [])[:]
-                    + variant["requirements"]
-                )
-
-            if len(variant.get("constraints", [])) > 0:
-                mapping["constraints"] = (
-                    # To prevent mutating the the original constraint list.
-                    definition_data.get("constraints", [])[:]
-                    + variant["constraints"]
-                )
-
-        super(Package, self).__init__(mapping)
-
-    def _generate_identifier(self, mapping):
-        """Generate package identifier."""
-        identifier = mapping["identifier"]
-
-        if mapping.get("variant_name") is not None:
-            identifier += "[{}]".format(mapping.get("variant_name"))
-
-        if mapping.get("version") is not None:
-            identifier += "=={}".format(mapping.get("version"))
-
-        return identifier
-
-    @property
-    def identifier(self):
-        """Return package identifier."""
-        return self._generate_identifier(self)
+    def __init__(self, *args, **kwargs):
+        """Initialise package."""
+        super(Package, self).__init__(*args, **kwargs)
 
     @property
     def qualified_identifier(self):
@@ -320,19 +321,20 @@ class Package(wiz.mapping.Mapping):
     @property
     def definition_identifier(self):
         """Return definition identifier."""
-        return self.get("identifier")
+        return self.get("definition-identifier")
 
     @property
     def variant_name(self):
         """Return variant name."""
-        return self.get("variant_name")
+        return self.get("variant-name")
 
     @property
     def _ordered_keywords(self):
         """Return ordered keywords."""
         return [
             "identifier",
-            "variant_name",
+            "definition-identifier",
+            "variant-name",
             "version",
             "namespace",
             "description",

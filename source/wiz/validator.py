@@ -5,6 +5,8 @@ import json
 import collections
 
 import jsonschema.validators
+from packaging.requirements import Requirement
+from packaging.version import Version
 
 
 #: Root directory containing the schemas.
@@ -42,7 +44,11 @@ _Validator = jsonschema.validators.create(
     ),
     default_types=dict(
         jsonschema.validators.Draft4Validator.DEFAULT_TYPES,
-        **{"object": collections.Mapping}
+        **{
+            "object": collections.Mapping,
+            "requirement": Requirement,
+            "version": Version,
+        }
     )
 )
 
