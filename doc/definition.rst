@@ -252,6 +252,61 @@ will have priority over the latest.
             "maya"
         ]
 
+.. _definition/conditions:
+
+Conditions
+----------
+
+The optional ``conditions`` keyword can be used to reference a list of package
+definitions which should be in the resolution graph for the package to be
+included. It not all conditions are fulfilled, the package will be ignored.
+
+The same version specifiers defined in :term:`PEP 440` can be used:
+
+.. code-block:: json
+
+    {
+        "conditions": [
+            "houdini",
+            "python >= 2, < 3"
+        ]
+    }
+
+.. note::
+
+    Conditions do not exist for Variants.
+
+    Since packages are being silently ignored when conditions are not met, they
+    would break variants, because to pick up another variant, the system relies
+    on requirements conflicting. This would not happen when conditions are used.
+
+.. _definition/constraints:
+
+Constraints
+-----------
+
+The optional ``constraints`` keyword can be used to reference a list of package
+specifiers that should be taken into account only if corresponding packages are
+in the graph. It should be used to limit the range of versions available for
+a specific package.
+
+The same version specifiers defined in :term:`PEP 440` can be used:
+
+.. code-block:: json
+
+    {
+        "constraints": [
+            "nuke >= 10 < 11",
+            "houdini == 16.5.323"
+        ]
+    }
+
+.. note::
+
+    This keyword is most commonly used in combination with :ref:`auto-use
+    <definition/auto-use>` within project registries as it allows to lock
+    the version for a specific package.
+
 .. _definition/variants:
 
 Variants
@@ -294,6 +349,27 @@ returned. However, a variant can also be requested individually::
 
     >>> wiz use foo[variant1]
 
+.. _definition/auto-use:
+
+Auto Use
+--------
+
+The optional ``auto-use`` boolean keyword can be used to always include the
+definition in the resolution graph, even when it isn't explicitly called.
+By default this keyword is set to false.
+
+
+.. code-block:: json
+
+    {
+        "auto-use": true
+    }
+
+.. warning::
+
+    This keyword should be used carefully as it could potentially pollute all
+    other requests.
+
 .. _definition/install_location:
 
 Install Location
@@ -325,73 +401,3 @@ This location can be referenced within each ``environ`` value (including the
 
 When the context is resolved, the :envvar:`INSTALL_LOCATION` environment
 variable is replaced by the ``install-location`` value within the definition.
-
-.. _definition/constraints:
-
-Constraints
------------
-
-A package definitions can have an optional list of 'constraints' set, which will
-add additional restrictions to the graph resolve.
-
-Using 'constraints' package versions can be limited to certain versions or
-version ranges.
-For example, a package definition can specify a 'constraint' like this:
-
-.. code-block:: json
-
-    {
-        "constraints": [
-            "houdini == 16.5.323"
-        ]
-    }
-
-Then a wiz query like this would resolve to that specific houdini version, even
-if newer versions are available::
-
-    > wiz use houdini -- houdini
-
-.. note::
-
-    This keyword is most commonly used in combination with "auto-use", as that
-    allows the constraint to be consistently picked up even in more complex
-    requests.
-
-.. _definition/conditions:
-
-Conditions
-----------
-
-A package definitions can have an optional list of 'conditions' set, which will
-allow for a package to only be added to the graph resolve, if that condition is
-met.
-
-For example:
-
-.. code-block:: json
-
-    {
-        "identifier": "test"
-        "conditions": [
-            "houdini"
-        ]
-    }
-
-A package with this 'condition' in its definition would be picked up with any
-query containing 'houdini' in either the original requests, or any
-requirements::
-
-    > wiz use houdini --view
-
-    Package   Version   Registry   Description
-    -------   -------   --------   -----------
-    houdini   16.5.323  0          Houdini Application.
-    test      0.1.0     0
-
-.. warning::
-
-    Conditions do not exist for Variants.
-
-    Since packages are being silently ignored when conditions are not met, they
-    would break variants, because to pick up another variant, the system relies
-    on requirements conflicting. This would not happen when conditions are used.

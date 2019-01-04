@@ -1384,14 +1384,14 @@ class StoredNode(object):
     Examples:
 
     * When a package contains constraints, a StoredNode instance is created for
-    each constraint in case it is judged necessary to be added to the graph. If
-    a package has a constraint such as `foo >= 0.1.0, < 0.2.0`, it will be
-    added to the graph only if another package from the `foo` definition(s) has
-    been added to the graph.
+      each constraint in case it is judged necessary to be added to the graph.
+      If a package has a constraint such as `foo >= 0.1.0, < 0.2.0`, it will be
+      added to the graph only if another package from the `foo` definition(s)
+      has been added to the graph.
 
     * When a package contains conditions, a StoredNode instance is created for
-    this package request until the validation can be validated. If the
-    conditions are not validated, the package will not be added to the graph.
+      this package request until the validation can be validated. If the
+      conditions are not validated, the package will not be added to the graph.
 
     """
 
