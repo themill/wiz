@@ -10,7 +10,7 @@ import wiz.environ
 import wiz.exception
 
 
-def extract(requirement, definition_mapping, namespaces=None):
+def extract(requirement, definition_mapping, namespace_hints=None):
     """Extract list of :class:`Package` instances from *requirement*.
 
     The best matching :class:`~wiz.definition.Definition` version instances
@@ -24,12 +24,13 @@ def extract(requirement, definition_mapping, namespaces=None):
     *definition_mapping* is a mapping regrouping all available definitions
     associated with their unique identifier.
 
-    *namespaces* could be a list which provides hints to select a default
+    *namespace_hints* could be a list which provides hints to select a default
     namespace if necessary.
 
     """
     definition = wiz.definition.query(
-        requirement, definition_mapping, namespaces=namespaces
+        requirement, definition_mapping,
+        namespace_hints=namespace_hints
     )
 
     # Extract and return the requested variant if necessary.

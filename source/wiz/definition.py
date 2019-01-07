@@ -165,7 +165,7 @@ def _extract_implicit_requests(identifiers, mapping):
     return requests
 
 
-def query(requirement, definition_mapping, namespaces=None):
+def query(requirement, definition_mapping, namespace_hints=None):
     """Return best matching definition version from *requirement*.
 
     *requirement* is an instance of :class:`packaging.requirements.Requirement`.
@@ -173,8 +173,8 @@ def query(requirement, definition_mapping, namespaces=None):
     *definition_mapping* is a mapping regrouping all available definition
     associated with their unique identifier.
 
-    *namespaces* is a set which provides hints to select a default namespace if
-    necessary.
+    *namespace_hints* is a set which provides hints to select a default
+    namespace if necessary.
 
     :exc:`wiz.exception.RequestNotFound` is raised if the requirement can not
     be resolved.
@@ -186,7 +186,8 @@ def query(requirement, definition_mapping, namespaces=None):
     namespace_mapping = definition_mapping.get("__namespace__", {})
     if identifier not in definition_mapping and not identifier.count("::"):
         _namespace = _guess_default_namespace(
-            identifier, namespace_mapping, namespaces=namespaces
+            identifier, namespace_mapping,
+            namespace_hints=namespace_hints
         )
 
         if _namespace is not None:
@@ -223,7 +224,9 @@ def query(requirement, definition_mapping, namespaces=None):
     return definition
 
 
-def _guess_default_namespace(identifier, namespace_mapping, namespaces=None):
+def _guess_default_namespace(
+    identifier, namespace_mapping, namespace_hints=None
+):
     """Return namespace corresponding to *identifier* if available.
 
     *identifier* should be a definition identifier.
@@ -235,16 +238,16 @@ def _guess_default_namespace(identifier, namespace_mapping, namespaces=None):
             ...
         }
 
-    *namespaces* is a list which provides hints to select a default namespace if
-    necessary.
+    *namespace_hints* is a list which provides hints to select a default
+    namespace if necessary.
 
     """
     # Use the list of initial requests from the namespace_mapping as additional
     # namespace hints to help determining an appropriate namespace.
-    if namespaces is None:
-        namespaces = namespace_mapping.keys()
+    if namespace_hints is None:
+        namespace_hints = namespace_mapping.keys()
     else:
-        namespaces.update(namespace_mapping.keys())
+        namespace_hints.update(namespace_mapping.keys())
 
     _namespaces = namespace_mapping.get(identifier, [])
     if len(_namespaces) == 0:
@@ -254,7 +257,7 @@ def _guess_default_namespace(identifier, namespace_mapping, namespaces=None):
     if len(_namespaces) > 1:
         _namespaces = [
             namespace for namespace in _namespaces
-            if not namespaces or namespace in namespaces
+            if not namespace_hints or namespace in namespace_hints
         ]
 
     if len(_namespaces) == 1:

@@ -37,7 +37,7 @@ def test_extract_without_variant(mocked_definition_query, mocked_package):
     requirement = Requirement("test")
     result = wiz.package.extract(requirement, {})
     mocked_definition_query.assert_called_once_with(
-        requirement, {}, namespaces=None
+        requirement, {}, namespace_hints=None
     )
 
     mocked_package.assert_called_once_with({
@@ -78,7 +78,7 @@ def test_extract_with_all_variants(mocked_definition_query, mocked_package):
     requirement = Requirement("test")
     result = wiz.package.extract(requirement, {})
     mocked_definition_query.assert_called_once_with(
-        requirement, {}, namespaces=None
+        requirement, {}, namespace_hints=None
     )
 
     assert mocked_package.call_count == 3
@@ -137,7 +137,7 @@ def test_extract_with_one_requested_variant(
     requirement = Requirement("test[Variant2]")
     result = wiz.package.extract(requirement, {})
     mocked_definition_query.assert_called_once_with(
-        requirement, {}, namespaces=None
+        requirement, {}, namespace_hints=None
     )
 
     mocked_package.assert_called_once_with({
@@ -170,7 +170,7 @@ def test_extract_error(mocked_definition_query, mocked_package):
         wiz.package.extract(requirement, {})
 
     mocked_definition_query.assert_called_once_with(
-        requirement, {}, namespaces=None
+        requirement, {}, namespace_hints=None
     )
     mocked_package.assert_not_called()
 

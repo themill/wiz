@@ -1002,7 +1002,7 @@ class Graph(object):
         # Get packages from requirement.
         packages = wiz.package.extract(
             requirement, self._resolver.definition_mapping,
-            namespaces=self._namespaces
+            namespace_hints=self._namespaces
         )
 
         # Create a node for each package if necessary.
