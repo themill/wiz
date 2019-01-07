@@ -264,7 +264,7 @@ def _guess_default_namespace(
         return _namespaces.pop()
 
     raise wiz.exception.RequestNotFound(
-        "Impossible to guess default namespace for '{definition}' "
+        "Cannot guess default namespace for '{definition}' "
         "[available: {namespaces}].".format(
             definition=identifier,
             namespaces=", ".join(sorted(namespace_mapping.get(identifier, [])))
