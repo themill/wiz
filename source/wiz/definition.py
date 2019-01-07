@@ -238,7 +238,7 @@ def _guess_default_namespace(
             ...
         }
 
-    *namespace_hints* is a list which provides hints to select a default
+    *namespace_hints* is a set which provides hints to select a default
     namespace if necessary.
 
     """
