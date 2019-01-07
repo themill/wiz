@@ -131,6 +131,25 @@ def _extract_implicit_requests(identifiers, mapping):
     discovery.
 
     *mapping* should be a mapping regrouping all implicit package definitions.
+    It should be in the form of::
+
+        {
+            "__namespace__": {
+                "bar": {"test"}
+            },
+            "foo": {
+                "1.1.0": <Definition(identifier="foo", version="1.1.0")>,
+                "1.0.0": <Definition(identifier="foo", version="1.0.0")>,
+                "0.1.0": <Definition(identifier="foo", version="0.1.0")>,
+                ...
+            },
+            "test::bar": {
+                "0.1.0": <Definition(identifier="bar", version="0.1.0")>,
+                ...
+            },
+            ...
+        }
+
 
     """
     requests = []
