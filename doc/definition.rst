@@ -123,6 +123,11 @@ identifier is used:
     >>> wiz use xmlf maya
     >>> wiz use maya::maya maya::xmlf
 
+.. note::
+
+    Only one namespace per definition can be setup at this point. An hyphen can
+    be used in the namespace if necessary (e.g. "A-B::foo").
+
 .. _definition/description:
 
 Description
