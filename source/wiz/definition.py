@@ -165,7 +165,7 @@ def _extract_implicit_requests(identifiers, mapping):
     return requests
 
 
-def query(requirement, definition_mapping, namespace_hints=None):
+def query(requirement, definition_mapping, namespace_counter=None):
     """Return best matching definition version from *requirement*.
 
     *requirement* is an instance of :class:`packaging.requirements.Requirement`.
@@ -173,8 +173,8 @@ def query(requirement, definition_mapping, namespace_hints=None):
     *definition_mapping* is a mapping regrouping all available definition
     associated with their unique identifier.
 
-    *namespace_hints* is a set which provides hints to select a default
-    namespace if necessary.
+    *namespace_counter* could be a :class:`collections.Counter` instance which
+    indicate occurrence of namespaces.
 
     :exc:`wiz.exception.RequestNotFound` is raised if the requirement can not
     be resolved.
@@ -187,7 +187,7 @@ def query(requirement, definition_mapping, namespace_hints=None):
     if identifier not in definition_mapping and not identifier.count("::"):
         _namespace = _guess_default_namespace(
             identifier, namespace_mapping,
-            namespace_hints=namespace_hints
+            namespace_counter=namespace_counter
         )
 
         if _namespace is not None:
@@ -225,7 +225,7 @@ def query(requirement, definition_mapping, namespace_hints=None):
 
 
 def _guess_default_namespace(
-    identifier, namespace_mapping, namespace_hints=None
+    identifier, namespace_mapping, namespace_counter=None
 ):
     """Return namespace corresponding to *identifier* if available.
 
@@ -238,26 +238,24 @@ def _guess_default_namespace(
             ...
         }
 
-    *namespace_hints* is a set which provides hints to select a default
-    namespace if necessary.
+    *namespace_counter* could be a :class:`collections.Counter` instance which
+    indicate occurrence of namespaces.
 
     """
-    # Use the list of initial requests from the namespace_mapping as additional
-    # namespace hints to help determining an appropriate namespace.
-    if namespace_hints is None:
-        namespace_hints = namespace_mapping.keys()
-    else:
-        namespace_hints.update(namespace_mapping.keys())
-
     _namespaces = namespace_mapping.get(identifier, [])
     if len(_namespaces) == 0:
         return
 
-    # Filter out some namespaces from hints if necessary.
-    if len(_namespaces) > 1:
+    # If more than one namespace is available, attempt to use counter to only
+    # keep those which are used the most.
+    if len(_namespaces) > 1 and namespace_counter is not None:
+        max_occurrence = max([
+            namespace_counter[namespace] for namespace in _namespaces
+        ])
+
         _namespaces = [
             namespace for namespace in _namespaces
-            if not namespace_hints or namespace in namespace_hints
+            if namespace_counter[namespace] == max_occurrence
         ]
 
     if len(_namespaces) == 1:

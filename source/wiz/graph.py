@@ -744,8 +744,9 @@ class Graph(object):
         # identifier.
         self._variants_per_definition = {}
 
-        # Set of namespaces found in packages added.
-        self._namespaces = set()
+        # :class:`collections.Counter` instance which record of occurrences of
+        # namespaces from package included in the graph.
+        self._namespace_count = Counter()
 
     def __deepcopy__(self, memo):
         """Ensure that only necessary element are copied in the new graph."""
@@ -761,8 +762,7 @@ class Graph(object):
         result._variants_per_definition = (
             copy.deepcopy(self._variants_per_definition)
         )
-
-        result._namespaces = copy.deepcopy(self._namespaces)
+        result._namespace_count = copy.deepcopy(self._namespace_count)
 
         memo[id(self)] = result
         return result
@@ -790,7 +790,7 @@ class Graph(object):
                 for _id, constraints in self._constraints_per_definition.items()
             },
             "variants_per_definition": self._variants_per_definition,
-            "namespaces": sorted(self._namespaces),
+            "namespace_count": self._namespace_count,
         }
 
     def node(self, identifier):
@@ -915,6 +915,9 @@ class Graph(object):
             graph=self, requirements=requirements
         )
 
+        # Record namespaces from all requirement names.
+        self._update_namespace_count(requirements)
+
         # Fill up queue from constraint and update the graph accordingly.
         for index, requirement in enumerate(requirements):
             queue.put({"requirement": requirement, "weight": index + 1})
@@ -1002,7 +1005,7 @@ class Graph(object):
         # Get packages from requirement.
         packages = wiz.package.extract(
             requirement, self._resolver.definition_mapping,
-            namespace_hints=self._namespaces
+            namespace_counter=self._namespace_count
         )
 
         # Create a node for each package if necessary.
@@ -1035,10 +1038,6 @@ class Graph(object):
 
             node = self._node_mapping[package.identifier]
             node.add_parent(parent_identifier or self.ROOT)
-
-            # Record namespace if necessary to provide hints for other requests.
-            if package.namespace is not None:
-                self._namespaces.add(package.namespace)
 
             # Create link with requirement and weight.
             self.create_link(
@@ -1079,6 +1078,24 @@ class Graph(object):
 
         self._variants_per_definition.setdefault(node.definition, [])
         self._variants_per_definition[node.definition].append(identifier)
+
+    def _update_namespace_count(self, requirements):
+        """Record namespace occurrences from *requirements*.
+
+        Requirement names are used to find out all available namespaces.
+
+        *requirements* should be a list of
+        class:`packaging.requirements.Requirement` instances.
+
+        """
+        mapping = self._resolver.definition_mapping.get("__namespace__", {})
+
+        namespaces = []
+
+        for requirement in requirements:
+            namespaces += mapping.get(requirement.name, [])
+
+        self._namespace_count.update(namespaces)
 
     def create_link(
         self, identifier, parent_identifier, requirement, weight=1
