@@ -1735,13 +1735,17 @@ def test_scenario_16(
     """Compute packages for the following graph.
 
     When a definition is found, its namespace is used to give hint when looking
-    for default namespace belonging to the next definition.
+    for default namespace belonging to the other definitions.
 
     Root
      |
      |--(A): Test1::A
      |
-     `--(B): Test1::B==0.1.0 || Test2::B==0.2.0
+     |--(B): Test1::B==0.1.0 || Test2::B==0.2.0
+     |
+     |--(C): Test3::C==0.1.0 || Test4::C==0.2.0
+     |
+     `--(D): Test4::D
 
     Expected: Test1::B==0.1.0, Test1::A
 
@@ -1749,7 +1753,9 @@ def test_scenario_16(
     definition_mapping = {
         "__namespace__": {
             "A": ["Test1"],
-            "B": ["Test1", "Test2"]
+            "B": ["Test1", "Test2"],
+            "C": ["Test3", "Test4"],
+            "D": ["Test4"],
         },
         "Test1::A": {
             "unknown": wiz.definition.Definition({
@@ -1770,17 +1776,39 @@ def test_scenario_16(
                 "version": "0.2.0",
                 "namespace": "Test2"
             })
+        },
+        "Test3::C": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.1.0",
+                "namespace": "Test3"
+            })
+        },
+        "Test4::C": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.2.0",
+                "namespace": "Test4"
+            })
+        },
+        "Test4::D": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "D",
+                "namespace": "Test4"
+            })
         }
     }
 
     resolver = wiz.graph.Resolver(definition_mapping)
 
-    packages = resolver.compute_packages([Requirement("A"), Requirement("B")])
-    assert len(packages) == 2
-    assert packages[0].identifier == "B==0.1.0"
-    assert packages[0].qualified_identifier == "Test1::B==0.1.0"
-    assert packages[1].identifier == "A"
-    assert packages[1].qualified_identifier == "Test1::A"
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("B"), Requirement("C"), Requirement("D")
+    ])
+    assert len(packages) == 4
+    assert packages[0].qualified_identifier == "Test4::D"
+    assert packages[1].qualified_identifier == "Test4::C==0.2.0"
+    assert packages[2].qualified_identifier == "Test1::B==0.1.0"
+    assert packages[3].qualified_identifier == "Test1::A"
 
     # Check spied functions / methods
     assert spied_fetch_next_graph.call_count == 1
