@@ -1697,7 +1697,7 @@ def test_scenario_15(
         resolver.compute_packages([Requirement("A")])
 
     assert (
-        "Impossible to guess default namespace for 'A' "
+        "Cannot guess default namespace for 'A' "
         "[available: Test1, Test2]"
     ) in str(error)
 
