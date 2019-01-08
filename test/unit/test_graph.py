@@ -1097,6 +1097,77 @@ def test_graph_update_from_requirements_with_used_constraints(
     }
 
 
+def test_graph_update_from_requirements_with_namespaces(
+    mocked_resolver, mocked_package_extract
+):
+    """Update graph from requirements with namespaces."""
+    mocked_resolver.definition_mapping = {
+        "__namespace__": {
+            "A": ["Foo"],
+            "B": ["Foo", "Bar"],
+        }
+    }
+
+    graph = wiz.graph.Graph(mocked_resolver)
+
+    _mapping = {
+        "Foo::A==0.2.0": wiz.package.Package({
+            "identifier": "Foo::A==0.2.0",
+            "namespace": "Foo",
+            "definition-identifier": "A"
+        }),
+        "Foo::B==2.1.1": wiz.package.Package({
+            "identifier": "Foo::B==2.1.1",
+            "namespace": "Foo",
+            "definition-identifier": "B"
+        })
+    }
+
+    mocked_package_extract.side_effect = [
+        [_mapping["Foo::A==0.2.0"]],
+        [_mapping["Foo::B==2.1.1"]]
+    ]
+
+    graph.update_from_requirements([Requirement("A"), Requirement("B>=2")])
+
+    assert graph.to_dict() == {
+        "identifier": mock.ANY,
+        "node_mapping": {
+            "Foo::A==0.2.0": {
+                "package": {
+                    "identifier": "Foo::A==0.2.0",
+                    "namespace": "Foo",
+                    "definition-identifier": "A"
+                },
+                "parents": ["root"]
+            },
+            "Foo::B==2.1.1": {
+                "package": {
+                    "identifier": "Foo::B==2.1.1",
+                    "namespace": "Foo",
+                    "definition-identifier": "B"
+                },
+                "parents": ["root"]
+            }
+        },
+        "link_mapping": {
+            "root": {
+                "Foo::A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
+                "Foo::B==2.1.1": {
+                    "requirement": Requirement("B >=2"), "weight": 2
+                }
+            }
+        },
+        "identifiers_per_definition": {
+            "A": ["Foo::A==0.2.0"],
+            "B": ["Foo::B==2.1.1"],
+        },
+        "variants_per_definition": {},
+        "constraints_per_definition": {},
+        "namespace_count": {"Bar": 1, "Foo": 2},
+    }
+
+
 @pytest.mark.parametrize("options", [
     {},
     {"parent_identifier": "foo"},
