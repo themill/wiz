@@ -790,7 +790,7 @@ class Graph(object):
                 for _id, constraints in self._constraints_per_definition.items()
             },
             "variants_per_definition": self._variants_per_definition,
-            "namespace_count": self._namespace_count,
+            "namespace_count": dict(self._namespace_count),
         }
 
     def node(self, identifier):
