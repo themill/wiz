@@ -151,6 +151,31 @@ Release Notes
         in mapping. Previously this would only be added by
         :func:`wiz.definition.discover`.
 
+    .. change:: changed
+        :tags: API
+
+        Added :func:`wiz.package.create` to instantiate a
+        :class:`~wiz.package.Package` instance from a
+        :class:`~wiz.definition.Definition` instance and variant identifier,
+        and updated :class:`~wiz.package.Package` constructor to just take a
+        mapping. This modification ensure that edition methods will work with
+        packages (e.g. :meth:`~wiz.mapping.Mapping.set`,
+        :meth:`~wiz.mapping.Mapping.remove`,...).
+
+    .. change:: changed
+        :tags: API
+
+        Removed :func:`wiz.package.generate_identifier` and add
+        :attr:`wiz.definition.Definition.version_identifier` property to get
+        version identifiers from :class:`~wiz.definition.Definition` instance.
+
+    .. change:: fixed
+
+        Changed :mod:`wiz.validator` to open the definition JSON schema once
+        the module is loaded, rather than once per validation.
+        Previously a "too many files opened" issue could be encountered when
+        creating multiple definitions in parallel.
+
 .. release:: 1.2.1
     :date: 2018-10-24
 
