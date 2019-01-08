@@ -7,13 +7,6 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: new
-        :tags: definition
-
-        Added optional :ref:`group <definition/conditions>` keyword to
-        definition schema which can be used to indicates a list of packages
-        which must be in the resolution graph for the package to be included.
-
-    .. change:: new
         :tags: command-line
 
         Added :option:`--version <wiz --version>` to display the package
@@ -44,6 +37,13 @@ Release Notes
         :option:`wiz list command --no-arch` and
         :option:`wiz list package --no-arch` options to display all definitions
         discovered, even when not compatible with the current system.
+
+    .. change:: new
+        :tags: definition
+
+        Added optional :ref:`conditions <definition/conditions>` keyword to
+        definition schema which can be used to indicates a list of packages
+        which must be in the resolution graph for the package to be included.
 
     .. change:: new
         :tags: API
@@ -174,6 +174,13 @@ Release Notes
 
         Updated :class:`graph.Resolver` and :class:`graph.Graph` to take
         conditions into account while resolving the graph.
+
+    .. change:: fixed
+
+        Changed :mod:`wiz.validator` to open the definition JSON schema once
+        the module is loaded, rather than once per validation.
+        Previously a "too many files opened" issue could be encountered when
+        creating multiple definitions in parallel.
 
 .. release:: 1.2.1
     :date: 2018-10-24
@@ -623,7 +630,7 @@ Release Notes
     .. change:: new
         :tags: definition
 
-        Added optional :ref:`auto-use <definition/constraints>` keyword to
+        Added optional :ref:`constraints <definition/constraints>` keyword to
         definition schema which indicates a list of package requirements which
         should be used to resolve a context only if another package with the
         same definition identifier is required.
