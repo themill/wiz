@@ -6,13 +6,6 @@ Release Notes
 
 .. release:: Upcoming
 
-    .. change:: fixed
-
-        Changed :mod:`wiz.validator` to open the definition JSON schema once
-        the module is loaded, rather than once per validation.
-        Previously a "too many files opened" issue could be encountered when
-        creating multiple definitions in parallel.
-
     .. change:: new
         :tags: command-line
 
@@ -168,6 +161,13 @@ Release Notes
         Removed :func:`wiz.package.generate_identifier` and add
         :attr:`wiz.definition.Definition.version_identifier` property to get
         version identifiers from :class:`~wiz.definition.Definition` instance.
+
+    .. change:: fixed
+
+        Changed :mod:`wiz.validator` to open the definition JSON schema once
+        the module is loaded, rather than once per validation.
+        Previously a "too many files opened" issue could be encountered when
+        creating multiple definitions in parallel.
 
 .. release:: 1.2.1
     :date: 2018-10-24
