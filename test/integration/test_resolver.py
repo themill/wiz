@@ -1666,27 +1666,27 @@ def test_scenario_15(
 
     Root
      |
-     `--(A): Test1::A==0.1.0 || Test2::A==0.2.0
+     `--(A): Namespace1::A==0.1.0 || Namespace2::A==0.2.0
 
     Expected: Unable to guess default namespace for 'A'
 
     """
     definition_mapping = {
         "__namespace__": {
-            "A": ["Test1", "Test2"]
+            "A": ["Namespace1", "Namespace2"]
         },
-        "Test1::A": {
+        "Namespace1::A": {
             "0.1.0": wiz.definition.Definition({
                 "identifier": "A",
                 "version": "0.1.0",
-                "namespace": "Test1"
+                "namespace": "Namespace1"
             })
         },
-        "Test2::A": {
+        "Namespace2::A": {
             "0.2.0": wiz.definition.Definition({
                 "identifier": "A",
                 "version": "0.2.0",
-                "namespace": "Test2"
+                "namespace": "Namespace2"
             })
         }
     }
@@ -1698,7 +1698,7 @@ def test_scenario_15(
 
     assert (
         "Cannot guess default namespace for 'A' "
-        "[available: Test1, Test2]"
+        "[available: Namespace1, Namespace2]"
     ) in str(error)
 
     # Check spied functions / methods
@@ -1739,62 +1739,63 @@ def test_scenario_16(
 
     Root
      |
-     |--(A): Test1::A
+     |--(A): Namespace1::A
      |
-     |--(B): Test1::B==0.1.0 || Test2::B==0.2.0
+     |--(B): Namespace1::B==0.1.0 || Namespace2::B==0.2.0
      |
-     |--(C): Test3::C==0.1.0 || Test4::C==0.2.0
+     |--(C): Namespace3::C==0.1.0 || Namespace4::C==0.2.0
      |
-     `--(D): Test4::D
+     `--(D): Namespace4::D
 
-    Expected: Test1::B==0.1.0, Test1::A
+    Expected:
+    Namespace4::D, Namespace4::C==0.2.0, Namespace1::B==0.1.0,  Namespace1::A
 
     """
     definition_mapping = {
         "__namespace__": {
-            "A": ["Test1"],
-            "B": ["Test1", "Test2"],
-            "C": ["Test3", "Test4"],
-            "D": ["Test4"],
+            "A": ["Namespace1"],
+            "B": ["Namespace1", "Namespace2"],
+            "C": ["Namespace3", "Namespace4"],
+            "D": ["Namespace4"],
         },
-        "Test1::A": {
+        "Namespace1::A": {
             "unknown": wiz.definition.Definition({
                 "identifier": "A",
-                "namespace": "Test1"
+                "namespace": "Namespace1"
             })
         },
-        "Test1::B": {
+        "Namespace1::B": {
             "0.1.0": wiz.definition.Definition({
                 "identifier": "B",
                 "version": "0.1.0",
-                "namespace": "Test1"
+                "namespace": "Namespace1"
             })
         },
-        "Test2::B": {
+        "Namespace2::B": {
             "0.2.0": wiz.definition.Definition({
                 "identifier": "B",
                 "version": "0.2.0",
-                "namespace": "Test2"
+                "namespace": "Namespace2"
             })
         },
-        "Test3::C": {
+        "Namespace3::C": {
             "0.1.0": wiz.definition.Definition({
                 "identifier": "C",
                 "version": "0.1.0",
-                "namespace": "Test3"
+                "namespace": "Namespace3"
             })
         },
-        "Test4::C": {
+        "Namespace4::C": {
             "0.2.0": wiz.definition.Definition({
                 "identifier": "C",
                 "version": "0.2.0",
-                "namespace": "Test4"
+                "namespace": "Namespace4"
             })
         },
-        "Test4::D": {
+        "Namespace4::D": {
             "unknown": wiz.definition.Definition({
                 "identifier": "D",
-                "namespace": "Test4"
+                "namespace": "Namespace4"
             })
         }
     }
@@ -1805,10 +1806,10 @@ def test_scenario_16(
         Requirement("A"), Requirement("B"), Requirement("C"), Requirement("D")
     ])
     assert len(packages) == 4
-    assert packages[0].qualified_identifier == "Test4::D"
-    assert packages[1].qualified_identifier == "Test4::C==0.2.0"
-    assert packages[2].qualified_identifier == "Test1::B==0.1.0"
-    assert packages[3].qualified_identifier == "Test1::A"
+    assert packages[0].qualified_identifier == "Namespace4::D"
+    assert packages[1].qualified_identifier == "Namespace4::C==0.2.0"
+    assert packages[2].qualified_identifier == "Namespace1::B==0.1.0"
+    assert packages[3].qualified_identifier == "Namespace1::A"
 
     # Check spied functions / methods
     assert spied_fetch_next_graph.call_count == 1
