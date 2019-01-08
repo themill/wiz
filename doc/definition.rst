@@ -125,7 +125,7 @@ identifier is used:
 
 .. note::
 
-    Only one namespace per definition can be setup at this point. An hyphen can
+    Only one namespace per definition can be setup at this point. A hyphen can
     be used in the namespace if necessary (e.g. "A-B::foo").
 
 .. _definition/description:
