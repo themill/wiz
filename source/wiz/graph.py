@@ -746,6 +746,7 @@ class Graph(object):
 
         # :class:`collections.Counter` instance which record of occurrences of
         # namespaces from package included in the graph.
+        # e.g. Counter({u'maya': 2, u'houdini': 1})
         self._namespace_count = Counter()
 
     def __deepcopy__(self, memo):
