@@ -21,7 +21,16 @@ def mocked_package(mocker):
     return mocker.patch.object(wiz.package, "Package", return_value="PACKAGE")
 
 
-def test_extract_without_variant(mocked_definition_query, mocked_package):
+@pytest.mark.parametrize("kwargs, namespace_counter", [
+    ({}, None),
+    ({"namespace_counter": "COUNTER"}, "COUNTER")
+], ids=[
+    "simple",
+    "with-namespace-hints",
+])
+def test_extract_without_variant(
+    mocked_definition_query, mocked_package, kwargs, namespace_counter
+):
     """Extract one Package from definition."""
     definition = wiz.definition.Definition({
         "identifier": "test",
@@ -35,9 +44,9 @@ def test_extract_without_variant(mocked_definition_query, mocked_package):
     mocked_definition_query.return_value = definition
 
     requirement = Requirement("test")
-    result = wiz.package.extract(requirement, {})
+    result = wiz.package.extract(requirement, {}, **kwargs)
     mocked_definition_query.assert_called_once_with(
-        requirement, {}, namespace_hints=None
+        requirement, {}, namespace_counter=namespace_counter
     )
 
     mocked_package.assert_called_once_with({
@@ -52,7 +61,16 @@ def test_extract_without_variant(mocked_definition_query, mocked_package):
     assert result == ["PACKAGE"]
 
 
-def test_extract_with_all_variants(mocked_definition_query, mocked_package):
+@pytest.mark.parametrize("kwargs, namespace_counter", [
+    ({}, None),
+    ({"namespace_counter": "COUNTER"}, "COUNTER")
+], ids=[
+    "simple",
+    "with-namespace-hints",
+])
+def test_extract_with_all_variants(
+    mocked_definition_query, mocked_package, kwargs, namespace_counter
+):
     """Extract all variant Packages from definition."""
     definition = wiz.definition.Definition({
         "identifier": "test",
@@ -76,9 +94,9 @@ def test_extract_with_all_variants(mocked_definition_query, mocked_package):
     mocked_definition_query.return_value = definition
 
     requirement = Requirement("test")
-    result = wiz.package.extract(requirement, {})
+    result = wiz.package.extract(requirement, {}, **kwargs)
     mocked_definition_query.assert_called_once_with(
-        requirement, {}, namespace_hints=None
+        requirement, {}, namespace_counter=namespace_counter
     )
 
     assert mocked_package.call_count == 3
@@ -109,8 +127,15 @@ def test_extract_with_all_variants(mocked_definition_query, mocked_package):
     assert result == ["PACKAGE", "PACKAGE", "PACKAGE"]
 
 
+@pytest.mark.parametrize("kwargs, namespace_counter", [
+    ({}, None),
+    ({"namespace_counter": "COUNTER"}, "COUNTER")
+], ids=[
+    "simple",
+    "with-namespace-hints",
+])
 def test_extract_with_one_requested_variant(
-    mocked_definition_query, mocked_package
+    mocked_definition_query, mocked_package, kwargs, namespace_counter
 ):
     """Extract one requested variant Package from definition."""
     definition = wiz.definition.Definition({
@@ -135,9 +160,9 @@ def test_extract_with_one_requested_variant(
     mocked_definition_query.return_value = definition
 
     requirement = Requirement("test[Variant2]")
-    result = wiz.package.extract(requirement, {})
+    result = wiz.package.extract(requirement, {}, **kwargs)
     mocked_definition_query.assert_called_once_with(
-        requirement, {}, namespace_hints=None
+        requirement, {}, namespace_counter=namespace_counter
     )
 
     mocked_package.assert_called_once_with({
@@ -151,7 +176,16 @@ def test_extract_with_one_requested_variant(
     assert result == ["PACKAGE"]
 
 
-def test_extract_error(mocked_definition_query, mocked_package):
+@pytest.mark.parametrize("kwargs, namespace_counter", [
+    ({}, None),
+    ({"namespace_counter": "COUNTER"}, "COUNTER")
+], ids=[
+    "simple",
+    "with-namespace-hints",
+])
+def test_extract_error(
+    mocked_definition_query, mocked_package, kwargs, namespace_counter
+):
     """Fail to extract Package from definition."""
     definition = wiz.definition.Definition({
         "identifier": "test",
@@ -167,10 +201,10 @@ def test_extract_error(mocked_definition_query, mocked_package):
     requirement = Requirement("env1[Incorrect]")
 
     with pytest.raises(wiz.exception.RequestNotFound) as error:
-        wiz.package.extract(requirement, {})
+        wiz.package.extract(requirement, {}, **kwargs)
 
     mocked_definition_query.assert_called_once_with(
-        requirement, {}, namespace_hints=None
+        requirement, {}, namespace_counter=namespace_counter
     )
     mocked_package.assert_not_called()
 
@@ -558,6 +592,7 @@ def test_minimal_package_without_variant():
 
     package = wiz.package.create(definition)
     assert package.identifier == "test"
+    assert package.qualified_identifier == "test"
     assert package.definition_identifier == "test"
     assert package.version == "unknown"
     assert package.variant_name is None
@@ -596,6 +631,8 @@ def test_full_package_without_variant():
 
     package = wiz.package.create(definition)
     assert package.identifier == "test==0.3.4"
+    assert package.qualified_identifier == "test==0.3.4"
+    assert package.definition_identifier == "test"
     assert package.version == Version("0.3.4")
     assert package.variant_name is None
     assert package.description == "Test definition"
@@ -606,7 +643,7 @@ def test_full_package_without_variant():
 
 
 def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
-    """Create full package instance created with no variant."""
+    """Create full package instance created with variant."""
     definition = wiz.definition.Definition({
         "identifier": "test",
         "version": "0.1.0",
@@ -647,6 +684,8 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
         definition, variant_identifier="Variant1"
     )
     assert package.identifier == "test[Variant1]==0.1.0"
+    assert package.qualified_identifier == "test[Variant1]==0.1.0"
+    assert package.definition_identifier == "test"
     assert package.version == Version("0.1.0")
     assert package.variant_name == "Variant1"
     assert package.description == "This is a definition"
@@ -673,6 +712,22 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
         {"app": "App"},
         {"app1": "App1"}
     )
+
+
+def test_package_with_namespace():
+    """Create package instance with namespaces."""
+    definition = wiz.definition.Definition({
+        "identifier": "test",
+        "version": "0.1.0",
+        "namespace": "Foo",
+    })
+
+    package = wiz.package.create(definition)
+
+    assert package.identifier == "test==0.1.0"
+    assert package.qualified_identifier == "Foo::test==0.1.0"
+    assert package.definition_identifier == "test"
+    assert package.version == Version("0.1.0")
 
 
 def test_package_localized_environ():

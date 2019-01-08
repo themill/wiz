@@ -3,7 +3,7 @@
 import os
 import types
 import copy
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 import itertools
 
 import pytest
@@ -415,11 +415,12 @@ def test_query_definition(package_definition_mapping):
     )
 
 
-def test_query_definition_with_namespace_hints(package_definition_mapping):
-    """Return best matching definition with namespace hints."""
+def test_query_definition_with_namespace_counter(package_definition_mapping):
+    """Return best matching definition with namespace counter."""
     requirement = Requirement("baz")
     definition = wiz.definition.query(
-        requirement, package_definition_mapping, namespace_hints={"test1"}
+        requirement, package_definition_mapping,
+        namespace_counter=Counter(["test1"])
     )
 
     assert definition == package_definition_mapping["test1::baz"]["unknown"]
@@ -427,21 +428,23 @@ def test_query_definition_with_namespace_hints(package_definition_mapping):
     requirement = Requirement("baz")
     definition = wiz.definition.query(
         requirement, package_definition_mapping,
-        namespace_hints={"test1", "other"}
+        namespace_counter=Counter(["test1", "other"])
     )
 
     assert definition == package_definition_mapping["test1::baz"]["unknown"]
 
     requirement = Requirement("baz")
     definition = wiz.definition.query(
-        requirement, package_definition_mapping, namespace_hints={"test2"}
+        requirement, package_definition_mapping,
+        namespace_counter=Counter(["test2"])
     )
 
     assert definition == package_definition_mapping["test2::baz"]["unknown"]
 
     requirement = Requirement("bim")
     definition = wiz.definition.query(
-        requirement, package_definition_mapping, namespace_hints={"test2"}
+        requirement, package_definition_mapping,
+        namespace_counter=Counter(["test2"])
     )
 
     assert definition == package_definition_mapping["test::bim"]["0.1.0"]
@@ -451,7 +454,7 @@ def test_query_definition_with_namespace_hints(package_definition_mapping):
     with pytest.raises(wiz.exception.RequestNotFound) as error:
         wiz.definition.query(
             requirement, package_definition_mapping,
-            namespace_hints={"test1", "test2"}
+            namespace_counter=Counter(["test1", "test2"])
         )
 
     assert (
