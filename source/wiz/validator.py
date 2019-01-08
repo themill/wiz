@@ -14,6 +14,11 @@ _SCHEMA_ROOT = os.path.join(
     os.path.dirname(__file__), "package_data", "schema"
 )
 
+#: Definition schema.
+_SCHEMA_DEFINITION = json.load(
+    open(os.path.join(_SCHEMA_ROOT, "definition.json"))
+)
+
 
 # Set up custom validator base class that ensures:
 #
@@ -71,9 +76,7 @@ def yield_definition_errors(data):
     .. literalinclude:: ../../source/wiz/package_data/schema/definition.json
 
     """
-    schema = _load_schema(os.path.join(_SCHEMA_ROOT, "definition.json"))
-
-    for error in _Validator(schema).iter_errors(data):
+    for error in _Validator(_SCHEMA_DEFINITION).iter_errors(data):
         yield {
             "message": error.message,
             "path": "/{}".format("/".join(str(e) for e in error.path)),
