@@ -753,7 +753,6 @@ def test_graph_update_from_requirements(
             identifier="B==2.1.1",
             variant_name=None,
             definition_identifier="B",
-            namespace=None,
             requirements=[],
             constraints=[],
             **{"to_dict.return_value": "_B==2.1.1"}
@@ -790,42 +789,56 @@ def test_graph_update_from_requirements(
 
 
 def test_graph_update_from_requirements_with_dependencies(
-    mocked_resolver, mocked_package_extract
+    mocker, mocked_resolver, mocked_package_extract
 ):
     """Update graph from requirements with dependency requirements."""
-    mocked_resolver.definition_mapping = {"__namespace__": {"A": ["Foo"]}}
-
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "Foo::A==0.1.0": wiz.package.Package({
-            "identifier": "Foo::A==0.1.0",
-            "definition-identifier": "A",
-            "namespace": "Foo",
-            "requirements": [Requirement("B>=2"), Requirement("C")]
-        }),
-        "B==3.0.0": wiz.package.Package({
-            "identifier": "B==3.0.0",
-            "definition-identifier": "B",
-        }),
-        "C==1.2.3": wiz.package.Package({
-            "identifier": "C==1.2.3",
-            "definition-identifier": "C",
-            "requirements": [Requirement("D")],
-        }),
-        "D==0.1.0": wiz.package.Package({
-            "identifier": "D==0.1.0",
-            "definition-identifier": "D",
-            "requirements": [Requirement("E")],
-        }),
-        "E==0.2.0": wiz.package.Package({
-            "identifier": "E==0.2.0",
-            "definition-identifier": "E",
-        }),
+        "A==0.1.0": mocker.Mock(
+            identifier="A==0.1.0",
+            variant_name=None,
+            definition_identifier="A",
+            requirements=[Requirement("B>=2"), Requirement("C")],
+            constraints=[],
+            **{"to_dict.return_value": "_A==0.1.0"}
+        ),
+        "B==3.0.0": mocker.Mock(
+            identifier="B==3.0.0",
+            variant_name=None,
+            definition_identifier="B",
+            requirements=[],
+            constraints=[],
+            **{"to_dict.return_value": "_B==3.0.0"}
+        ),
+        "C==1.2.3": mocker.Mock(
+            identifier="C==1.2.3",
+            variant_name=None,
+            definition_identifier="C",
+            requirements=[Requirement("D")],
+            constraints=[],
+            **{"to_dict.return_value": "_C==1.2.3"}
+        ),
+        "D==0.1.0": mocker.Mock(
+            identifier="D==0.1.0",
+            variant_name=None,
+            definition_identifier="D",
+            requirements=[Requirement("E")],
+            constraints=[],
+            **{"to_dict.return_value": "_D==0.1.0"}
+        ),
+        "E==0.2.0": mocker.Mock(
+            identifier="E==0.2.0",
+            variant_name=None,
+            definition_identifier="E",
+            requirements=[],
+            constraints=[],
+            **{"to_dict.return_value": "_E==0.2.0"}
+        ),
     }
 
     mocked_package_extract.side_effect = [
-        [_mapping["Foo::A==0.1.0"]],
+        [_mapping["A==0.1.0"]],
         [_mapping["B==3.0.0"]],
         [_mapping["C==1.2.3"]],
         [_mapping["D==0.1.0"]],
@@ -837,51 +850,17 @@ def test_graph_update_from_requirements_with_dependencies(
     assert graph.to_dict() == {
         "identifier": mock.ANY,
         "node_mapping": {
-            "Foo::A==0.1.0": {
-                "package": {
-                    "identifier": "Foo::A==0.1.0",
-                    "definition-identifier": "A",
-                    "namespace": "Foo",
-                    "requirements": ["B >=2", "C"],
-                },
-                "parents": ["root"]
-            },
-            "B==3.0.0": {
-                "package": {
-                    "identifier": "B==3.0.0",
-                    "definition-identifier": "B",
-                },
-                "parents": ["Foo::A==0.1.0"]
-            },
-            "C==1.2.3": {
-                "package": {
-                    "identifier": "C==1.2.3",
-                    "definition-identifier": "C",
-                    "requirements": ["D"],
-                },
-                "parents": ["Foo::A==0.1.0"]
-            },
-            "D==0.1.0": {
-                "package": {
-                    "identifier": "D==0.1.0",
-                    "definition-identifier": "D",
-                    "requirements": ["E"],
-                },
-                "parents": ["C==1.2.3"]
-            },
-            "E==0.2.0": {
-                "package": {
-                    "identifier": "E==0.2.0",
-                    "definition-identifier": "E",
-                },
-                "parents": ["D==0.1.0"]
-            }
+            "A==0.1.0": {"package": "_A==0.1.0", "parents": ["root"]},
+            "B==3.0.0": {"package": "_B==3.0.0", "parents": ["A==0.1.0"]},
+            "C==1.2.3": {"package": "_C==1.2.3", "parents": ["A==0.1.0"]},
+            "D==0.1.0": {"package": "_D==0.1.0", "parents": ["C==1.2.3"]},
+            "E==0.2.0": {"package": "_E==0.2.0", "parents": ["D==0.1.0"]}
         },
         "link_mapping": {
             "root": {
-                "Foo::A==0.1.0": {"requirement": Requirement("A"), "weight": 1}
+                "A==0.1.0": {"requirement": Requirement("A"), "weight": 1}
             },
-            "Foo::A==0.1.0": {
+            "A==0.1.0": {
                 "B==3.0.0": {"requirement": Requirement("B>=2"), "weight": 1},
                 "C==1.2.3": {"requirement": Requirement("C"), "weight": 2}
             },
@@ -893,7 +872,7 @@ def test_graph_update_from_requirements_with_dependencies(
             }
         },
         "identifiers_per_definition": {
-            "A": ["Foo::A==0.1.0"],
+            "A": ["A==0.1.0"],
             "B": ["B==3.0.0"],
             "C": ["C==1.2.3"],
             "D": ["D==0.1.0"],
@@ -901,7 +880,7 @@ def test_graph_update_from_requirements_with_dependencies(
         },
         "variants_per_definition": {},
         "constraints_per_definition": {},
-        "namespace_count": {"Foo": 1}
+        "namespace_count": {}
     }
 
 
