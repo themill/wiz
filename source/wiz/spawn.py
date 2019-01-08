@@ -89,7 +89,10 @@ def execute(elements, environment):
     try:
         subprocess.call(elements, env=environment)
     except OSError as error:
-        logger.error("Command has not been found.")
+        logger.error(
+            "Executable can not be found within resolved "
+            "environment [{}]".format(elements[0])
+        )
         logger.debug(error, traceback=True)
 
 
