@@ -39,6 +39,13 @@ Release Notes
         discovered, even when not compatible with the current system.
 
     .. change:: new
+        :tags: definition
+
+        Added optional :ref:`conditions <definition/conditions>` keyword to
+        definition schema which can be used to indicate a list of packages
+        which must be in the resolution graph for the package to be included.
+
+    .. change:: new
         :tags: API
 
         Added :mod:`wiz.environ` module to regroup functions dealing with the
@@ -169,6 +176,12 @@ Release Notes
         Removed :func:`wiz.package.generate_identifier` and add
         :attr:`wiz.definition.Definition.version_identifier` property to get
         version identifiers from :class:`~wiz.definition.Definition` instance.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`graph.Resolver` and :class:`graph.Graph` to take
+        conditions into account while resolving the graph.
 
     .. change:: fixed
 
@@ -553,8 +566,8 @@ Release Notes
         :tags: API
 
         Fixed :meth:`wiz.mapping.Mapping.to_ordered_dict` to ensure that
-        the 'auto-use' keyword is displayed at a logical position in the
-        serialized definition and package instances.
+        the :ref:`auto-use <definition/auto-use>` keyword is displayed at a
+        logical position in the serialized definition and package instances.
 
 .. release:: 0.15.0
     :date: 2018-08-14
@@ -625,17 +638,17 @@ Release Notes
     .. change:: new
         :tags: definition
 
-        Added optional 'constraints' keyword to definition schema which
-        indicates a list of package requirements which should be used to resolve
-        a context only if another package with the same definition identifier is
-        required.
+        Added optional :ref:`constraints <definition/constraints>` keyword to
+        definition schema which indicates a list of package requirements which
+        should be used to resolve a context only if another package with the
+        same definition identifier is required.
 
     .. change:: new
         :tags: definition
 
-        Added optional 'auto-use' keyword to definition schema which indicates
-        whether corresponding package should be used implicitly to resolve
-        context. Default is False.
+        Added optional :ref:`auto-use <definition/auto-use>` keyword to
+        definition schema which indicates whether corresponding package should
+        be used implicitly to resolve context. Default is False.
 
     .. change:: new
         :tags: command-line
