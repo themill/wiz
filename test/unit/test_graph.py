@@ -1295,7 +1295,8 @@ def test_graph_update_from_requirements_with_namespaces(
             "B": ["Foo::B==2.1.1"],
         },
         "variants_per_definition": {},
-        "constraints_per_definition": {},
+        "condition_mapping": {},
+        "constraint_mapping": {},
         "namespace_count": {"Bar": 1, "Foo": 2},
     }
 
@@ -1359,7 +1360,8 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
                 "weight": 2
             }
         },
-        "variants_per_definition": {}
+        "variants_per_definition": {},
+        "namespace_count": {}
     }
 
 
@@ -1421,7 +1423,8 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
         },
         "constraint_mapping": {},
         "condition_mapping": {},
-        "variants_per_definition": {}
+        "variants_per_definition": {},
+        "namespace_count": {}
     }
 
 
