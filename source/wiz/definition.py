@@ -244,7 +244,7 @@ def _guess_default_namespace(
     identification.
 
     """
-    _namespaces = namespace_mapping.get(identifier, [])
+    _namespaces = list(namespace_mapping.get(identifier, []))
     if len(_namespaces) == 0:
         return
 
