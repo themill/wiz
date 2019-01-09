@@ -542,8 +542,8 @@ def trim_invalid_from_graph(graph, distance_mapping):
 
     Return boolean value indicating whether invalid nodes have been removed.
 
-    If packages a node is conditioned by are no longer in the graph, the node
-    is marked invalid and must be removed from the graph.
+    If any packages that a node is conditioned by are no longer in the graph,
+    the node is marked invalid and must be removed from the graph.
 
     *graph* must be an instance of :class:`Graph`.
 
