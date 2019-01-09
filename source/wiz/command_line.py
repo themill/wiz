@@ -538,7 +538,7 @@ def wiz_view(click_context, **kwargs):
     else:
         logger.info(
             "Command found in definition: {}".format(
-                wiz.package.generate_identifier(definition)
+                definition.version_identifier
             )
         )
         results_found = True
@@ -556,7 +556,7 @@ def wiz_view(click_context, **kwargs):
     else:
         logger.info(
             "View definition: {}".format(
-                wiz.package.generate_identifier(definition)
+                definition.version_identifier
             )
         )
 

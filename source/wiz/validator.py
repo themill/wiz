@@ -5,11 +5,18 @@ import json
 import collections
 
 import jsonschema.validators
+from packaging.requirements import Requirement
+from packaging.version import Version
 
 
 #: Root directory containing the schemas.
 _SCHEMA_ROOT = os.path.join(
     os.path.dirname(__file__), "package_data", "schema"
+)
+
+#: Definition schema.
+_SCHEMA_DEFINITION = json.load(
+    open(os.path.join(_SCHEMA_ROOT, "definition.json"))
 )
 
 
@@ -42,7 +49,11 @@ _Validator = jsonschema.validators.create(
     ),
     default_types=dict(
         jsonschema.validators.Draft4Validator.DEFAULT_TYPES,
-        **{"object": collections.Mapping}
+        **{
+            "object": collections.Mapping,
+            "requirement": Requirement,
+            "version": Version,
+        }
     )
 )
 
@@ -65,9 +76,7 @@ def yield_definition_errors(data):
     .. literalinclude:: ../../source/wiz/package_data/schema/definition.json
 
     """
-    schema = _load_schema(os.path.join(_SCHEMA_ROOT, "definition.json"))
-
-    for error in _Validator(schema).iter_errors(data):
+    for error in _Validator(_SCHEMA_DEFINITION).iter_errors(data):
         yield {
             "message": error.message,
             "path": "/{}".format("/".join(str(e) for e in error.path)),
