@@ -173,8 +173,9 @@ def query(requirement, definition_mapping, namespace_counter=None):
     *definition_mapping* is a mapping regrouping all available definition
     associated with their unique identifier.
 
-    *namespace_counter* could be a :class:`collections.Counter` instance which
-    indicate occurrence of namespaces.
+    *namespace_counter* is an optional :class:`collections.Counter` instance
+    which indicate occurrence of namespaces used as hints for package
+    identification.
 
     :exc:`wiz.exception.RequestNotFound` is raised if the requirement can not
     be resolved.
@@ -238,8 +239,9 @@ def _guess_default_namespace(
             ...
         }
 
-    *namespace_counter* could be a :class:`collections.Counter` instance which
-    indicate occurrence of namespaces.
+    *namespace_counter* is an optional :class:`collections.Counter` instance
+    which indicate occurrence of namespaces used as hints for package
+    identification.
 
     """
     _namespaces = namespace_mapping.get(identifier, [])

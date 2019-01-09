@@ -24,8 +24,9 @@ def extract(requirement, definition_mapping, namespace_counter=None):
     *definition_mapping* is a mapping regrouping all available definitions
     associated with their unique identifier.
 
-    *namespace_counter* could be a :class:`collections.Counter` instance which
-    indicate occurrence of namespaces.
+    *namespace_counter* is an optional :class:`collections.Counter` instance
+    which indicate occurrence of namespaces used as hints for package
+    identification.
 
     """
     definition = wiz.definition.query(
