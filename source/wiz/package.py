@@ -347,6 +347,7 @@ class Package(wiz.mapping.Mapping):
             "command",
             "environ",
             "requirements",
+            "conditions",
             "constraints"
         ]
 

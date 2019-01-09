@@ -495,6 +495,7 @@ class Definition(wiz.mapping.Mapping):
             "command",
             "environ",
             "requirements",
+            "conditions",
             "constraints",
             "variants"
         ]
@@ -530,5 +531,6 @@ class _Variant(wiz.mapping.Mapping):
             "command",
             "environ",
             "requirements",
+            "conditions",
             "constraints"
         ]
