@@ -272,13 +272,11 @@ The same version specifiers defined in :term:`PEP 440` can be used:
         ]
     }
 
-.. note::
+.. warning::
 
-    Conditions do not exist for Variants.
-
-    Since packages are being silently ignored when conditions are not met, they
-    would break variants, because to pick up another variant, the system relies
-    on requirements conflicting. This would not happen when conditions are used.
+    Packages will be silently ignored when conditions are not met. For an error
+    to be raised, :ref:`requirements <definition/requirements>` should be used
+    instead.
 
 .. _definition/constraints:
 
