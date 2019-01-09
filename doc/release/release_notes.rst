@@ -42,7 +42,7 @@ Release Notes
         :tags: definition
 
         Added optional :ref:`conditions <definition/conditions>` keyword to
-        definition schema which can be used to indicates a list of packages
+        definition schema which can be used to indicate a list of packages
         which must be in the resolution graph for the package to be included.
 
     .. change:: new
