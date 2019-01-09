@@ -259,7 +259,7 @@ Conditions
 
 The optional ``conditions`` keyword can be used to reference a list of package
 definitions which should be in the resolution graph for the package to be
-included. It not all conditions are fulfilled, the package will be ignored.
+included. If not all conditions are fulfilled, the package will be ignored.
 
 The same version specifiers defined in :term:`PEP 440` can be used:
 
