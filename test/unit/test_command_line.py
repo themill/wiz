@@ -2382,22 +2382,24 @@ def test_freeze_error(options):
     assert result.exception
 
 
+@pytest.mark.usefixtures("mocked_export_definition")
 def test_freeze_initial_environment(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
-    mocked_resolve_context, wiz_context
+    mocked_resolve_context, wiz_context, mocked_click_prompt
 ):
     """Freeze a resolved environment with initial environment."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
     mocked_fetch_definition_mapping.return_value = "__MAPPING__"
     mocked_resolve_context.return_value = wiz_context
+    mocked_click_prompt.side_effect = ["foo", "This is a description.", "0.1.0"]
 
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main, [
            "--init", "PATH=/path", "--init", "PYTHONPATH=/other-path",
            "freeze", "foo", "-o", "/output/path"
-       ],
+        ],
     )
     assert result.exit_code == 0
     assert not result.exception
