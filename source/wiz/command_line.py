@@ -153,8 +153,10 @@ class _MainGroup(click.Group):
         "Initial Environment which will be augmented by the resolved "
         "environment."
     ),
-    metavar="ENVIRONMENT_VARIABLE=VALUE",
-    multiple=True
+    type=lambda x: tuple(x.split("=", 1)),
+    metavar="VARIABLE=VALUE",
+    default=[],
+    multiple=True,
 )
 @click.option(
     "--platform",
@@ -212,13 +214,17 @@ def main(click_context, **kwargs):
     )
     logger.debug("Registries: " + ", ".join(registries))
 
+    # Extract initial environment.
+    initial_environment = {x[0]: x[1] for x in kwargs["init"] if len(x) == 2}
+    logger.debug("Initial environment: {}".format(initial_environment))
+
     # Update user data within click context.
     click_context.obj.update({
         "system_mapping": system_mapping,
         "registry_paths": registries,
         "registry_search_depth": kwargs["definition_search_depth"],
         "ignore_implicit_packages": kwargs["ignore_implicit"],
-        "initial_environment": kwargs["init"],
+        "initial_environment": initial_environment,
         "recording_path": kwargs["record"]
     })
 
@@ -614,9 +620,7 @@ def wiz_use(click_context, **kwargs):
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
-    environ_mapping = dict(
-        v.split("=") for v in click_context.obj["initial_environment"]
-    )
+    environ_mapping = click_context.obj["initial_environment"]
 
     # Fetch extra arguments from context.
     extra_arguments = _fetch_extra_arguments(click_context)
@@ -696,9 +700,7 @@ def wiz_run(click_context, **kwargs):
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
-    environ_mapping = dict(
-        v.split("=") for v in click_context.obj["initial_environment"]
-    )
+    environ_mapping = click_context.obj["initial_environment"]
 
     # Fetch extra arguments from context.
     extra_arguments = _fetch_extra_arguments(click_context)
@@ -786,9 +788,7 @@ def wiz_freeze(click_context, **kwargs):
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
-    environ_mapping = dict(
-        v.split("=") for v in click_context.obj["initial_environment"]
-    )
+    environ_mapping = click_context.obj["initial_environment"]
 
     try:
         _context = wiz.resolve_context(
