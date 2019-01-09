@@ -330,7 +330,7 @@ class Resolver(object):
                     )
                 )
 
-            identifiers = [package.identifier for package in packages]
+            identifiers = [package.qualified_identifier for package in packages]
 
             if identifier not in identifiers:
                 self._logger.debug("Remove '{}'".format(identifier))
@@ -739,7 +739,7 @@ def extract_ordered_packages(graph, distance_mapping):
 
     logger.debug(
         "Sorted packages: {}".format(
-            ", ".join([package.identifier for package in packages])
+            ", ".join([package.qualified_identifier for package in packages])
         )
     )
 
@@ -1023,7 +1023,8 @@ class Graph(object):
 
             # Require all of this package identifiers to be in the node mapping.
             identifiers = [
-                package.identifier for package in itertools.chain(*packages)
+                package.qualified_identifier
+                for package in itertools.chain(*packages)
             ]
 
             if all(_id in self._node_mapping.keys() for _id in identifiers):
@@ -1144,7 +1145,9 @@ class Graph(object):
         the importance of the link. Default is 1.
 
         """
-        if not self.exists(package.identifier):
+        identifier = package.qualified_identifier
+
+        if not self.exists(identifier):
 
             # Do not add the node in the graph if conditions are set.
             if len(package.conditions) > 0:
@@ -1163,7 +1166,7 @@ class Graph(object):
             for index, _requirement in enumerate(package.requirements):
                 queue.put({
                     "requirement": _requirement,
-                    "parent_identifier": package.identifier,
+                    "parent_identifier": identifier,
                     "weight": index + 1
                 })
 
@@ -1175,16 +1178,16 @@ class Graph(object):
                 self._constraint_mapping[_identifier].append(
                     StoredNode(
                         _requirement,
-                        parent_identifier=package.identifier,
+                        parent_identifier=identifier,
                         weight=index + 1
                     )
                 )
 
         else:
             # Update variant mapping if necessary
-            self._update_variant_mapping(package.identifier)
+            self._update_variant_mapping(identifier)
 
-        node = self._node_mapping[package.identifier]
+        node = self._node_mapping[identifier]
         node.add_parent(parent_identifier or self.ROOT)
 
         # Create link with requirement and weight.
@@ -1201,20 +1204,21 @@ class Graph(object):
         *package* should be a :class:`~wiz.package.Package` instance.
 
         """
-        self._logger.debug("Adding package: {}".format(package.identifier))
-        self._node_mapping[package.identifier] = Node(package)
+        identifier = package.qualified_identifier
+
+        self._logger.debug("Adding package: {}".format(identifier))
+        self._node_mapping[identifier] = Node(package)
 
         # Record node identifiers per package to identify conflicts.
         _definition_id = package.definition_identifier
         self._identifiers_per_definition.setdefault(_definition_id, set())
-        self._identifiers_per_definition[_definition_id].add(package.identifier)
+        self._identifiers_per_definition[_definition_id].add(identifier)
 
         # Record variant per unique key identifier if necessary.
-        self._update_variant_mapping(package.identifier)
+        self._update_variant_mapping(identifier)
 
         wiz.history.record_action(
-            wiz.symbol.GRAPH_NODE_CREATION_ACTION,
-            graph=self, node=package.identifier
+            wiz.symbol.GRAPH_NODE_CREATION_ACTION, graph=self, node=identifier
         )
 
     def _update_variant_mapping(self, identifier):
@@ -1361,7 +1365,7 @@ class Node(object):
             :class:`~wiz.package.Package` instance identifier.
 
         """
-        return self._package.identifier
+        return self._package.qualified_identifier
 
     @property
     def variant_name(self):
