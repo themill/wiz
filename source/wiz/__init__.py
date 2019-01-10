@@ -376,9 +376,7 @@ def export_definition(path, data, overwrite=False):
     return wiz.definition.export(path, data, overwrite=overwrite)
 
 
-def install_definitions_to_path(
-    paths, registry_path, overwrite=False
-):
+def install_definitions_to_path(paths, registry_path, overwrite=False):
     """Install a definition file to a registry on the file system.
 
     *paths* is the path list to all definition files.
@@ -408,9 +406,7 @@ def install_definitions_to_path(
     )
 
 
-def install_definitions_to_vcs(
-    paths, registry_identifier, overwrite=False
-):
+def install_definitions_to_vcs(paths, registry_identifier, overwrite=False):
     """Install a list of definition files to a :term:`Wiz Vault` registry.
 
     *paths* is the path list to all definition files.
