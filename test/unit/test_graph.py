@@ -663,8 +663,10 @@ def test_extract_ordered_packages(
 ):
     """Extract ordered packages from graph."""
     package_mapping = {
-        _id: mocker.Mock(identifier="_" + _id)
-        for _id in identifiers
+        _id: mocker.Mock(
+            identifier="_" + _id,
+            qualified_identifier="namespace::" + _id
+        ) for _id in identifiers
     }
 
     nodes = [
