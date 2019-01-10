@@ -152,11 +152,10 @@ Release Notes
     .. change:: changed
         :tags: API, command-line
 
-        Removed ``--install-location`` argument from ``wiz install`` subcommand,
-        :func:`wiz.install_definitions_to_path` and
-        :func:`wiz.install_definitions_to_vcs` as this can already be set with
-        the ``wiz edit`` command before installing, and just adds redundant
-        complexity.
+        Removed ``--install-location`` option from ``wiz install`` subcommand
+        and "install_location" argument from :func:`wiz.install_definitions` as
+        this can already be set with the ``wiz edit`` command before installing,
+        and just adds redundant complexity.
 
     .. change:: changed
         :tags: API
