@@ -676,10 +676,7 @@ def test_extract_ordered_packages(
 ):
     """Extract ordered packages from graph."""
     package_mapping = {
-        _id: mocker.Mock(
-            identifier="_" + _id,
-            qualified_identifier="namespace::" + _id
-        ) for _id in identifiers
+        _id: wiz.package.Package({"identifier": _id}) for _id in identifiers
     }
 
     nodes = [
@@ -690,6 +687,29 @@ def test_extract_ordered_packages(
 
     result = wiz.graph.extract_ordered_packages(mocked_graph, distance_mapping)
     assert result == [package_mapping[_id] for _id in expected]
+
+
+def test_extract_ordered_packages_error(mocker, mocked_graph):
+    """Fail to extract ordered packages from graph."""
+    distance_mapping = {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": 2, "parent": "root"}
+    }
+
+    nodes = [
+        mocker.Mock(identifier="A", package=mocker.ANY, error=None),
+        mocker.Mock(
+            identifier="B", package=mocker.ANY,
+            error=wiz.exception.WizError("Oh Shit!")
+        ),
+    ]
+    mocked_graph.nodes.return_value = nodes
+
+    with pytest.raises(wiz.exception.WizError) as error:
+        wiz.graph.extract_ordered_packages(mocked_graph, distance_mapping)
+
+    assert "Oh Shit!" in str(error)
 
 
 def test_graph_node():
