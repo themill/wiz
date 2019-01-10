@@ -128,7 +128,12 @@ class Resolver(object):
                 raise latest_error
 
             try:
+                # Raise error if a conflict in graph cannot be solved.
                 self._resolve_conflicts(graph)
+
+                # Extract packages if possible, or throw error.
+                distance_mapping, _ = self._fetch_distance_mapping(graph)
+                return extract_ordered_packages(graph, distance_mapping)
 
             except wiz.exception.WizError as error:
                 wiz.history.record_action(
@@ -138,10 +143,6 @@ class Resolver(object):
 
                 self._logger.debug("Failed to resolve graph: {}".format(error))
                 latest_error = error
-
-            else:
-                distance_mapping, _ = self._fetch_distance_mapping(graph)
-                return extract_ordered_packages(graph, distance_mapping)
 
     def _initiate(self, requirements):
         """Initialize iterator with a graph created from *requirement*.
@@ -725,6 +726,9 @@ def extract_ordered_packages(graph, distance_mapping):
     of each node identifier from the :attr:`root <Graph.ROOT>` level of the
     graph with its corresponding parent node identifier.
 
+    Raises :exc:`wiz.exception.WizError` if one reachable node contains an
+    incorrect definition.
+
     """
     logger = mlog.Logger(__name__ + ".extract_ordered_packages")
 
@@ -735,6 +739,15 @@ def extract_ordered_packages(graph, distance_mapping):
         key=lambda n: distance_mapping[n.identifier].items(),
         reverse=True
     ):
+        # Skip node if unreachable.
+        if distance_mapping[node.identifier].get("distance") is None:
+            continue
+
+        # Raises exception if the node is containing incorrect definition.
+        if node.error:
+            raise node.error
+
+        # Otherwise keep the package.
         packages.append(node.package)
 
     logger.debug(
@@ -1112,10 +1125,21 @@ class Graph(object):
         self._logger.debug("Update from requirement: {}".format(requirement))
 
         # Get packages from requirement.
-        packages = wiz.package.extract(
-            requirement, self._resolver.definition_mapping,
-            namespace_counter=self._namespace_count
-        )
+        try:
+            packages = wiz.package.extract(
+                requirement, self._resolver.definition_mapping,
+                namespace_counter=self._namespace_count
+            )
+
+        except wiz.exception.WizError as error:
+            # Create dummy package with error.
+            packages = [
+                wiz.package.Package({
+                    "identifier": requirement.name,
+                    "definition-identifier": requirement.name,
+                    "error": error
+                })
+            ]
 
         # Create a node for each package if necessary.
         for package in packages:
@@ -1366,6 +1390,15 @@ class Node(object):
 
         """
         return self._package.qualified_identifier
+
+    @property
+    def error(self):
+        """Return exception raise when extracting package from requirement.
+
+        Return None if no exception was raised.
+
+        """
+        return self._package.get("error")
 
     @property
     def variant_name(self):
