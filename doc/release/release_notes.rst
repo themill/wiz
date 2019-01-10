@@ -6,25 +6,6 @@ Release Notes
 
 .. release:: Upcoming
 
-    .. change:: changed
-        :tags: command-line
-
-        Update command line arguments to use the same option
-        :option:`--registry <wiz install --registry>` for installing to a
-        :term:`Local Registry` and installing to a :term:`VCS Registry`.
-        Previously the argument was split into `--registry-path` and
-        `--registry-id`.
-
-        Now definitions can be installed using the following commands syntax::
-
-            # For local registries
-            >>> wiz install foo.json --registry /path/to/registry
-            >>> wiz install foo.json -r /path/to/registry
-
-            # For VCS registries
-            >>> wiz install foo.json -registry wiz://primary-registry
-            >>> wiz install foo.json -r wiz://primary-registry
-
     .. change:: new
         :tags: command-line
 
@@ -101,6 +82,25 @@ Release Notes
 
         Updated :mod:`wiz.command_line` to use :mod:`click` instead of
         :mod:`argparse` in order to improve code maintainability.
+
+    .. change:: changed
+        :tags: command-line
+
+        Update command line arguments to use the same option
+        :option:`--registry <wiz install --registry>` for installing to a
+        :term:`Local Registry` and installing to a :term:`VCS Registry`.
+        Previously the argument was split into `--registry-path` and
+        `--registry-id`.
+
+        Now definitions can be installed using the following commands syntax::
+
+            # For local registries
+            >>> wiz install foo.json --registry /path/to/registry
+            >>> wiz install foo.json -r /path/to/registry
+
+            # For VCS registries
+            >>> wiz install foo.json -registry wiz://primary-registry
+            >>> wiz install foo.json -r wiz://primary-registry
 
     .. change:: changed
         :tags: command-line
@@ -235,6 +235,12 @@ Release Notes
         the module is loaded, rather than once per validation.
         Previously a "too many files opened" issue could be encountered when
         creating multiple definitions in parallel.
+
+    .. change:: fixed
+
+        Fixed :func:`wiz.registry.fetch` to resolve the absolute path of the
+        registry in order to prevent the fetching process to fail with relative
+        paths or trailing slashes.
 
 .. release:: 1.2.1
     :date: 2018-10-24
