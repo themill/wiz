@@ -670,7 +670,7 @@ def test_extract_ordered_packages(
     }
 
     nodes = [
-        mocker.Mock(identifier=_id, package=package_mapping[_id])
+        mocker.Mock(identifier=_id, package=package_mapping[_id], error=None)
         for _id in identifiers
     ]
     mocked_graph.nodes.return_value = nodes
