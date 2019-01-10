@@ -7,6 +7,7 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: changed
+        :tags: command-line
 
         Update command line arguments to use the same option
         :option:`--registry <wiz install --registry>` for installing to a
