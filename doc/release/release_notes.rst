@@ -9,6 +9,14 @@ Release Notes
     .. change:: new
         :tags: command-line
 
+        Added :option:`--init <wiz --init>` to specify initial environment
+        variables, which will be extended by the resolved environment.
+        For example, now it is possible to hand in a PATH or PYTHONPATH, without
+        making them available in a definition.
+
+    .. change:: new
+        :tags: command-line
+
         Added :option:`--version <wiz --version>` to display the package
         version.
 
