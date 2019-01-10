@@ -27,12 +27,12 @@ definitions in a :term:`VCS Registry`::
     Use this command with caution.
 
 A definition can be released into a :term:`VCS Registry` using the
-:term:`Python` API call :func:`wiz.install_definitions_to_vcs`:
+:term:`Python` API call :func:`wiz.install_definitions`:
 
     .. code-block:: python
 
-        wiz.install_definitions_to_vcs(
-            ["/path/to/foo-0.1.0.json"], "primary-registry"
+        wiz.install_definitions(
+            ["/path/to/foo-0.1.0.json"], "wiz://primary-registry"
         )
 
 .. hint::
@@ -70,11 +70,11 @@ personal registry can be done as follow::
     >>> wiz install /path/to/foo.json --registry ~
 
 A definition can be released into a :term:`Local Registry` using the
-:term:`Python` API call :func:`wiz.install_definitions_to_path`:
+:term:`Python` API call :func:`wiz.install_definitions`:
 
     .. code-block:: python
 
-        wiz.install_definitions_to_path(
+        wiz.install_definitions(
             ["/path/to/foo-0.1.0.json"], "/path/to/folder"
         )
 
