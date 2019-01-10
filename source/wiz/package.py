@@ -355,28 +355,26 @@ class Package(wiz.mapping.Mapping):
 
     def localized_environ(self):
         """Return localized environ mapping."""
+        # Extract install location value.
+        _install_location = self.get("install-location")
+
+        if "install-root" in self.keys():
+            _install_location = wiz.environ.substitute(
+                self.get("install-location"),
+                {wiz.symbol.INSTALL_ROOT: self.get("install-root")}
+            )
+
+        # Localize each environment variable.
         _environ = self.environ
 
         def _replace_location(mapping, item):
             """Replace install-location in *item* for *mapping*."""
-            mapping[item[0]] = item[1].replace(
-                "${{{}}}".format(wiz.symbol.INSTALL_LOCATION),
-                self.get("install-location")
-            )
-            return mapping
-
-        def _replace_root(mapping, item):
-            """Replace install-root in *item* for *mapping*."""
-            mapping[item[0]] = item[1].replace(
-                "${{{}}}".format(wiz.symbol.INSTALL_ROOT),
-                self.get("install-root")
+            mapping[item[0]] = wiz.environ.substitute(
+                item[1], {wiz.symbol.INSTALL_LOCATION: _install_location}
             )
             return mapping
 
         if "install-location" in self.keys():
             _environ = reduce(_replace_location, _environ.items(), {})
-
-        if "install-root" in self.keys():
-            _environ = reduce(_replace_root, _environ.items(), {})
 
         return _environ
