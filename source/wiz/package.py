@@ -10,7 +10,7 @@ import wiz.environ
 import wiz.exception
 
 
-def extract(requirement, definition_mapping):
+def extract(requirement, definition_mapping, namespace_counter=None):
     """Extract list of :class:`Package` instances from *requirement*.
 
     The best matching :class:`~wiz.definition.Definition` version instances
@@ -24,8 +24,15 @@ def extract(requirement, definition_mapping):
     *definition_mapping* is a mapping regrouping all available definitions
     associated with their unique identifier.
 
+    *namespace_counter* is an optional :class:`collections.Counter` instance
+    which indicate occurrence of namespaces used as hints for package
+    identification.
+
     """
-    definition = wiz.definition.query(requirement, definition_mapping)
+    definition = wiz.definition.query(
+        requirement, definition_mapping,
+        namespace_counter=namespace_counter
+    )
 
     # Extract and return the requested variant if necessary.
     if len(requirement.extras) > 0:
@@ -307,6 +314,13 @@ class Package(wiz.mapping.Mapping):
         super(Package, self).__init__(*args, **kwargs)
 
     @property
+    def qualified_identifier(self):
+        """Return qualified identifier with optional namespace."""
+        if self.namespace is not None:
+            return "{}::{}".format(self.namespace, self.identifier)
+        return self.identifier
+
+    @property
     def definition_identifier(self):
         """Return definition identifier."""
         return self.get("definition-identifier")
@@ -324,6 +338,7 @@ class Package(wiz.mapping.Mapping):
             "definition-identifier",
             "variant-name",
             "version",
+            "namespace",
             "description",
             "registry",
             "definition-location",

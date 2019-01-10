@@ -80,6 +80,54 @@ The version could also be specified when running a command directly::
 
 If no version is requested, the latest version is automatically fetched.
 
+.. _definition/namespace:
+
+Namespace
+---------
+
+the optional ``namespace`` keyword can be used to provides a scope to a
+package definition.
+
+.. code-block:: json
+
+    {
+        "namespace": "maya"
+    }
+
+It can be used to organize packages into logical groups and prevent name
+collisions that can occur, especially for plugins.
+
+.. code-block:: console
+
+    >>> wiz use maya::xmlf
+    >>> wiz use houdini::xmlf
+
+When a package identifier only exists under one namespace, it can be called
+without it. For instance, if "foo" only exists under the "bar" namespace,
+then both commands will be correct:
+
+.. code-block:: console
+
+    >>> wiz use bar::foo
+    >>> wiz use foo
+
+If many namespaces are available for one package identifier, it must be
+specified in the command line. However, namespaces from packages previously
+fetched, as well as package names that were part of the original request, can be
+used as a hint to guess the namespace of the following requests if only the
+identifier is used:
+
+.. code-block:: console
+
+    >>> wiz use maya xmlf
+    >>> wiz use xmlf maya
+    >>> wiz use maya::maya maya::xmlf
+
+.. note::
+
+    Only one namespace per definition can be setup at this point. A hyphen can
+    be used in the namespace if necessary (e.g. "A-B::foo").
+
 .. _definition/description:
 
 Description
@@ -200,21 +248,6 @@ let the user call the command directly with the ``run`` command:
 
     Each command must be unique within a :ref:`registry` and could be
     overwritten by another package definition in another registry.
-
-.. _definition/group:
-
-Group
------
-
-the optional ``group`` keyword can be used to indicate where in the hierarchy of
-a :term:`VCS Registry` a definition will be installed.
-
-.. code-block:: json
-
-    {
-        "group": "python"
-    }
-
 
 .. _definition/requirements:
 

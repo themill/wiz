@@ -39,7 +39,6 @@ def mocked_graph(mocker):
 def mocked_resolver(mocker):
     """Return mocked Resolver."""
     resolver = mocker.patch.object(wiz.graph, "Resolver")
-    resolver.definition_mapping = "DEFINITION_MAPPING"
     return resolver
 
 
@@ -664,8 +663,10 @@ def test_extract_ordered_packages(
 ):
     """Extract ordered packages from graph."""
     package_mapping = {
-        _id: mocker.Mock(identifier="_" + _id)
-        for _id in identifiers
+        _id: mocker.Mock(
+            identifier="_" + _id,
+            qualified_identifier="namespace::" + _id
+        ) for _id in identifiers
     }
 
     nodes = [
@@ -867,7 +868,8 @@ def test_graph_update_from_requirements(
         },
         "variants_per_definition": {},
         "constraint_mapping": {},
-        "condition_mapping": {}
+        "condition_mapping": {},
+        "namespace_count": {}
     }
 
 
@@ -979,7 +981,8 @@ def test_graph_update_from_requirements_with_dependencies(
         },
         "variants_per_definition": {},
         "constraint_mapping": {},
-        "condition_mapping": {}
+        "condition_mapping": {},
+        "namespace_count": {}
     }
 
 
@@ -1056,10 +1059,11 @@ def test_graph_update_from_requirements_with_variants(
             "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"],
         },
         "variants_per_definition": {
-            "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"]
+            "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"],
         },
         "constraint_mapping": {},
-        "condition_mapping": {}
+        "condition_mapping": {},
+        "namespace_count": {}
     }
 
 
@@ -1128,7 +1132,8 @@ def test_graph_update_from_requirements_with_unused_constraints(
             ]
         },
         "condition_mapping": {},
-        "variants_per_definition": {}
+        "variants_per_definition": {},
+        "namespace_count": {}
     }
 
 
@@ -1222,6 +1227,79 @@ def test_graph_update_from_requirements_with_used_constraints(
         "constraint_mapping": {},
         "condition_mapping": {},
         "variants_per_definition": {},
+        "namespace_count": {}
+    }
+
+
+def test_graph_update_from_requirements_with_namespaces(
+    mocked_resolver, mocked_package_extract
+):
+    """Update graph from requirements with namespaces."""
+    mocked_resolver.definition_mapping = {
+        "__namespace__": {
+            "A": ["Foo"],
+            "B": ["Foo", "Bar"],
+        }
+    }
+
+    graph = wiz.graph.Graph(mocked_resolver)
+
+    _mapping = {
+        "Foo::A==0.2.0": wiz.package.Package({
+            "identifier": "A==0.2.0",
+            "namespace": "Foo",
+            "definition-identifier": "A"
+        }),
+        "Foo::B==2.1.1": wiz.package.Package({
+            "identifier": "B==2.1.1",
+            "namespace": "Foo",
+            "definition-identifier": "B"
+        })
+    }
+
+    mocked_package_extract.side_effect = [
+        [_mapping["Foo::A==0.2.0"]],
+        [_mapping["Foo::B==2.1.1"]]
+    ]
+
+    graph.update_from_requirements([Requirement("A"), Requirement("B>=2")])
+
+    assert graph.to_dict() == {
+        "identifier": mock.ANY,
+        "node_mapping": {
+            "Foo::A==0.2.0": {
+                "package": {
+                    "identifier": "A==0.2.0",
+                    "namespace": "Foo",
+                    "definition-identifier": "A"
+                },
+                "parents": ["root"]
+            },
+            "Foo::B==2.1.1": {
+                "package": {
+                    "identifier": "B==2.1.1",
+                    "namespace": "Foo",
+                    "definition-identifier": "B"
+                },
+                "parents": ["root"]
+            }
+        },
+        "link_mapping": {
+            "root": {
+                "Foo::A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
+                "Foo::B==2.1.1": {
+                    "requirement": Requirement("B >=2"), "weight": 2
+                }
+            }
+        },
+        "identifiers_per_definition": {
+            "A": ["Foo::A==0.2.0"],
+            "B": ["Foo::B==2.1.1"],
+        },
+        "variants_per_definition": {},
+        "condition_mapping": {},
+        "constraint_mapping": {},
+        "namespace_count": {"Bar": 1, "Foo": 2},
     }
 
 
@@ -1284,7 +1362,8 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
                 "weight": 2
             }
         },
-        "variants_per_definition": {}
+        "variants_per_definition": {},
+        "namespace_count": {}
     }
 
 
@@ -1346,7 +1425,8 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
         },
         "constraint_mapping": {},
         "condition_mapping": {},
-        "variants_per_definition": {}
+        "variants_per_definition": {},
+        "namespace_count": {}
     }
 
 

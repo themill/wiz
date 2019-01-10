@@ -138,7 +138,7 @@ def install_to_path(definitions, registry_path, overwrite=False):
     mapping = wiz.fetch_definition_mapping([registry_path])
 
     for definition in definitions:
-        request = definition.version_identifier
+        request = definition.qualified_version_identifier
 
         try:
             _definition = wiz.fetch_definition(request, mapping)

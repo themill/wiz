@@ -2187,3 +2187,183 @@ def test_scenario_19(
     assert spied_extract_parents.call_count == 0
     assert spied_remove_node_and_relink.call_count == 1
     assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_20(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Fail to compute packages for the following graph.
+
+    Root
+     |
+     `--(A): Namespace1::A==0.1.0 || Namespace2::A==0.2.0
+
+    Expected: Unable to guess default namespace for 'A'
+
+    """
+    definition_mapping = {
+        "__namespace__": {
+            "A": ["Namespace1", "Namespace2"]
+        },
+        "Namespace1::A": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0",
+                "namespace": "Namespace1"
+            })
+        },
+        "Namespace2::A": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+                "namespace": "Namespace2"
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    with pytest.raises(wiz.exception.RequestNotFound) as error:
+        resolver.compute_packages([Requirement("A")])
+
+    assert (
+        "Cannot guess default namespace for 'A' "
+        "[available: Namespace1, Namespace2]"
+    ) in str(error)
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 0
+    assert spied_fetch_distance_mapping.call_count == 0
+    assert spied_extract_combinations.call_count == 0
+    assert spied_resolve_conflicts.call_count == 0
+    assert spied_compute_distance_mapping.call_count == 0
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_updated_by_distance.call_count == 0
+    assert spied_extract_conflicting_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 0
+
+
+def test_scenario_21(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    When a definition is found, its namespace is used to give hint when looking
+    for default namespace belonging to the other definitions.
+
+    Root
+     |
+     |--(A): Namespace1::A
+     |
+     |--(B): Namespace1::B==0.1.0 || Namespace2::B==0.2.0
+     |
+     |--(C): Namespace3::C==0.1.0 || Namespace4::C==0.2.0
+     |
+     `--(D): Namespace4::D
+
+    Expected:
+    Namespace4::D, Namespace4::C==0.2.0, Namespace1::B==0.1.0,  Namespace1::A
+
+    """
+    definition_mapping = {
+        "__namespace__": {
+            "A": ["Namespace1"],
+            "B": ["Namespace1", "Namespace2"],
+            "C": ["Namespace3", "Namespace4"],
+            "D": ["Namespace4"],
+        },
+        "Namespace1::A": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "A",
+                "namespace": "Namespace1"
+            })
+        },
+        "Namespace1::B": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "namespace": "Namespace1"
+            })
+        },
+        "Namespace2::B": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.2.0",
+                "namespace": "Namespace2"
+            })
+        },
+        "Namespace3::C": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.1.0",
+                "namespace": "Namespace3"
+            })
+        },
+        "Namespace4::C": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.2.0",
+                "namespace": "Namespace4"
+            })
+        },
+        "Namespace4::D": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "D",
+                "namespace": "Namespace4"
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("B"), Requirement("C"), Requirement("D")
+    ])
+    assert len(packages) == 4
+    assert packages[0].qualified_identifier == "Namespace4::D"
+    assert packages[1].qualified_identifier == "Namespace4::C==0.2.0"
+    assert packages[2].qualified_identifier == "Namespace1::B==0.1.0"
+    assert packages[3].qualified_identifier == "Namespace1::A"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 1
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_distance_mapping.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_updated_by_distance.call_count == 0
+    assert spied_extract_conflicting_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1

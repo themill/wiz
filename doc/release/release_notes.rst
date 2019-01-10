@@ -54,6 +54,14 @@ Release Notes
         which must be in the resolution graph for the package to be included.
 
     .. change:: new
+        :tags: definition
+
+        Added support for :ref:`namespace <definition/namespace>` keyword which
+        can be used to provide a scope to a definition. It replaces the
+        "group" keyword as it is also used to define where in the hierarchy of a
+        :term:`VCS Registry` a definition will be installed.
+
+    .. change:: new
         :tags: API
 
         Added :mod:`wiz.environ` module to regroup functions dealing with the
@@ -113,7 +121,7 @@ Release Notes
         :func:`wiz.definition.fetch` only records one definition per identifier
         and version.
 
-    .. change:: new
+    .. change:: changed
         :tags: API
 
         Updated :func:`wiz.spawn.execute` to display a nicer error handling for
@@ -188,6 +196,17 @@ Release Notes
     .. change:: changed
         :tags: API
 
+        Added the following properties to get qualified identifiers from
+        :class:`~wiz.definition.Definition` and :class:`~wiz.package.Package`
+        instances:
+
+        * :attr:`wiz.definition.Definition.qualified_identifier`
+        * :attr:`wiz.definition.Definition.qualified_version_identifier`
+        * :attr:`wiz.package.Package.qualified_identifier`
+
+    .. change:: changed
+        :tags: API
+
         Updated :class:`graph.Resolver` and :class:`graph.Graph` to take
         conditions into account while resolving the graph.
 
@@ -224,7 +243,7 @@ Release Notes
     .. change:: new
         :tags: definition
 
-        Added optional :ref:`group <definition/group>` keyword to definition
+        Added optional :ref:`group <definition/namespace>` keyword to definition
         schema, which can be used to define where in the hierarchy of a
         :term:`VCS Registry` a definition will be installed (e.g. "python",
         "maya").

@@ -39,8 +39,8 @@
             "description": "Install location to the package data.",
             "type": "string"
         },
-        "group": {
-            "description": "Group in registry to place definition into.",
+        "namespace": {
+            "description": "Namespace of the definition.",
             "type": "string"
         },
         "system": {

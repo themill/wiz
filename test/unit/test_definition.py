@@ -3,7 +3,7 @@
 import os
 import types
 import copy
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 import itertools
 
 import pytest
@@ -20,136 +20,63 @@ def definitions():
     """Return list of mocked definitions."""
     return [
         wiz.definition.Definition({
-            "identifier": "foo-package",
+            "identifier": "foo",
+            "namespace": "test",
             "version": "0.1.0",
-            "description": "A test package for foo."
         }),
         wiz.definition.Definition({
-            "identifier": "foo-package",
+            "identifier": "foo",
+            "namespace": "test",
             "version": "1.1.0",
-            "description": "Another test package for foo.",
             "command": {
                 "foo": "Foo1.1",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "bar-package",
+            "identifier": "bar",
             "version": "1.0.0",
-            "description": "A test package for bar.",
             "command": {
                 "bar": "Bar1.0",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "bar-package",
+            "identifier": "bar",
             "version": "0.9.2",
-            "description": "Another test package for bar.",
             "command": {
                 "bar": "Bar0.9",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "baz-package",
+            "identifier": "baz",
             "version": "0.1.1",
-            "description": "A test package for baz.",
             "command": {
                 "baz": "Baz0.1",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "bim-package",
+            "identifier": "bim",
             "version": "0.2.1",
-            "description": "A test package for bim.",
             "command": {
                 "bim": "Bim0.2",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "bim-package",
+            "identifier": "bim",
             "version": "0.2.1",
-            "description": "Another test package for bim.",
             "command": {
                 "bim-test": "Bim0.2 --test",
             }
         }),
         wiz.definition.Definition({
-            "identifier": "bim-package",
+            "identifier": "bim",
             "version": "0.1.0",
-            "description": "Yet another test package for bim.",
             "command": {
                 "bim": "Bim0.1",
             }
-        })
-    ]
-
-
-@pytest.fixture()
-def definitions_with_auto_use():
-    """Return list of mocked definitions with 'auto-use' keyword."""
-    return [
-        wiz.definition.Definition({
-            "identifier": "foo-package",
-            "version": "0.1.0",
-            "description": "A test package for foo.",
-            "auto-use": True
         }),
         wiz.definition.Definition({
-            "identifier": "foo-package",
-            "version": "1.1.0",
-            "description": "Another test package for foo.",
-            "auto-use": True,
-            "command": {
-                "foo": "Foo1.1",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "bar-package",
-            "version": "1.0.0",
-            "description": "A test package for bar.",
-            "command": {
-                "bar": "Bar1.0",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "bar-package",
-            "version": "0.9.2",
-            "description": "Another test package for bar.",
-            "command": {
-                "bar": "Bar0.9",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "baz-package",
-            "version": "0.1.1",
-            "description": "A test package for baz.",
-            "command": {
-                "baz": "Baz0.1",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "bim-package",
-            "version": "0.2.1",
-            "description": "A test package for bim.",
-            "command": {
-                "bim": "Bim0.2",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "bim-package",
-            "version": "0.2.1",
-            "description": "Another test package for bim.",
-            "command": {
-                "bim-test": "Bim0.2 --test",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "bim-package",
-            "version": "0.1.0",
-            "description": "Yet another test package for bim.",
-            "auto-use": True,
-            "command": {
-                "bim": "Bim0.1",
-            }
+            "identifier": "foo",
+            "namespace": "other"
         })
     ]
 
@@ -158,6 +85,10 @@ def definitions_with_auto_use():
 def package_definition_mapping():
     """Return mocked package mapping."""
     return {
+        "__namespace__": {
+            "bim": {"test"},
+            "baz": {"test1", "test2", "test3"}
+        },
         "foo": {
             "0.3.4": wiz.definition.Definition({
                 "identifier": "foo",
@@ -190,6 +121,31 @@ def package_definition_mapping():
                 "version": "0.1.0",
             }),
         },
+        "test::bim": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "bim",
+                "namespace": "test",
+                "version": "0.1.0",
+            }),
+        },
+        "test1::baz": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "baz",
+                "namespace": "test1",
+            }),
+        },
+        "test2::baz": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "baz",
+                "namespace": "test2",
+            }),
+        },
+        "test3::baz": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "baz",
+                "namespace": "test3",
+            }),
+        }
     }
 
 
@@ -317,30 +273,36 @@ def test_fetch(mocked_discover, definitions, options):
 
     assert result == {
         "package": {
-            "foo-package": {
+            "__namespace__": {
+                "foo": {"test", "other"}
+            },
+            "test::foo": {
                 "0.1.0": definitions[0],
                 "1.1.0": definitions[1]
             },
-            "bar-package": {
+            "bar": {
                 "1.0.0": definitions[2],
                 "0.9.2": definitions[3]
             },
-            "baz-package": {
+            "baz": {
                 "0.1.1": definitions[4]
             },
-            "bim-package": {
+            "bim": {
                 # The 5th definition in the incoming list is overridden by the
                 # 6th one which has the same identifier and version.
                 "0.2.1": definitions[6],
                 "0.1.0": definitions[7]
+            },
+            "other::foo": {
+                "unknown": definitions[8]
             }
         },
         "command": {
-            "foo": "foo-package",
-            "bar": "bar-package",
-            "baz": "baz-package",
-            "bim-test": "bim-package",
-            "bim": "bim-package"
+            "foo": "foo",
+            "bar": "bar",
+            "baz": "baz",
+            "bim-test": "bim",
+            "bim": "bim"
         },
         "implicit-packages": []
     }
@@ -355,40 +317,12 @@ def test_fetch(mocked_discover, definitions, options):
     "with-max-depth",
     "with-system"
 ])
-def test_fetch_with_implicit_packages(mocked_discover, options):
+def test_fetch_with_implicit_packages(mocked_discover, definitions, options):
     """Fetch all definition within *paths*."""
-    definitions = [
-        wiz.definition.Definition({
-            "identifier": "foo",
-            "version": "0.1.0",
-            "auto-use": True
-        }),
-        wiz.definition.Definition({
-            "identifier": "foo",
-            "version": "1.1.0",
-            "auto-use": True
-        }),
-        wiz.definition.Definition({
-            "identifier": "bar",
-            "version": "1.0.0",
-        }),
-        wiz.definition.Definition({
-            "identifier": "bar",
-            "version": "0.9.2",
-            "auto-use": True
-        }),
-        wiz.definition.Definition({
-            "identifier": "baz",
-        }),
-        wiz.definition.Definition({
-            "identifier": "bim",
-            "auto-use": True
-        }),
-        wiz.definition.Definition({
-            "identifier": "bam",
-            "auto-use": True
-        }),
-    ]
+    definitions[0] = definitions[0].set("auto-use", True)
+    definitions[1] = definitions[1].set("auto-use", True)
+    definitions[3] = definitions[3].set("auto-use", True)
+    definitions[8] = definitions[8].set("auto-use", True)
 
     mocked_discover.return_value = definitions
     result = wiz.definition.fetch(
@@ -403,7 +337,10 @@ def test_fetch_with_implicit_packages(mocked_discover, options):
 
     assert result == {
         "package": {
-            "foo": {
+            "__namespace__": {
+                "foo": {"test", "other"}
+            },
+            "test::foo": {
                 "0.1.0": definitions[0],
                 "1.1.0": definitions[1]
             },
@@ -412,21 +349,29 @@ def test_fetch_with_implicit_packages(mocked_discover, options):
                 "0.9.2": definitions[3]
             },
             "baz": {
-                "unknown": definitions[4]
+                "0.1.1": definitions[4]
             },
             "bim": {
-                "unknown": definitions[5],
+                # The 5th definition in the incoming list is overridden by the
+                # 6th one which has the same identifier and version.
+                "0.2.1": definitions[6],
+                "0.1.0": definitions[7]
             },
-            "bam": {
-                "unknown": definitions[6],
+            "other::foo": {
+                "unknown": definitions[8]
             }
         },
-        "command": {},
+        "command": {
+            "foo": "foo",
+            "bar": "bar",
+            "baz": "baz",
+            "bim-test": "bim",
+            "bim": "bim"
+        },
         "implicit-packages": [
-            "bam",
-            "bim",
+            "other::foo",
             "bar==0.9.2",
-            "foo==1.1.0"
+            "test::foo==1.1.0"
         ]
     }
 
@@ -456,6 +401,79 @@ def test_query_definition(package_definition_mapping):
         wiz.definition.query(requirement, package_definition_mapping) ==
         package_definition_mapping["bar"]["0.1.5"]
     )
+
+    requirement = Requirement("bim")
+    assert (
+        wiz.definition.query(requirement, package_definition_mapping) ==
+        package_definition_mapping["test::bim"]["0.1.0"]
+    )
+
+    requirement = Requirement("test::bim")
+    assert (
+        wiz.definition.query(requirement, package_definition_mapping) ==
+        package_definition_mapping["test::bim"]["0.1.0"]
+    )
+
+
+def test_query_definition_with_namespace_counter(package_definition_mapping):
+    """Return best matching definition with namespace counter."""
+    requirement = Requirement("baz")
+    definition = wiz.definition.query(
+        requirement, package_definition_mapping,
+        namespace_counter=Counter(["test1"])
+    )
+
+    assert definition == package_definition_mapping["test1::baz"]["unknown"]
+
+    requirement = Requirement("baz")
+    definition = wiz.definition.query(
+        requirement, package_definition_mapping,
+        namespace_counter=Counter(["test1", "other"])
+    )
+
+    assert definition == package_definition_mapping["test1::baz"]["unknown"]
+
+    requirement = Requirement("baz")
+    definition = wiz.definition.query(
+        requirement, package_definition_mapping,
+        namespace_counter=Counter(["test2"])
+    )
+
+    assert definition == package_definition_mapping["test2::baz"]["unknown"]
+
+    requirement = Requirement("bim")
+    definition = wiz.definition.query(
+        requirement, package_definition_mapping,
+        namespace_counter=Counter(["test2"])
+    )
+
+    assert definition == package_definition_mapping["test::bim"]["0.1.0"]
+
+    requirement = Requirement("baz")
+
+    with pytest.raises(wiz.exception.RequestNotFound) as error:
+        wiz.definition.query(
+            requirement, package_definition_mapping,
+            namespace_counter=Counter(["test1", "test2"])
+        )
+
+    assert (
+        "Cannot guess default namespace for 'baz' "
+        "[available: test1, test2, test3]"
+    ) in str(error)
+
+
+def test_query_definition_namespace_error(package_definition_mapping):
+    """Fails to guess default namespace for definition."""
+    requirement = Requirement("baz")
+
+    with pytest.raises(wiz.exception.RequestNotFound) as error:
+        wiz.definition.query(requirement, package_definition_mapping)
+
+    assert (
+        "Cannot guess default namespace for 'baz' "
+        "[available: test1, test2, test3]"
+    ) in str(error)
 
 
 def test_query_definition_name_error(package_definition_mapping):
@@ -930,6 +948,7 @@ def test_definition_mapping():
     data = {
         "identifier": "test",
         "version": "0.1.0",
+        "namespace": "foo",
         "description": "This is a definition",
         "registry": "/path/to/registry",
         "definition-location": "/path/to/registry/test-0.1.0.json",
@@ -968,6 +987,7 @@ def test_definition_mapping():
     assert environment.to_dict() == {
         "identifier": "test",
         "version": Version("0.1.0"),
+        "namespace": "foo",
         "description": "This is a definition",
         "registry": "/path/to/registry",
         "definition-location": "/path/to/registry/test-0.1.0.json",
@@ -1005,6 +1025,7 @@ def test_definition_mapping():
         "{\n"
         "    \"identifier\": \"test\",\n"
         "    \"version\": \"0.1.0\",\n"
+        "    \"namespace\": \"foo\",\n"
         "    \"description\": \"This is a definition\",\n"
         "    \"registry\": \"/path/to/registry\",\n"
         "    \"definition-location\": \"/path/to/registry/test-0.1.0.json\",\n"
@@ -1059,7 +1080,11 @@ def test_minimal_definition():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "unknown"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -1071,6 +1096,34 @@ def test_minimal_definition():
 
     assert definition.to_ordered_dict() == OrderedDict([
         ("identifier", "test"),
+    ])
+
+
+def test_minimal_definition_with_namespace():
+    """Create a minimal definition with namespace."""
+    data = {
+        "identifier": "test",
+        "namespace": "foo",
+    }
+
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.qualified_identifier == "foo::test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "foo::test"
+    assert definition.version == "unknown"
+    assert definition.namespace == "foo"
+    assert definition.description == "unknown"
+    assert definition.environ == {}
+    assert definition.requirements == []
+    assert definition.constraints == []
+    assert definition.command == {}
+    assert definition.system == {}
+    assert definition.variants == []
+
+    assert definition.to_ordered_dict() == OrderedDict([
+        ("identifier", "test"),
+        ("namespace", "foo"),
     ])
 
 
@@ -1090,7 +1143,47 @@ def test_definition_with_version(options, expected_version):
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test==0.1.0"
+    assert definition.qualified_version_identifier == "test==0.1.0"
     assert definition.version == Version("0.1.0")
+    assert definition.namespace is None
+    assert definition.description == "unknown"
+    assert definition.environ == {}
+    assert definition.requirements == []
+    assert definition.constraints == []
+    assert definition.command == {}
+    assert definition.system == {}
+    assert definition.variants == []
+
+    assert definition.to_ordered_dict(**options) == OrderedDict([
+        ("identifier", "test"),
+        ("version", expected_version),
+    ])
+
+
+@pytest.mark.parametrize("options, expected_version", [
+    ({}, Version("0.1.0")),
+    ({"serialize_content": True}, "0.1.0")
+], ids=[
+    "non-serialized",
+    "serialized",
+])
+def test_definition_with_version_and_namespace(options, expected_version):
+    """Create a definition with version and namespace."""
+    data = {
+        "identifier": "test",
+        "namespace": "foo",
+        "version": "0.1.0",
+    }
+
+    definition = wiz.definition.Definition(data)
+    assert definition.identifier == "test"
+    assert definition.qualified_identifier == "foo::test"
+    assert definition.version_identifier == "test==0.1.0"
+    assert definition.qualified_version_identifier == "foo::test==0.1.0"
+    assert definition.version == Version("0.1.0")
+    assert definition.namespace == "foo"
     assert definition.description == "unknown"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -1103,6 +1196,7 @@ def test_definition_with_version(options, expected_version):
     assert definition.to_ordered_dict(**options) == OrderedDict([
         ("identifier", "test"),
         ("version", expected_version),
+        ("namespace", "foo"),
     ])
 
 
@@ -1115,7 +1209,11 @@ def test_definition_with_description():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -1145,7 +1243,11 @@ def test_definition_with_environ():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.requirements == []
     assert definition.conditions == []
@@ -1185,7 +1287,11 @@ def test_definition_with_requirements():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.command == {}
@@ -1227,7 +1333,11 @@ def test_definition_with_constraints():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.command == {}
@@ -1310,7 +1420,11 @@ def test_definition_with_command():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []
@@ -1347,7 +1461,11 @@ def test_definition_with_system():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.command == {}
@@ -1412,7 +1530,11 @@ def test_definition_with_variant():
 
     definition = wiz.definition.Definition(copy.deepcopy(data))
     assert definition.identifier == "test"
+    assert definition.qualified_identifier == "test"
+    assert definition.version_identifier == "test"
+    assert definition.qualified_version_identifier == "test"
     assert definition.version == "unknown"
+    assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.requirements == []

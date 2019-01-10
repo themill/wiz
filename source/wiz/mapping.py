@@ -136,9 +136,9 @@ class Mapping(collections.Mapping):
         return self.get("description", wiz.symbol.UNKNOWN_VALUE)
 
     @property
-    def group(self):
-        """Return group."""
-        return self.get("group")
+    def namespace(self):
+        """Return namespace."""
+        return self.get("namespace")
 
     @property
     def environ(self):
