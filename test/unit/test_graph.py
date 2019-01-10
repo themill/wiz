@@ -1356,16 +1356,25 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
             "identifier": "C==2.0.4",
             "definition-identifier": "C",
         }),
+        "D==0.1.0": wiz.package.Package({
+            "identifier": "D==0.1.0",
+            "definition-identifier": "D",
+            "conditions": [Requirement("W")]
+        }),
     }
 
     mocked_package_extract.side_effect = [
         [_mapping["A==0.2.0"]],
         [_mapping["B==2.1.1"]],
+        [_mapping["D==0.1.0"]],
         # Extract conditional package
-        [_mapping["C==2.0.4"]]
+        [_mapping["C==2.0.4"]],
+        wiz.exception.WizError("Oh Shit!")
     ]
 
-    graph.update_from_requirements([Requirement("A"), Requirement("B>=2")])
+    graph.update_from_requirements([
+        Requirement("A"), Requirement("B>=2"), Requirement("D")
+    ])
 
     assert graph.to_dict() == {
         "identifier": mock.ANY,
@@ -1393,6 +1402,12 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
                 "package": mock.ANY,
                 "parent_identifier": None,
                 "weight": 2
+            },
+            ("W",): {
+                "requirement": Requirement("D"),
+                "package": mock.ANY,
+                "parent_identifier": None,
+                "weight": 3
             }
         },
         "variants_per_definition": {},

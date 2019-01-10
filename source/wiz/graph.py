@@ -1035,15 +1035,16 @@ class Graph(object):
                     ) for condition in conditions
                 )
 
+                # Require all of this package identifiers to be in the node
+                # mapping.
+                identifiers = [
+                    package.qualified_identifier
+                    for package in itertools.chain(*packages)
+                ]
+
             except wiz.exception.WizError:
                 # Do not raise if the request is not found.
                 continue
-
-            # Require all of this package identifiers to be in the node mapping.
-            identifiers = [
-                package.qualified_identifier
-                for package in itertools.chain(*packages)
-            ]
 
             if all(_id in self._node_mapping.keys() for _id in identifiers):
                 stored_node = self._condition_mapping[conditions]
