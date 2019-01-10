@@ -2429,7 +2429,7 @@ def test_install_recorded(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        options + ["install", "/path/to/foo.json"],
+        options + ["install", "/path/to/foo.json", "-r", "/somewhere"],
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -2438,7 +2438,9 @@ def test_install_recorded(
     if recorded:
         mocked_history_start_recording.assert_called_once_with(
             command=" ".join(
-                ["wiz"] + options + ["install", "/path/to/foo.json"]
+                ["wiz"] + options + [
+                    "install", "/path/to/foo.json", "-r", "/somewhere"
+                ]
             )
         )
         mocked_history_get.assert_called_once_with(serialized=True)
