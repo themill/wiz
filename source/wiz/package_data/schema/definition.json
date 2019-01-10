@@ -12,7 +12,10 @@
         },
         "version": {
             "description": "Version of the definition.",
-            "type": "string"
+            "anyOf": [
+                {"type": "string"},
+                {"type": "version"}
+            ]
         },
         "auto-use": {
             "description": "Indicate whether the definition should be used implicitly.",
@@ -40,8 +43,8 @@
             "description": "Install location to the package data.",
             "type": "string"
         },
-        "group": {
-            "description": "Group in registry to place definition into.",
+        "namespace": {
+            "description": "Namespace of the definition.",
             "type": "string"
         },
         "system": {
@@ -82,7 +85,22 @@
             "minItems": 1,
             "uniqueItems": true,
             "items": {
-                "type": "string"
+                "anyOf": [
+                    {"type": "string"},
+                    {"type": "requirement"}
+                ]
+            }
+        },
+        "conditions": {
+            "description": "List of preliminary conditions to use the definition.",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"type": "requirement"}
+                ]
             }
         },
         "constraints": {
@@ -91,7 +109,10 @@
             "minItems": 1,
             "uniqueItems": true,
             "items": {
-                "type": "string"
+                "anyOf": [
+                    {"type": "string"},
+                    {"type": "requirement"}
+                ]
             }
         },
         "variants": {
@@ -124,7 +145,22 @@
                         "minItems": 1,
                         "uniqueItems": true,
                         "items": {
-                            "type": "string"
+                            "anyOf": [
+                                {"type": "string"},
+                                {"type": "requirement"}
+                            ]
+                        }
+                    },
+                    "conditions": {
+                        "description": "List of preliminary conditions to use the definition variant.",
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                            "anyOf": [
+                                {"type": "string"},
+                                {"type": "requirement"}
+                            ]
                         }
                     },
                     "constraints": {
@@ -133,7 +169,10 @@
                         "minItems": 1,
                         "uniqueItems": true,
                         "items": {
-                            "type": "string"
+                            "anyOf": [
+                                {"type": "string"},
+                                {"type": "requirement"}
+                            ]
                         }
                     }
                 },

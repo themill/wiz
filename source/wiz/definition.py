@@ -27,10 +27,17 @@ def fetch(paths, system_mapping=None, max_depth=None):
                 ...
             },
             "package": {
+                "__namespace__": {
+                    "bar": {"test"}
+                },
                 "foo": {
                     "1.1.0": <Definition(identifier="foo", version="1.1.0")>,
                     "1.0.0": <Definition(identifier="foo", version="1.0.0")>,
                     "0.1.0": <Definition(identifier="foo", version="0.1.0")>,
+                    ...
+                },
+                "test::bar": {
+                    "0.1.0": <Definition(identifier="bar", version="0.1.0")>,
                     ...
                 },
                 ...
@@ -68,7 +75,7 @@ def fetch(paths, system_mapping=None, max_depth=None):
 
         # Record package identifiers which should be used implicitly in context.
         if definition.get("auto-use"):
-            implicit_identifiers.append(definition.identifier)
+            implicit_identifiers.append(definition.qualified_identifier)
             _add_to_mapping(definition, implicit_package_mapping)
 
     # Extract implicit package requests.
@@ -101,11 +108,17 @@ def _add_to_mapping(definition, mapping):
 
     """
     identifier = definition.identifier
+    if definition.namespace is not None:
+        mapping.setdefault("__namespace__", {})
+        mapping["__namespace__"].setdefault(identifier, set())
+        mapping["__namespace__"][identifier].add(definition.namespace)
+
+    qualified_identifier = definition.qualified_identifier
     version = str(definition.version)
 
-    mapping.setdefault(identifier, {})
-    mapping[identifier].setdefault(version, {})
-    mapping[identifier][version] = definition
+    mapping.setdefault(qualified_identifier, {})
+    mapping[qualified_identifier].setdefault(version, {})
+    mapping[qualified_identifier][version] = definition
 
 
 def _extract_implicit_requests(identifiers, mapping):
@@ -118,22 +131,41 @@ def _extract_implicit_requests(identifiers, mapping):
     discovery.
 
     *mapping* should be a mapping regrouping all implicit package definitions.
+    It should be in the form of::
+
+        {
+            "__namespace__": {
+                "bar": {"test"}
+            },
+            "foo": {
+                "1.1.0": <Definition(identifier="foo", version="1.1.0")>,
+                "1.0.0": <Definition(identifier="foo", version="1.0.0")>,
+                "0.1.0": <Definition(identifier="foo", version="0.1.0")>,
+                ...
+            },
+            "test::bar": {
+                "0.1.0": <Definition(identifier="bar", version="0.1.0")>,
+                ...
+            },
+            ...
+        }
+
 
     """
     requests = []
 
     for identifier in sorted(
-        mapping.keys(), key=lambda _id: identifiers.index(_id), reverse=True
+        (_id for _id in mapping.keys() if _id != "__namespace__"),
+        key=lambda _id: identifiers.index(_id), reverse=True
     ):
         requirement = wiz.utility.get_requirement(identifier)
         definition = query(requirement, mapping)
-        request = wiz.package.generate_identifier(definition)
-        requests.append(request)
+        requests.append(definition.qualified_version_identifier)
 
     return requests
 
 
-def query(requirement, definition_mapping):
+def query(requirement, definition_mapping, namespace_counter=None):
     """Return best matching definition version from *requirement*.
 
     *requirement* is an instance of :class:`packaging.requirements.Requirement`.
@@ -141,11 +173,27 @@ def query(requirement, definition_mapping):
     *definition_mapping* is a mapping regrouping all available definition
     associated with their unique identifier.
 
+    *namespace_counter* is an optional :class:`collections.Counter` instance
+    which indicate occurrence of namespaces used as hints for package
+    identification.
+
     :exc:`wiz.exception.RequestNotFound` is raised if the requirement can not
     be resolved.
 
     """
     identifier = requirement.name
+
+    # Extend identifier with namespace if necessary.
+    namespace_mapping = definition_mapping.get("__namespace__", {})
+    if identifier not in definition_mapping and not identifier.count("::"):
+        _namespace = _guess_default_namespace(
+            identifier, namespace_mapping,
+            namespace_counter=namespace_counter
+        )
+
+        if _namespace is not None:
+            identifier = "{}::{}".format(_namespace, identifier)
+
     if identifier not in definition_mapping:
         raise wiz.exception.RequestNotFound(requirement)
 
@@ -175,6 +223,53 @@ def query(requirement, definition_mapping):
         raise wiz.exception.RequestNotFound(requirement)
 
     return definition
+
+
+def _guess_default_namespace(
+    identifier, namespace_mapping, namespace_counter=None
+):
+    """Return namespace corresponding to *identifier* if available.
+
+    *identifier* should be a definition identifier.
+
+    *namespace_mapping* should be a mapping in the form of::
+
+        {
+            "foo": ["namespace1", "namespace2"]
+            ...
+        }
+
+    *namespace_counter* is an optional :class:`collections.Counter` instance
+    which indicate occurrence of namespaces used as hints for package
+    identification.
+
+    """
+    _namespaces = list(namespace_mapping.get(identifier, []))
+    if len(_namespaces) == 0:
+        return
+
+    # If more than one namespace is available, attempt to use counter to only
+    # keep those which are used the most.
+    if len(_namespaces) > 1 and namespace_counter is not None:
+        max_occurrence = max([
+            namespace_counter[namespace] for namespace in _namespaces
+        ])
+
+        _namespaces = [
+            namespace for namespace in _namespaces
+            if namespace_counter[namespace] == max_occurrence
+        ]
+
+    if len(_namespaces) == 1:
+        return _namespaces.pop()
+
+    raise wiz.exception.RequestNotFound(
+        "Cannot guess default namespace for '{definition}' "
+        "[available: {namespaces}].".format(
+            definition=identifier,
+            namespaces=", ".join(sorted(namespace_mapping.get(identifier, [])))
+        )
+    )
 
 
 def export(path, definition, overwrite=False):
@@ -295,7 +390,7 @@ def discover(paths, system_mapping=None, max_depth=None):
 
                 # Skip definition if "disabled" keyword is set to True.
                 if definition.get("disabled", False):
-                    _id = wiz.package.generate_identifier(definition)
+                    _id = definition.qualified_version_identifier
                     logger.warning("Definition '{}' is disabled".format(_id))
                     continue
 
@@ -340,51 +435,6 @@ class Definition(wiz.mapping.Mapping):
                 )
             )
 
-        try:
-            if "version" in mapping.keys():
-                mapping["version"] = wiz.utility.get_version(mapping["version"])
-
-        except wiz.exception.InvalidVersion:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}' has an incorrect "
-                "version [{version}]".format(
-                    identifier=mapping.get("identifier"),
-                    version=mapping["version"]
-                )
-            )
-
-        try:
-            if "requirements" in mapping.keys():
-                mapping["requirements"] = [
-                    wiz.utility.get_requirement(requirement)
-                    for requirement in mapping["requirements"]
-                ]
-
-        except wiz.exception.InvalidRequirement as exception:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}' contains an incorrect "
-                "package requirement [{error}]".format(
-                    identifier=mapping.get("identifier"),
-                    error=exception
-                )
-            )
-
-        try:
-            if "constraints" in mapping.keys():
-                mapping["constraints"] = [
-                    wiz.utility.get_requirement(requirement)
-                    for requirement in mapping["constraints"]
-                ]
-
-        except wiz.exception.InvalidRequirement as exception:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}' contains an incorrect "
-                "package constraint [{error}]".format(
-                    identifier=mapping.get("identifier"),
-                    error=exception
-                )
-            )
-
         if "variants" in mapping.keys():
             mapping["variants"] = [
                 _Variant(
@@ -406,6 +456,27 @@ class Definition(wiz.mapping.Mapping):
         return _definition
 
     @property
+    def qualified_identifier(self):
+        """Return qualified identifier with optional namespace."""
+        if self.namespace is not None:
+            return "{}::{}".format(self.namespace, self.identifier)
+        return self.identifier
+
+    @property
+    def version_identifier(self):
+        """Return version identifier."""
+        if self.version != wiz.symbol.UNKNOWN_VALUE:
+            return "{}=={}".format(self.identifier, self.version)
+        return self.identifier
+
+    @property
+    def qualified_version_identifier(self):
+        """Return qualified version identifier with optional namespace."""
+        if self.namespace is not None:
+            return "{}::{}".format(self.namespace, self.version_identifier)
+        return self.version_identifier
+
+    @property
     def variants(self):
         """Return variant list."""
         return self.get("variants", [])
@@ -416,17 +487,18 @@ class Definition(wiz.mapping.Mapping):
         return [
             "identifier",
             "version",
+            "namespace",
             "description",
             "registry",
             "definition-location",
             "install-root",
             "install-location",
-            'group',
             "auto-use",
             "system",
             "command",
             "environ",
             "requirements",
+            "conditions",
             "constraints",
             "variants"
         ]
@@ -439,42 +511,14 @@ class _Variant(wiz.mapping.Mapping):
         """Initialise variant definition."""
         mapping = dict(*args, **kwargs)
         self.definition_identifier = mapping.pop("definition")
-
-        try:
-            if "requirements" in mapping.keys():
-                mapping["requirements"] = [
-                    wiz.utility.get_requirement(requirement)
-                    for requirement in mapping["requirements"]
-                ]
-
-        except wiz.exception.InvalidRequirement as exception:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}' [{variant}] contains an "
-                "incorrect package requirement [{error}]".format(
-                    identifier=self.definition_identifier,
-                    variant=mapping.get("identifier"),
-                    error=exception
-                )
-            )
-
-        try:
-            if "constraints" in mapping.keys():
-                mapping["constraints"] = [
-                    wiz.utility.get_requirement(requirement)
-                    for requirement in mapping["constraints"]
-                ]
-
-        except wiz.exception.InvalidRequirement as exception:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}' [{variant}] contains an "
-                "incorrect package constraint [{error}]".format(
-                    identifier=self.definition_identifier,
-                    variant=mapping.get("identifier"),
-                    error=exception
-                )
-            )
-
         super(_Variant, self).__init__(mapping)
+
+    def _label(self):
+        """Return object label to include in exception messages."""
+        return "The definition '{identifier}' [{variant}]".format(
+            identifier=self.definition_identifier,
+            variant=self.identifier
+        )
 
     def copy(self, *args, **kwargs):
         """Return copy of instance."""
@@ -490,5 +534,6 @@ class _Variant(wiz.mapping.Mapping):
             "command",
             "environ",
             "requirements",
+            "conditions",
             "constraints"
         ]
