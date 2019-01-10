@@ -6,18 +6,6 @@ Release Notes
 
 .. release:: Upcoming
 
-    .. change:: changed
-
-        Improved the way
-        :option:`--definition-search-paths <wiz --definition-search-paths>` are
-        being added, by accepting a relative path as a valid input and removing
-        trailing slashes automatically.
-
-        The following previously failing inputs are now accepted::
-
-            wiz -dsp .wiz/registry use xyz
-            wiz -dsp ~/.wiz/registry/ use xyz
-
     .. change:: new
         :tags: command-line
 
@@ -155,6 +143,12 @@ Release Notes
         Updated :func:`wiz.definition.load` to add 'definition-location' keyword
         in mapping. Previously this would only be added by
         :func:`wiz.definition.discover`.
+
+    .. change:: fixed
+
+        Fixed :func:`wiz.registry.fetch` to resolve the absolute path of the
+        registry in order to prevent the fetching process to fail with relative
+        paths or trailing slashes.
 
 .. release:: 1.2.1
     :date: 2018-10-24
