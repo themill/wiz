@@ -14,7 +14,7 @@ import wiz.symbol
 import wiz.filesystem
 
 
-#: Schema to reach VCS registries.
+#: Schema to reach :term:`VCS registries <VCS Registry>`.
 SCHEME = "wiz://"
 
 
