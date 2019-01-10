@@ -1687,17 +1687,24 @@ def test_graph_create_link(options):
     }
 
 
-def test_graph_create_link_error():
-    """Fail to create link between two nodes when one already exists."""
-    requirement = Requirement("A")
-
+def test_graph_create_link_overwrite():
+    """Overwrite existing link between two nodes."""
     graph = wiz.graph.Graph(None)
     graph._link_mapping = {
-        "parent": {"child": {"requirement": requirement, "weight": 1}}
+        "parent": {"child": {"requirement": Requirement("A"), "weight": 3}}
     }
 
-    with pytest.raises(wiz.exception.IncorrectDefinition):
-        graph.create_link("child", "parent", Requirement("A"))
+    # Ignore when weight is higher
+    graph.create_link("child", "parent", Requirement("A>2"), weight=4)
+
+    assert graph.link_requirement("child", "parent") == Requirement("A")
+    assert graph.link_weight("child", "parent") == 3
+
+    # Don't ignore when weight is lower
+    graph.create_link("child", "parent", Requirement("A>2"), weight=1)
+
+    assert graph.link_requirement("child", "parent") == Requirement("A>2")
+    assert graph.link_weight("child", "parent") == 1
 
 
 def test_graph_remove_node():
