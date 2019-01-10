@@ -875,6 +875,7 @@ def wiz_freeze(click_context, **kwargs):
         "package to."
     ),
     type=click.Path(),
+    required=True
 )
 @click.option(
     "--install-location",
