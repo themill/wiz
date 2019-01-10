@@ -651,12 +651,25 @@ def test_remove_node_and_relink(mocker, mocked_graph):
         },
         ["G", "E", "F", "D", "B", "C", "A"]
     ),
+    (
+        ["A", "B", "C", "D", "E"],
+        {
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"},
+            "C": {"distance": 2, "parent": "A"},
+            "D": {"distance": None, "parent": "F"},
+            "E": {"distance": None, "parent": "G"},
+        },
+        ["B", "C", "A"]
+    )
 ], ids=[
     "no-node",
     "one-node",
     "two-nodes",
     "three-nodes",
-    "multi-levels"
+    "multi-levels",
+    "unreachable-nodes",
 ])
 def test_extract_ordered_packages(
     mocker, mocked_graph, identifiers, distance_mapping, expected
