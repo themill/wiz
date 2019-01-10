@@ -626,17 +626,15 @@ def test_install_definitions_to_path_with_install_location(
 
     wiz.install_definitions(
         ["/path/to/foo.json", "/path/to/bar.json"],
-        "/path/to/registry", install_location="/path/to/package"
+        "/path/to/registry",
     )
 
     _definitions = [
         wiz.definition.Definition({
-            "identifier": "foo",
-            "install-location": "/path/to/package"
+            "identifier": "foo"
         }),
         wiz.definition.Definition({
-            "identifier": "bar",
-            "install-location": "/path/to/package"
+            "identifier": "bar"
         })
     ]
 
@@ -692,17 +690,14 @@ def test_install_definitions_to_vcs_with_install_location(
     wiz.install_definitions(
         ["/path/to/foo.json", "/path/to/bar.json"],
         "wiz://registry-id",
-        install_location="/path/to/package"
     )
 
     _definitions = [
         wiz.definition.Definition({
-            "identifier": "foo",
-            "install-location": "/path/to/package"
+            "identifier": "foo"
         }),
         wiz.definition.Definition({
-            "identifier": "bar",
-            "install-location": "/path/to/package"
+            "identifier": "bar"
         })
     ]
 
