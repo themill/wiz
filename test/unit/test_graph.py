@@ -1246,12 +1246,12 @@ def test_graph_update_from_requirements_with_namespaces(
 
     _mapping = {
         "Foo::A==0.2.0": wiz.package.Package({
-            "identifier": "Foo::A==0.2.0",
+            "identifier": "A==0.2.0",
             "namespace": "Foo",
             "definition-identifier": "A"
         }),
         "Foo::B==2.1.1": wiz.package.Package({
-            "identifier": "Foo::B==2.1.1",
+            "identifier": "B==2.1.1",
             "namespace": "Foo",
             "definition-identifier": "B"
         })
@@ -1269,7 +1269,7 @@ def test_graph_update_from_requirements_with_namespaces(
         "node_mapping": {
             "Foo::A==0.2.0": {
                 "package": {
-                    "identifier": "Foo::A==0.2.0",
+                    "identifier": "A==0.2.0",
                     "namespace": "Foo",
                     "definition-identifier": "A"
                 },
@@ -1277,7 +1277,7 @@ def test_graph_update_from_requirements_with_namespaces(
             },
             "Foo::B==2.1.1": {
                 "package": {
-                    "identifier": "Foo::B==2.1.1",
+                    "identifier": "B==2.1.1",
                     "namespace": "Foo",
                     "definition-identifier": "B"
                 },
