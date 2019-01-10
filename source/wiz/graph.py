@@ -1028,11 +1028,16 @@ class Graph(object):
         stored_nodes = []
 
         for conditions in self._condition_mapping.keys():
-            packages = (
-                wiz.package.extract(
-                    condition, self._resolver.definition_mapping
-                ) for condition in conditions
-            )
+            try:
+                packages = (
+                    wiz.package.extract(
+                        condition, self._resolver.definition_mapping
+                    ) for condition in conditions
+                )
+
+            except wiz.exception.WizError:
+                # Do not raise if the request is not found.
+                continue
 
             # Require all of this package identifiers to be in the node mapping.
             identifiers = [
