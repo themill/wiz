@@ -18,6 +18,108 @@ class Mapping(collections.Mapping):
         super(Mapping, self).__init__()
         self._mapping = dict(*args, **kwargs)
 
+        # Sanitize all elements of the mapping.
+        self._sanitize_version()
+        self._sanitize_requirements()
+        self._sanitize_conditions()
+        self._sanitize_constraints()
+
+    def _sanitize_version(self):
+        """Ensure version is a :class:`packaging.version.Version` instance.
+        """
+        version = self._mapping.get("version")
+
+        try:
+            if version and not isinstance(version, wiz.utility.Version):
+                self._mapping["version"] = wiz.utility.get_version(version)
+
+        except wiz.exception.InvalidVersion:
+            raise wiz.exception.IncorrectDefinition(
+                "{label} has an incorrect version [{version}]".format(
+                    label=self._label(),
+                    version=self._mapping["version"]
+                )
+            )
+
+    def _sanitize_requirements(self):
+        """Ensure requirements are :class:`packaging.requirement.Requirement`
+        instances.
+        """
+        size = len(self._mapping.get("requirements", []))
+
+        try:
+            for index in range(size):
+                requirement = self._mapping["requirements"][index]
+
+                if not isinstance(requirement, wiz.utility.Requirement):
+                    self._mapping["requirements"][index] = (
+                        wiz.utility.get_requirement(requirement)
+                    )
+
+        except wiz.exception.InvalidRequirement as exception:
+            raise wiz.exception.IncorrectDefinition(
+                "{label} contains an incorrect package requirement "
+                "[{error}]".format(
+                    label=self._label(),
+                    error=exception
+                )
+            )
+
+    def _sanitize_conditions(self):
+        """Ensure conditions are :class:`packaging.requirement.Requirement`
+        instances.
+        """
+        size = len(self._mapping.get("conditions", []))
+
+        try:
+            for index in range(size):
+                condition = self._mapping["conditions"][index]
+
+                if not isinstance(condition, wiz.utility.Requirement):
+                    self._mapping["conditions"][index] = (
+                        wiz.utility.get_requirement(condition)
+                    )
+
+        except wiz.exception.InvalidRequirement as exception:
+            raise wiz.exception.IncorrectDefinition(
+                "{label} contains an incorrect package condition "
+                "[{error}]".format(
+                    label=self._label(),
+                    error=exception
+                )
+            )
+
+    def _sanitize_constraints(self):
+        """Ensure constraints are :class:`packaging.requirement.Requirement`
+        instances.
+        """
+        size = len(self._mapping.get("constraints", []))
+
+        try:
+            for index in range(size):
+                constraint = self._mapping["constraints"][index]
+
+                if not isinstance(constraint, wiz.utility.Requirement):
+                    self._mapping["constraints"][index] = (
+                        wiz.utility.get_requirement(constraint)
+                    )
+
+        except wiz.exception.InvalidRequirement as exception:
+            raise wiz.exception.IncorrectDefinition(
+                "{label} contains an incorrect package constraint "
+                "[{error}]".format(
+                    label=self._label(),
+                    error=exception
+                )
+            )
+
+    def _label(self):
+        """Return object label to include in exception messages."""
+        return "The {type} '{identifier}'".format(
+            type=self.__class__.__name__.lower(),
+            identifier=self._mapping.get("identifier"),
+        )
+
     @property
     def identifier(self):
         """Return identifier."""
@@ -34,9 +136,9 @@ class Mapping(collections.Mapping):
         return self.get("description", wiz.symbol.UNKNOWN_VALUE)
 
     @property
-    def group(self):
-        """Return group."""
-        return self.get("group")
+    def namespace(self):
+        """Return namespace."""
+        return self.get("namespace")
 
     @property
     def environ(self):
@@ -63,6 +165,11 @@ class Mapping(collections.Mapping):
         """Return constraint list."""
         return self.get("constraints", [])
 
+    @property
+    def conditions(self):
+        """Return conditions."""
+        return self.get("conditions", [])
+
     def copy(self, *args, **kwargs):
         """Return copy of instance."""
         return self.__class__(*args, **kwargs)
@@ -70,7 +177,7 @@ class Mapping(collections.Mapping):
     def set(self, element, value):
         """Returns copy of instance with *element* set to *value*.
         """
-        _mapping = self.to_dict(serialize_content=True)
+        _mapping = self.to_dict()
         _mapping[element] = value
         return self.copy(**_mapping)
 
@@ -80,7 +187,7 @@ class Mapping(collections.Mapping):
         Raise :exc:`ValueError` if *element* is not a dictionary.
 
         """
-        _mapping = self.to_dict(serialize_content=True)
+        _mapping = self.to_dict()
         _mapping.setdefault(element, {})
 
         if not isinstance(_mapping[element], dict):
@@ -98,7 +205,7 @@ class Mapping(collections.Mapping):
         Raise :exc:`ValueError` if *mapping* is not a list.
 
         """
-        _mapping = self.to_dict(serialize_content=True)
+        _mapping = self.to_dict()
         _mapping.setdefault(element, [])
 
         if not isinstance(_mapping[element], list):
@@ -118,7 +225,7 @@ class Mapping(collections.Mapping):
         Raise :exc:`ValueError` if *mapping* is not a list.
 
         """
-        _mapping = self.to_dict(serialize_content=True)
+        _mapping = self.to_dict()
         _mapping.setdefault(element, [])
 
         if not isinstance(_mapping[element], list):
@@ -132,7 +239,7 @@ class Mapping(collections.Mapping):
 
     def remove(self, element):
         """Returns copy of instance without *element*."""
-        _mapping = self.to_dict(serialize_content=True)
+        _mapping = self.to_dict()
         if element not in _mapping.keys():
             return self
 
@@ -148,7 +255,7 @@ class Mapping(collections.Mapping):
         Raise :exc:`ValueError` if *element* is not a dictionary.
 
         """
-        _mapping = self.to_dict(serialize_content=True)
+        _mapping = self.to_dict()
         if element not in _mapping.keys():
             return self
 
@@ -176,7 +283,7 @@ class Mapping(collections.Mapping):
         Raise :exc:`ValueError` if *element* is not a list.
 
         """
-        _mapping = self.to_dict(serialize_content=True)
+        _mapping = self.to_dict()
         if element not in _mapping.keys():
             return self
 

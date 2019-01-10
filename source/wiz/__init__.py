@@ -376,14 +376,15 @@ def export_definition(path, data, overwrite=False):
     return wiz.definition.export(path, data, overwrite=overwrite)
 
 
-def install_definitions_to_path(
-    paths, registry_path, install_location=None, overwrite=False
+def install_definitions(
+    paths, registry_target, install_location=None, overwrite=False
 ):
-    """Install a definition file to a registry on the file system.
+    """Install a definition file to a registry.
 
     *paths* is the path list to all definition files.
 
-    *registry_path* is the path to the target registry to install to.
+    *registry_target* should be a valid :term:`VCS` registry URI or a path to a
+    local registry.
 
     *install_location* could be the path to the package data which will be set
     in the 'install-location' keyword of the installed definition. This path
@@ -393,16 +394,17 @@ def install_definitions_to_path(
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
 
-    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
+    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *paths* cannot
     create a valid instance of :class:`wiz.definition.Definition`.
 
     Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
     the target registry and *overwrite* is False.
 
-    Raises :exc:`OSError` if the definition can not be exported in *path*.
+    Raises :exc:`OSError` if the definition can not be exported in a registry
+    local *path*.
 
     """
-    _definitions = []
+    definitions = []
 
     for path in paths:
         _definition = wiz.load_definition(path)
@@ -410,50 +412,17 @@ def install_definitions_to_path(
         if install_location is not None:
             _definition = _definition.set("install-location", install_location)
 
-        _definitions.append(_definition)
+        definitions.append(_definition)
 
-    wiz.registry.install_to_path(
-        _definitions, registry_path, overwrite=overwrite
-    )
+    if registry_target.startswith(wiz.registry.SCHEME):
+        wiz.registry.install_to_vcs(
+            definitions, registry_target, overwrite=overwrite
+        )
 
-
-def install_definitions_to_vcs(
-    paths, registry_identifier, install_location=None, overwrite=False
-):
-    """Install a list of definition files to a :term:`Wiz Vault` registry.
-
-    *paths* is the path list to all definition files.
-
-    *registry_identifier* is the ID of the target :term:`Wiz Vault` registry to
-    install to (e.g. "primary-registry").
-
-    *install_location* could be the path to the package data which will be set
-    in the 'install-location' keyword of the installed definition. This path
-    will be used to resolve the :envvar:`INSTALL_LOCATION` environment variable
-    within the environment mapping.
-
-    If *overwrite* is True, any existing definitions in the target registry
-    will be overwritten.
-
-    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
-    create a valid instance of :class:`wiz.definition.Definition`.
-
-    Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
-    the target registry and *overwrite* is False.
-
-    """
-    _definitions = []
-
-    for path in paths:
-        _definition = wiz.load_definition(path)
-        if install_location is not None:
-            _definition = _definition.set("install-location", install_location)
-
-        _definitions.append(_definition)
-
-    wiz.registry.install_to_vcs(
-        _definitions, registry_identifier, overwrite=overwrite
-    )
+    else:
+        wiz.registry.install_to_path(
+            definitions, registry_target, overwrite=overwrite
+        )
 
 
 def export_script(

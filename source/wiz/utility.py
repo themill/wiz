@@ -7,11 +7,30 @@ import zlib
 import base64
 import hashlib
 
+import packaging.requirements
+from packaging.requirements import (
+    Combine, Word, ZeroOrMore, ALPHANUM, Optional, EXTRAS,
+    URL_AND_MARKER, VERSION_AND_MARKER, stringStart, stringEnd
+)
+
 from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
 import wiz.mapping
 import wiz.exception
+
+
+# Update requirement py-parser to add ":" as a valid punctuation in order to
+# use it for the namespaces (e.g. "foo::test")
+PUNCTUATION = Word("-_:")
+IDENTIFIER = Combine(
+    ALPHANUM + ZeroOrMore(ALPHANUM | (ZeroOrMore(PUNCTUATION) + ALPHANUM))
+)
+
+packaging.requirements.REQUIREMENT = (
+    stringStart + IDENTIFIER("name") + Optional(EXTRAS)
+    + (URL_AND_MARKER | VERSION_AND_MARKER) + stringEnd
+)
 
 
 def _display_requirement(_requirement):

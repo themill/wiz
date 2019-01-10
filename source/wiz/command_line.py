@@ -13,7 +13,6 @@ import click
 import wiz.registry
 import wiz.symbol
 import wiz.definition
-import wiz.package
 import wiz.spawn
 import wiz.exception
 import wiz.filesystem
@@ -148,6 +147,17 @@ class _MainGroup(click.Group):
     default=False
 )
 @click.option(
+    "--init",
+    help=(
+        "Initial Environment which will be augmented by the resolved "
+        "environment."
+    ),
+    type=lambda x: tuple(x.split("=", 1)),
+    metavar="VARIABLE=VALUE",
+    default=[],
+    multiple=True,
+)
+@click.option(
     "--platform",
     metavar="PLATFORM",
     help="Override detected platform."
@@ -203,12 +213,17 @@ def main(click_context, **kwargs):
     )
     logger.debug("Registries: " + ", ".join(registries))
 
+    # Extract initial environment.
+    initial_environment = {x[0]: x[1] for x in kwargs["init"] if len(x) == 2}
+    logger.debug("Initial environment: {}".format(initial_environment))
+
     # Update user data within click context.
     click_context.obj.update({
         "system_mapping": system_mapping,
         "registry_paths": registries,
         "registry_search_depth": kwargs["definition_search_depth"],
         "ignore_implicit_packages": kwargs["ignore_implicit"],
+        "initial_environment": initial_environment,
         "recording_path": kwargs["record"]
     })
 
@@ -528,7 +543,7 @@ def wiz_view(click_context, **kwargs):
     else:
         logger.info(
             "Command found in definition: {}".format(
-                wiz.package.generate_identifier(definition)
+                definition.qualified_version_identifier
             )
         )
         results_found = True
@@ -546,7 +561,7 @@ def wiz_view(click_context, **kwargs):
     else:
         logger.info(
             "View definition: {}".format(
-                wiz.package.generate_identifier(definition)
+                definition.qualified_version_identifier
             )
         )
 
@@ -604,6 +619,7 @@ def wiz_use(click_context, **kwargs):
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
+    environ_mapping = click_context.obj["initial_environment"]
 
     # Fetch extra arguments from context.
     extra_arguments = _fetch_extra_arguments(click_context)
@@ -611,7 +627,7 @@ def wiz_use(click_context, **kwargs):
     try:
         wiz_context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit
+            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -683,6 +699,7 @@ def wiz_run(click_context, **kwargs):
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
+    environ_mapping = click_context.obj["initial_environment"]
 
     # Fetch extra arguments from context.
     extra_arguments = _fetch_extra_arguments(click_context)
@@ -696,7 +713,7 @@ def wiz_run(click_context, **kwargs):
 
         wiz_context = wiz.resolve_context(
             [request], definition_mapping,
-            ignore_implicit=ignore_implicit
+            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -770,11 +787,12 @@ def wiz_freeze(click_context, **kwargs):
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
+    environ_mapping = click_context.obj["initial_environment"]
 
     try:
         _context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit
+            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping
         )
         identifier = _query_identifier()
 
@@ -841,9 +859,9 @@ def wiz_freeze(click_context, **kwargs):
         Example::
 
             \b
-            wiz install foo.json bar.json --registry-id primary-registry
-            wiz install /path/to/foo.json --registry-path /path/to/registry
-            wiz install /all/definitions/* --registry-path /path/to/registry
+            wiz install foo.json bar.json --registry wiz://primary-registry
+            wiz install /path/to/foo.json --registry /path/to/registry
+            wiz install /all/definitions/* --registry /path/to/registry
 
         """
     ),
@@ -851,14 +869,13 @@ def wiz_freeze(click_context, **kwargs):
     context_settings=CONTEXT_SETTINGS
 )
 @click.option(
-    "-p", "--registry-path",
-    help="Registry path to install the package to.",
+    "-r", "--registry",
+    help=(
+        "URI to VCS registry or path to local registry to install the "
+        "package to."
+    ),
     type=click.Path(),
-)
-@click.option(
-    "-r", "--registry-id",
-    help="VCS registry identifier to install the package to.",
-    metavar="ID",
+    required=True
 )
 @click.option(
     "--install-location",
@@ -891,18 +908,11 @@ def wiz_install(click_context, **kwargs):
 
     while True:
         try:
-            if kwargs["registry_path"] is not None:
-                wiz.install_definitions_to_path(
-                    kwargs["definitions"], kwargs["registry_path"],
-                    install_location=kwargs["install_location"],
-                    overwrite=overwrite
-                )
-            elif kwargs["registry_id"] is not None:
-                wiz.install_definitions_to_vcs(
-                    kwargs["definitions"], kwargs["registry_id"],
-                    install_location=kwargs["install_location"],
-                    overwrite=overwrite
-                )
+            wiz.install_definitions(
+                kwargs["definitions"], kwargs["registry"],
+                install_location=kwargs["install_location"],
+                overwrite=overwrite
+            )
             break
 
         except wiz.exception.DefinitionsExist as error:
