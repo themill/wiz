@@ -2244,11 +2244,11 @@ def test_scenario_20(
     ) in str(error)
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 0
-    assert spied_fetch_distance_mapping.call_count == 0
-    assert spied_extract_combinations.call_count == 0
-    assert spied_resolve_conflicts.call_count == 0
-    assert spied_compute_distance_mapping.call_count == 0
+    assert spied_fetch_next_graph.call_count == 2
+    assert spied_fetch_distance_mapping.call_count == 1
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
@@ -2256,7 +2256,7 @@ def test_scenario_20(
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
     assert spied_remove_node_and_relink.call_count == 0
-    assert spied_extract_ordered_packages.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_21(
