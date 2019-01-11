@@ -1268,23 +1268,34 @@ class Graph(object):
         link. The lesser this number, the higher is the importance of the link.
         Default is 1.
 
-        Raise :exc:`wiz.exception.IncorrectEnvironment` is *package*
-        identifier has already be set for this *parent*.
+        .. note::
+
+            If a link already exists between *identifier* and
+            *parent_identifier*, it will be overwritten only if the new weight
+            is lower than the current one. This way, the priority of the node
+            can raise, but never decrease.
 
         """
-        self._logger.debug(
-            "Add dependency link from '{parent}' to '{child}'".format(
-                parent=parent_identifier, child=identifier
-            )
-        )
-
         self._link_mapping.setdefault(parent_identifier, {})
 
         if identifier in self._link_mapping[parent_identifier].keys():
-            raise wiz.exception.IncorrectDefinition(
-                "There cannot be several dependency links to '{child}' from "
-                "'{parent}'.".format(parent=parent_identifier, child=identifier)
+            _weight = (
+                self._link_mapping[parent_identifier][identifier]["weight"]
             )
+
+            # Skip if a link is already set between these two nodes with
+            # a lower weight:
+            if weight > _weight:
+                return
+
+        self._logger.debug(
+            "Add dependency link from '{parent}' to '{child}' "
+            "[weight: {weight}]".format(
+                parent=parent_identifier,
+                child=identifier,
+                weight=weight
+            )
+        )
 
         link = {"requirement": requirement, "weight": weight}
         self._link_mapping[parent_identifier][identifier] = link

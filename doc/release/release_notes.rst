@@ -246,6 +246,23 @@ Release Notes
         Updated :class:`graph.Resolver` and :class:`graph.Graph` to take
         conditions into account while resolving the graph.
 
+    .. change:: changed
+        :tags: API
+
+        Updated :meth:`graph.Graph.create_link` to not raise an error when a
+        link is assigned twice between two nodes. This caused an issue when
+        a package :ref:`implicitly required <definition/auto-use>` were also
+        explicitly required. Instead, it now gives priority to the link with
+        the lowest weight so it has the highest priority possible.
+
+        .. note::
+
+            If a package is required twice with two different requests, the
+            first request only will be kept::
+
+                # The following command will discard 'foo>2'
+                wiz use foo foo>2
+
     .. change:: fixed
 
         Changed :mod:`wiz.validator` to open the definition JSON schema once
