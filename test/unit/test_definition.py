@@ -1696,9 +1696,8 @@ def test_definition_with_variant_constraint_error():
         wiz.definition.Definition(data)
 
     assert (
-        "IncorrectDefinition: The definition 'test' [1.0] contains an "
-        "incorrect package constraint [The requirement 'envA -!!!' "
-        "is incorrect]"
+        "IncorrectDefinition: Additional properties are not allowed "
+        "('constraints' was unexpected) (/variants/0)"
     ) in str(error)
 
 
@@ -1720,9 +1719,8 @@ def test_definition_with_variant_condition_error():
         wiz.definition.Definition(data)
 
     assert (
-        "IncorrectDefinition: The definition 'test' [1.0] contains an "
-        "incorrect package condition [The requirement 'envA -!!!' "
-        "is incorrect]"
+        "IncorrectDefinition: Additional properties are not allowed "
+        "('conditions' was unexpected) (/variants/0)"
     ) in str(error)
 
 
