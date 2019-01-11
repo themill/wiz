@@ -78,6 +78,25 @@ Release Notes
         to preserve the command in the log as it was typed.
 
     .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to take
+        conditions into account while resolving the graph.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
+        handle package extraction error so that it does not raise if faulty
+        packages are not in resolved packages. If a package extraction error is
+        raised for one combination of the graph, another graph combination will
+        be fetched and the error will be raised only if it appears for all
+        combinations.
+
+        The package extraction error has now a lower priority, so that it will
+        not be raised if a conflict error is raised before.
+
+    .. change:: changed
         :tags: command-line
 
         Updated :mod:`wiz.command_line` to use :mod:`click` instead of
