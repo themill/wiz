@@ -6,19 +6,6 @@ Release Notes
 
 .. release:: Upcoming
 
-    .. change:: removed
-
-        Removed "constraints" and "conditions" keywords from Variants.
-
-        While it is in theory possible to combine these features with the
-        variant functionality, it adds complexity to the system which could
-        increase human error when setting up definitions. As there is no
-        currently known case that would use a setup that would require this
-        combination of features, it is taken out to decrease complexity.
-
-        Those keywords can still be used to add constraints or conditions to
-        the entire definition.
-
     .. change:: new
         :tags: command-line
 
