@@ -480,22 +480,14 @@ def test_combined_requirements(mocker, mocked_graph):
     ]
 
     nodes = [
-        mocker.Mock(identifier="A==3"),
-        mocker.Mock(identifier="A==1.9"),
-        mocker.Mock(identifier="A==1.2.3")
+        mocker.Mock(identifier="A==3", parent_identifiers=["B"]),
+        mocker.Mock(identifier="A==1.9", parent_identifiers=["C"]),
+        mocker.Mock(identifier="A==1.2.3", parent_identifiers=["D"])
     ]
-
-    distance_mapping = {
-        "A==3": {"distance": 1, "parent": "B"},
-        "A==1.9": {"distance": 2, "parent": "C"},
-        "A==1.2.3": {"distance": 3, "parent": "D"},
-    }
 
     mocked_graph.link_requirement.side_effect = requirements
 
-    requirement = wiz.graph.combined_requirements(
-        mocked_graph, nodes, distance_mapping
-    )
+    requirement = wiz.graph.combined_requirements(mocked_graph, nodes)
 
     assert str(requirement) == "A >=1, ==1.2.3, <2"
 
@@ -514,23 +506,15 @@ def test_combined_requirements_error(mocker, mocked_graph):
     ]
 
     nodes = [
-        mocker.Mock(identifier="A==3"),
-        mocker.Mock(identifier="Z==1.9"),
-        mocker.Mock(identifier="A==1.2.3")
+        mocker.Mock(identifier="A==3", parent_identifiers=["B"]),
+        mocker.Mock(identifier="Z==1.9", parent_identifiers=["C"]),
+        mocker.Mock(identifier="A==1.2.3", parent_identifiers=["D"])
     ]
-
-    distance_mapping = {
-        "A==3": {"distance": 1, "parent": "B"},
-        "Z==1.9": {"distance": 2, "parent": "C"},
-        "A==1.2.3": {"distance": 3, "parent": "D"},
-    }
 
     mocked_graph.link_requirement.side_effect = requirements
 
     with pytest.raises(wiz.exception.GraphResolutionError):
-        wiz.graph.combined_requirements(
-            mocked_graph, nodes, distance_mapping
-        )
+        wiz.graph.combined_requirements(mocked_graph, nodes)
 
     assert mocked_graph.link_requirement.call_count == 2
     mocked_graph.link_requirement.assert_any_call("A==3", "B")
