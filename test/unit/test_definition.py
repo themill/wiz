@@ -976,8 +976,7 @@ def test_definition_mapping():
                 "environ": {
                     "KEY2": "VALUE2"
                 },
-                "requirements": ["bim >= 9, < 10"],
-                "constraints": ["baz==6.3.1"]
+                "requirements": ["bim >= 9, < 10"]
             }
         ]
     }
@@ -1015,8 +1014,7 @@ def test_definition_mapping():
                 "environ": {
                     "KEY2": "VALUE2"
                 },
-                "requirements": [Requirement("bim >= 9, < 10")],
-                "constraints": [Requirement("baz==6.3.1")]
+                "requirements": [Requirement("bim >= 9, < 10")]
             }
         ]
     }
@@ -1061,9 +1059,6 @@ def test_definition_mapping():
         "            },\n"
         "            \"requirements\": [\n"
         "                \"bim >=9, <10\"\n"
-        "            ],\n"
-        "            \"constraints\": [\n"
-        "                \"baz ==6.3.1\"\n"
         "            ]\n"
         "        }\n"
         "    ]\n"
@@ -1502,9 +1497,6 @@ def test_definition_with_variant():
                 },
                 "requirements": [
                     "envA >= 1.0, < 2"
-                ],
-                "constraints": [
-                    "envB==0.1.0"
                 ]
             },
             {
@@ -1558,8 +1550,7 @@ def test_definition_with_variant():
             OrderedDict([
                 ("identifier", "1.0"),
                 ("environ", {"VERSION": "1.0"}),
-                ("requirements", ["envA >=1.0, <2"]),
-                ("constraints", ["envB ==0.1.0"])
+                ("requirements", ["envA >=1.0, <2"])
             ]),
             OrderedDict([
                 ("identifier", "2.0"),

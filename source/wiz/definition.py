@@ -533,7 +533,5 @@ class _Variant(wiz.mapping.Mapping):
             "identifier",
             "command",
             "environ",
-            "requirements",
-            "conditions",
-            "constraints"
+            "requirements"
         ]
