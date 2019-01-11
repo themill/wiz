@@ -376,20 +376,13 @@ def export_definition(path, data, overwrite=False):
     return wiz.definition.export(path, data, overwrite=overwrite)
 
 
-def install_definitions(
-    paths, registry_target, install_location=None, overwrite=False
-):
+def install_definitions(paths, registry_target, overwrite=False):
     """Install a definition file to a registry.
 
     *paths* is the path list to all definition files.
 
     *registry_target* should be a valid :term:`VCS` registry URI or a path to a
     local registry.
-
-    *install_location* could be the path to the package data which will be set
-    in the 'install-location' keyword of the installed definition. This path
-    will be used to resolve the :envvar:`INSTALL_LOCATION` environment variable
-    within the environment mapping.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
@@ -408,10 +401,6 @@ def install_definitions(
 
     for path in paths:
         _definition = wiz.load_definition(path)
-
-        if install_location is not None:
-            _definition = _definition.set("install-location", install_location)
-
         definitions.append(_definition)
 
     if registry_target.startswith(wiz.registry.SCHEME):

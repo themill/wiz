@@ -491,6 +491,7 @@ class Definition(wiz.mapping.Mapping):
             "description",
             "registry",
             "definition-location",
+            "install-root",
             "install-location",
             "auto-use",
             "system",
