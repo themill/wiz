@@ -182,6 +182,13 @@ class _MainGroup(click.Group):
     help="Record resolution context process for debugging.",
     type=click.Path()
 )
+@click.option(
+    "--timeout",
+    help="Timeout (in s) for the graph resolution. (Default: 5 Minutes)",
+    metavar="TIMEOUT",
+    default=300,
+    type=int
+)
 @click.pass_context
 def main(click_context, **kwargs):
     """Main entry point for the command line interface."""
@@ -224,7 +231,8 @@ def main(click_context, **kwargs):
         "registry_search_depth": kwargs["definition_search_depth"],
         "ignore_implicit_packages": kwargs["ignore_implicit"],
         "initial_environment": initial_environment,
-        "recording_path": kwargs["record"]
+        "recording_path": kwargs["record"],
+        "timeout": kwargs["timeout"]
     })
 
 
