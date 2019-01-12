@@ -635,7 +635,8 @@ def wiz_use(click_context, **kwargs):
     try:
         wiz_context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping
+            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
+            timeout=click_context.obj["timeout"]
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -721,7 +722,8 @@ def wiz_run(click_context, **kwargs):
 
         wiz_context = wiz.resolve_context(
             [request], definition_mapping,
-            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping
+            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
+            timeout=click_context.obj["timeout"]
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -800,7 +802,8 @@ def wiz_freeze(click_context, **kwargs):
     try:
         _context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping
+            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
+            timeout=click_context.obj["timeout"]
         )
         identifier = _query_identifier()
 
