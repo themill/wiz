@@ -889,14 +889,6 @@ def wiz_freeze(click_context, **kwargs):
     required=True
 )
 @click.option(
-    "--install-location",
-    help=(
-        "Update definition(s) with new 'install-location' value during "
-        "installation."
-    ),
-    metavar="VALUE",
-)
-@click.option(
     "--overwrite",
     help="Always overwrite existing definitions.",
     is_flag=True,
@@ -921,7 +913,6 @@ def wiz_install(click_context, **kwargs):
         try:
             wiz.install_definitions(
                 kwargs["definitions"], kwargs["registry"],
-                install_location=kwargs["install_location"],
                 overwrite=overwrite
             )
             break

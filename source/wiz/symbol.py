@@ -11,6 +11,9 @@ WIZ_SERVER = os.environ.get("WIZ_SERVER", "http://wiz.themill.com")
 #: Environment variable corresponding to the 'install-location' definition key.
 INSTALL_LOCATION = "INSTALL_LOCATION"
 
+#: Environment variable corresponding to the 'install-root' definition key.
+INSTALL_ROOT = "INSTALL_ROOT"
+
 #: Separator between the normal arguments and the command to run.
 COMMAND_SEPARATOR = "--"
 
