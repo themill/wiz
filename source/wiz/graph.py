@@ -80,11 +80,14 @@ class Resolver(object):
 
     """
 
-    def __init__(self, definition_mapping):
+    def __init__(self, definition_mapping, timeout=300):
         """Initialise Resolver with *requirements*.
 
         *definition_mapping* is a mapping regrouping all available definitions
         associated with their unique identifier.
+
+        *timeout* is the max time to expire before the resolve process is being
+        cancelled (in seconds).
 
         """
         self._logger = mlog.Logger(__name__ + ".Resolver")
@@ -105,6 +108,10 @@ class Resolver(object):
         # conflicting variant node identifiers to remove before instantiation.
         self._iterator = iter([])
 
+        # Time to expire before a :exc:`wiz.exception.GraphResolutionError`
+        # is raised.
+        self.timeout = timeout
+
     @property
     def definition_mapping(self):
         """Return mapping of all available definitions."""
@@ -117,31 +124,32 @@ class Resolver(object):
         :class:`packaging.requirements.Requirement` instances.
 
         """
-        self._initiate(requirements)
+        with wiz.utility.Timeout(seconds=self.timeout):
+            self._initiate(requirements)
 
-        # Store latest exception to raise if necessary.
-        latest_error = None
+            # Store latest exception to raise if necessary.
+            latest_error = None
 
-        while True:
-            graph = self._fetch_next_graph()
-            if graph is None:
-                raise latest_error
+            while True:
+                graph = self._fetch_next_graph()
+                if graph is None:
+                    raise latest_error
 
-            try:
-                self._resolve_conflicts(graph)
+                try:
+                    self._resolve_conflicts(graph)
 
-            except wiz.exception.WizError as error:
-                wiz.history.record_action(
-                    wiz.symbol.GRAPH_RESOLUTION_FAILURE_ACTION,
-                    graph=graph, error=error
-                )
+                except wiz.exception.WizError as error:
+                    wiz.history.record_action(
+                        wiz.symbol.GRAPH_RESOLUTION_FAILURE_ACTION,
+                        graph=graph, error=error
+                    )
 
-                self._logger.debug("Failed to resolve graph: {}".format(error))
-                latest_error = error
+                    self._logger.debug("Failed to resolve graph: {}".format(error))
+                    latest_error = error
 
-            else:
-                distance_mapping, _ = self._fetch_distance_mapping(graph)
-                return extract_ordered_packages(graph, distance_mapping)
+                else:
+                    distance_mapping, _ = self._fetch_distance_mapping(graph)
+                    return extract_ordered_packages(graph, distance_mapping)
 
     def _initiate(self, requirements):
         """Initialize iterator with a graph created from *requirement*.
