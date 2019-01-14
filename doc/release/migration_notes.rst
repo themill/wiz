@@ -12,63 +12,13 @@ a new version, such as when upgrading involves backwards incompatibilities.
 Migrate to Upcoming
 ================
 
-.. rubric:: install-root
+The following keywords have been added to the definition schema:
 
-The optional :ref:`install-root <definition/install_root>` keyword has been
-added to definition schema to indicate the root of the install location of a
-package, which is useful when dealing with multiple packages with a common root.
+* :ref:`install-root <definition/install_root>`
+* :ref:`namespace <definition/namespace>`
+* :ref:`conditions <definition/conditions>`
 
-Definitions can now access the value behind this keyword in the
-:ref:`install-location <definition/install_location>` using the
-:envvar:`INSTALL_ROOT` environment variable:
-
-.. code-block:: json
-
-    {
-        "definition": "foo",
-        "install-root": "/path/to/root",
-        "install-location": "${INSTALL_ROOT}/data"
-    }
-
-.. rubric:: namespace
-
-The optional keyword "group" has been replaced by the
-:ref:`namespace <definition/namespace>` keyword which can be used to provide a
-scope to a definition.
-
-Instead of having to have a unique identifier like "xmlf-maya", it is now
-possible to have multiple identifiers with the same name, differentiated by
-namespaces:
-
-.. code-block:: json
-
-    {
-        "identifier": "xmlf"
-        "namespace": "maya"
-    }
-
-In most instances the namespace will be automatically resolved, by extrapolating
-from the other namespaces in the query, however, should this fail, the package
-can be explicitely called with the namespace like:
-
-.. code-block:: console
-
-    >>> wiz use maya::xmlf
-
-.. rubric:: conditions
-
-The optional :ref:`conditions <definition/conditions>` keyword has been added to
-the definition schema, to indicate a list of packages which must be in the
-resolution graph for the package to be included.
-
-.. code-block:: json
-
-    {
-        "conditions": [
-            "houdini",
-            "python >= 2, < 3"
-        ]
-    }
+The optional keyword "group" has been removed.
 
 .. _release/migration/1.0.0:
 
