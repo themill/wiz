@@ -342,6 +342,7 @@ class Package(wiz.mapping.Mapping):
             "description",
             "registry",
             "definition-location",
+            "install-root",
             "install-location",
             "auto-use",
             "system",
@@ -354,13 +355,22 @@ class Package(wiz.mapping.Mapping):
 
     def localized_environ(self):
         """Return localized environ mapping."""
+        # Extract install location value.
+        _install_location = self.get("install-location")
+
+        if "install-root" in self.keys():
+            _install_location = wiz.environ.substitute(
+                self.get("install-location"),
+                {wiz.symbol.INSTALL_ROOT: self.get("install-root")}
+            )
+
+        # Localize each environment variable.
         _environ = self.environ
 
         def _replace_location(mapping, item):
-            """Replace location in *item* for *mapping*."""
-            mapping[item[0]] = item[1].replace(
-                "${{{}}}".format(wiz.symbol.INSTALL_LOCATION),
-                self.get("install-location")
+            """Replace install-location in *item* for *mapping*."""
+            mapping[item[0]] = wiz.environ.substitute(
+                item[1], {wiz.symbol.INSTALL_LOCATION: _install_location}
             )
             return mapping
 

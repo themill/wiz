@@ -82,16 +82,3 @@ A definition can be released into a :term:`Local Registry` using the
 
     A definition can be manually added to a registry by just copying the
     file to location on the file system (like ``~/.wiz/registry``).
-
-
-.. _installing_definitions/install-location:
-
-Install Location
-----------------
-
-The :ref:`install-location <definition/install_location>` value of definitions
-can be set during the installation process.
-:option:`wiz install --install-location` can be used as follow::
-
-    >>> wiz install . --install-location /path/to/data --registry-path ~
-

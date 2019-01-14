@@ -56,10 +56,19 @@ Release Notes
     .. change:: new
         :tags: definition
 
-        Added support for :ref:`namespace <definition/namespace>` keyword which
+        Added optional :ref:`namespace <definition/namespace>` keyword which
         can be used to provide a scope to a definition. It replaces the
         "group" keyword as it is also used to define where in the hierarchy of a
         :term:`VCS Registry` a definition will be installed.
+
+    .. change:: new
+        :tags: definition
+
+        Added optional :ref:`install-root <definition/install_root>`
+        keyword to definition schema to indicate the root of the install
+        location of a package. The value set for this keyword can be referenced
+        in the definition with :envvar:`INSTALL_ROOT` and should form the base
+        of the :ref:`install-location <definition/install_location>` value.
 
     .. change:: new
         :tags: API
@@ -139,6 +148,14 @@ Release Notes
         systems as the definition mapping returned by
         :func:`wiz.definition.fetch` only records one definition per identifier
         and version.
+
+    .. change:: changed
+        :tags: API, command-line
+
+        Removed ``--install-location`` option from ``wiz install`` subcommand
+        and "install_location" argument from :func:`wiz.install_definitions` as
+        this can already be set with the ``wiz edit`` command before installing,
+        and just adds redundant complexity.
 
     .. change:: changed
         :tags: API
@@ -248,18 +265,14 @@ Release Notes
         Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to take
         conditions into account while resolving the graph.
 
-    .. change:: changed
-        :tags: API
+    .. change:: fixed
 
-        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
-        handle package extraction error so that it does not raise if faulty
-        packages are not in resolved packages. If a package extraction error is
-        raised for one combination of the graph, another graph combination will
-        be fetched and the error will be raised only if it appears for all
-        combinations.
-
-        The package extraction error has now a lower priority, so that it will
-        not be raised if a conflict error is raised before.
+        Fixed :func:`wiz.graph.combined_requirements` to take requirements from
+        all parent nodes into account. Previoulsy it would use the distance
+        mapping, which would automatically pick the node with the shortest path
+        as the only parent to consider for requirements. That lead to the
+        elimination of all requirement from other parents, so conflicts would
+        not be properly detected and resolved within the graph.
 
     .. change:: fixed
 
@@ -309,7 +322,7 @@ Release Notes
         :tags: definition
 
         Added optional :ref:`install-location <definition/install_location>`
-        keyword to definition schema to indicate the root location of a package
+        keyword to definition schema to indicate the location of a package
         data.
 
     .. change:: new

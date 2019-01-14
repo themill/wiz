@@ -308,7 +308,7 @@ class Resolver(object):
 
             # Compute valid node identifier from combined requirements.
             requirement = combined_requirements(
-                graph, [node] + conflicting_nodes, distance_mapping
+                graph, [node] + conflicting_nodes
             )
 
             # Query packages from combined requirement.
@@ -617,16 +617,12 @@ def extract_conflicting_nodes(graph, node):
     ]
 
 
-def combined_requirements(graph, nodes, distance_mapping):
+def combined_requirements(graph, nodes):
     """Return combined requirements from *nodes* in *graph*.
 
     *graph* must be an instance of :class:`Graph`.
 
     *nodes* should be a list of :class:`Node` instances.
-
-    *distance_mapping* is a mapping indicating the shortest possible distance
-    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-    graph with its corresponding parent node identifier.
 
     Raise :exc:`wiz.exception.GraphResolutionError` if requirements cannot
     be combined.
@@ -635,23 +631,26 @@ def combined_requirements(graph, nodes, distance_mapping):
     requirement = None
 
     for node in nodes:
-        _requirement = graph.link_requirement(
-            node.identifier, distance_mapping[node.identifier]["parent"]
+        _requirements = (
+            graph.link_requirement(node.identifier, _identifier)
+            for _identifier in node.parent_identifiers
+            if _identifier is graph.ROOT or graph.exists(_identifier)
         )
 
-        if requirement is None:
-            requirement = copy.copy(_requirement)
+        for _requirement in _requirements:
+            if requirement is None:
+                requirement = copy.copy(_requirement)
 
-        elif requirement.name != _requirement.name:
-            raise wiz.exception.GraphResolutionError(
-                "Impossible to combine requirements with different names "
-                "['{}' and '{}'].".format(
-                    requirement.name, _requirement.name
+            elif requirement.name != _requirement.name:
+                raise wiz.exception.GraphResolutionError(
+                    "Impossible to combine requirements with different names "
+                    "['{}' and '{}'].".format(
+                        requirement.name, _requirement.name
+                    )
                 )
-            )
 
-        else:
-            requirement.specifier &= _requirement.specifier
+            else:
+                requirement.specifier &= _requirement.specifier
 
     return requirement
 
@@ -1298,23 +1297,34 @@ class Graph(object):
         link. The lesser this number, the higher is the importance of the link.
         Default is 1.
 
-        Raise :exc:`wiz.exception.IncorrectEnvironment` is *package*
-        identifier has already be set for this *parent*.
+        .. note::
+
+            If a link already exists between *identifier* and
+            *parent_identifier*, it will be overwritten only if the new weight
+            is lower than the current one. This way, the priority of the node
+            can raise, but never decrease.
 
         """
-        self._logger.debug(
-            "Add dependency link from '{parent}' to '{child}'".format(
-                parent=parent_identifier, child=identifier
-            )
-        )
-
         self._link_mapping.setdefault(parent_identifier, {})
 
         if identifier in self._link_mapping[parent_identifier].keys():
-            raise wiz.exception.IncorrectDefinition(
-                "There cannot be several dependency links to '{child}' from "
-                "'{parent}'.".format(parent=parent_identifier, child=identifier)
+            _weight = (
+                self._link_mapping[parent_identifier][identifier]["weight"]
             )
+
+            # Skip if a link is already set between these two nodes with
+            # a lower weight:
+            if weight > _weight:
+                return
+
+        self._logger.debug(
+            "Add dependency link from '{parent}' to '{child}' "
+            "[weight: {weight}]".format(
+                parent=parent_identifier,
+                child=identifier,
+                weight=weight
+            )
+        )
 
         link = {"requirement": requirement, "weight": weight}
         self._link_mapping[parent_identifier][identifier] = link
