@@ -37,6 +37,15 @@ Glossary
 
         .. seealso:: http://json-schema.org/
 
+    Git
+        Git is a free and open source distributed version control system
+        designed to handle everything from small to very large projects with
+        speed and efficiency.
+
+        .. seealso::
+
+            https://git-scm.com/
+
     Gitlab
         Centralised server for :term:`Git` that provides additional
         collaborative features.
