@@ -275,7 +275,9 @@ def test_resolve_context(
     mocked_registry_defaults.assert_not_called()
     mocked_fetch_definition_mapping.assert_not_called()
 
-    mocked_graph_resolver.assert_called_once_with("__PACKAGE_DEFINITIONS__")
+    mocked_graph_resolver.assert_called_once_with(
+        "__PACKAGE_DEFINITIONS__", 300
+    )
     mocked_resolver.compute_packages.assert_called_once_with([
         Requirement(request) for request in requests
     ])
@@ -339,7 +341,9 @@ def test_resolve_context_with_default_definition_mapping(
     mocked_registry_defaults.asset_called_once()
     mocked_fetch_definition_mapping.asset_called_once_with(paths)
 
-    mocked_graph_resolver.assert_called_once_with("__PACKAGE_DEFINITIONS__")
+    mocked_graph_resolver.assert_called_once_with(
+        "__PACKAGE_DEFINITIONS__", 300
+    )
     mocked_resolver.compute_packages.assert_called_once_with([
         Requirement(request) for request in requests
     ])
@@ -405,7 +409,9 @@ def test_resolve_context_with_implicit_packages(
     mocked_registry_defaults.asset_called_once()
     mocked_fetch_definition_mapping.asset_called_once_with(paths)
 
-    mocked_graph_resolver.assert_called_once_with("__PACKAGE_DEFINITIONS__")
+    mocked_graph_resolver.assert_called_once_with(
+        "__PACKAGE_DEFINITIONS__", 300
+    )
     mocked_resolver.compute_packages.assert_called_once_with([
         Requirement(request) for request in requests + implicit
     ])
@@ -472,7 +478,9 @@ def test_resolve_context_with_implicit_packages_ignored(
     mocked_registry_defaults.asset_called_once()
     mocked_fetch_definition_mapping.asset_called_once_with(paths)
 
-    mocked_graph_resolver.assert_called_once_with("__PACKAGE_DEFINITIONS__")
+    mocked_graph_resolver.assert_called_once_with(
+        "__PACKAGE_DEFINITIONS__", 300
+    )
     mocked_resolver.compute_packages.assert_called_once_with([
         Requirement(request) for request in requests
     ])
