@@ -123,6 +123,9 @@ class Resolver(object):
         *requirements* should be a list of
         :class:`packaging.requirements.Requirement` instances.
 
+        Raises :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
+        resolved in time.
+
         """
         with wiz.utility.Timeout(seconds=self.timeout):
             self._initiate(requirements)
