@@ -7,9 +7,9 @@ Migration notes
 This section will show more detailed information when relevant for switching to
 a new version, such as when upgrading involves backwards incompatibilities.
 
-.. _release/migration/1.3.0:
+.. _release/migration/Upcoming:
 
-Migrate to 1.3.0
+Migrate to Upcoming
 ================
 
 .. rubric:: install-root
