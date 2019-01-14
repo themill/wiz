@@ -2,7 +2,6 @@
 
 import shlex
 import os
-import signal
 
 from _version import __version__
 import wiz.registry
@@ -199,7 +198,7 @@ def resolve_context(
     time.
 
     """
-    with Timeout(seconds=timeout):
+    with wiz.utility.Timeout(seconds=timeout):
 
         # To prevent mutating input list.
         _requests = requests[:]
@@ -494,18 +493,3 @@ def export_script(
 
     wiz.filesystem.export(file_path, content)
     return file_path
-
-
-class Timeout:
-    def __init__(self, seconds=1):
-        self.seconds = seconds
-
-    def handle_timeout(self, signum, frame):
-        raise wiz.exception.TimeoutError()
-
-    def __enter__(self):
-        signal.signal(signal.SIGALRM, self.handle_timeout)
-        signal.alarm(self.seconds)
-
-    def __exit__(self, type, value, traceback):
-        signal.alarm(0)
