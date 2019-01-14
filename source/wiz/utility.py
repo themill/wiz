@@ -242,7 +242,7 @@ def combine_command(elements):
 class Timeout:
     """Handle a time out after a specified amount of seconds.
 
-    Raises :exc:`wiz.exception.TimeOutError` if the graph cannot be resolved in
+    Raises :exc:`wiz.exception.GraphResolutionError` if the graph cannot be resolved in
     time.
 
     """
@@ -250,7 +250,9 @@ class Timeout:
         self.seconds = seconds
 
     def handle_timeout(self, signum, frame):
-        raise wiz.exception.TimeoutError()
+        raise wiz.exception.GraphResolutionError(
+            "Timeout reached. Graph resolution took too long."
+        )
 
     def __enter__(self):
         signal.signal(signal.SIGALRM, self.handle_timeout)

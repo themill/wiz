@@ -194,7 +194,7 @@ def resolve_context(
     *timeout* is the max time to expire before the resolve process is being
     cancelled (in seconds).
 
-    Raises :exc:`wiz.exception.TimeOutError` if the graph cannot be resolved in
+    Raises :exc:`wiz.exception.GraphResolutionError` if the graph cannot be resolved in
     time.
 
     """
