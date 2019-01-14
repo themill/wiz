@@ -265,6 +265,15 @@ Release Notes
 
     .. change:: fixed
 
+        Fixed :func:`wiz.graph.combined_requirements` to take requirements from
+        all parent nodes into account. Previoulsy it would use the distance
+        mapping, which would automatically pick the node with the shortest path
+        as the only parent to consider for requirements. That lead to the
+        elimination of all requirement from other parents, so conflicts would
+        not be properly detected and resolved within the graph.
+
+    .. change:: fixed
+
         Changed :mod:`wiz.validator` to open the definition JSON schema once
         the module is loaded, rather than once per validation.
         Previously a "too many files opened" issue could be encountered when
