@@ -2,6 +2,7 @@
 
 import shlex
 import os
+import signal
 
 from _version import __version__
 import wiz.registry
@@ -147,7 +148,7 @@ def fetch_package_request_from_command(command_request, definition_mapping):
 
 def resolve_context(
     requests, definition_mapping=None, ignore_implicit=False,
-    environ_mapping=None
+    environ_mapping=None, timeout=300
 ):
     """Return context mapping from *requests*.
 
@@ -191,42 +192,50 @@ def resolve_context(
     *environ_mapping* can be a mapping of environment variables which would
     be augmented by the resolved environment.
 
-    """
-    # To prevent mutating input list.
-    _requests = requests[:]
+    *timeout* is the max time to expire before the resolve process is being
+    cancelled (in seconds).
 
-    if definition_mapping is None:
-        definition_mapping = wiz.fetch_definition_mapping(
-            wiz.registry.get_defaults()
+    Raises :exc:`wiz.exception.TimeOutError` if the graph cannot be resolved in
+    time.
+
+    """
+    with Timeout(seconds=timeout):
+
+        # To prevent mutating input list.
+        _requests = requests[:]
+
+        if definition_mapping is None:
+            definition_mapping = wiz.fetch_definition_mapping(
+                wiz.registry.get_defaults()
+            )
+
+        if not ignore_implicit:
+            _requests += definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, [])
+
+        requirements = map(wiz.utility.get_requirement, _requests)
+
+        registries = definition_mapping["registries"]
+        resolver = wiz.graph.Resolver(
+            definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+        )
+        packages = resolver.compute_packages(requirements)
+
+        _environ_mapping = wiz.environ.initiate(environ_mapping)
+        context = wiz.package.extract_context(
+            packages, environ_mapping=_environ_mapping
         )
 
-    if not ignore_implicit:
-        _requests += definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, [])
+        context["packages"] = packages
+        context["registries"] = registries
 
-    requirements = map(wiz.utility.get_requirement, _requests)
-
-    registries = definition_mapping["registries"]
-    resolver = wiz.graph.Resolver(
-        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
-    )
-    packages = resolver.compute_packages(requirements)
-
-    _environ_mapping = wiz.environ.initiate(environ_mapping)
-    context = wiz.package.extract_context(
-        packages, environ_mapping=_environ_mapping
-    )
-
-    context["packages"] = packages
-    context["registries"] = registries
-
-    # Augment context environment with wiz signature
-    context["environ"].update({
-        "WIZ_VERSION": __version__,
-        "WIZ_CONTEXT": wiz.utility.encode([
-            [_package.identifier for _package in packages], registries
-        ])
-    })
-    return context
+        # Augment context environment with wiz signature
+        context["environ"].update({
+            "WIZ_VERSION": __version__,
+            "WIZ_CONTEXT": wiz.utility.encode([
+                [_package.identifier for _package in packages], registries
+            ])
+        })
+        return context
 
 
 def resolve_command(elements, command_mapping):
@@ -496,3 +505,18 @@ def export_script(
 
     wiz.filesystem.export(file_path, content)
     return file_path
+
+
+class Timeout:
+    def __init__(self, seconds=1):
+        self.seconds = seconds
+
+    def handle_timeout(self, signum, frame):
+        raise wiz.exception.TimeoutError()
+
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
+
+    def __exit__(self, type, value, traceback):
+        signal.alarm(0)

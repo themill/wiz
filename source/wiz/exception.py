@@ -152,3 +152,9 @@ class InstallError(WizError):
     """Raise when the installation of a definition failed."""
 
     default_message = "The definition cannot be installed."
+
+
+class TimeoutError(WizError):
+    """Raise when a timeout is reached."""
+
+    default_message = "Operation took too long."
