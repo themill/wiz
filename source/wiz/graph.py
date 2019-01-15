@@ -1361,17 +1361,6 @@ class Graph(object):
                 graph=self, node=identifier
             )
 
-    def reset_variants(self):
-        """Reset list of variant node identifiers .
-
-        .. warning::
-
-            A lazy deletion is performed as only the variant identifiers are
-            deleted, but not the nodes themselves.
-
-        """
-        self._variants_per_definition = {}
-
 
 class Node(object):
     """Representation of an element of the :class:`Graph`.

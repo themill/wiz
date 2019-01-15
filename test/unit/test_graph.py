@@ -1757,17 +1757,6 @@ def test_graph_remove_node():
     assert graph._link_mapping == {"A1": {"B": "LINK"}}
 
 
-def test_graph_reset_variants():
-    """Reset variant groups in graph."""
-    graph = wiz.graph.Graph(None)
-    graph._variants_per_definition = {"_id": ["A1", "A2"]}
-    assert graph._variants_per_definition == {"_id": ["A1", "A2"]}
-
-    graph.reset_variants()
-
-    assert graph._variants_per_definition == {}
-
-
 def test_node():
     """Create and use node."""
     package = wiz.package.Package({
