@@ -273,7 +273,7 @@ class Resolver(object):
         a division of the graph.
 
         """
-        conflicts = graph.conflicts()
+        conflicts = graph.conflicting_identifiers()
         if len(conflicts) == 0:
             self._logger.debug("No conflicts in the graph.")
             return
@@ -363,7 +363,9 @@ class Resolver(object):
                     graph.update_from_requirements([requirement])
 
                     # Update conflict list if necessary.
-                    conflicts = list(set(conflicts + graph.conflicts()))
+                    conflicts = list(
+                        set(conflicts + graph.conflicting_identifiers())
+                    )
 
                     # If the updated graph contains conflicting variants, the
                     # relevant combination must be extracted, therefore the
@@ -609,7 +611,7 @@ def extract_conflicting_nodes(graph, node):
     *node* should be a :class:`Node` instance.
 
     """
-    nodes = (graph.node(_id) for _id in graph.conflicts())
+    nodes = (graph.node(_id) for _id in graph.conflicting_identifiers())
 
     return [
         _node for _node in nodes
@@ -929,8 +931,8 @@ class Graph(object):
         """
         return self._link_mapping[parent_identifier][identifier]["requirement"]
 
-    def conflicts(self):
-        """Return conflicting nodes identifiers instances.
+    def conflicting_identifiers(self):
+        """Return conflicting nodes identifiers.
 
         A conflict appears when several nodes are found for a single
         definition identifier.
