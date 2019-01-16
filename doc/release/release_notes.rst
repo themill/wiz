@@ -294,7 +294,7 @@ Release Notes
     .. change:: fixed
 
         Fixed :func:`wiz.graph.updated_by_distance` to not filter out
-        :attr:`root <Graph.ROOT>` node.
+        :attr:`root <wiz.graph.Graph.ROOT>` node.
 
     .. change:: fixed
 
