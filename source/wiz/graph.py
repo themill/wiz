@@ -731,6 +731,10 @@ def validate(graph, distance_mapping):
     An :exc:`wiz.exception.WizError` is raised if an error attached to the
     :attr:`root <Graph.ROOT>` level or any reachable node is found.
 
+    The identifier nearest to the :attr:`root <Graph.ROOT>` level are analyzed
+    first, and the first exception raised under one this identifier will be
+    raised.
+
     *graph* must be an instance of :class:`Graph`.
 
     *distance_mapping* is a mapping indicating the shortest possible distance
@@ -738,12 +742,20 @@ def validate(graph, distance_mapping):
     graph with its corresponding parent node identifier.
 
     """
+    logger = mlog.Logger(__name__ + ".validate")
+
     identifiers = graph.error_identifiers()
+    logger.debug("Errors: {}".format(", ".join(identifiers)))
 
     # Updating identifier list from distance mapping automatically filter out
     # unreachable nodes.
     for identifier in updated_by_distance(identifiers, distance_mapping):
         exceptions = graph.errors(identifier)
+        logger.debug(
+            "{} exception(s) raised under {}".format(
+                len(exceptions), identifier
+            )
+        )
 
         # Raise first exception found when updating graph if necessary.
         if exceptions is not None:
