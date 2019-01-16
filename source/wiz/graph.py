@@ -767,8 +767,7 @@ def validate(graph, distance_mapping):
         )
 
         # Raise first exception found when updating graph if necessary.
-        if exceptions is not None:
-            raise exceptions[0]
+        raise exceptions[0]
 
 
 def extract_ordered_packages(graph, distance_mapping):
