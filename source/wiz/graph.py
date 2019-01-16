@@ -289,14 +289,15 @@ class Resolver(object):
             distance_mapping, updated = self._fetch_distance_mapping(graph)
 
             # Update graph and conflicts to remove all unreachable nodes if
-            # distance mapping have been updated.
-            if updated:
+            # there are remaining conflicts in the graph or if distance mapping
+            # have been updated.
+            if updated and conflicts:
                 trim_unreachable_from_graph(graph, distance_mapping)
                 conflicts = updated_by_distance(conflicts, distance_mapping)
 
             # If no nodes are left in the queue, exit the loop. The graph
             # is officially resolved. Hooray!
-            if len(conflicts) == 0:
+            if not conflicts:
                 return
 
             # Pick up the furthest conflicting node identifier so that nearest
