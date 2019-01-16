@@ -243,7 +243,7 @@ Release Notes
     .. change:: changed
         :tags: API
 
-        Updated :class:`graph.Resolver` and :class:`graph.Graph` to take
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to take
         conditions into account while resolving the graph.
 
     .. change:: changed
@@ -266,7 +266,7 @@ Release Notes
     .. change:: fixed
 
         Fixed :func:`wiz.graph.combined_requirements` to take requirements from
-        all parent nodes into account. Previoulsy it would use the distance
+        all parent nodes into account. Previously it would use the distance
         mapping, which would automatically pick the node with the shortest path
         as the only parent to consider for requirements. That lead to the
         elimination of all requirement from other parents, so conflicts would
