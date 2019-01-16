@@ -599,7 +599,8 @@ def updated_by_distance(identifiers, distance_mapping):
 
     """
     _identifiers = filter(
-        lambda _id: distance_mapping.get(_id, {}).get("distance"), identifiers
+        lambda _id: distance_mapping.get(_id, {}).get("distance") is not None,
+        identifiers
     )
     return sorted(
         _identifiers, key=lambda _id: distance_mapping[_id]["distance"]
