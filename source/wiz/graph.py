@@ -729,9 +729,6 @@ def extract_ordered_packages(graph, distance_mapping):
     of each node identifier from the :attr:`root <Graph.ROOT>` level of the
     graph with its corresponding parent node identifier.
 
-    Raises :exc:`wiz.exception.WizError` if one reachable node contains an
-    incorrect definition.
-
     """
     logger = mlog.Logger(__name__ + ".extract_ordered_packages")
 
@@ -745,10 +742,6 @@ def extract_ordered_packages(graph, distance_mapping):
         # Skip node if unreachable.
         if distance_mapping[node.identifier].get("distance") is None:
             continue
-
-        # Raises exception if the node is containing incorrect definition.
-        if node.error:
-            raise node.error
 
         # Otherwise keep the package.
         packages.append(node.package)
