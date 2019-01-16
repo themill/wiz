@@ -456,7 +456,9 @@ def test_extract_conflicting_nodes(mocker, mocked_graph):
     }
 
     mocked_graph.node = lambda _id: node_mapping[_id]
-    mocked_graph.conflicts.return_value = sorted(node_mapping.keys())
+    mocked_graph.conflicting_identifiers.return_value = sorted(
+        node_mapping.keys()
+    )
 
     assert wiz.graph.extract_conflicting_nodes(
         mocked_graph, node_mapping["F"]
@@ -664,36 +666,13 @@ def test_extract_ordered_packages(
     }
 
     nodes = [
-        mocker.Mock(identifier=_id, package=package_mapping[_id], error=None)
+        mocker.Mock(identifier=_id, package=package_mapping[_id])
         for _id in identifiers
     ]
     mocked_graph.nodes.return_value = nodes
 
     result = wiz.graph.extract_ordered_packages(mocked_graph, distance_mapping)
     assert result == [package_mapping[_id] for _id in expected]
-
-
-def test_extract_ordered_packages_error(mocker, mocked_graph):
-    """Fail to extract ordered packages from graph."""
-    distance_mapping = {
-        "root": {"distance": 0, "parent": "root"},
-        "A": {"distance": 1, "parent": "root"},
-        "B": {"distance": 2, "parent": "root"}
-    }
-
-    nodes = [
-        mocker.Mock(identifier="A", package=mocker.ANY, error=None),
-        mocker.Mock(
-            identifier="B", package=mocker.ANY,
-            error=wiz.exception.WizError("Oh Shit!")
-        ),
-    ]
-    mocked_graph.nodes.return_value = nodes
-
-    with pytest.raises(wiz.exception.WizError) as error:
-        wiz.graph.extract_ordered_packages(mocked_graph, distance_mapping)
-
-    assert "Oh Shit!" in str(error)
 
 
 def test_graph_node():
@@ -828,7 +807,7 @@ def test_graph_conflicts(definition_mapping, node_mapping, expected):
     graph._node_mapping = node_mapping
     graph._identifiers_per_definition = definition_mapping
 
-    assert graph.conflicts() == expected
+    assert graph.conflicting_identifiers() == expected
 
 
 def test_graph_update_from_requirements(
@@ -886,7 +865,8 @@ def test_graph_update_from_requirements(
         "variants_per_definition": {},
         "constraint_mapping": {},
         "condition_mapping": {},
-        "namespace_count": {}
+        "namespace_count": {},
+        "error_mapping": {}
     }
 
 
@@ -999,7 +979,8 @@ def test_graph_update_from_requirements_with_dependencies(
         "variants_per_definition": {},
         "constraint_mapping": {},
         "condition_mapping": {},
-        "namespace_count": {}
+        "namespace_count": {},
+        "error_mapping": {}
     }
 
 
@@ -1080,7 +1061,8 @@ def test_graph_update_from_requirements_with_variants(
         },
         "constraint_mapping": {},
         "condition_mapping": {},
-        "namespace_count": {}
+        "namespace_count": {},
+        "error_mapping": {}
     }
 
 
@@ -1150,7 +1132,8 @@ def test_graph_update_from_requirements_with_unused_constraints(
         },
         "condition_mapping": {},
         "variants_per_definition": {},
-        "namespace_count": {}
+        "namespace_count": {},
+        "error_mapping": {}
     }
 
 
@@ -1244,7 +1227,8 @@ def test_graph_update_from_requirements_with_used_constraints(
         "constraint_mapping": {},
         "condition_mapping": {},
         "variants_per_definition": {},
-        "namespace_count": {}
+        "namespace_count": {},
+        "error_mapping": {}
     }
 
 
@@ -1317,6 +1301,7 @@ def test_graph_update_from_requirements_with_namespaces(
         "condition_mapping": {},
         "constraint_mapping": {},
         "namespace_count": {"Bar": 1, "Foo": 2},
+        "error_mapping": {}
     }
 
 
@@ -1395,7 +1380,8 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
             }
         },
         "variants_per_definition": {},
-        "namespace_count": {}
+        "namespace_count": {},
+        "error_mapping": {}
     }
 
 
@@ -1458,7 +1444,8 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
         "constraint_mapping": {},
         "condition_mapping": {},
         "variants_per_definition": {},
-        "namespace_count": {}
+        "namespace_count": {},
+        "error_mapping": {}
     }
 
 
