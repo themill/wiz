@@ -806,6 +806,9 @@ class Graph(object):
         # e.g. Counter({u'maya': 2, u'houdini': 1})
         self._namespace_count = Counter()
 
+        # List of exception raised per node identifier.
+        self._error_mapping = {}
+
     def __deepcopy__(self, memo):
         """Ensure that only necessary element are copied in the new graph."""
         result = Graph(self._resolver)
@@ -824,6 +827,7 @@ class Graph(object):
             copy.deepcopy(self._variants_per_definition)
         )
         result._namespace_count = copy.deepcopy(self._namespace_count)
+        result._error_mapping = copy.deepcopy(self._error_mapping)
 
         memo[id(self)] = result
         return result
@@ -856,6 +860,10 @@ class Graph(object):
             },
             "variants_per_definition": self._variants_per_definition,
             "namespace_count": dict(self._namespace_count),
+            "error_mapping": {
+                _id: [str(exception) for exception in exceptions]
+                for _id, exceptions in self._error_mapping.items()
+            },
         }
 
     def node(self, identifier):
@@ -950,6 +958,18 @@ class Graph(object):
                 conflicting += _identifiers
 
         return conflicting
+
+    def error_identifiers(self):
+        """Return list of existing node identifiers which encapsulate an error.
+        """
+        return [
+            identifier for identifier in self._error_mapping.keys()
+            if identifier == self.ROOT or self.exists(identifier)
+        ]
+
+    def errors(self, identifier):
+        """Return list of exceptions raised for node *identifier*."""
+        return self._error_mapping.get(identifier)
 
     def update_from_requirements(self, requirements):
         """Update graph from *requirements*.
@@ -1140,14 +1160,10 @@ class Graph(object):
             )
 
         except wiz.exception.WizError as error:
-            # Create dummy package with error.
-            packages = [
-                wiz.package.Package({
-                    "identifier": requirement.name,
-                    "definition-identifier": requirement.name,
-                    "error": error
-                })
-            ]
+            parent = parent_identifier or self.ROOT
+            self._error_mapping.setdefault(parent, [])
+            self._error_mapping[parent].append(error)
+            return
 
         # Create a node for each package if necessary.
         for package in packages:
@@ -1398,15 +1414,6 @@ class Node(object):
 
         """
         return self._package.qualified_identifier
-
-    @property
-    def error(self):
-        """Return exception raise when extracting package from requirement.
-
-        Return None if no exception was raised.
-
-        """
-        return self._package.get("error")
 
     @property
     def variant_name(self):
