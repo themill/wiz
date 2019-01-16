@@ -86,6 +86,12 @@ Release Notes
         as a unified command string while keeping quoted elements in order
         to preserve the command in the log as it was typed.
 
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.graph.validate` to raise :exc:`wiz.exception.WizError`
+        error encapsulated in the nearest accessible node if necessary.
+
     .. change:: changed
         :tags: command-line
 
@@ -284,6 +290,11 @@ Release Notes
         as the only parent to consider for requirements. That lead to the
         elimination of all requirement from other parents, so conflicts would
         not be properly detected and resolved within the graph.
+
+    .. change:: fixed
+
+        Fixed :func:`wiz.graph.updated_by_distance` to not filter out
+        :attr:`root <Graph.ROOT>` node.
 
     .. change:: fixed
 
