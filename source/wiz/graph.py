@@ -516,12 +516,23 @@ def generate_variant_combinations(graph, variant_groups):
         )
         _groups.append(_tuple_group)
 
+    # Record variant node with error to prevent it being used more than once.
+    blacklist = set()
+
     for combination in itertools.product(*_groups):
         _identifiers = [_id for _group in combination for _id in _group]
+
+        # Skip combination which contains blacklisted node.
+        if blacklist.intersection(_identifiers):
+            continue
+
         yield (
             graph,
             tuple([_id for _id in identifiers if _id not in _identifiers])
         )
+
+        # Update blacklist with error encountered in current combination.
+        blacklist = set(_identifiers).intersection(graph.error_identifiers())
 
 
 def trim_unreachable_from_graph(graph, distance_mapping):
