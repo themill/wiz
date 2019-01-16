@@ -182,13 +182,6 @@ class _MainGroup(click.Group):
     help="Record resolution context process for debugging.",
     type=click.Path()
 )
-@click.option(
-    "--timeout",
-    help="Timeout (in s) for the graph resolution. (Default: 5 Minutes)",
-    metavar="TIMEOUT",
-    default=300,
-    type=int
-)
 @click.pass_context
 def main(click_context, **kwargs):
     """Main entry point for the command line interface."""
@@ -231,8 +224,7 @@ def main(click_context, **kwargs):
         "registry_search_depth": kwargs["definition_search_depth"],
         "ignore_implicit_packages": kwargs["ignore_implicit"],
         "initial_environment": initial_environment,
-        "recording_path": kwargs["record"],
-        "timeout": kwargs["timeout"]
+        "recording_path": kwargs["record"]
     })
 
 
@@ -635,8 +627,7 @@ def wiz_use(click_context, **kwargs):
     try:
         wiz_context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
-            timeout=click_context.obj["timeout"]
+            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -722,8 +713,7 @@ def wiz_run(click_context, **kwargs):
 
         wiz_context = wiz.resolve_context(
             [request], definition_mapping,
-            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
-            timeout=click_context.obj["timeout"]
+            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -802,8 +792,7 @@ def wiz_freeze(click_context, **kwargs):
     try:
         _context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
-            timeout=click_context.obj["timeout"]
+            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping
         )
         identifier = _query_identifier()
 

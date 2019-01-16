@@ -60,12 +60,6 @@ def mocked_package_extract(mocker):
     return mocker.patch.object(wiz.package, "extract")
 
 
-@pytest.fixture()
-def mocked_package_extract(mocker):
-    """Return mocked wiz.package.extract method."""
-    return mocker.patch.object(wiz.package, "extract")
-
-
 def test_resolver():
     """Create a resolver."""
     definition_mapping = {"defA": ["nodeA"], "defB": ["nodeB"]}
