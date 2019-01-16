@@ -49,9 +49,15 @@ def mocked_graph_remove_node(mocker):
 
 
 @pytest.fixture()
-def mocked_extract_requirement(mocker):
-    """Return mocked extract_requirement method."""
-    return mocker.patch.object(wiz.graph, "extract_requirement")
+def mocked_updated_by_distance(mocker):
+    """Return mocked updated_by_distance method."""
+    return mocker.patch.object(wiz.graph, "updated_by_distance")
+
+
+@pytest.fixture()
+def mocked_package_extract(mocker):
+    """Return mocked wiz.package.extract method."""
+    return mocker.patch.object(wiz.package, "extract")
 
 
 @pytest.fixture()
@@ -587,6 +593,57 @@ def test_remove_node_and_relink(mocker, mocked_graph):
     )
     mocked_graph.create_link.assert_any_call(
         "bim", "parent3", "__REQUIREMENT__", weight=2
+    )
+
+
+def test_validate_success(mocked_graph, mocked_updated_by_distance):
+    """Validate graph with remaining errors."""
+    mocked_graph.error_identifiers.return_value = []
+    mocked_updated_by_distance.return_value = ["A", "B"]
+
+    assert wiz.graph.validate(mocked_graph, "__DISTANCE_MAPPING__") is None
+
+    mocked_updated_by_distance.assert_not_called()
+    mocked_graph.errors.assert_not_called()
+
+
+def test_validate_error(mocked_graph, mocked_updated_by_distance):
+    """Validate graph with remaining errors."""
+    error_mapping = {
+        "A": [Exception("Error1"), Exception("Error2")],
+        "B": [Exception("Error3")]
+    }
+
+    mocked_graph.error_identifiers.return_value = ["__ERRORS__"]
+    mocked_graph.errors = lambda _id: error_mapping[_id]
+    mocked_updated_by_distance.return_value = ["A", "B"]
+
+    with pytest.raises(Exception) as error:
+        wiz.graph.validate(mocked_graph, "__DISTANCE_MAPPING__")
+
+    mocked_updated_by_distance.assert_called_once_with(
+        ["__ERRORS__"], "__DISTANCE_MAPPING__"
+    )
+
+    assert "Error1" in str(error)
+
+
+def test_validate_empty(mocked_graph, mocked_updated_by_distance):
+    """Validate graph with remaining errors."""
+    mocked_graph.error_identifiers.return_value = ["__ERRORS__"]
+    mocked_updated_by_distance.return_value = []
+
+    with pytest.raises(Exception) as error:
+        wiz.graph.validate(mocked_graph, "__DISTANCE_MAPPING__")
+
+    mocked_updated_by_distance.assert_called_once_with(
+        ["__ERRORS__"], "__DISTANCE_MAPPING__"
+    )
+    mocked_graph.errors.assert_not_called()
+
+    assert (
+        "The resolution graph does not contain any valid packages."
+        in str(error)
     )
 
 

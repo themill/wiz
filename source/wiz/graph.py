@@ -758,16 +758,22 @@ def validate(graph, distance_mapping):
 
     # Updating identifier list from distance mapping automatically filter out
     # unreachable nodes.
-    for identifier in updated_by_distance(errors, distance_mapping):
-        exceptions = graph.errors(identifier)
-        logger.debug(
-            "{} exception(s) raised under {}".format(
-                len(exceptions), identifier
-            )
+    identifiers = updated_by_distance(errors, distance_mapping)
+    if len(identifiers) == 0:
+        raise wiz.exception.GraphResolutionError(
+            "The resolution graph does not contain any valid packages."
         )
 
-        # Raise first exception found when updating graph if necessary.
-        raise exceptions[0]
+    # Pick up nearest node identifier which contains an error.
+    identifier = identifiers[0]
+
+    exceptions = graph.errors(identifier)
+    logger.debug(
+        "{} exception(s) raised under {}".format(len(exceptions), identifier)
+    )
+
+    # Raise first exception found when updating graph if necessary.
+    raise exceptions[0]
 
 
 def extract_ordered_packages(graph, distance_mapping):
