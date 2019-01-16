@@ -131,8 +131,13 @@ class Resolver(object):
                 # Raise error if a conflict in graph cannot be solved.
                 self._resolve_conflicts(graph)
 
-                # Extract packages if possible, or throw error.
+                # Compute distance mapping if necessary.
                 distance_mapping, _ = self._fetch_distance_mapping(graph)
+
+                # Raise remaining error found in graph if necessary.
+                validate(graph, distance_mapping)
+
+                # Extract packages ordered by descending order of distance.
                 return extract_ordered_packages(graph, distance_mapping)
 
             except wiz.exception.WizError as error:
@@ -717,6 +722,31 @@ def remove_node_and_relink(graph, node, identifiers, requirement):
                 requirement,
                 weight=weight
             )
+
+
+def validate(graph, distance_mapping):
+    """Ensure that *graph* does not have remaining errors.
+
+    An :exc:`wiz.exception.WizError` is raised if an error attached to the
+    :attr:`root <Graph.ROOT>` level or any reachable node is found.
+
+    *graph* must be an instance of :class:`Graph`.
+
+    *distance_mapping* is a mapping indicating the shortest possible distance
+    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+    graph with its corresponding parent node identifier.
+
+    """
+    identifiers = graph.error_identifiers()
+
+    # Updating identifier list from distance mapping automatically filter out
+    # unreachable nodes.
+    for identifier in updated_by_distance(identifiers, distance_mapping):
+        exceptions = graph.errors(identifier)
+
+        # Raise first exception found when updating graph if necessary.
+        if exceptions is not None:
+            raise exceptions[0]
 
 
 def extract_ordered_packages(graph, distance_mapping):
