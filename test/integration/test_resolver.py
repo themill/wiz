@@ -1664,6 +1664,267 @@ def test_scenario_15(
 ):
     """Compute packages for the following graph.
 
+    If a definition variant contains an error, the graph combinations list will
+    be optimized to only keep it once and drop all other combinations which
+    attempt to use it.
+
+    Root
+     |
+     |--(A): A[V1]
+     |
+     |--(A): A[V2]
+     |
+     |--(A): A[V3]
+     |   |
+     |   `--(incorrect): ERROR!
+     |
+     |--(B): B[V1]
+     |
+     |--(B): B[V2]
+     |
+     |--(B): B[V3]
+     |
+     |--(B): B[V4]
+     |
+     |--(C): C[V1]
+     |
+     `--(C): C[V2]
+
+    Expected: C[V2], B[V4], A[V2]
+
+    """
+    definition_mapping = {
+        "A": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "A",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["incorrect"]
+                    },
+                    {
+                        "identifier": "V2",
+                    },
+                    {
+                        "identifier": "V1",
+                    }
+                ]
+            })
+        },
+        "B": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "B",
+                "variants": [
+                    {
+                        "identifier": "V4",
+                    },
+                    {
+                        "identifier": "V3",
+                    },
+                    {
+                        "identifier": "V2",
+                    },
+                    {
+                        "identifier": "V1",
+                    }
+                ]
+            })
+        },
+        "C": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "C",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                    },
+                    {
+                        "identifier": "V1",
+                    }
+                ]
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("B"), Requirement("C")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].identifier == "C[V2]"
+    assert packages[1].identifier == "B[V4]"
+    assert packages[2].identifier == "A[V2]"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 2
+    assert spied_fetch_distance_mapping.call_count == 3
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 2
+    assert spied_compute_distance_mapping.call_count == 3
+    assert spied_generate_variant_combinations.call_count == 1
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_updated_by_distance.call_count == 1
+    assert spied_extract_conflicting_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_16(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    For the same example as scenario 15, if the package 'A[V3]' has a
+    conflicting requirement instead of an error, all other combinations which
+    include this package would be preserved.
+
+    Root
+     |
+     |--(A): A[V1]
+     |
+     |--(A): A[V2]
+     |
+     |--(A): A[V3]
+     |   |
+     |   `--(D>=1): D==1.0.0
+     |
+     |--(B): B[V1]
+     |
+     |--(B): B[V2]
+     |
+     |--(B): B[V3]
+     |
+     |--(B): B[V4]
+     |
+     |--(C): C[V1]
+     |
+     |--(C): C[V2]
+     |
+     `--(D<1): D==0.1.0
+
+    Expected: C[V2], B[V4], A[V2], D==0.1.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "A",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["D>=1"]
+                    },
+                    {
+                        "identifier": "V2",
+                    },
+                    {
+                        "identifier": "V1",
+                    }
+                ]
+            })
+        },
+        "B": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "B",
+                "variants": [
+                    {
+                        "identifier": "V4",
+                    },
+                    {
+                        "identifier": "V3",
+                    },
+                    {
+                        "identifier": "V2",
+                    },
+                    {
+                        "identifier": "V1",
+                    }
+                ]
+            })
+        },
+        "C": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "C",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                    },
+                    {
+                        "identifier": "V1",
+                    }
+                ]
+            })
+        },
+        "D": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "D",
+                "version": "1.0.0"
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "D",
+                "version": "0.1.0"
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("B"), Requirement("C"), Requirement("D<1")
+    ])
+
+    assert len(packages) == 4
+    assert packages[0].identifier == "D==0.1.0"
+    assert packages[1].identifier == "C[V2]"
+    assert packages[2].identifier == "B[V4]"
+    assert packages[3].identifier == "A[V2]"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 9
+    assert spied_fetch_distance_mapping.call_count == 12
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 9
+    assert spied_compute_distance_mapping.call_count == 10
+    assert spied_generate_variant_combinations.call_count == 1
+    assert spied_trim_unreachable_from_graph.call_count == 9
+    assert spied_updated_by_distance.call_count == 9
+    assert spied_extract_conflicting_nodes.call_count == 9
+    assert spied_combined_requirements.call_count == 9
+    assert spied_extract_parents.call_count == 8
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_17(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
     When a package has a condition which is not fulfilled, it is not included
     in the resolved packages.
 
@@ -1729,7 +1990,7 @@ def test_scenario_15(
     assert spied_extract_ordered_packages.call_count == 1
 
 
-def test_scenario_16(
+def test_scenario_18(
     spied_fetch_next_graph,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
@@ -1814,7 +2075,7 @@ def test_scenario_16(
     assert spied_extract_ordered_packages.call_count == 1
 
 
-def test_scenario_17(
+def test_scenario_19(
     spied_fetch_next_graph,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
@@ -1930,7 +2191,7 @@ def test_scenario_17(
     assert spied_extract_ordered_packages.call_count == 1
 
 
-def test_scenario_18(
+def test_scenario_20(
     spied_fetch_next_graph,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
@@ -1947,7 +2208,7 @@ def test_scenario_18(
 ):
     """Compute packages for the following graph.
 
-    For the same example as the scenario 17, if the condition can not be
+    For the same example as the scenario 19, if the condition can not be
     fulfilled, the package is not included in the resolved packages.
 
     Root
@@ -2044,7 +2305,7 @@ def test_scenario_18(
     assert spied_extract_ordered_packages.call_count == 1
 
 
-def test_scenario_19(
+def test_scenario_21(
     spied_fetch_next_graph,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
@@ -2189,7 +2450,7 @@ def test_scenario_19(
     assert spied_extract_ordered_packages.call_count == 1
 
 
-def test_scenario_20(
+def test_scenario_22(
     spied_fetch_next_graph,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
@@ -2259,7 +2520,7 @@ def test_scenario_20(
     assert spied_extract_ordered_packages.call_count == 0
 
 
-def test_scenario_21(
+def test_scenario_23(
     spied_fetch_next_graph,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
