@@ -228,7 +228,7 @@ class Resolver(object):
 
         """
         variant_mapping = graph.variant_mapping()
-        if len(variant_mapping) == 0:
+        if not variant_mapping:
             self._logger.debug(
                 "No package variants are conflicting in the graph."
             )
@@ -279,7 +279,7 @@ class Resolver(object):
 
         """
         conflicts = graph.conflicting_identifiers()
-        if len(conflicts) == 0:
+        if not conflicts:
             self._logger.debug("No conflicts in the graph.")
             return
 
@@ -744,12 +744,21 @@ def validate(graph, distance_mapping):
     """
     logger = mlog.Logger(__name__ + ".validate")
 
-    identifiers = graph.error_identifiers()
-    logger.debug("Errors: {}".format(", ".join(identifiers)))
+    errors = graph.error_identifiers()
+    if not errors:
+        logger.debug("No errors in the graph.")
+        return
+
+    logger.debug("Errors: {}".format(", ".join(errors)))
+
+    wiz.history.record_action(
+        wiz.symbol.GRAPH_ERROR_IDENTIFICATION_ACTION,
+        graph=graph, errors=errors
+    )
 
     # Updating identifier list from distance mapping automatically filter out
     # unreachable nodes.
-    for identifier in updated_by_distance(identifiers, distance_mapping):
+    for identifier in updated_by_distance(errors, distance_mapping):
         exceptions = graph.errors(identifier)
         logger.debug(
             "{} exception(s) raised under {}".format(

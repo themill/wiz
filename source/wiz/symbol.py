@@ -62,6 +62,9 @@ GRAPH_VERSION_CONFLICTS_IDENTIFICATION_ACTION = "IDENTIFY_VERSION_CONFLICTS"
 #: History action for variants conflicts identification within graph.
 GRAPH_VARIANT_CONFLICTS_IDENTIFICATION_ACTION = "IDENTIFY_VARIANT_CONFLICTS"
 
+#: History action for error identification within graph.
+GRAPH_ERROR_IDENTIFICATION_ACTION = "IDENTIFY_ERROR"
+
 #: History action for resolution error within graph.
 GRAPH_RESOLUTION_FAILURE_ACTION = "RESOLUTION_ERROR"
 
