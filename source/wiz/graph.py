@@ -299,7 +299,8 @@ class Resolver(object):
             if len(conflicts) == 0:
                 return
 
-            # Pick up the nearest conflicting node identifier.
+            # Pick up the furthest conflicting node identifier so that nearest
+            # node have priorities.
             identifier = conflicts.pop()
             node = graph.node(identifier)
 
