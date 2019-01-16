@@ -1500,6 +1500,72 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
     }
 
 
+def test_graph_update_from_requirements_with_errors(
+    mocked_resolver, mocked_package_extract
+):
+    """Update graph from requirements with errors."""
+    graph = wiz.graph.Graph(mocked_resolver)
+
+    _mapping = {
+        "A==0.2.0": wiz.package.Package({
+            "identifier": "A==0.2.0",
+            "definition-identifier": "A"
+        }),
+        "B==2.1.1": wiz.package.Package({
+            "identifier": "B==2.1.1",
+            "definition-identifier": "B",
+            "requirements": ["incorrect1", "incorrect2"],
+        })
+    }
+
+    mocked_package_extract.side_effect = [
+        [_mapping["A==0.2.0"]],
+        [_mapping["B==2.1.1"]],
+        wiz.exception.RequestNotFound("incorrect1"),
+        wiz.exception.RequestNotFound("incorrect2"),
+    ]
+
+    graph.update_from_requirements([Requirement("A"), Requirement("B>=2")])
+
+    assert graph.to_dict() == {
+        "identifier": mock.ANY,
+        "node_mapping": {
+            "A==0.2.0": {
+                "package": {
+                    "identifier": "A==0.2.0",
+                    "definition-identifier": "A"
+                },
+                "parents": ["root"]
+            },
+            "B==2.1.1": {
+                "package": {
+                    "identifier": "B==2.1.1",
+                    "definition-identifier": "B",
+                    "requirements": ["incorrect1", "incorrect2"],
+                },
+                "parents": ["root"]
+            }
+        },
+        "link_mapping": {
+            "root": {
+                "A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
+                "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2}
+            }
+        },
+        "identifiers_per_definition": {
+            "A": ["A==0.2.0"],
+            "B": ["B==2.1.1"]
+        },
+        "constraint_mapping": {},
+        "condition_mapping": {},
+        "variants_per_definition": {},
+        "namespace_count": {},
+        "error_mapping": {
+            "B==2.1.1": ["incorrect1", "incorrect2"],
+        }
+    }
+
+
 @pytest.mark.parametrize("options", [
     {},
     {"parent_identifier": "foo"},
