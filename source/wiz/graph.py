@@ -739,9 +739,6 @@ def remove_node_and_relink(graph, node, identifiers, requirement):
 def validate(graph, distance_mapping):
     """Ensure that *graph* does not have remaining errors.
 
-    An :exc:`wiz.exception.WizError` is raised if an error attached to the
-    :attr:`root <Graph.ROOT>` level or any reachable node is found.
-
     The identifier nearest to the :attr:`root <Graph.ROOT>` level are analyzed
     first, and the first exception raised under one this identifier will be
     raised.
@@ -751,6 +748,9 @@ def validate(graph, distance_mapping):
     *distance_mapping* is a mapping indicating the shortest possible distance
     of each node identifier from the :attr:`root <Graph.ROOT>` level of the
     graph with its corresponding parent node identifier.
+
+    An :exc:`wiz.exception.WizError` is raised if an error attached to the
+    :attr:`root <Graph.ROOT>` level or any reachable node is found.
 
     """
     logger = mlog.Logger(__name__ + ".validate")
