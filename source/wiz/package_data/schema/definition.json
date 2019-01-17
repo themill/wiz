@@ -150,30 +150,6 @@
                                 {"type": "requirement"}
                             ]
                         }
-                    },
-                    "conditions": {
-                        "description": "List of preliminary conditions to use the definition variant.",
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                            "anyOf": [
-                                {"type": "string"},
-                                {"type": "requirement"}
-                            ]
-                        }
-                    },
-                    "constraints": {
-                        "description": "List of package constraints imposed by the definition variant.",
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                            "anyOf": [
-                                {"type": "string"},
-                                {"type": "requirement"}
-                            ]
-                        }
                     }
                 },
                 "required": ["identifier"],

@@ -283,13 +283,6 @@ def create(definition, variant_identifier=None):
                         + _mapping["requirements"]
                     )
 
-                if len(_mapping.get("constraints", [])) > 0:
-                    mapping["constraints"] = (
-                        # To prevent mutating the the original constraint list.
-                        mapping.get("constraints", [])[:]
-                        + _mapping["constraints"]
-                    )
-
                 success = True
                 break
 
