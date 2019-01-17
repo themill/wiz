@@ -269,6 +269,12 @@ Release Notes
                 # The following command will discard 'foo>2'
                 wiz use foo foo>2
 
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.resolve_context` to add an optional "timeout"
+        argument in order to modify the default graph resolution time limit.
+
     .. change:: fixed
 
         Fixed :func:`wiz.graph.combined_requirements` to take requirements from

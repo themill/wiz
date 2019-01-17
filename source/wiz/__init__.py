@@ -192,7 +192,7 @@ def resolve_context(
     be augmented by the resolved environment.
 
     *timeout* is the max time to expire before the resolve process is being
-    cancelled (in seconds).
+    cancelled (in seconds). Default is 5 minutes.
 
     Raises :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
     resolved in time.
