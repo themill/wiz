@@ -3,6 +3,8 @@
 import copy
 import itertools
 import uuid
+import signal
+import functools
 from collections import Counter
 from heapq import heapify, heappush, heappop
 try:
@@ -16,6 +18,39 @@ import wiz.package
 import wiz.exception
 import wiz.symbol
 import wiz.history
+
+
+def handle_timeout():
+    """Decorator function to handle timeout on :class:`Graph` methods.
+
+    Raise :exc:`wiz.exception.GraphResolutionError` when the time limit is
+    reached.
+
+    .. warning::
+
+        It does not work on Windows operating system as it uses
+        :func:`signal.alarm` to raise the exception.
+
+    """
+    def decorator(method):
+        def _handle_timeout(signum, frame):
+            raise wiz.exception.GraphResolutionError(
+                "The graph resolution time limit was exceeded."
+            )
+
+        def wrapper(graph, *args, **kwargs):
+            signal.signal(signal.SIGALRM, _handle_timeout)
+            signal.setitimer(signal.ITIMER_REAL, graph.timeout)
+
+            try:
+                result = method(graph, *args, **kwargs)
+            finally:
+                signal.alarm(0)
+            return result
+
+        return functools.wraps(method)(wrapper)
+
+    return decorator
 
 
 class Resolver(object):
@@ -108,15 +143,20 @@ class Resolver(object):
         # conflicting variant node identifiers to remove before instantiation.
         self._iterator = iter([])
 
-        # Time to expire before a :exc:`wiz.exception.GraphResolutionError`
-        # is raised.
-        self.timeout = timeout
+        # Time limit for the resolution process.
+        self._timeout = timeout
 
     @property
     def definition_mapping(self):
         """Return mapping of all available definitions."""
         return self._definition_mapping
 
+    @property
+    def timeout(self):
+        """Return time limit for the resolution process in seconds."""
+        return self._timeout
+
+    @handle_timeout()
     def compute_packages(self, requirements):
         """Resolve requirements graphs and return list of packages.
 
@@ -127,32 +167,31 @@ class Resolver(object):
         resolved in time.
 
         """
-        with wiz.utility.Timeout(seconds=self.timeout):
-            self._initiate(requirements)
+        self._initiate(requirements)
 
-            # Store latest exception to raise if necessary.
-            latest_error = None
+        # Store latest exception to raise if necessary.
+        latest_error = None
 
-            while True:
-                graph = self._fetch_next_graph()
-                if graph is None:
-                    raise latest_error
+        while True:
+            graph = self._fetch_next_graph()
+            if graph is None:
+                raise latest_error
 
-                try:
-                    self._resolve_conflicts(graph)
+            try:
+                self._resolve_conflicts(graph)
 
-                except wiz.exception.WizError as error:
-                    wiz.history.record_action(
-                        wiz.symbol.GRAPH_RESOLUTION_FAILURE_ACTION,
-                        graph=graph, error=error
-                    )
+            except wiz.exception.WizError as error:
+                wiz.history.record_action(
+                    wiz.symbol.GRAPH_RESOLUTION_FAILURE_ACTION,
+                    graph=graph, error=error
+                )
 
-                    self._logger.debug("Failed to resolve graph: {}".format(error))
-                    latest_error = error
+                self._logger.debug("Failed to resolve graph: {}".format(error))
+                latest_error = error
 
-                else:
-                    distance_mapping, _ = self._fetch_distance_mapping(graph)
-                    return extract_ordered_packages(graph, distance_mapping)
+            else:
+                distance_mapping, _ = self._fetch_distance_mapping(graph)
+                return extract_ordered_packages(graph, distance_mapping)
 
     def _initiate(self, requirements):
         """Initialize iterator with a graph created from *requirement*.

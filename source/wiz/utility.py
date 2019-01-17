@@ -6,7 +6,6 @@ import json
 import zlib
 import base64
 import hashlib
-import signal
 
 import packaging.requirements
 from packaging.requirements import (
@@ -237,26 +236,3 @@ def combine_command(elements):
 
     """
     return " ".join([pipes.quote(element) for element in elements])
-
-
-class Timeout:
-    """Handle a time out after a specified amount of seconds.
-
-    Raises :exc:`wiz.exception.GraphResolutionError` if the graph cannot be resolved in
-    time.
-
-    """
-    def __init__(self, seconds=1):
-        self.seconds = seconds
-
-    def handle_timeout(self, signum, frame):
-        raise wiz.exception.GraphResolutionError(
-            "Timeout reached. Graph resolution took too long."
-        )
-
-    def __enter__(self):
-        signal.signal(signal.SIGALRM, self.handle_timeout)
-        signal.alarm(self.seconds)
-
-    def __exit__(self, type, value, traceback):
-        signal.alarm(0)
