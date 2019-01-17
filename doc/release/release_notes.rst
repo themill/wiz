@@ -285,6 +285,11 @@ Release Notes
         registry in order to prevent the fetching process to fail with relative
         paths or trailing slashes.
 
+    .. change:: fixed
+
+        Fixed :class:`wiz.mapping.Mapping` to ensure that creating an instance
+        does not mutate original data.
+
 .. release:: 1.2.1
     :date: 2018-10-24
 
