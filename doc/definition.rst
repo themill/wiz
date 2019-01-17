@@ -314,7 +314,7 @@ The same version specifiers defined in :term:`PEP 440` can be used:
 .. important::
 
     ``conditions`` only operate on the entire definition and can not be scoped
-     to Variants.
+    to Variants.
 
 .. _definition/constraints:
 
