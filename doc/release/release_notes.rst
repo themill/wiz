@@ -92,7 +92,7 @@ Release Notes
         Added :func:`wiz.graph.validate` to ensure that a :class:`Graph`
         instance does not contain any remaining error after the conflict
         resolution process. The :exc:`wiz.exception.WizError` error encapsulated
-        in the nearest accessible node will be raised if necessary
+        in the nearest accessible node will be raised if necessary.
 
     .. change:: changed
         :tags: command-line
