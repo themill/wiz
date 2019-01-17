@@ -86,6 +86,14 @@ Release Notes
         as a unified command string while keeping quoted elements in order
         to preserve the command in the log as it was typed.
 
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.graph.validate` to ensure that a :class:`Graph`
+        instance does not contain any remaining error after the conflict
+        resolution process. The :exc:`wiz.exception.WizError` error encapsulated
+        in the nearest accessible node will be raised if necessary.
+
     .. change:: changed
         :tags: command-line
 
@@ -249,6 +257,19 @@ Release Notes
     .. change:: changed
         :tags: API
 
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
+        handle package extraction error so that it does not raise if faulty
+        packages are not in resolved packages. If a package extraction error is
+        raised for one combination of the graph, another graph combination will
+        be fetched and the error will be raised only if it appears for all
+        combinations.
+
+        The package extraction error has now a lower priority, so that it will
+        not be raised if a conflict error is raised before.
+
+    .. change:: changed
+        :tags: API
+
         Updated :meth:`graph.Graph.create_link` to not raise an error when a
         link is assigned twice between two nodes. This caused an issue when
         a package :ref:`implicitly required <definition/auto-use>` were also
@@ -271,6 +292,11 @@ Release Notes
         as the only parent to consider for requirements. That lead to the
         elimination of all requirement from other parents, so conflicts would
         not be properly detected and resolved within the graph.
+
+    .. change:: fixed
+
+        Fixed :func:`wiz.graph.updated_by_distance` to not filter out
+        :attr:`root <wiz.graph.Graph.ROOT>` node.
 
     .. change:: fixed
 
