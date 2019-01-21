@@ -1283,7 +1283,7 @@ class Graph(object):
         identifier = package.qualified_identifier
 
         # Use weight from package if available.
-        weight = package.get("weight", weight)
+        weight = int(package.get("weight", weight))
 
         if not self.exists(identifier):
 
