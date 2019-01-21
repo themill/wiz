@@ -1584,6 +1584,23 @@ def test_definition_with_error():
     ) in str(error)
 
 
+def test_definition_with_weight_error():
+    """Fail to create a non implicit definition with weight."""
+    data = {
+        "identifier": "test",
+        "weight": 2
+    }
+
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        wiz.definition.Definition(data)
+
+    assert (
+        "IncorrectDefinition: A weight cannot be specified for a non-implicit "
+        "definition ('auto-use' keyword must be used to make a definition "
+        "implicit)"
+    ) in str(error)
+
+
 def test_definition_with_version_error():
     """Fail to create a definition with incorrect version."""
     data = {
