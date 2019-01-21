@@ -1274,8 +1274,16 @@ class Graph(object):
         link from the node to its parent. The lesser this number, the higher is
         the importance of the link. Default is 1.
 
+        .. note::
+
+            If *package* contains a "weight" keyword, this value will be used
+            in lieu of *weight*.
+
         """
         identifier = package.qualified_identifier
+
+        # Use weight from package if available.
+        weight = package.get("weight", weight)
 
         if not self.exists(identifier):
 

@@ -1611,6 +1611,70 @@ def test_graph_update_from_requirements_with_errors(
     }
 
 
+def test_graph_update_from_requirements_with_package_weight(
+    mocked_resolver, mocked_package_extract
+):
+    """Update graph from requirements with package weight."""
+    graph = wiz.graph.Graph(mocked_resolver)
+
+    _mapping = {
+        "A==0.2.0": wiz.package.Package({
+            "identifier": "A==0.2.0",
+            "definition-identifier": "A",
+            "weight": 3,
+        }),
+        "B==2.1.1": wiz.package.Package({
+            "identifier": "B==2.1.1",
+            "definition-identifier": "B",
+            "weight": 1,
+        }),
+    }
+
+    mocked_package_extract.side_effect = [
+        [_mapping["A==0.2.0"]],
+        [_mapping["B==2.1.1"]]
+    ]
+
+    graph.update_from_requirements([Requirement("A"), Requirement("B>=2")])
+
+    assert graph.to_dict() == {
+        "identifier": mock.ANY,
+        "node_mapping": {
+            "A==0.2.0": {
+                "package": {
+                    "identifier": "A==0.2.0",
+                    "definition-identifier": "A",
+                    "weight": "3"
+                },
+                "parents": ["root"]
+            },
+            "B==2.1.1": {
+                "package": {
+                    "identifier": "B==2.1.1",
+                    "definition-identifier": "B",
+                    "weight": "1"
+                },
+                "parents": ["root"]
+            }
+        },
+        "link_mapping": {
+            "root": {
+                "A==0.2.0": {"requirement": Requirement("A"), "weight": 3},
+                "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 1}
+            }
+        },
+        "identifiers_per_definition": {
+            "A": ["A==0.2.0"],
+            "B": ["B==2.1.1"],
+        },
+        "variants_per_definition": {},
+        "constraint_mapping": {},
+        "condition_mapping": {},
+        "namespace_count": {},
+        "error_mapping": {}
+    }
+
+
 @pytest.mark.parametrize("options", [
     {},
     {"parent_identifier": "foo"},
