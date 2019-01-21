@@ -494,6 +494,7 @@ class Definition(wiz.mapping.Mapping):
             "install-root",
             "install-location",
             "auto-use",
+            "weight",
             "system",
             "command",
             "environ",

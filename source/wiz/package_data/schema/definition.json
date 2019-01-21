@@ -22,6 +22,10 @@
             "type": "boolean",
             "default": false
         },
+        "weight": {
+            "description": "Indicate a weight that would override the weight deduced from requirement order.",
+            "int": "number"
+        },
         "disabled": {
             "description": "Indicate whether the definition can be discover.",
             "type": "boolean",
