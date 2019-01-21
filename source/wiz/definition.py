@@ -435,6 +435,13 @@ class Definition(wiz.mapping.Mapping):
                 )
             )
 
+        if "weight" in mapping.keys() and "auto-use" not in mapping.keys():
+            raise wiz.exception.IncorrectDefinition(
+                "A weight cannot be specified for a non-implicit definition "
+                "('auto-use' keyword must be used to make a definition "
+                "implicit)"
+            )
+
         if "variants" in mapping.keys():
             mapping["variants"] = [
                 _Variant(
