@@ -147,7 +147,7 @@ def fetch_package_request_from_command(command_request, definition_mapping):
 
 def resolve_context(
     requests, definition_mapping=None, ignore_implicit=False,
-    environ_mapping=None
+    environ_mapping=None, timeout=300
 ):
     """Return context mapping from *requests*.
 
@@ -191,6 +191,12 @@ def resolve_context(
     *environ_mapping* can be a mapping of environment variables which would
     be augmented by the resolved environment.
 
+    *timeout* is the max time to expire before the resolve process is being
+    cancelled (in seconds). Default is 5 minutes.
+
+    Raises :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
+    resolved in time.
+
     """
     # To prevent mutating input list.
     _requests = requests[:]
@@ -207,7 +213,7 @@ def resolve_context(
 
     registries = definition_mapping["registries"]
     resolver = wiz.graph.Resolver(
-        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE], timeout
     )
     packages = resolver.compute_packages(requirements)
 
