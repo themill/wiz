@@ -184,7 +184,7 @@ class _MainGroup(click.Group):
 )
 @click.option(
     "--timeout",
-    help="Timeout (in s) for the graph resolution. (Default: 5 Minutes)",
+    help="Timeout (in seconds) for the graph resolution. (Default: 5 Minutes)",
     metavar="TIMEOUT",
     default=300,
     type=int
