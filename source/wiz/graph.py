@@ -148,7 +148,17 @@ class Resolver(object):
                 raise latest_error
 
             try:
+                # Raise error if a conflict in graph cannot be solved.
                 self._resolve_conflicts(graph)
+
+                # Compute distance mapping if necessary.
+                distance_mapping, _ = self._fetch_distance_mapping(graph)
+
+                # Raise remaining error found in graph if necessary.
+                validate(graph, distance_mapping)
+
+                # Extract packages ordered by descending order of distance.
+                return extract_ordered_packages(graph, distance_mapping)
 
             except wiz.exception.WizError as error:
                 wiz.history.record_action(
@@ -158,10 +168,6 @@ class Resolver(object):
 
                 self._logger.debug("Failed to resolve graph: {}".format(error))
                 latest_error = error
-
-            else:
-                distance_mapping, _ = self._fetch_distance_mapping(graph)
-                return extract_ordered_packages(graph, distance_mapping)
 
     def _initiate(self, requirements):
         """Initialize iterator with a graph created from *requirement*.
@@ -242,7 +248,7 @@ class Resolver(object):
 
         """
         variant_mapping = graph.variant_mapping()
-        if len(variant_mapping) == 0:
+        if not variant_mapping:
             self._logger.debug(
                 "No package variants are conflicting in the graph."
             )
@@ -292,8 +298,8 @@ class Resolver(object):
         a division of the graph.
 
         """
-        conflicts = graph.conflicts()
-        if len(conflicts) == 0:
+        conflicts = graph.conflicting_identifiers()
+        if not conflicts:
             self._logger.debug("No conflicts in the graph.")
             return
 
@@ -308,17 +314,19 @@ class Resolver(object):
             distance_mapping, updated = self._fetch_distance_mapping(graph)
 
             # Update graph and conflicts to remove all unreachable nodes if
-            # distance mapping have been updated.
-            if updated:
+            # there are remaining conflicts in the graph or if distance mapping
+            # have been updated.
+            if updated and conflicts:
                 trim_unreachable_from_graph(graph, distance_mapping)
                 conflicts = updated_by_distance(conflicts, distance_mapping)
 
             # If no nodes are left in the queue, exit the loop. The graph
             # is officially resolved. Hooray!
-            if len(conflicts) == 0:
+            if not conflicts:
                 return
 
-            # Pick up the nearest conflicting node identifier.
+            # Pick up the furthest conflicting node identifier so that nearest
+            # node have priorities.
             identifier = conflicts.pop()
             node = graph.node(identifier)
 
@@ -381,7 +389,9 @@ class Resolver(object):
                     graph.update_from_requirements([requirement])
 
                     # Update conflict list if necessary.
-                    conflicts = list(set(conflicts + graph.conflicts()))
+                    conflicts = list(
+                        set(conflicts + graph.conflicting_identifiers())
+                    )
 
                     # If the updated graph contains conflicting variants, the
                     # relevant combination must be extracted, therefore the
@@ -526,12 +536,23 @@ def generate_variant_combinations(graph, variant_groups):
         )
         _groups.append(_tuple_group)
 
+    # Record variant node with error to prevent it being used more than once.
+    blacklist = set()
+
     for combination in itertools.product(*_groups):
         _identifiers = [_id for _group in combination for _id in _group]
+
+        # Skip combination which contains blacklisted node.
+        if blacklist.intersection(_identifiers):
+            continue
+
         yield (
             graph,
             tuple([_id for _id in identifiers if _id not in _identifiers])
         )
+
+        # Update blacklist with error encountered in current combination.
+        blacklist = set(_identifiers).intersection(graph.error_identifiers())
 
 
 def trim_unreachable_from_graph(graph, distance_mapping):
@@ -609,7 +630,8 @@ def updated_by_distance(identifiers, distance_mapping):
 
     """
     _identifiers = filter(
-        lambda _id: distance_mapping.get(_id, {}).get("distance"), identifiers
+        lambda _id: distance_mapping.get(_id, {}).get("distance") is not None,
+        identifiers
     )
     return sorted(
         _identifiers, key=lambda _id: distance_mapping[_id]["distance"]
@@ -627,7 +649,7 @@ def extract_conflicting_nodes(graph, node):
     *node* should be a :class:`Node` instance.
 
     """
-    nodes = (graph.node(_id) for _id in graph.conflicts())
+    nodes = (graph.node(_id) for _id in graph.conflicting_identifiers())
 
     return [
         _node for _node in nodes
@@ -734,6 +756,57 @@ def remove_node_and_relink(graph, node, identifiers, requirement):
             )
 
 
+def validate(graph, distance_mapping):
+    """Ensure that *graph* does not have remaining errors.
+
+    The identifier nearest to the :attr:`root <Graph.ROOT>` level are analyzed
+    first, and the first exception raised under one this identifier will be
+    raised.
+
+    *graph* must be an instance of :class:`Graph`.
+
+    *distance_mapping* is a mapping indicating the shortest possible distance
+    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+    graph with its corresponding parent node identifier.
+
+    An :exc:`wiz.exception.WizError` is raised if an error attached to the
+    :attr:`root <Graph.ROOT>` level or any reachable node is found.
+
+    """
+    logger = mlog.Logger(__name__ + ".validate")
+
+    errors = graph.error_identifiers()
+    if not errors:
+        logger.debug("No errors in the graph.")
+        return
+
+    logger.debug("Errors: {}".format(", ".join(errors)))
+
+    wiz.history.record_action(
+        wiz.symbol.GRAPH_ERROR_IDENTIFICATION_ACTION,
+        graph=graph, errors=errors
+    )
+
+    # Updating identifier list from distance mapping automatically filter out
+    # unreachable nodes.
+    identifiers = updated_by_distance(errors, distance_mapping)
+    if len(identifiers) == 0:
+        raise wiz.exception.GraphResolutionError(
+            "The resolution graph does not contain any valid packages."
+        )
+
+    # Pick up nearest node identifier which contains an error.
+    identifier = identifiers[0]
+
+    exceptions = graph.errors(identifier)
+    logger.debug(
+        "{} exception(s) raised under {}".format(len(exceptions), identifier)
+    )
+
+    # Raise first exception found when updating graph if necessary.
+    raise exceptions[0]
+
+
 def extract_ordered_packages(graph, distance_mapping):
     """Return sorted list of packages from *graph*.
 
@@ -754,6 +827,11 @@ def extract_ordered_packages(graph, distance_mapping):
         key=lambda n: distance_mapping[n.identifier].items(),
         reverse=True
     ):
+        # Skip node if unreachable.
+        if distance_mapping[node.identifier].get("distance") is None:
+            continue
+
+        # Otherwise keep the package.
         packages.append(node.package)
 
     logger.debug(
@@ -810,6 +888,9 @@ class Graph(object):
         # e.g. Counter({u'maya': 2, u'houdini': 1})
         self._namespace_count = Counter()
 
+        # List of exception raised per node identifier.
+        self._error_mapping = {}
+
     def __deepcopy__(self, memo):
         """Ensure that only necessary element are copied in the new graph."""
         result = Graph(self._resolver)
@@ -828,6 +909,7 @@ class Graph(object):
             copy.deepcopy(self._variants_per_definition)
         )
         result._namespace_count = copy.deepcopy(self._namespace_count)
+        result._error_mapping = copy.deepcopy(self._error_mapping)
 
         memo[id(self)] = result
         return result
@@ -860,6 +942,10 @@ class Graph(object):
             },
             "variants_per_definition": self._variants_per_definition,
             "namespace_count": dict(self._namespace_count),
+            "error_mapping": {
+                _id: [str(exception) for exception in exceptions]
+                for _id, exceptions in self._error_mapping.items()
+            },
         }
 
     def node(self, identifier):
@@ -935,8 +1021,8 @@ class Graph(object):
         """
         return self._link_mapping[parent_identifier][identifier]["requirement"]
 
-    def conflicts(self):
-        """Return conflicting nodes identifiers instances.
+    def conflicting_identifiers(self):
+        """Return conflicting nodes identifiers.
 
         A conflict appears when several nodes are found for a single
         definition identifier.
@@ -954,6 +1040,18 @@ class Graph(object):
                 conflicting += _identifiers
 
         return conflicting
+
+    def error_identifiers(self):
+        """Return list of existing node identifiers which encapsulate an error.
+        """
+        return [
+            identifier for identifier in self._error_mapping.keys()
+            if identifier == self.ROOT or self.exists(identifier)
+        ]
+
+    def errors(self, identifier):
+        """Return list of exceptions raised for node *identifier*."""
+        return self._error_mapping.get(identifier)
 
     def update_from_requirements(self, requirements):
         """Update graph from *requirements*.
@@ -1034,17 +1132,23 @@ class Graph(object):
         stored_nodes = []
 
         for conditions in self._condition_mapping.keys():
-            packages = (
-                wiz.package.extract(
-                    condition, self._resolver.definition_mapping
-                ) for condition in conditions
-            )
+            try:
+                packages = (
+                    wiz.package.extract(
+                        condition, self._resolver.definition_mapping
+                    ) for condition in conditions
+                )
 
-            # Require all of this package identifiers to be in the node mapping.
-            identifiers = [
-                package.qualified_identifier
-                for package in itertools.chain(*packages)
-            ]
+                # Require all of this package identifiers to be in the node
+                # mapping.
+                identifiers = [
+                    package.qualified_identifier
+                    for package in itertools.chain(*packages)
+                ]
+
+            except wiz.exception.WizError:
+                # Do not raise if the request is not found.
+                continue
 
             if all(_id in self._node_mapping.keys() for _id in identifiers):
                 stored_node = self._condition_mapping[conditions]
@@ -1131,10 +1235,17 @@ class Graph(object):
         self._logger.debug("Update from requirement: {}".format(requirement))
 
         # Get packages from requirement.
-        packages = wiz.package.extract(
-            requirement, self._resolver.definition_mapping,
-            namespace_counter=self._namespace_count
-        )
+        try:
+            packages = wiz.package.extract(
+                requirement, self._resolver.definition_mapping,
+                namespace_counter=self._namespace_count
+            )
+
+        except wiz.exception.WizError as error:
+            parent = parent_identifier or self.ROOT
+            self._error_mapping.setdefault(parent, [])
+            self._error_mapping[parent].append(error)
+            return
 
         # Create a node for each package if necessary.
         for package in packages:
@@ -1350,17 +1461,6 @@ class Graph(object):
                 wiz.symbol.GRAPH_NODE_REMOVAL_ACTION,
                 graph=self, node=identifier
             )
-
-    def reset_variants(self):
-        """Reset list of variant node identifiers .
-
-        .. warning::
-
-            A lazy deletion is performed as only the variant identifiers are
-            deleted, but not the nodes themselves.
-
-        """
-        self._variants_per_definition = {}
 
 
 class Node(object):
