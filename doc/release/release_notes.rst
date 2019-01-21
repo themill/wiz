@@ -77,6 +77,13 @@ Release Notes
         of the :ref:`install-location <definition/install_location>` value.
 
     .. change:: new
+        :tags: definition
+
+        Added optional :ref:`weight <definition/weight>` keyword to definition
+        schema to influence the priority of an implicit package (using the
+        :ref:`auto-use <definition/auto-use>` keyword).
+
+    .. change:: new
         :tags: API
 
         Added :mod:`wiz.environ` module to regroup functions dealing with the

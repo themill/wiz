@@ -421,6 +421,42 @@ By default this keyword is set to false.
     This keyword should be used carefully as it could potentially pollute all
     other requests.
 
+.. _definition/weight:
+
+Weight
+------
+
+The optional ``weight`` keyword can be used to influence the priority of an
+implicit package (using the :ref:`auto-use <definition/auto-use>` keyword).
+
+.. code-block:: json
+
+    {
+        "auto-use": true,
+        "weight": 1,
+    }
+
+Weights of packages are usually deduced from requests order. Packages requests
+can be made explicitly at the root level, or via parent packages with
+:ref:`requirements <definition/requirements>`, :ref:`conditions
+<definition/conditions>` or :ref:`constraints <definition/constraints>`. For
+instance, in the following command, "foo", "bar" and "baz" are explicitly
+requested at the root level and their weight is respectively 1, 2 and 3::
+
+    wiz use foo bar baz
+
+For each level, the lower the weight, the higher the priority of the package in
+the resolution graph.
+
+Implicit packages are automatically appended to the list of requests at the root
+level, so their weights are always lower than explicit packages, unless a
+``weight`` is set with a low weight.
+
+.. warning::
+
+    A non implicit package cannot use this keyword as the request order can be
+    used to influence the priority.
+
 .. _definition/install_location:
 
 Install Location
