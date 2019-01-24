@@ -22,7 +22,7 @@ import wiz.exception
 
 # Update requirement py-parser to add ":" as a valid punctuation in order to
 # use it for the namespaces (e.g. "foo::test")
-PUNCTUATION = Word("-_:")
+PUNCTUATION = Word("-_:.")
 IDENTIFIER = Combine(
     ALPHANUM + ZeroOrMore(ALPHANUM | (ZeroOrMore(PUNCTUATION) + ALPHANUM))
 )
