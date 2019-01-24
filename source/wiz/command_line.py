@@ -66,7 +66,7 @@ class _MainGroup(click.Group):
         command from one or several package requests. The resolved context
         contains the environment mapping and a list of accessible command 
         aliases.
-        
+
         Example::
 
             \b
@@ -76,7 +76,7 @@ class _MainGroup(click.Group):
 
         A command can also be executed from a resolved context via a command
         alias which is extracted from its corresponding package.
-                
+
         Example::
 
             \b
@@ -92,7 +92,7 @@ class _MainGroup(click.Group):
             wiz list command
 
         It is also possible to search a specific package or command as follow::
-        
+
             \b
             wiz search python
 
