@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import pytest
+import copy
 
 from wiz.utility import Requirement, Version
 import wiz.package
@@ -1387,3 +1388,35 @@ def test_package_remove_non_existing_index():
 
     _package = package.remove_index("test", "error")
     assert package == _package
+
+
+def test_package_non_mutated_input():
+    """Ensure that input mapping isn't mutated when creating package."""
+    data = {
+        "identifier": "test[V1]==0.1.0",
+        "version": "0.1.0",
+        "definition-identifier": "test",
+        "variant-name": "V1",
+        "description": "This is a definition",
+        "registry": "/path/to/registry",
+        "definition-location": "/path/to/registry/test-0.1.0.json",
+        "auto-use": True,
+        "system": {
+            "platform": "linux",
+            "os": "el >= 6, < 7",
+            "arch": "x86_64"
+        },
+        "command": {
+            "app": "AppX"
+        },
+        "environ": {
+            "KEY1": "VALUE1"
+        },
+        "requirements": ["foo"],
+        "constraints": ["bar==2.1.0"]
+    }
+
+    _data = copy.deepcopy(data)
+    wiz.package.Package(_data)
+
+    assert data == _data

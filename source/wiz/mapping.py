@@ -16,7 +16,7 @@ class Mapping(collections.Mapping):
     def __init__(self, *args, **kwargs):
         """Initialise mapping."""
         super(Mapping, self).__init__()
-        self._mapping = dict(*args, **kwargs)
+        self._mapping = copy.deepcopy(dict(*args, **kwargs))
 
         # Sanitize all elements of the mapping.
         self._sanitize_version()

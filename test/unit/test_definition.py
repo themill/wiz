@@ -2238,3 +2238,47 @@ def test_definition_variant_set():
         ]
     }
     assert definition1.to_dict() == {"identifier": "foo"}
+
+
+def test_definition_non_mutated_input():
+    """Ensure that input mapping isn't mutated when creating definition."""
+    data = {
+        "identifier": "test",
+        "version": "0.1.0",
+        "namespace": "foo",
+        "description": "This is a definition",
+        "registry": "/path/to/registry",
+        "definition-location": "/path/to/registry/test-0.1.0.json",
+        "auto-use": True,
+        "system": {
+            "platform": "linux",
+            "os": "el >= 6, < 7",
+            "arch": "x86_64"
+        },
+        "command": {
+            "app": "AppX"
+        },
+        "environ": {
+            "KEY1": "VALUE1"
+        },
+        "requirements": ["foo"],
+        "constraints": ["bar==2.1.0"],
+        "conditions": ["baz"],
+        "variants": [
+            {
+                "identifier": "Variant1",
+                "command": {
+                    "appV1": "AppX --test"
+                },
+                "environ": {
+                    "KEY2": "VALUE2"
+                },
+                "requirements": ["bim >= 9, < 10"]
+            }
+        ]
+    }
+
+    _data = copy.deepcopy(data)
+    wiz.definition.Definition(_data)
+
+    assert data == _data
