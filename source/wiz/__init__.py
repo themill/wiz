@@ -207,7 +207,10 @@ def resolve_context(
         )
 
     if not ignore_implicit:
-        _requests += definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, [])
+        # Prepend implicit requests to explicit ones.
+        _requests = (
+            definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, []) + _requests
+        )
 
     requirements = map(wiz.utility.get_requirement, _requests)
 
