@@ -413,7 +413,7 @@ def test_resolve_context_with_implicit_packages(
         "__PACKAGE_DEFINITIONS__", 300
     )
     mocked_resolver.compute_packages.assert_called_once_with([
-        Requirement(request) for request in requests + implicit
+        Requirement(request) for request in implicit + requests
     ])
 
     mocked_environ_initiate.assert_called_once_with(
