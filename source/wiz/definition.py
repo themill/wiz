@@ -185,7 +185,10 @@ def query(requirement, definition_mapping, namespace_counter=None):
 
     # Extend identifier with namespace if necessary.
     namespace_mapping = definition_mapping.get("__namespace__", {})
-    if identifier not in definition_mapping and not identifier.count("::"):
+    if (
+        identifier not in definition_mapping and
+        not identifier.count(wiz.symbol.NAMESPACE_SEPARATOR)
+    ):
         _namespace = _guess_default_namespace(
             identifier, namespace_mapping,
             namespace_counter=namespace_counter
@@ -193,6 +196,11 @@ def query(requirement, definition_mapping, namespace_counter=None):
 
         if _namespace is not None:
             identifier = "{}::{}".format(_namespace, identifier)
+
+    # If identifier starts with namespace separator, that means the identifier
+    # without namespace is required.
+    if identifier.startswith(wiz.symbol.NAMESPACE_SEPARATOR):
+        identifier = identifier[2:]
 
     if identifier not in definition_mapping:
         raise wiz.exception.RequestNotFound(requirement)
