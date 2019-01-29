@@ -18,18 +18,16 @@ import wiz.utility
 import wiz.symbol
 
 
-def shell(environment, shell_type="bash"):
+def shell(environment):
     """Spawn a sub-shell with an *environment* mapping.
 
-    *shell_type* can indicate a specific type of shell. Default is Bash.
+    Default shell is Bash.
 
     """
     logger = mlog.Logger(__name__ + ".shell")
 
     # TODO: Improve default shell to make it cross platform...
-    default_shell = "/bin/bash"
-
-    executable = distutils.spawn.find_executable(shell_type)
+    executable = "/bin/bash"
     logger.info("Spawn shell: {}".format(executable))
 
     # save original tty setting then set it to raw mode
@@ -41,7 +39,7 @@ def shell(environment, shell_type="bash"):
 
     # Run in a new process group to enable job control
     process = subprocess.Popen(
-        executable or default_shell,
+        executable,
         preexec_fn=os.setsid,
         stdin=slave_fd,
         stdout=slave_fd,
