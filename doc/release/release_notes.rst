@@ -147,15 +147,15 @@ Release Notes
     .. change:: changed
         :tags: API
 
-        Update :func:`wiz.resolve_context` to prepend implicit requests to
+        Updated :func:`wiz.resolve_context` to prepend implicit requests to
         explicit requests, rather than append as it previously did.
 
         Previously when resolving the environment, a path set in the 'environ'
         of an implicit package would be appended to the ones from explicit
-        packages, making it impossible to overwrite i.e. shader paths from
-        within implicit packages.
+        packages, making it impossible to overwrite (e.g. shader paths from
+        within implicit packages).
 
-        This change  enables the use of implicit packages for job setups by
+        This change enables the use of implicit packages for job setups by
         guaranteeing that implicit packages will be resolved before explicit
         packages.
 
