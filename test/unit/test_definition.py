@@ -77,6 +77,9 @@ def definitions():
         wiz.definition.Definition({
             "identifier": "foo",
             "namespace": "other"
+        }),
+        wiz.definition.Definition({
+            "identifier": "foo",
         })
     ]
 
@@ -87,6 +90,7 @@ def package_definition_mapping():
     return {
         "__namespace__": {
             "bim": {"test"},
+            "foo": {"test"},
             "baz": {"test1", "test2", "test3"}
         },
         "foo": {
@@ -144,6 +148,12 @@ def package_definition_mapping():
             "unknown": wiz.definition.Definition({
                 "identifier": "baz",
                 "namespace": "test3",
+            }),
+        },
+        "test::foo": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "baz",
+                "namespace": "test",
             }),
         }
     }
@@ -295,6 +305,9 @@ def test_fetch(mocked_discover, definitions, options):
             },
             "other::foo": {
                 "unknown": definitions[8]
+            },
+            "foo": {
+                "unknown": definitions[9]
             }
         },
         "command": {
@@ -359,6 +372,9 @@ def test_fetch_with_implicit_packages(mocked_discover, definitions, options):
             },
             "other::foo": {
                 "unknown": definitions[8]
+            },
+            "foo": {
+                "unknown": definitions[9]
             }
         },
         "command": {
@@ -382,6 +398,18 @@ def test_query_definition(package_definition_mapping):
     assert (
         wiz.definition.query(requirement, package_definition_mapping) ==
         package_definition_mapping["foo"]["0.3.4"]
+    )
+
+    requirement = Requirement("::foo")
+    assert (
+        wiz.definition.query(requirement, package_definition_mapping) ==
+        package_definition_mapping["foo"]["0.3.4"]
+    )
+
+    requirement = Requirement("test::foo")
+    assert (
+        wiz.definition.query(requirement, package_definition_mapping) ==
+        package_definition_mapping["test::foo"]["unknown"]
     )
 
     requirement = Requirement("bar")
