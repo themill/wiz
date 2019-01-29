@@ -9,22 +9,25 @@ import hashlib
 
 import packaging.requirements
 from packaging.requirements import (
-    Combine, Word, ZeroOrMore, ALPHANUM, Optional, EXTRAS,
+    L, Combine, Word, ZeroOrMore, ALPHANUM, Optional, EXTRAS,
     URL_AND_MARKER, VERSION_AND_MARKER, stringStart, stringEnd
 )
 
 from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
+import wiz.symbol
 import wiz.mapping
 import wiz.exception
 
 
-# Update requirement py-parser to add ":" as a valid punctuation in order to
-# use it for the namespaces (e.g. "foo::test")
-PUNCTUATION = Word("-_:.")
+# Extend requirement's expression to allow namespace separators as a valid
+# identifier (e.g. "foo::test", "::test").
+PUNCTUATION = Word("-_.")
+NAME = ALPHANUM + ZeroOrMore(ALPHANUM | (ZeroOrMore(PUNCTUATION) + ALPHANUM))
+NAME_SEPARATOR = L(wiz.symbol.NAMESPACE_SEPARATOR)
 IDENTIFIER = Combine(
-    ALPHANUM + ZeroOrMore(ALPHANUM | (ZeroOrMore(PUNCTUATION) + ALPHANUM))
+    Optional(Optional(NAME) + NAME_SEPARATOR) + NAME
 )
 
 packaging.requirements.REQUIREMENT = (
