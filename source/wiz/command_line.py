@@ -130,12 +130,19 @@ class _MainGroup(click.Group):
 )
 @click.option(
     "-dsp", "--definition-search-paths",
-    help="Search paths for package definitions.",
+    help="Set search path for package definitions.",
     default=wiz.registry.get_defaults(),
     multiple=True,
-    metavar="PATHS",
+    metavar="PATH",
     type=click.Path(),
     show_default=True
+)
+@click.option(
+    "-add", "--add-definition-search-path",
+    help="Add search path for package definitions to default registries.",
+    multiple=True,
+    metavar="PATH",
+    type=click.Path()
 )
 @click.option(
     "--ignore-implicit",
@@ -214,6 +221,7 @@ def main(click_context, **kwargs):
 
     # Fetch all registries.
     registries = wiz.registry.fetch(
+        kwargs["add_definition_search_path"] +
         kwargs["definition_search_paths"],
         include_local=not kwargs["no_local"],
         include_working_directory=not kwargs["no_cwd"]
