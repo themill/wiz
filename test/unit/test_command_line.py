@@ -457,12 +457,21 @@ def test_query_system(
             ["/path1", "/path2"], None, True, True
         ),
         (["-dsd", "2"], None, 2, True, True),
+        (
+            ["-add", "/path1"],
+            [
+                "/path1", '/mill3d/server/apps/WIZ/registry/primary/default',
+                '/mill3d/server/apps/WIZ/registry/secondary/default',
+                '/jobs/.wiz/registry/default'
+            ], None, True, True
+        ),
         (["--no-local"], None, None, False, True),
         (["--no-cwd"], None, None, True, False),
     ], ids=[
         "no-options",
         "change-search-paths",
         "change-search-depth",
+        "add-search-path",
         "skip-local",
         "skip-cwd",
     ]
