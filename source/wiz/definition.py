@@ -257,26 +257,26 @@ def _guess_default_namespace(
     if len(_namespaces) == 0:
         return
 
-    guessed = False
+    max_occurrence = 0
 
-    # If more than one namespace is available, attempt to use counter to only
-    # keep those which are used the most.
-    if len(_namespaces) > 1 and namespace_counter is not None:
+    # Fetch number of occurrence of the namespace for counter if available.
+    if namespace_counter is not None:
         max_occurrence = max([
             namespace_counter[namespace] for namespace in _namespaces
         ])
 
+    # If definition exists without a namespace and namespace does not occur more
+    # than once in the counter, the definition without namespace is kept
+    if exists and len(_namespaces) == 1 and max_occurrence < 2:
+        return
+
+    # If more than one namespace is available, attempt to use counter to only
+    # keep those which are used the most.
+    if len(_namespaces) > 1 and max_occurrence > 0:
         _namespaces = [
             namespace for namespace in _namespaces
             if namespace_counter[namespace] == max_occurrence
         ]
-
-        guessed = _namespaces == 1
-
-    # If counter didn't help guessing one namespace and definition exists
-    # without any namespaces, the one without namespace is kept.
-    if not guessed and exists:
-        return
 
     if len(_namespaces) == 1:
         return _namespaces.pop()
