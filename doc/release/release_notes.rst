@@ -9,6 +9,15 @@ Release Notes
     .. change:: new
         :tags: command-line
 
+        Added :option:`--add-definition-search-path
+        <wiz --add-definition-search-path>` to specify a path to be added to
+        the default registry paths. Previously it was only possible to replace
+        the default paths with :option:`--definition-search-paths
+        <wiz --definition-search-paths>`.
+
+    .. change:: new
+        :tags: command-line
+
         Added :option:`--timeout <wiz --timeout>` to specify a time limit after
         which a graph resolve should be aborted to avoid the process hanging.
 
