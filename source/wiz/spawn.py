@@ -6,7 +6,7 @@ import os
 import sys
 import select
 import subprocess
-import distutils.spawn
+import tempfile
 import termios
 import tty
 import pty
@@ -18,18 +18,22 @@ import wiz.utility
 import wiz.symbol
 
 
-def shell(environment, shell_type="bash"):
+def shell(environment, command=None):
     """Spawn a sub-shell with an *environment* mapping.
 
-    *shell_type* can indicate a specific type of shell. Default is Bash.
+    Default shell is Bash.
+
+    *command* is a mapping of command aliases which should be available in the
+    shell.
 
     """
     logger = mlog.Logger(__name__ + ".shell")
 
-    # TODO: Improve default shell to make it cross platform...
-    default_shell = "/bin/bash"
+    if command is None:
+        command = {}
 
-    executable = distutils.spawn.find_executable(shell_type)
+    # TODO: Improve default shell to make it cross platform...
+    executable = "/bin/bash"
     logger.info("Spawn shell: {}".format(executable))
 
     # save original tty setting then set it to raw mode
@@ -39,9 +43,19 @@ def shell(environment, shell_type="bash"):
     # open pseudo-terminal to interact with subprocess
     master_fd, slave_fd = pty.openpty()
 
+    # Create temporary rc file for shell aliases for commands
+    rcfile = tempfile.NamedTemporaryFile()
+    for alias, value in command.items():
+        rcfile.write("alias {0}='{1}'\n".format(alias, value))
+        rcfile.seek(0)
+        rcfile.read()
+
+    if os.path.exists(rcfile.name):
+        executable = [executable, "--rcfile", rcfile.name]
+
     # Run in a new process group to enable job control
     process = subprocess.Popen(
-        executable or default_shell,
+        executable,
         preexec_fn=os.setsid,
         stdin=slave_fd,
         stdout=slave_fd,
@@ -66,8 +80,11 @@ def shell(environment, shell_type="bash"):
             if message:
                 os.write(sys.stdout.fileno(), message)
 
-    # restore tty settings back
+    # Restore tty settings back
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
+
+    # Remove temporary rc file for shell aliases
+    rcfile.close()
 
 
 def execute(elements, environment):
