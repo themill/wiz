@@ -647,7 +647,7 @@ def wiz_use(click_context, **kwargs):
 
         # If no commands are indicated, spawn a shell.
         elif len(extra_arguments) == 0:
-            wiz.spawn.shell(wiz_context["environ"])
+            wiz.spawn.shell(wiz_context["environ"], wiz_context["command"])
 
         # Otherwise, resolve the command and run it within the resolved context.
         else:

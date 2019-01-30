@@ -1469,6 +1469,9 @@ def test_use_spawn_shell(
     mocked_spawn_shell.assert_called_once_with({
         "KEY1": "value1",
         "KEY2": "value2"
+    }, {
+        "fooExe": "foo",
+        "fooExeDebug": "foo --debug",
     })
 
     mocked_resolve_command.assert_not_called()

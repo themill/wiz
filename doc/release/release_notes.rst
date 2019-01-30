@@ -101,6 +101,18 @@ Release Notes
         in the nearest accessible node will be raised if necessary.
 
     .. change:: changed
+        :tags: shell
+
+        Updated :func:`wiz.spawn.shell` to add "command" aliases to subprocess
+        when a Wiz shell is being opened, thereby enabling the user to use the
+        same aliases in the sub-shell that have been defined in the definitions.
+
+    .. change:: changed
+        :tags: shell
+
+        Updated :func:`wiz.spawn.shell`  to limit the Wiz shell to "bash".
+
+    .. change:: changed
         :tags: command-line
 
         Updated :mod:`wiz.command_line` to use :mod:`click` instead of
