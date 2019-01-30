@@ -103,14 +103,14 @@ Release Notes
     .. change:: changed
         :tags: shell
 
-        Added "command" aliases to subprocess when a Wiz shell is being opened,
-        thereby enabling the user to use the same aliases in the subshell that
-        have been defined in the definitions.
+        Updated :func:`wiz.spawn.shell` to add "command" aliases to subprocess
+        when a Wiz shell is being opened, thereby enabling the user to use the
+        same aliases in the sub-shell that have been defined in the definitions.
 
     .. change:: changed
         :tags: shell
 
-        Limited the Wiz shell to "bash".
+        Updated :func:`wiz.spawn.shell`  to limit the Wiz shell to "bash".
 
     .. change:: changed
         :tags: command-line
