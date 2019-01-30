@@ -185,10 +185,7 @@ def query(requirement, definition_mapping, namespace_counter=None):
 
     # Extend identifier with namespace if necessary.
     namespace_mapping = definition_mapping.get("__namespace__", {})
-    if (
-        identifier not in definition_mapping and
-        not identifier.count(wiz.symbol.NAMESPACE_SEPARATOR)
-    ):
+    if wiz.symbol.NAMESPACE_SEPARATOR not in identifier:
         _namespace = _guess_default_namespace(
             identifier, namespace_mapping,
             namespace_counter=namespace_counter
