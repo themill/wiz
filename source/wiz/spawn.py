@@ -18,7 +18,7 @@ import wiz.utility
 import wiz.symbol
 
 
-def shell(environment, command=dict()):
+def shell(environment, command=None):
     """Spawn a sub-shell with an *environment* mapping.
 
     Default shell is Bash.
@@ -28,6 +28,9 @@ def shell(environment, command=dict()):
 
     """
     logger = mlog.Logger(__name__ + ".shell")
+
+    if command is None:
+        command = {}
 
     # TODO: Improve default shell to make it cross platform...
     executable = "/bin/bash"
