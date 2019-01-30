@@ -18,7 +18,7 @@ import wiz.utility
 import wiz.symbol
 
 
-def shell(environment, command=None):
+def shell(environment, command=dict()):
     """Spawn a sub-shell with an *environment* mapping.
 
     Default shell is Bash.
