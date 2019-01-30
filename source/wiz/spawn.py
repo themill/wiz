@@ -6,7 +6,7 @@ import os
 import sys
 import select
 import subprocess
-import distutils.spawn
+import tempfile
 import termios
 import tty
 import pty
@@ -18,10 +18,13 @@ import wiz.utility
 import wiz.symbol
 
 
-def shell(environment):
+def shell(environment, command=None):
     """Spawn a sub-shell with an *environment* mapping.
 
     Default shell is Bash.
+
+    *command* is a mapping of command aliases which should be available in the
+    shell.
 
     """
     logger = mlog.Logger(__name__ + ".shell")
@@ -36,6 +39,16 @@ def shell(environment):
 
     # open pseudo-terminal to interact with subprocess
     master_fd, slave_fd = pty.openpty()
+
+    # Create temporary rc file for shell aliases for commands
+    rcfile = tempfile.NamedTemporaryFile()
+    for alias, value in command.items():
+        rcfile.write("alias {0}='{1}'\n".format(alias, value))
+        rcfile.seek(0)
+        rcfile.read()
+
+    if os.path.exists(rcfile.name):
+        executable = [executable, "--rcfile", rcfile.name]
 
     # Run in a new process group to enable job control
     process = subprocess.Popen(
@@ -64,8 +77,11 @@ def shell(environment):
             if message:
                 os.write(sys.stdout.fileno(), message)
 
-    # restore tty settings back
+    # Restore tty settings back
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
+
+    # Remove temporary rc file for shell aliases
+    rcfile.close()
 
 
 def execute(elements, environment):
