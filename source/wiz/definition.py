@@ -188,6 +188,7 @@ def query(requirement, definition_mapping, namespace_counter=None):
     if wiz.symbol.NAMESPACE_SEPARATOR not in identifier:
         _namespace = _guess_default_namespace(
             identifier, namespace_mapping,
+            exists=identifier in definition_mapping,
             namespace_counter=namespace_counter
         )
 
@@ -231,7 +232,7 @@ def query(requirement, definition_mapping, namespace_counter=None):
 
 
 def _guess_default_namespace(
-    identifier, namespace_mapping, namespace_counter=None
+    identifier, namespace_mapping, exists=False, namespace_counter=None
 ):
     """Return namespace corresponding to *identifier* if available.
 
@@ -244,6 +245,9 @@ def _guess_default_namespace(
             ...
         }
 
+    *exists* indicates whether the definition *identifier* exists without a
+    namespace.
+
     *namespace_counter* is an optional :class:`collections.Counter` instance
     which indicate occurrence of namespaces used as hints for package
     identification.
@@ -252,6 +256,8 @@ def _guess_default_namespace(
     _namespaces = list(namespace_mapping.get(identifier, []))
     if len(_namespaces) == 0:
         return
+
+    guessed = False
 
     # If more than one namespace is available, attempt to use counter to only
     # keep those which are used the most.
@@ -264,6 +270,13 @@ def _guess_default_namespace(
             namespace for namespace in _namespaces
             if namespace_counter[namespace] == max_occurrence
         ]
+
+        guessed = _namespaces == 1
+
+    # If counter didn't help guessing one namespace and definition exists
+    # without any namespaces, the one without namespace is kept.
+    if not guessed and exists:
+        return
 
     if len(_namespaces) == 1:
         return _namespaces.pop()

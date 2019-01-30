@@ -152,7 +152,7 @@ def package_definition_mapping():
         },
         "test::foo": {
             "unknown": wiz.definition.Definition({
-                "identifier": "baz",
+                "identifier": "foo",
                 "namespace": "test",
             }),
         }
