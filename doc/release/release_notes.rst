@@ -9,6 +9,14 @@ Release Notes
     .. change:: new
         :tags: command-line
 
+        Added :option:`--add-registry <wiz --add-registry>` to specify a path to
+        be added to the default registry paths. Previously it was only possible
+        to replace the default paths with :option:`--definition-search-paths
+        <wiz --registry>`.
+
+    .. change:: new
+        :tags: command-line
+
         Added :option:`--timeout <wiz --timeout>` to specify a time limit after
         which a graph resolve should be aborted to avoid the process hanging.
 
@@ -117,6 +125,18 @@ Release Notes
 
         Updated :mod:`wiz.command_line` to use :mod:`click` instead of
         :mod:`argparse` in order to improve code maintainability.
+
+    .. change:: new
+        :tags: command-line
+
+        Renamed :option:`--definition-search-paths <wiz --registry>` to
+        :option:`--registry <wiz --registry>` for clarity.
+
+    .. change:: new
+        :tags: command-line
+
+        Renamed :option:`--definition-search-depth <wiz --registry-depth>` to
+        :option:`--registry-depth <wiz --registry-depth>` for clarity.
 
     .. change:: changed
         :tags: command-line
@@ -1124,7 +1144,7 @@ Release Notes
     .. change:: changed
         :tags: command-line
 
-        Moved :option:`--definition-search-paths <wiz --definition-search-paths>`,
+        Moved :option:`--definition-search-paths <wiz --registry>`,
         to the top level parser so that registries could be modified for every
         sub-commands.
 
