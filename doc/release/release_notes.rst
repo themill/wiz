@@ -364,6 +364,12 @@ Release Notes
         Fixed :class:`wiz.mapping.Mapping` to ensure that creating an instance
         does not mutate original data.
 
+    .. change:: fixed
+        :tags: command-line, debug
+
+        Fixed :option:`--record <wiz --record>` command to ensure that path
+        exists before exporting history.
+
 .. release:: 1.2.1
     :date: 2018-10-24
 

@@ -128,6 +128,12 @@ identifier is used:
     Only one namespace per definition can be setup at this point. A hyphen can
     be used in the namespace if necessary (e.g. "A-B::foo").
 
+.. note::
+
+    A package without namespace can be called explicitely as follows:
+
+    >>> wiz use ::foo
+
 .. _definition/description:
 
 Description

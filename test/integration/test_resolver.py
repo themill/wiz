@@ -2628,3 +2628,233 @@ def test_scenario_23(
     assert spied_extract_parents.call_count == 0
     assert spied_remove_node_and_relink.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_24(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    When a definition exists with and without a namespace, the one without a
+    namespace is selected automatically by default.
+
+    Root
+     |
+     `--(A): A==0.1.0 || Namespace1::A==0.2.0
+
+    Expected: A==0.1.0
+
+    """
+    definition_mapping = {
+        "__namespace__": {
+            "A": ["Namespace1"]
+        },
+        "A": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0"
+            })
+        },
+        "Namespace1::A": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+                "namespace": "Namespace1"
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    packages = resolver.compute_packages([Requirement("A")])
+
+    assert len(packages) == 1
+    assert packages[0].qualified_identifier == "A==0.1.0"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 1
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_distance_mapping.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_updated_by_distance.call_count == 0
+    assert spied_extract_conflicting_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_25(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    When a definition exists with and without a namespace, other definitions
+    using the same namespace within the request will lead to the selection of
+    the one with the namespace.
+
+    Root
+     |
+     |--(A): A==0.1.0 || Namespace1::A==0.2.0
+     |
+     `--(B): Namespace1::B==0.1.0
+
+    Expected: Namespace1::B==0.1.0, Namespace1::A==0.1.0
+
+    """
+    definition_mapping = {
+        "__namespace__": {
+            "A": ["Namespace1"],
+            "B": ["Namespace1"]
+        },
+        "A": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0"
+            })
+        },
+        "Namespace1::A": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+                "namespace": "Namespace1"
+            })
+        },
+        "Namespace1::B": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "namespace": "Namespace1"
+            })
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    packages = resolver.compute_packages([Requirement("A"), Requirement("B")])
+
+    assert len(packages) == 2
+    assert packages[0].qualified_identifier == "Namespace1::B==0.1.0"
+    assert packages[1].qualified_identifier == "Namespace1::A==0.2.0"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 1
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_distance_mapping.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_updated_by_distance.call_count == 0
+    assert spied_extract_conflicting_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_26(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    When a definition exists with and without a namespace, the one without a
+    namespace can be explicitly called.
+
+    Root
+     |
+     |--(::A): A==0.1.0 || Namespace1::A==0.2.0
+     |
+     `--(B): Namespace1::B==0.1.0
+
+    Expected: Namespace1::B==0.1.0, A==0.1.0
+
+    """
+    definition_mapping = {
+        "__namespace__": {
+            "A": ["Namespace1"],
+            "B": ["Namespace1"]
+        },
+        "A": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0"
+            })
+        },
+        "Namespace1::A": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+                "namespace": "Namespace1"
+            })
+        },
+        "Namespace1::B": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "namespace": "Namespace1"
+            })
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    packages = resolver.compute_packages([Requirement("::A"), Requirement("B")])
+
+    assert len(packages) == 2
+    assert packages[0].qualified_identifier == "Namespace1::B==0.1.0"
+    assert packages[1].qualified_identifier == "A==0.1.0"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 1
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_distance_mapping.call_count == 1
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_updated_by_distance.call_count == 0
+    assert spied_extract_conflicting_nodes.call_count == 0
+    assert spied_combined_requirements.call_count == 0
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1

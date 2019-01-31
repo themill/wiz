@@ -187,7 +187,7 @@ class _MainGroup(click.Group):
 @click.option(
     "--record",
     help="Record resolution context process for debugging.",
-    type=click.Path()
+    type=click.Path(exists=True)
 )
 @click.option(
     "--timeout",
