@@ -725,7 +725,7 @@ def test_package_with_namespace():
 
     assert package.identifier == "test==0.1.0"
     assert package.qualified_identifier == "Foo::test==0.1.0"
-    assert package.definition_identifier == "test"
+    assert package.definition_identifier == "Foo::test"
     assert package.version == Version("0.1.0")
 
 

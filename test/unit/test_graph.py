@@ -568,6 +568,39 @@ def test_combined_requirements_error(mocker, mocked_graph):
     mocked_graph.link_requirement.assert_any_call("Z==1.9", "C")
 
 
+@pytest.mark.parametrize("requirement, namespace, expected", [
+    (
+        Requirement("foo"),
+        "namespace",
+        Requirement("namespace::foo")
+    ),
+    (
+        Requirement("namespace::foo"),
+        "namespace",
+        Requirement("namespace::foo")
+    ),
+    (
+        Requirement("bar"),
+        None,
+        Requirement("bar")
+    ),
+    (
+        Requirement("::bar"),
+        None,
+        Requirement("bar")
+    ),
+], ids=[
+    "implicit-namespace",
+    "explicit-namespace",
+    "implicit-no-namespace",
+    "explicit-no-namespace",
+])
+def test_sanitize_requirement(requirement, namespace, expected):
+    """Mutate the requirement according to package namespaces."""
+    wiz.graph.sanitize_requirement(requirement, namespace)
+    assert requirement == expected
+
+
 def test_extract_parents(mocker, mocked_graph):
     """Extract parent identifiers from nodes."""
     nodes = [
@@ -1383,9 +1416,11 @@ def test_graph_update_from_requirements_with_namespaces(
         },
         "link_mapping": {
             "root": {
-                "Foo::A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
+                "Foo::A==0.2.0": {
+                    "requirement": Requirement("Foo::A"), "weight": 1
+                },
                 "Foo::B==2.1.1": {
-                    "requirement": Requirement("B >=2"), "weight": 2
+                    "requirement": Requirement("Foo::B >=2"), "weight": 2
                 }
             }
         },

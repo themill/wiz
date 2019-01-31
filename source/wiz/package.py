@@ -245,7 +245,7 @@ def create(definition, variant_identifier=None):
     mapping = definition.to_dict()
 
     # Set definition identifier
-    mapping["definition-identifier"] = mapping["identifier"]
+    mapping["definition-identifier"] = definition.qualified_identifier
 
     # Update identifier.
     if variant_identifier is not None:
