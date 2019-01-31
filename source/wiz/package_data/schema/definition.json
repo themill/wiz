@@ -127,6 +127,10 @@
                         "description": "Unique identifier for the definition variant.",
                         "type": "string"
                     },
+                    "install-location": {
+                        "description": "Install location to the package data.",
+                        "type": "string"
+                    },
                     "command": {
                         "description": "Mapping of commands that can be exposed for this definition variant.",
                         "type": "object",
