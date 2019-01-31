@@ -128,6 +128,12 @@ identifier is used:
     Only one namespace per definition can be setup at this point. A hyphen can
     be used in the namespace if necessary (e.g. "A-B::foo").
 
+.. note::
+
+    A package without namespace can be called explicitely as follows:
+
+    >>> wiz use ::foo
+
 .. _definition/description:
 
 Description
@@ -311,6 +317,11 @@ The same version specifiers defined in :term:`PEP 440` can be used:
     to be raised, :ref:`requirements <definition/requirements>` should be used
     instead.
 
+.. important::
+
+    ``conditions`` only operate on the entire definition and can not be scoped
+    to Variants.
+
 .. _definition/constraints:
 
 Constraints
@@ -337,6 +348,11 @@ The same version specifiers defined in :term:`PEP 440` can be used:
     This keyword is most commonly used in combination with :ref:`auto-use
     <definition/auto-use>` within project registries as it allows to lock
     the version for a specific package.
+
+.. important::
+
+    ``constraints`` only operate on the entire definition and can not be scoped
+    to Variants.
 
 .. _definition/variants:
 
@@ -379,6 +395,16 @@ By default the first variant that leads to a resolution of the graph will be
 returned. However, a variant can also be requested individually::
 
     >>> wiz use foo[variant1]
+
+.. important::
+
+    ``constraints`` and ``conditions`` only operate on the entire definition and
+    and can not be scoped to Variants.
+
+    While it is in theory possible to combine these features, it adds complexity
+    to the system which could increase human error when setting up definitions.
+    As there is no currently known case that would use a setup that would
+    require this combination of features, it is not supported.
 
 .. _definition/auto-use:
 

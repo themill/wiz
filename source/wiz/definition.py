@@ -185,14 +185,20 @@ def query(requirement, definition_mapping, namespace_counter=None):
 
     # Extend identifier with namespace if necessary.
     namespace_mapping = definition_mapping.get("__namespace__", {})
-    if identifier not in definition_mapping and not identifier.count("::"):
+    if wiz.symbol.NAMESPACE_SEPARATOR not in identifier:
         _namespace = _guess_default_namespace(
             identifier, namespace_mapping,
+            exists=identifier in definition_mapping,
             namespace_counter=namespace_counter
         )
 
         if _namespace is not None:
             identifier = "{}::{}".format(_namespace, identifier)
+
+    # If identifier starts with namespace separator, that means the identifier
+    # without namespace is required.
+    if identifier.startswith(wiz.symbol.NAMESPACE_SEPARATOR):
+        identifier = identifier[2:]
 
     if identifier not in definition_mapping:
         raise wiz.exception.RequestNotFound(requirement)
@@ -226,7 +232,7 @@ def query(requirement, definition_mapping, namespace_counter=None):
 
 
 def _guess_default_namespace(
-    identifier, namespace_mapping, namespace_counter=None
+    identifier, namespace_mapping, exists=False, namespace_counter=None
 ):
     """Return namespace corresponding to *identifier* if available.
 
@@ -239,6 +245,9 @@ def _guess_default_namespace(
             ...
         }
 
+    *exists* indicates whether the definition *identifier* exists without a
+    namespace.
+
     *namespace_counter* is an optional :class:`collections.Counter` instance
     which indicate occurrence of namespaces used as hints for package
     identification.
@@ -248,13 +257,22 @@ def _guess_default_namespace(
     if len(_namespaces) == 0:
         return
 
-    # If more than one namespace is available, attempt to use counter to only
-    # keep those which are used the most.
-    if len(_namespaces) > 1 and namespace_counter is not None:
+    max_occurrence = 0
+
+    # Fetch number of occurrence of the namespace for counter if available.
+    if namespace_counter is not None:
         max_occurrence = max([
             namespace_counter[namespace] for namespace in _namespaces
         ])
 
+    # If definition exists without a namespace and namespace does not occur more
+    # than once in the counter, the definition without namespace is kept
+    if exists and len(_namespaces) == 1 and max_occurrence < 2:
+        return
+
+    # If more than one namespace is available, attempt to use counter to only
+    # keep those which are used the most.
+    if len(_namespaces) > 1 and max_occurrence > 0:
         _namespaces = [
             namespace for namespace in _namespaces
             if namespace_counter[namespace] == max_occurrence
@@ -531,9 +549,8 @@ class _Variant(wiz.mapping.Mapping):
         """Return ordered keywords."""
         return [
             "identifier",
+            "install-location",
             "command",
             "environ",
-            "requirements",
-            "conditions",
-            "constraints"
+            "requirements"
         ]

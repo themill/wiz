@@ -9,6 +9,12 @@ Release Notes
     .. change:: new
         :tags: command-line
 
+        Added :option:`--timeout <wiz --timeout>` to specify a time limit after
+        which a graph resolve should be aborted to avoid the process hanging.
+
+    .. change:: new
+        :tags: command-line
+
         Added :option:`--init <wiz --init>` to specify initial environment
         variables, which will be extended by the resolved environment.
         For example, now it is possible to hand in a PATH or PYTHONPATH, without
@@ -86,6 +92,26 @@ Release Notes
         as a unified command string while keeping quoted elements in order
         to preserve the command in the log as it was typed.
 
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.graph.validate` to ensure that a :class:`Graph`
+        instance does not contain any remaining error after the conflict
+        resolution process. The :exc:`wiz.exception.WizError` error encapsulated
+        in the nearest accessible node will be raised if necessary.
+
+    .. change:: changed
+        :tags: shell
+
+        Updated :func:`wiz.spawn.shell` to add "command" aliases to subprocess
+        when a Wiz shell is being opened, thereby enabling the user to use the
+        same aliases in the sub-shell that have been defined in the definitions.
+
+    .. change:: changed
+        :tags: shell
+
+        Updated :func:`wiz.spawn.shell`  to limit the Wiz shell to "bash".
+
     .. change:: changed
         :tags: command-line
 
@@ -129,6 +155,21 @@ Release Notes
 
             wiz use python -- python -c 'print("TEST")'
             wiz run python -- -c 'print("TEST")'
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.resolve_context` to prepend implicit requests to
+        explicit requests, rather than append as it previously did.
+
+        Previously when resolving the environment, a path set in the 'environ'
+        of an implicit package would be appended to the ones from explicit
+        packages, making it impossible to overwrite (e.g. shader paths from
+        within implicit packages).
+
+        This change enables the use of implicit packages for job setups by
+        guaranteeing that implicit packages will be resolved before explicit
+        packages.
 
     .. change:: changed
         :tags: API, command-line
@@ -243,8 +284,21 @@ Release Notes
     .. change:: changed
         :tags: API
 
-        Updated :class:`graph.Resolver` and :class:`graph.Graph` to take
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to take
         conditions into account while resolving the graph.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
+        handle package extraction error so that it does not raise if faulty
+        packages are not in resolved packages. If a package extraction error is
+        raised for one combination of the graph, another graph combination will
+        be fetched and the error will be raised only if it appears for all
+        combinations.
+
+        The package extraction error has now a lower priority, so that it will
+        not be raised if a conflict error is raised before.
 
     .. change:: changed
         :tags: API
@@ -263,14 +317,25 @@ Release Notes
                 # The following command will discard 'foo>2'
                 wiz use foo foo>2
 
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.resolve_context` to add an optional "timeout"
+        argument in order to modify the default graph resolution time limit.
+
     .. change:: fixed
 
         Fixed :func:`wiz.graph.combined_requirements` to take requirements from
-        all parent nodes into account. Previoulsy it would use the distance
+        all parent nodes into account. Previously it would use the distance
         mapping, which would automatically pick the node with the shortest path
         as the only parent to consider for requirements. That lead to the
         elimination of all requirement from other parents, so conflicts would
         not be properly detected and resolved within the graph.
+
+    .. change:: fixed
+
+        Fixed :func:`wiz.graph.updated_by_distance` to not filter out
+        :attr:`root <wiz.graph.Graph.ROOT>` node.
 
     .. change:: fixed
 
@@ -284,6 +349,17 @@ Release Notes
         Fixed :func:`wiz.registry.fetch` to resolve the absolute path of the
         registry in order to prevent the fetching process to fail with relative
         paths or trailing slashes.
+
+    .. change:: fixed
+
+        Fixed :class:`wiz.mapping.Mapping` to ensure that creating an instance
+        does not mutate original data.
+
+    .. change:: fixed
+        :tags: command-line, debug
+
+        Fixed :option:`--record <wiz --record>` command to ensure that path
+        exists before exporting history.
 
 .. release:: 1.2.1
     :date: 2018-10-24

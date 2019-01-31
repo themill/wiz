@@ -77,6 +77,9 @@ def definitions():
         wiz.definition.Definition({
             "identifier": "foo",
             "namespace": "other"
+        }),
+        wiz.definition.Definition({
+            "identifier": "foo",
         })
     ]
 
@@ -87,6 +90,7 @@ def package_definition_mapping():
     return {
         "__namespace__": {
             "bim": {"test"},
+            "foo": {"test"},
             "baz": {"test1", "test2", "test3"}
         },
         "foo": {
@@ -144,6 +148,12 @@ def package_definition_mapping():
             "unknown": wiz.definition.Definition({
                 "identifier": "baz",
                 "namespace": "test3",
+            }),
+        },
+        "test::foo": {
+            "unknown": wiz.definition.Definition({
+                "identifier": "foo",
+                "namespace": "test",
             }),
         }
     }
@@ -295,6 +305,9 @@ def test_fetch(mocked_discover, definitions, options):
             },
             "other::foo": {
                 "unknown": definitions[8]
+            },
+            "foo": {
+                "unknown": definitions[9]
             }
         },
         "command": {
@@ -359,6 +372,9 @@ def test_fetch_with_implicit_packages(mocked_discover, definitions, options):
             },
             "other::foo": {
                 "unknown": definitions[8]
+            },
+            "foo": {
+                "unknown": definitions[9]
             }
         },
         "command": {
@@ -382,6 +398,18 @@ def test_query_definition(package_definition_mapping):
     assert (
         wiz.definition.query(requirement, package_definition_mapping) ==
         package_definition_mapping["foo"]["0.3.4"]
+    )
+
+    requirement = Requirement("::foo")
+    assert (
+        wiz.definition.query(requirement, package_definition_mapping) ==
+        package_definition_mapping["foo"]["0.3.4"]
+    )
+
+    requirement = Requirement("test::foo")
+    assert (
+        wiz.definition.query(requirement, package_definition_mapping) ==
+        package_definition_mapping["test::foo"]["unknown"]
     )
 
     requirement = Requirement("bar")
@@ -976,8 +1004,7 @@ def test_definition_mapping():
                 "environ": {
                     "KEY2": "VALUE2"
                 },
-                "requirements": ["bim >= 9, < 10"],
-                "constraints": ["baz==6.3.1"]
+                "requirements": ["bim >= 9, < 10"]
             }
         ]
     }
@@ -1015,8 +1042,7 @@ def test_definition_mapping():
                 "environ": {
                     "KEY2": "VALUE2"
                 },
-                "requirements": [Requirement("bim >= 9, < 10")],
-                "constraints": [Requirement("baz==6.3.1")]
+                "requirements": [Requirement("bim >= 9, < 10")]
             }
         ]
     }
@@ -1061,9 +1087,6 @@ def test_definition_mapping():
         "            },\n"
         "            \"requirements\": [\n"
         "                \"bim >=9, <10\"\n"
-        "            ],\n"
-        "            \"constraints\": [\n"
-        "                \"baz ==6.3.1\"\n"
         "            ]\n"
         "        }\n"
         "    ]\n"
@@ -1502,9 +1525,6 @@ def test_definition_with_variant():
                 },
                 "requirements": [
                     "envA >= 1.0, < 2"
-                ],
-                "constraints": [
-                    "envB==0.1.0"
                 ]
             },
             {
@@ -1558,8 +1578,7 @@ def test_definition_with_variant():
             OrderedDict([
                 ("identifier", "1.0"),
                 ("environ", {"VERSION": "1.0"}),
-                ("requirements", ["envA >=1.0, <2"]),
-                ("constraints", ["envB ==0.1.0"])
+                ("requirements", ["envA >=1.0, <2"])
             ]),
             OrderedDict([
                 ("identifier", "2.0"),
@@ -1705,9 +1724,8 @@ def test_definition_with_variant_constraint_error():
         wiz.definition.Definition(data)
 
     assert (
-        "IncorrectDefinition: The definition 'test' [1.0] contains an "
-        "incorrect package constraint [The requirement 'envA -!!!' "
-        "is incorrect]"
+        "IncorrectDefinition: Additional properties are not allowed "
+        "('constraints' was unexpected) (/variants/0)"
     ) in str(error)
 
 
@@ -1729,9 +1747,8 @@ def test_definition_with_variant_condition_error():
         wiz.definition.Definition(data)
 
     assert (
-        "IncorrectDefinition: The definition 'test' [1.0] contains an "
-        "incorrect package condition [The requirement 'envA -!!!' "
-        "is incorrect]"
+        "IncorrectDefinition: Additional properties are not allowed "
+        "('conditions' was unexpected) (/variants/0)"
     ) in str(error)
 
 
@@ -2249,3 +2266,47 @@ def test_definition_variant_set():
         ]
     }
     assert definition1.to_dict() == {"identifier": "foo"}
+
+
+def test_definition_non_mutated_input():
+    """Ensure that input mapping isn't mutated when creating definition."""
+    data = {
+        "identifier": "test",
+        "version": "0.1.0",
+        "namespace": "foo",
+        "description": "This is a definition",
+        "registry": "/path/to/registry",
+        "definition-location": "/path/to/registry/test-0.1.0.json",
+        "auto-use": True,
+        "system": {
+            "platform": "linux",
+            "os": "el >= 6, < 7",
+            "arch": "x86_64"
+        },
+        "command": {
+            "app": "AppX"
+        },
+        "environ": {
+            "KEY1": "VALUE1"
+        },
+        "requirements": ["foo"],
+        "constraints": ["bar==2.1.0"],
+        "conditions": ["baz"],
+        "variants": [
+            {
+                "identifier": "Variant1",
+                "command": {
+                    "appV1": "AppX --test"
+                },
+                "environ": {
+                    "KEY2": "VALUE2"
+                },
+                "requirements": ["bim >= 9, < 10"]
+            }
+        ]
+    }
+
+    _data = copy.deepcopy(data)
+    wiz.definition.Definition(_data)
+
+    assert data == _data

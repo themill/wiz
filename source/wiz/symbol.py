@@ -17,6 +17,9 @@ INSTALL_ROOT = "INSTALL_ROOT"
 #: Separator between the normal arguments and the command to run.
 COMMAND_SEPARATOR = "--"
 
+#: Separator between namespaces and identifier.
+NAMESPACE_SEPARATOR = "::"
+
 #: Default value when a definition value is unknown.
 UNKNOWN_VALUE = "unknown"
 
@@ -61,6 +64,9 @@ GRAPH_VERSION_CONFLICTS_IDENTIFICATION_ACTION = "IDENTIFY_VERSION_CONFLICTS"
 
 #: History action for variants conflicts identification within graph.
 GRAPH_VARIANT_CONFLICTS_IDENTIFICATION_ACTION = "IDENTIFY_VARIANT_CONFLICTS"
+
+#: History action for error identification within graph.
+GRAPH_ERROR_IDENTIFICATION_ACTION = "IDENTIFY_ERROR"
 
 #: History action for resolution error within graph.
 GRAPH_RESOLUTION_FAILURE_ACTION = "RESOLUTION_ERROR"
