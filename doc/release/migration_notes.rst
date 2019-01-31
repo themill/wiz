@@ -12,13 +12,101 @@ a new version, such as when upgrading involves backwards incompatibilities.
 Migrate to Upcoming
 ================
 
-The following keywords have been added to the definition schema:
+.. rubric:: installation
 
-* :ref:`install-root <definition/install_root>`
-* :ref:`namespace <definition/namespace>`
-* :ref:`conditions <definition/conditions>`
+The ``wiz install`` sub-command has been modified to regroup the
+`--registry-path` and `--registry-id` options into one
+:option:`--registry <wiz install --registry>` option which can be used as
+follow::
 
-The optional keyword "group" has been removed.
+        # For local registries
+        >>> wiz install foo.json --registry /path/to/registry
+        >>> wiz install foo.json -r /path/to/registry
+
+        # For VCS registries
+        >>> wiz install foo.json -registry wiz://primary-registry
+        >>> wiz install foo.json -r wiz://primary-registry
+
+The `--install-location` option from the ``wiz install`` sub-command as been
+removed as editing the definition can be simply done via the new ``wiz edit``
+sub-command.
+
+The optional :ref:`install-root <definition/install_root>` keyword has been
+added to define a prefix path to the :ref:`install-location
+<definition/install_location>`
+
+.. rubric:: namespaces
+
+The optional :ref:`namespace <definition/namespace>` keyword has been added to
+the definition in lieu of the previous "group" keyword which has been removed.
+
+The "group" keyword was only used to precise the folder hierarchy within
+:term:`VCS Registry`, whereas :ref:`namespaces <definition/namespace>` are
+actively used for the definition query and package extraction process.
+
+.. rubric:: conditions
+
+The optional :ref:`conditions <definition/conditions>` keyword has been used to
+indicate a list of packages which must be in the resolution graph for the
+package to be include.
+
+.. rubric:: implicit packages
+
+Implicit packages identified by the :ref:`auto-use <definition/auto-use>`
+keyword are now pre-pended to the list of explicit requests instead of being
+appended. It ensures that implicit packages have always higher priorities than
+explicit packages, which is necessary when being used within project registries
+to augment or overwrite environment variables.
+
+Consider the following definitions:
+
+.. code-block:: json
+
+    {
+       "identifier": "project",
+       "auto-use": true,
+       "environ": {
+          "SHADER_PATH": "/jobs/ads/project/shaders:${SHADER_PATH}"
+       }
+    }
+
+.. code-block:: json
+
+    {
+       "identifier": "mtoa",
+       "environ": {
+          "SHADER_PATH": "/path/to/mtoa/shaders:${SHADER_PATH}"
+       }
+    }
+
+The command ``wiz use mtoa`` would previously resolve the :envvar:`SHADER_PATH`
+environment variable as follow:
+``/path/to/mtoa/shaders:/jobs/ads/project/shaders``
+
+It will now be resolved as follow:
+``/jobs/ads/project/shaders:/path/to/mtoa/shaders``
+
+.. rubric:: spawned shell
+
+The "shell_type" optional argument has been removed from :func:`wiz.spawn.shell`
+as spawned shell will only support :term:`Bash` for now.
+
+.. rubric:: API
+
+The following functions have been renamed:
+
+* :func:`wiz.package.initiate_environ` → :func:`wiz.environ.initiate`
+* :func:`wiz.package.sanitise_environ_mapping` → :func:`wiz.environ.sanitise`
+
+:class:`~wiz.package.Package` can now be instantiated with a simple mapping. A
+new :func:`wiz.package.create` function has been added to create packages from
+:class:`~wiz.definition.Definition` instances.
+
+:func:`wiz.package.generate_identifier` has been removed as this logic has been
+implemented in the following attributes:
+
+* :attr:`wiz.definition.Definition.version_identifier`
+* :attr:`wiz.package.Package.identifier`
 
 .. _release/migration/1.0.0:
 

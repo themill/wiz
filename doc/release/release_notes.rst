@@ -53,7 +53,7 @@ Release Notes
         discovered, even when not compatible with the current system.
 
     .. change:: new
-        :tags: definition
+        :tags: definition, backwards-incompatible
 
         Added optional :ref:`conditions <definition/conditions>` keyword to
         definition schema which can be used to indicate a list of packages
@@ -101,7 +101,7 @@ Release Notes
         in the nearest accessible node will be raised if necessary.
 
     .. change:: changed
-        :tags: shell, backwards-incompatible
+        :tags: shell
 
         Updated :func:`wiz.spawn.shell` to add "command" aliases to subprocess
         when a Wiz shell is being opened, thereby enabling the user to use the
@@ -121,7 +121,7 @@ Release Notes
     .. change:: changed
         :tags: command-line, backwards-incompatible
 
-        Update command line arguments to use the same option
+        Updated command line arguments to use the same option
         :option:`--registry <wiz install --registry>` for installing to a
         :term:`Local Registry` and installing to a :term:`VCS Registry`.
         Previously the argument was split into `--registry-path` and
@@ -193,7 +193,7 @@ Release Notes
     .. change:: changed
         :tags: API, command-line, backwards-incompatible
 
-        Removed ``--install-location`` option from ``wiz install`` subcommand
+        Removed `--install-location` option from ``wiz install`` sub-command
         and "install_location" argument from :func:`wiz.install_definitions` as
         this can already be set with the ``wiz edit`` command before installing,
         and just adds redundant complexity.
