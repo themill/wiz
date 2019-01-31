@@ -665,6 +665,7 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
         "variants": [
             {
                 "identifier": "Variant1",
+                "install-location": "/tmp",
                 "environ": {
                     "key1": "value1",
                 },
@@ -682,6 +683,7 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
         definition, variant_identifier="Variant1"
     )
     assert package.identifier == "test[Variant1]==0.1.0"
+    assert package.get("install-location") == "/tmp"
     assert package.qualified_identifier == "test[Variant1]==0.1.0"
     assert package.definition_identifier == "test"
     assert package.version == Version("0.1.0")

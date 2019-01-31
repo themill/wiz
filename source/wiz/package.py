@@ -283,6 +283,9 @@ def create(definition, variant_identifier=None):
                         + _mapping["requirements"]
                     )
 
+                if _mapping.get("install-location") is not None:
+                    mapping["install-location"] = _mapping["install-location"]
+
                 success = True
                 break
 
