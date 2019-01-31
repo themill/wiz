@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import datetime
+import tempfile
 
 import pytest
 import click
@@ -495,7 +496,7 @@ def test_fetch_registry(
 
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
-    (["--record", "/path"], True)
+    (["--record", tempfile.gettempdir()], True)
 ], ids=[
     "normal",
     "recorded",
@@ -523,7 +524,8 @@ def test_list_packages_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            "/path/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
         )
 
     else:
@@ -657,7 +659,7 @@ def test_list_packages_error(options):
 
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
-    (["--record", "/path"], True)
+    (["--record", tempfile.gettempdir()], True)
 ], ids=[
     "normal",
     "recorded",
@@ -685,7 +687,8 @@ def test_list_commands_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            "/path/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
         )
 
     else:
@@ -816,7 +819,7 @@ def test_list_commands_error(options):
 
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
-    (["--record", "/path"], True)
+    (["--record", tempfile.gettempdir()], True)
 ], ids=[
     "normal",
     "recorded",
@@ -843,7 +846,8 @@ def test_search_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            "/path/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
         )
 
     else:
@@ -1194,7 +1198,7 @@ def test_search_error(options):
 
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
-    (["--record", "/path"], True)
+    (["--record", tempfile.gettempdir()], True)
 ], ids=[
     "normal",
     "recorded",
@@ -1221,7 +1225,8 @@ def test_view_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            "/path/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
         )
 
     else:
@@ -1398,7 +1403,7 @@ def test_view_error(options):
 
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
-    (["--record", "/path"], True)
+    (["--record", tempfile.gettempdir()], True)
 ], ids=[
     "normal",
     "recorded",
@@ -1430,7 +1435,7 @@ def test_use_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            "/path/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__", compressed=True
         )
 
     else:
@@ -1744,7 +1749,7 @@ def test_use_initial_environment(
 
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
-    (["--record", "/path"], True)
+    (["--record", tempfile.gettempdir()], True)
 ], ids=[
     "normal",
     "recorded",
@@ -1776,7 +1781,7 @@ def test_run_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            "/path/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__", compressed=True
         )
 
     else:
@@ -2047,7 +2052,7 @@ def test_run_initial_environment(
 
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
-    (["--record", "/path"], True)
+    (["--record", tempfile.gettempdir()], True)
 ], ids=[
     "normal",
     "recorded",
@@ -2085,7 +2090,8 @@ def test_freeze_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            "/path/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
         )
 
     else:
@@ -2422,7 +2428,7 @@ def test_freeze_initial_environment(
 
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
-    (["--record", "/path"], True)
+    (["--record", tempfile.gettempdir()], True)
 ], ids=[
     "normal",
     "recorded",
@@ -2460,7 +2466,8 @@ def test_install_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            "/path/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
         )
 
     else:
@@ -2888,7 +2895,7 @@ def test_install_vcs_command_error(options):
 
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
-    (["--record", "/path"], True)
+    (["--record", tempfile.gettempdir()], True)
 ], ids=[
     "normal",
     "recorded",
@@ -2924,7 +2931,7 @@ def test_edit_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            "/path/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__", compressed=True
         )
 
     else:
