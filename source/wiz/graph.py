@@ -696,6 +696,30 @@ def combined_requirements(graph, nodes):
     return requirement
 
 
+def sanitize_requirement(requirement, namespace):
+    """Mutate package *requirement* according to the package *namespace*.
+
+    This is necessary so that the requirement name is always qualified to
+    prevent error when :func:`combining requirements <combined_requirements>`
+    during the conflict resolution process.
+
+    If the requirement "foo > 1" was used to fetch the package "namespace::foo",
+    the requirement will be mutated to "namespace::foo > 1"
+
+    On the other had, if the requirement "::bar==0.1.0" was used to fetch the
+    package "bar" which doesn't have a namespace, the requirement will be
+    mutated to "bar==0.1.0"
+
+    """
+    separator = wiz.symbol.NAMESPACE_SEPARATOR
+
+    if namespace is not None and separator not in requirement.name:
+        requirement.name = namespace + separator + requirement.name
+
+    elif namespace is None and separator in requirement.name:
+        requirement.name = requirement.name.rsplit(separator, 1)[-1]
+
+
 def extract_parents(graph, nodes):
     """Return set of existing parent node identifiers from *nodes*.
 
@@ -1249,6 +1273,8 @@ class Graph(object):
 
         # Create a node for each package if necessary.
         for package in packages:
+            sanitize_requirement(requirement, package.namespace)
+
             self._update_from_package(
                 package, requirement, queue,
                 parent_identifier=parent_identifier,
