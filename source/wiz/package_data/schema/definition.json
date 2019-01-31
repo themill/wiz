@@ -150,6 +150,10 @@
                                 {"type": "requirement"}
                             ]
                         }
+                    },
+                    "install-location": {
+                        "description": "Install location to the package data.",
+                        "type": "string"
                     }
                 },
                 "required": ["identifier"],
