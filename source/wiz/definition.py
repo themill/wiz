@@ -531,8 +531,8 @@ class _Variant(wiz.mapping.Mapping):
         """Return ordered keywords."""
         return [
             "identifier",
+            "install-location",
             "command",
             "environ",
-            "requirements",
-            "install-location"
+            "requirements"
         ]
