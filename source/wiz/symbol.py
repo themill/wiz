@@ -17,6 +17,9 @@ INSTALL_ROOT = "INSTALL_ROOT"
 #: Separator between the normal arguments and the command to run.
 COMMAND_SEPARATOR = "--"
 
+#: Separator between namespaces and identifier.
+NAMESPACE_SEPARATOR = "::"
+
 #: Default value when a definition value is unknown.
 UNKNOWN_VALUE = "unknown"
 
