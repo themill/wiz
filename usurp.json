@@ -12,16 +12,6 @@
             "path": "doc/release/release_notes.rst",
             "search": ".. release:: Upcoming",
             "replace": ".. release:: {next_version}\n    :date: {now:%Y-%m-%d}"
-        },
-        {
-            "path": "doc/release/migration_notes.rst",
-            "search": ".. _release/migration/Upcoming",
-            "replace": ".. _release/migration/{next_version}"
-        },
-        {
-            "path": "doc/release/migration_notes.rst",
-            "search": "Migrate to Upcoming",
-            "replace": "Migrate to {next_version}"
         }
     ]
 }
