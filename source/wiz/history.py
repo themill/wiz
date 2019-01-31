@@ -114,4 +114,7 @@ def _json_default(_object):
     elif isinstance(_object, Exception):
         return str(_object)
 
+    elif isinstance(_object, set):
+        return list(_object)
+
     raise TypeError("{} is not JSON serializable.".format(_object))
