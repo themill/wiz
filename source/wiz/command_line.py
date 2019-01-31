@@ -123,14 +123,14 @@ class _MainGroup(click.Group):
     default=False
 )
 @click.option(
-    "-dsd", "--definition-search-depth",
+    "-rd", "--registry-depth",
     help="Maximum depth to recursively search for definitions.",
     type=int,
-    metavar="DEPTH_NUMBER",
+    metavar="NUMBER",
 )
 @click.option(
-    "-dsp", "--definition-search-paths",
-    help="Set search path for package definitions.",
+    "-r", "--registry",
+    help="Set registry path for package definitions.",
     default=wiz.registry.get_defaults(),
     multiple=True,
     metavar="PATH",
@@ -138,8 +138,8 @@ class _MainGroup(click.Group):
     show_default=True
 )
 @click.option(
-    "-add", "--add-definition-search-path",
-    help="Add search path for package definitions to default registries.",
+    "-add", "--add-registry",
+    help="Prepend registry path to default registries.",
     multiple=True,
     metavar="PATH",
     type=click.Path()
@@ -221,8 +221,7 @@ def main(click_context, **kwargs):
 
     # Fetch all registries.
     registries = wiz.registry.fetch(
-        kwargs["add_definition_search_path"] +
-        kwargs["definition_search_paths"],
+        kwargs["registry"] + kwargs["add_registry"],
         include_local=not kwargs["no_local"],
         include_working_directory=not kwargs["no_cwd"]
     )
@@ -236,7 +235,7 @@ def main(click_context, **kwargs):
     click_context.obj.update({
         "system_mapping": system_mapping,
         "registry_paths": registries,
-        "registry_search_depth": kwargs["definition_search_depth"],
+        "registry_search_depth": kwargs["registry_depth"],
         "ignore_implicit_packages": kwargs["ignore_implicit"],
         "initial_environment": initial_environment,
         "recording_path": kwargs["record"],

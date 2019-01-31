@@ -454,16 +454,17 @@ def test_query_system(
     "options, paths, depth, include_local, include_cwd", [
         ([], None, None, True, True),
         (
-            ["-dsp", "/path1", "-dsp", "/path2"],
+            ["-r", "/path1", "-r", "/path2"],
             ["/path1", "/path2"], None, True, True
         ),
-        (["-dsd", "2"], None, 2, True, True),
+        (["-rd", "2"], None, 2, True, True),
         (
             ["-add", "/path1"],
             [
-                "/path1", '/mill3d/server/apps/WIZ/registry/primary/default',
-                '/mill3d/server/apps/WIZ/registry/secondary/default',
-                '/jobs/.wiz/registry/default'
+                "/mill3d/server/apps/WIZ/registry/primary/default",
+                "/mill3d/server/apps/WIZ/registry/secondary/default",
+                "/jobs/.wiz/registry/default",
+                "/path1"
             ], None, True, True
         ),
         (["--no-local"], None, None, False, True),
