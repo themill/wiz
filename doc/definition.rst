@@ -130,8 +130,7 @@ identifier is used:
 
 .. note::
 
-    If a package without namespace has to be called explicitely ``::`` can be
-    used with no namespace in front, like this:
+    A package without namespace can be called explicitely as follows:
 
     >>> wiz use ::foo
 
