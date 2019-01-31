@@ -1677,7 +1677,7 @@ def _add_to_mapping(definition, mapping):
         }
 
     """
-    identifier = definition.identifier
+    identifier = definition.qualified_identifier
     version = str(definition.version)
     system_label = wiz.utility.compute_system_label(definition)
 
