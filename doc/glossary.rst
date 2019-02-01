@@ -18,6 +18,14 @@ Glossary
 
         .. seealso:: https://en.wikipedia.org/wiki/C_shell
 
+    Chore
+
+        Chore is a tool to create a :term:`Wiz` registry directory structure in
+        a job and add definitions describing the level of the hierarchy with
+        environment variables.
+
+        .. seealso:: http://rtd.themill.com/docs/chore/en/stable/
+
     C-Shell
         :term:`Unix Shell` created in the late 1970s. It is available on most
         Linux distributions and Apple macOS, though it is usually considered as
@@ -65,6 +73,17 @@ Glossary
 
         .. seealso:: https://www.autodesk.co.uk/products/maya/overview
 
+    mill_cd
+
+        A script that defines environment variables when cd'ing into a
+        directory.
+
+        .. seealso::
+
+            .. code-block:: bash
+
+                >>> cat /jobs/.common/bin/mill_cd
+
     PEP 440
         Version Identification and Dependency Specification for :term:`Python`.
 
@@ -86,6 +105,12 @@ Glossary
         self contained directory structure.
 
         .. seealso:: http://rtd.themill.com/docs/qip/en/stable/
+
+    TD SVN
+
+        TD script and python tool collection using Subversion management.
+
+        .. seealso:: http://svn3d/rnd/trunk
 
     Unix Shell
         Command line interpreter providing a user interaction to use traditional
