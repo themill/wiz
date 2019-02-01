@@ -6,33 +6,24 @@ applications would be affected only inside this environment.
 Project Configurations and Overrides
 ------------------------------------
 
-Let's consider a fake project called ``my_project`` which can be replace with
+Let's consider a fake project called ``my_project`` which can be replaced with
 any existing projects::
 
     /jobs/ads/my_project/
 
-Create a :file:`.wiz/registry` directory in the project folder:
+Im order to use Wiz, :ref:`registries <registry/project>` need to exist in each
+level of the hierarchy of a job. A tool called :term:`Chore` has been developed
+to create that registry structure and fill it with definitions containing job
+environment variables (similar to what :term:`mill_cd` returns).
 
-.. code-block:: console
+Going forward, we will assume that the registry structure and the environment
+variable definitions exists.
 
-    >>> mkdir -p /jobs/ads/my_project/.wiz/registry
+Let's set up :term:`Maya` for this job using Maya 2016 and adding the
+:term:`TD SVN`.
 
-Create a :file:`project.json` package definition file to indicate the
-environment variables needed for the project:
-
-.. code-block:: console
-
-    >>> cat /jobs/ads/my_project/.wiz/registry/project.json
-    {
-        "identifier": "my-project",
-        "description": "Environment for my-project.",
-        "environ": {
-            "MILL_EPISODE_PATH": "/jobs/ads/my_project",
-        }
-    }
-
-Create an additional :file:`td-svn.json` package definition file to indicate the
-location of the TD SVN root folder within the project:
+Create a :file:`td-svn.json` package definition file to indicate the
+location of the :term:`TD SVN` root folder within the project:
 
 .. code-block:: console
 
@@ -44,39 +35,39 @@ location of the TD SVN root folder within the project:
             "TDSVN_ROOT": "${MILL_EPISODE_PATH}/.common/3d"
         },
         "requirements": [
-            "my-project"
+            "job"
         ]
     }
 
-Finally, a :file:`maya.json` could be added in order to override the `maya`
-command so that the additional scripts and modules are included:
+
+Additionally, create a :file:`project.json` package definition file to set the
+:term:`Maya` version and :term:`TD SVN` requirement.
 
 .. code-block:: console
 
-    >>> cat /jobs/ads/my_project/.wiz/registry/maya.json
+    >>> cat /jobs/ads/my_project/.wiz/registry/project.json
     {
-        "identifier": "my-project-maya",
-        "description": "Maya Application for my-project.",
-        "command": {
-            "maya": "maya2018"
-        },
-        "environ": {
-            "PYTHONPATH": "${TDSVN_ROOT}/library/python:${PYTHONPATH}",
-            "MAYA_MODULE_PATH": "${TDSVN_ROOT}/maya/modules:${TDSVN_ROOT}/maya/modules/2018:${MAYA_MODULE_PATH}",
-            "MAYA_SCRIPT_PATH": "${TDSVN_ROOT}/maya/scripts:${MAYA_SCRIPT_PATH}"
-        },
-        "requirements": [
-            "my-project",
-            "td-svn",
-            "mill-maya",
-        ]
+       "identifier": "project",
+       "auto-use": true,
+       "constraints": [
+           "maya == 2016.*"
+       ],
+       "requirements": [
+           "td-svn"
+       ]
     }
 
-.. note::
 
-    The package identifier must be unique as the objective is to override the
-    command and not the full `mill-maya` package which is needed as a
-    requirement.
+Let's break down this :file:`project.json` package definition:
+
+* The :ref:`auto-use <definition/auto-use>` keyword ensure that the package will
+  always be included in the graph when this registry is included.
+
+
+
+
+
+
 
 It is now possible to start :term:`Maya` anywhere under the project folder to
 include all TD SVN scripts and modules.
