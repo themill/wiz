@@ -10,6 +10,21 @@ a new version, such as when upgrading involves backwards incompatibilities.
 Migrate to Upcoming
 ================
 
+.. rubric:: registries
+
+The following commands have been renamed:
+
+* :option:`--definition-search-paths <wiz --registry>` → :option:`--registry <wiz --registry>`
+* :option:`--definition-search-depth <wiz --registry-depth>` → :option:`--registry-depth <wiz --registry-depth>`
+
+The registry paths can now be set as follow::
+
+    wiz -r /path/to/registry1 -r /path/to/registry2 use foo
+
+The :option:`--add-registry <wiz --add-registry>` command has been added in
+order to prepend registry in front of :ref:`project registries
+<registry/project>`.
+
 .. rubric:: installation
 
 The ``wiz install`` sub-command has been modified to regroup the
@@ -51,7 +66,7 @@ package to be include.
 .. rubric:: implicit packages
 
 Implicit packages identified by the :ref:`auto-use <definition/auto-use>`
-keyword are now pre-pended to the list of explicit requests instead of being
+keyword are now prepended to the list of explicit requests instead of being
 appended. It ensures that implicit packages have always higher priorities than
 explicit packages, which is necessary when being used within project registries
 to augment or overwrite environment variables.
