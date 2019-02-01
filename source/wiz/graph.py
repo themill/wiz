@@ -766,7 +766,10 @@ def remove_node_and_relink(graph, node, identifiers, requirement):
     graph.remove_node(node.identifier)
 
     for parent_identifier in node.parent_identifiers:
-        if not graph.exists(parent_identifier):
+        if (
+            not graph.exists(parent_identifier) and
+            not parent_identifier == graph.ROOT
+        ):
             continue
 
         weight = graph.link_weight(node.identifier, parent_identifier)
