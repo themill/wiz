@@ -896,7 +896,10 @@ def test_scenario_8(
              |
              `--(C <1): C== 0.9.0
 
-    Expected: C==0.9.0, A==0.9.0, B==0.1.0
+    Expected: A==0.9.0, C==0.9.0, B==0.1.0
+
+    The position of 'C==0.9.0' / 'B==0.1.0' can vary as they have similar
+    priority numbers.
 
     """
     definition_mapping = {
@@ -938,9 +941,12 @@ def test_scenario_8(
     ])
 
     assert len(packages) == 3
-    assert packages[0].identifier == "C==0.9.0"
-    assert packages[1].identifier == "A==0.9.0"
-    assert packages[2].identifier == "B==0.1.0"
+
+    assert packages[0].identifier in ["C==0.9.0", "B==0.1.0"]
+    assert packages[1].identifier in ["C==0.9.0", "B==0.1.0"]
+    assert packages[0] != packages[1]
+
+    assert packages[2].identifier == "A==0.9.0"
 
     # Check spied functions / methods
     assert spied_fetch_next_graph.call_count == 1
@@ -1312,7 +1318,7 @@ def test_scenario_12(
              |
              `--(B >=1, <2): B==1.0.0
 
-    Expected: B==3.0.0, A[V3]==0.5.0, C
+    Expected: C, B==3.0.0, A[V3]==0.5.0
 
     """
     definition_mapping = {
@@ -1382,9 +1388,9 @@ def test_scenario_12(
     ])
 
     assert len(packages) == 3
-    assert packages[0].identifier == "B==3.0.0"
-    assert packages[1].identifier == "A[V3]==0.5.0"
-    assert packages[2].identifier == "C"
+    assert packages[0].identifier == "C"
+    assert packages[1].identifier == "B==3.0.0"
+    assert packages[2].identifier == "A[V3]==0.5.0"
 
     # Check spied functions / methods
     assert spied_fetch_next_graph.call_count == 1
