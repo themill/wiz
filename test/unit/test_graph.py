@@ -6,7 +6,7 @@ import types
 import itertools
 import re
 
-from wiz.utility import Requirement
+from wiz.utility import Requirement, Version
 import wiz.graph
 import wiz.package
 import wiz.exception
@@ -428,11 +428,15 @@ def test_trim_invalid_from_graph(
     nodes_removed
 ):
     """Remove invalid nodes from graph based on distance mapping."""
+    mocked_graph.find_matching_identifiers.side_effect = [
+        ["B"], ["C"], ["C"], ["D"],
+    ]
+
     mocked_graph.nodes.return_value = [
-        mocker.Mock(identifier="A", conditioned_by=["B", "C"]),
-        mocker.Mock(identifier="B", conditioned_by=["C", "D"]),
-        mocker.Mock(identifier="C", conditioned_by=[]),
-        mocker.Mock(identifier="D", conditioned_by=[]),
+        mocker.Mock(identifier="A", package=mocker.Mock(conditions=["B", "C"])),
+        mocker.Mock(identifier="B", package=mocker.Mock(conditions=["C", "D"])),
+        mocker.Mock(identifier="C", package=mocker.Mock(conditions=[])),
+        mocker.Mock(identifier="D", package=mocker.Mock(conditions=[])),
     ]
 
     result = wiz.graph.trim_invalid_from_graph(mocked_graph, distance_mapping)
@@ -447,11 +451,15 @@ def test_trim_invalid_from_graph_not_found(
     mocker, mocked_graph, mocked_graph_remove_node
 ):
     """Remove invalid nodes from graph based on distance mapping."""
+    mocked_graph.find_matching_identifiers.side_effect = [
+        ["B"], ["C"], ["C"], ["D"],
+    ]
+
     mocked_graph.nodes.return_value = [
-        mocker.Mock(identifier="A", conditioned_by=["B", "C"]),
-        mocker.Mock(identifier="B", conditioned_by=["C", "D"]),
-        mocker.Mock(identifier="C", conditioned_by=[]),
-        mocker.Mock(identifier="D", conditioned_by=[]),
+        mocker.Mock(identifier="A", package=mocker.Mock(conditions=["B", "C"])),
+        mocker.Mock(identifier="B", package=mocker.Mock(conditions=["C", "D"])),
+        mocker.Mock(identifier="C", package=mocker.Mock(conditions=[])),
+        mocker.Mock(identifier="D", package=mocker.Mock(conditions=[])),
     ]
 
     distance_mapping = {
@@ -830,6 +838,61 @@ def test_graph_exists():
     assert graph.exists("B") is False
 
 
+@pytest.mark.parametrize("requirement, expected", [
+    (
+        Requirement("Z"),
+        []
+    ),
+    (
+        Requirement("A"),
+        ["A==0.1.0", "A==2.4.5"]
+    ),
+    (
+        Requirement("Name1::B"),
+        ["Name1::B"]
+    ),
+    (
+        Requirement("A > 1"),
+        ["A==2.4.5"]
+    )
+], ids=[
+    "un-found",
+    "match-definition-name",
+    "match-namespace",
+    "match-versions"
+])
+def test_graph_find_matching_identifiers(
+    requirement, expected, mocker
+):
+    """Find matching identifiers from requirement."""
+    graph = wiz.graph.Graph(None)
+    graph._node_mapping = {
+        "A==0.1.0": mocker.Mock(package=mocker.Mock(
+            definition_identifier="A",
+            version=Version("0.1.0"),
+            qualified_identifier="A==0.1.0"
+        )),
+        "A==2.4.5": mocker.Mock(package=mocker.Mock(
+            definition_identifier="A",
+            version=Version("2.4.5"),
+            qualified_identifier="A==2.4.5"
+        )),
+        "Name1::B": mocker.Mock(package=mocker.Mock(
+            definition_identifier="Name1::B",
+            version=None,
+            qualified_identifier="Name1::B"
+        )),
+        "B==1": mocker.Mock(package=mocker.Mock(
+            definition_identifier="B",
+            version=Version("1"),
+            qualified_identifier="B==1"
+        )),
+    }
+
+    result = graph.find_matching_identifiers(requirement)
+    assert result == expected
+
+
 def test_graph_variant_mapping(mocker):
     """Extract variants from graph."""
     graph = wiz.graph.Graph(None)
@@ -993,7 +1056,7 @@ def test_graph_update_from_requirements(
         },
         "variants_per_definition": {},
         "constraint_mapping": {},
-        "condition_mapping": {},
+        "conditioned_nodes": [],
         "namespace_count": {},
         "error_mapping": {}
     }
@@ -1107,7 +1170,7 @@ def test_graph_update_from_requirements_with_dependencies(
         },
         "variants_per_definition": {},
         "constraint_mapping": {},
-        "condition_mapping": {},
+        "conditioned_nodes": [],
         "namespace_count": {},
         "error_mapping": {}
     }
@@ -1189,7 +1252,7 @@ def test_graph_update_from_requirements_with_variants(
             "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"],
         },
         "constraint_mapping": {},
-        "condition_mapping": {},
+        "conditioned_nodes": [],
         "namespace_count": {},
         "error_mapping": {}
     }
@@ -1259,7 +1322,7 @@ def test_graph_update_from_requirements_with_unused_constraints(
                 }
             ]
         },
-        "condition_mapping": {},
+        "conditioned_nodes": [],
         "variants_per_definition": {},
         "namespace_count": {},
         "error_mapping": {}
@@ -1354,7 +1417,7 @@ def test_graph_update_from_requirements_with_used_constraints(
             "C": ["C==2.0.4", "C==3.0.0"]
         },
         "constraint_mapping": {},
-        "condition_mapping": {},
+        "conditioned_nodes": [],
         "variants_per_definition": {},
         "namespace_count": {},
         "error_mapping": {}
@@ -1429,7 +1492,7 @@ def test_graph_update_from_requirements_with_namespaces(
             "B": ["Foo::B==2.1.1"],
         },
         "variants_per_definition": {},
-        "condition_mapping": {},
+        "conditioned_nodes": [],
         "constraint_mapping": {},
         "namespace_count": {"Bar": 1, "Foo": 2},
         "error_mapping": {}
@@ -1496,20 +1559,20 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
             "A": ["A==0.2.0"]
         },
         "constraint_mapping": {},
-        "condition_mapping": {
-            ("C >2",): {
+        "conditioned_nodes": [
+            {
                 "requirement": Requirement("B >=2"),
                 "package": mock.ANY,
                 "parent_identifier": None,
                 "weight": 2
             },
-            ("W",): {
+            {
                 "requirement": Requirement("D"),
                 "package": mock.ANY,
                 "parent_identifier": None,
                 "weight": 3
             }
-        },
+        ],
         "variants_per_definition": {},
         "namespace_count": {},
         "error_mapping": {}
@@ -1557,7 +1620,8 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
                 "package": {
                     "identifier": "B==2.1.1",
                     "definition-identifier": "B",
-                    "conditioned-by": ["A==0.2.0"],
+                    "conditions": ["A"],
+                    "conditions-processed": True,
                 },
                 "parents": ["root"]
             }
@@ -1573,7 +1637,7 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
             "B": ["B==2.1.1"]
         },
         "constraint_mapping": {},
-        "condition_mapping": {},
+        "conditioned_nodes": [],
         "variants_per_definition": {},
         "namespace_count": {},
         "error_mapping": {}
@@ -1637,7 +1701,7 @@ def test_graph_update_from_requirements_with_errors(
             "B": ["B==2.1.1"]
         },
         "constraint_mapping": {},
-        "condition_mapping": {},
+        "conditioned_nodes": [],
         "variants_per_definition": {},
         "namespace_count": {},
         "error_mapping": {
