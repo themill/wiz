@@ -602,14 +602,17 @@ def trim_invalid_from_graph(graph, distance_mapping):
 
     nodes_removed = False
 
+    def _exists_in_graph(identifier):
+        """Indicate whether node *identifier* exists in graph."""
+        return distance_mapping.get(identifier, {}).get("distance") is not None
+
     for node in graph.nodes():
         # Check if all conditions are still fulfilled.
         for requirement in node.package.conditions:
             identifiers = graph.find_matching(requirement)
 
             if len(identifiers) == 0 or any(
-                distance_mapping.get(identifier, {}).get("distance") is None
-                for identifier in identifiers
+                not _exists_in_graph(identifier) for identifier in identifiers
             ):
                 logger.debug(
                     "Remove '{}' as conditions are no longer "
@@ -621,14 +624,18 @@ def trim_invalid_from_graph(graph, distance_mapping):
 
         # Check if package is constrained by a definition identifier.
         if (
-            node.is_constraint() and
-            len(node.parent_identifiers(with_constraint=False)) == 0
+            not nodes_removed and node.is_constraint() and not any(
+                _exists_in_graph(identifier)
+                for identifier in node.parent_identifiers(with_constraint=False)
+            )
         ):
-            identifiers = graph.find_all(node.definition)
+            identifiers = [
+                identifier for identifier in graph.find_all(node.definition)
+                if identifier != node.identifier
+            ]
 
             if len(identifiers) == 0 or not any(
-                distance_mapping.get(identifier, {}).get("distance") is None
-                for identifier in identifiers
+                _exists_in_graph(identifier) for identifier in identifiers
             ):
                 logger.debug(
                     "Remove '{}' as constraining package is no longer "
