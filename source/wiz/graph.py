@@ -1195,7 +1195,7 @@ class Graph(object):
                     "package": stored_node.package,
                     "parent_identifier": stored_node.parent_identifier,
                     "weight": stored_node.weight,
-                    "constraint": stored_node.is_constraint()
+                    "is_constraint": stored_node.is_constraint()
                 })
 
             self._update_from_queue(queue)
@@ -1293,7 +1293,7 @@ class Graph(object):
                     data.get("requirement"), queue,
                     parent_identifier=data.get("parent_identifier"),
                     weight=data.get("weight"),
-                    constraint=data.get("constraint"),
+                    is_constraint=data.get("is_constraint"),
                 )
 
             else:
@@ -1301,11 +1301,12 @@ class Graph(object):
                     data.get("package"), data.get("requirement"), queue,
                     parent_identifier=data.get("parent_identifier"),
                     weight=data.get("weight"),
+                    is_constraint=False
                 )
 
     def _update_from_requirement(
         self, requirement, queue, parent_identifier=None, weight=1,
-        constraint=False
+        is_constraint=False
     ):
         """Update graph from *requirement*.
 
@@ -1321,7 +1322,7 @@ class Graph(object):
         link from the node to its parent. The lesser this number, the higher is
         the importance of the link. Default is 1.
 
-        *constraint* indicates whether the *requirement* is a constraint.
+        *is_constraint* indicates whether the *requirement* is a constraint.
         Default is False.
 
         """
@@ -1348,12 +1349,12 @@ class Graph(object):
                 package, requirement, queue,
                 parent_identifier=parent_identifier,
                 weight=weight,
-                constraint=constraint
+                is_constraint=is_constraint
             )
 
     def _update_from_package(
         self, package, requirement, queue, parent_identifier=None, weight=1,
-        constraint=False
+        is_constraint=False
     ):
         """Update graph from *package*.
 
@@ -1371,7 +1372,7 @@ class Graph(object):
         link from the node to its parent. The lesser this number, the higher is
         the importance of the link. Default is 1.
 
-        *constraint* indicates whether the *requirement* is a constraint.
+        *is_constraint* indicates whether the *requirement* is a constraint.
         Default is False.
 
         """
@@ -1414,7 +1415,7 @@ class Graph(object):
                         _requirement,
                         parent_identifier=identifier,
                         weight=index + 1,
-                        constraint=True
+                        is_constraint=True
                     )
                 )
 
@@ -1425,7 +1426,7 @@ class Graph(object):
         node = self._node_mapping[identifier]
         node.add_parent(parent_identifier or self.ROOT)
 
-        if constraint:
+        if is_constraint:
             node.add_constraint(parent_identifier)
 
         # Create link with requirement and weight.
@@ -1650,7 +1651,8 @@ class Node(object):
         """Return corresponding dictionary."""
         return {
             "package": self._package.to_dict(serialize_content=True),
-            "parents": list(self._parent_identifiers)
+            "parents": list(self._parent_identifiers),
+            "constrained-from": list(self._constrained_from)
         }
 
 
@@ -1679,7 +1681,7 @@ class StoredNode(object):
 
     def __init__(
         self, requirement, package=None, parent_identifier=None, weight=1,
-        constraint=False
+        is_constraint=False
     ):
         """Initialize StoredNode.
 
@@ -1691,7 +1693,7 @@ class StoredNode(object):
         *weight* is a number which indicate the importance of the dependency
         link from the node to its parent. Default is 1.
 
-        *constraint* indicates whether the *requirement* is a constraint.
+        *is_constraint* indicates whether the *requirement* is a constraint.
         Default is False.
 
         """
@@ -1699,7 +1701,7 @@ class StoredNode(object):
         self._package = package
         self._parent_identifier = parent_identifier
         self._weight = weight
-        self._constraint = constraint
+        self._is_constraint = is_constraint
 
     @property
     def requirement(self):
@@ -1723,7 +1725,7 @@ class StoredNode(object):
 
     def is_constraint(self):
         """Indicate whether node is a constraint."""
-        return self._constraint
+        return self._is_constraint
 
     def to_dict(self):
         """Return corresponding dictionary."""
