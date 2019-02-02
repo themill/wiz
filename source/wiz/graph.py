@@ -811,9 +811,9 @@ def remove_node_and_relink(graph, node, identifiers, requirement):
 
         for _identifier in identifiers:
             # Add parent to node if node already exists in graph.
-            node = graph.node(_identifier)
-            if node is not None:
-                node.add_parent(parent_identifier)
+            _node = graph.node(_identifier)
+            if _node is not None:
+                _node.add_parent(parent_identifier)
 
             graph.create_link(
                 _identifier,
