@@ -401,9 +401,10 @@ class Resolver(object):
                             "The current graph has conflicting variants."
                         )
 
-            # Search and trim invalid nodes from graph if conditions are
-            # no longer fulfilled. If so reset the distance mapping.
-            if trim_invalid_from_graph(graph, distance_mapping):
+            # Search and trim invalid nodes from graph if conditions or
+            # constraints are no longer fulfilled. If so reset the distance
+            # mapping.
+            while trim_invalid_from_graph(graph, distance_mapping):
                 self._distance_mapping = None
 
 
@@ -586,6 +587,10 @@ def trim_invalid_from_graph(graph, distance_mapping):
     If any packages that a node is conditioned by are no longer in the graph,
     the node is marked invalid and must be removed from the graph.
 
+    If any packages which is constrained by a definition identifier which is
+    no longer present in the graph, the node is marked invalid and must be
+    removed from the graph.
+
     *graph* must be an instance of :class:`Graph`.
 
     *distance_mapping* is a mapping indicating the shortest possible distance
@@ -598,8 +603,9 @@ def trim_invalid_from_graph(graph, distance_mapping):
     nodes_removed = False
 
     for node in graph.nodes():
+        # Check if all conditions are still fulfilled.
         for requirement in node.package.conditions:
-            identifiers = graph.find_matching_identifiers(requirement)
+            identifiers = graph.find_matching(requirement)
 
             if len(identifiers) == 0 or any(
                 distance_mapping.get(identifier, {}).get("distance") is None
@@ -612,6 +618,24 @@ def trim_invalid_from_graph(graph, distance_mapping):
                 graph.remove_node(node.identifier)
                 nodes_removed = True
                 break
+
+        # Check if package is constrained by a definition identifier.
+        if (
+            node.is_constraint() and
+            len(node.parent_identifiers(with_constraint=False)) == 0
+        ):
+            identifiers = graph.find_all(node.definition)
+
+            if len(identifiers) == 0 or not any(
+                distance_mapping.get(identifier, {}).get("distance") is None
+                for identifier in identifiers
+            ):
+                logger.debug(
+                    "Remove '{}' as constraining package is no longer "
+                    "is the graph".format(node.identifier)
+                )
+                graph.remove_node(node.identifier)
+                nodes_removed = True
 
     return nodes_removed
 
@@ -678,7 +702,7 @@ def combined_requirements(graph, nodes):
     for node in nodes:
         _requirements = (
             graph.link_requirement(node.identifier, _identifier)
-            for _identifier in node.parent_identifiers
+            for _identifier in node.parent_identifiers()
             if _identifier is graph.ROOT or graph.exists(_identifier)
         )
 
@@ -735,7 +759,7 @@ def extract_parents(graph, nodes):
     identifiers = set()
 
     for node in nodes:
-        for parent_identifier in node.parent_identifiers:
+        for parent_identifier in node.parent_identifiers():
             if parent_identifier == graph.ROOT:
                 continue
 
@@ -769,7 +793,7 @@ def remove_node_and_relink(graph, node, identifiers, requirement):
     """
     graph.remove_node(node.identifier)
 
-    for parent_identifier in node.parent_identifiers:
+    for parent_identifier in node.parent_identifiers():
         if (
             not graph.exists(parent_identifier) and
             not parent_identifier == graph.ROOT
@@ -779,6 +803,11 @@ def remove_node_and_relink(graph, node, identifiers, requirement):
         weight = graph.link_weight(node.identifier, parent_identifier)
 
         for _identifier in identifiers:
+            # Add parent to node if node already exists in graph.
+            node = graph.node(_identifier)
+            if node is not None:
+                node.add_parent(parent_identifier)
+
             graph.create_link(
                 _identifier,
                 parent_identifier,
@@ -988,7 +1017,11 @@ class Graph(object):
         """Indicate whether the node *identifier* is in the graph."""
         return identifier in self._node_mapping.keys()
 
-    def find_matching_identifiers(self, requirement):
+    def find_all(self, definition_identifier):
+        """Return existing nodes identifiers with *definition_identifier*."""
+        return self._identifiers_per_definition.get(definition_identifier, [])
+
+    def find_matching(self, requirement):
         """Return matching node identifiers in graph for *requirement*.
 
         *requirement* should be an instance of
@@ -1161,7 +1194,8 @@ class Graph(object):
                     "requirement": stored_node.requirement,
                     "package": stored_node.package,
                     "parent_identifier": stored_node.parent_identifier,
-                    "weight": stored_node.weight
+                    "weight": stored_node.weight,
+                    "constraint": stored_node.is_constraint()
                 })
 
             self._update_from_queue(queue)
@@ -1259,6 +1293,7 @@ class Graph(object):
                     data.get("requirement"), queue,
                     parent_identifier=data.get("parent_identifier"),
                     weight=data.get("weight"),
+                    constraint=data.get("constraint"),
                 )
 
             else:
@@ -1270,6 +1305,7 @@ class Graph(object):
 
     def _update_from_requirement(
         self, requirement, queue, parent_identifier=None, weight=1,
+        constraint=False
     ):
         """Update graph from *requirement*.
 
@@ -1284,6 +1320,9 @@ class Graph(object):
         *weight* is a number which indicate the importance of the dependency
         link from the node to its parent. The lesser this number, the higher is
         the importance of the link. Default is 1.
+
+        *constraint* indicates whether the *requirement* is a constraint.
+        Default is False.
 
         """
         self._logger.debug("Update from requirement: {}".format(requirement))
@@ -1308,11 +1347,13 @@ class Graph(object):
             self._update_from_package(
                 package, requirement, queue,
                 parent_identifier=parent_identifier,
-                weight=weight
+                weight=weight,
+                constraint=constraint
             )
 
     def _update_from_package(
-        self, package, requirement, queue, parent_identifier=None, weight=1
+        self, package, requirement, queue, parent_identifier=None, weight=1,
+        constraint=False
     ):
         """Update graph from *package*.
 
@@ -1329,6 +1370,9 @@ class Graph(object):
         *weight* is a number which indicate the importance of the dependency
         link from the node to its parent. The lesser this number, the higher is
         the importance of the link. Default is 1.
+
+        *constraint* indicates whether the *requirement* is a constraint.
+        Default is False.
 
         """
         identifier = package.qualified_identifier
@@ -1369,7 +1413,8 @@ class Graph(object):
                     StoredNode(
                         _requirement,
                         parent_identifier=identifier,
-                        weight=index + 1
+                        weight=index + 1,
+                        constraint=True
                     )
                 )
 
@@ -1379,6 +1424,9 @@ class Graph(object):
 
         node = self._node_mapping[identifier]
         node.add_parent(parent_identifier or self.ROOT)
+
+        if constraint:
+            node.add_constraint(parent_identifier)
 
         # Create link with requirement and weight.
         self.create_link(
@@ -1539,6 +1587,7 @@ class Node(object):
         """
         self._package = package
         self._parent_identifiers = set()
+        self._constrained_from = set()
 
     @property
     def definition(self):
@@ -1573,14 +1622,29 @@ class Node(object):
         """Return :class:`~wiz.package.Package` encapsulated."""
         return self._package
 
-    @property
-    def parent_identifiers(self):
-        """Return set of parent identifiers."""
+    def parent_identifiers(self, with_constraint=True):
+        """Return set of parent identifiers.
+
+        *with_constraint* indicate whether parent which are calling this
+        package as a constraint should be included. Default is True.
+
+        """
+        if not with_constraint:
+            return self._parent_identifiers.difference(self._constrained_from)
+
         return self._parent_identifiers
+
+    def is_constraint(self):
+        """Indicate whether node is a constraint."""
+        return len(self._constrained_from) > 0
 
     def add_parent(self, identifier):
         """Add *identifier* as a parent to the node."""
         self._parent_identifiers.add(identifier)
+
+    def add_constraint(self, identifier):
+        """Add *identifier* as a constraint parent to the node."""
+        self._constrained_from.add(identifier)
 
     def to_dict(self):
         """Return corresponding dictionary."""
@@ -1614,7 +1678,8 @@ class StoredNode(object):
     """
 
     def __init__(
-        self, requirement, package=None, parent_identifier=None, weight=1
+        self, requirement, package=None, parent_identifier=None, weight=1,
+        constraint=False
     ):
         """Initialize StoredNode.
 
@@ -1626,11 +1691,15 @@ class StoredNode(object):
         *weight* is a number which indicate the importance of the dependency
         link from the node to its parent. Default is 1.
 
+        *constraint* indicates whether the *requirement* is a constraint.
+        Default is False.
+
         """
         self._requirement = requirement
         self._package = package
         self._parent_identifier = parent_identifier
         self._weight = weight
+        self._constraint = constraint
 
     @property
     def requirement(self):
@@ -1651,6 +1720,10 @@ class StoredNode(object):
     def weight(self):
         """Return weight number."""
         return self._weight
+
+    def is_constraint(self):
+        """Indicate whether node is a constraint."""
+        return self._constraint
 
     def to_dict(self):
         """Return corresponding dictionary."""
