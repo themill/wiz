@@ -2904,7 +2904,6 @@ def test_scenario_27(
             "0.1.0": wiz.definition.Definition({
                 "identifier": "A",
                 "version": "0.1.0",
-                "auto-use": True,
                 "conditions": ["B"],
                 "constraints": ["B >= 0.1.0, < 1"],
             })
@@ -2940,6 +2939,109 @@ def test_scenario_27(
     assert spied_updated_by_distance.call_count == 2
     assert spied_extract_conflicting_nodes.call_count == 2
     assert spied_combined_requirements.call_count == 2
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_28(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    When a package adds a constraint to the graph due to a package definition
+    being in the graph, it is removed if the package definition is no longer
+    in the graph after conflict resolution.
+
+    Root
+     |
+     |--(A): A==0.1.0
+     |   |
+     |   `--(Constraint: C==0.1.0) C==0.1.0
+     |
+     |--(B): B==1.0.0
+     |   |
+     |   `--(C) C==1.0.0
+     |
+     `--(D) D==0.1.0
+         |
+         `--(B < 1) B==0.1.0
+
+    Expected: D==0.1.0, B==0.1.0, A==0.1.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0",
+                "constraints": ["C==0.1.0"],
+            })
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0",
+                "requirements": ["C"]
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0"
+            })
+        },
+        "C": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "1.0.0",
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.1.0"
+            })
+        },
+        "D": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "D",
+                "version": "0.1.0",
+                "requirements": ["B < 1"]
+            }),
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    packages = resolver.compute_packages([
+        Requirement("A"), Requirement("B"), Requirement("D")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].qualified_identifier == "D==0.1.0"
+    assert packages[1].qualified_identifier == "B==0.1.0"
+    assert packages[2].qualified_identifier == "A==0.1.0"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 5
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_distance_mapping.call_count == 3
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_updated_by_distance.call_count == 2
+    assert spied_extract_conflicting_nodes.call_count == 3
+    assert spied_combined_requirements.call_count == 3
     assert spied_extract_parents.call_count == 0
     assert spied_remove_node_and_relink.call_count == 1
     assert spied_extract_ordered_packages.call_count == 1
