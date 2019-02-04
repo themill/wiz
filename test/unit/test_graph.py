@@ -1048,16 +1048,16 @@ def test_graph_update_from_requirements(
             "A==0.2.0": {
                 "package": {
                     "identifier": "A==0.2.0",
-                    "definition-identifier": "A",
+                    "definition-identifier": "A"
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             },
             "B==2.1.1": {
                 "package": {
                     "identifier": "B==2.1.1",
-                    "definition-identifier": "B",
+                    "definition-identifier": "B"
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             }
         },
         "link_mapping": {
@@ -1068,7 +1068,7 @@ def test_graph_update_from_requirements(
         },
         "identifiers_per_definition": {
             "A": ["A==0.2.0"],
-            "B": ["B==2.1.1"],
+            "B": ["B==2.1.1"]
         },
         "variants_per_definition": {},
         "conditioned_nodes": [],
@@ -1126,39 +1126,39 @@ def test_graph_update_from_requirements_with_dependencies(
                 "package": {
                     "identifier": "A==0.1.0",
                     "definition-identifier": "A",
-                    "requirements": ["B >=2", "C"],
+                    "requirements": ["B >=2", "C"]
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             },
             "B==3.0.0": {
                 "package": {
                     "identifier": "B==3.0.0",
-                    "definition-identifier": "B",
+                    "definition-identifier": "B"
                 },
-                "parents": ["A==0.1.0"],
+                "parents": ["A==0.1.0"]
             },
             "C==1.2.3": {
                 "package": {
                     "identifier": "C==1.2.3",
                     "definition-identifier": "C",
-                    "requirements": ["D"],
+                    "requirements": ["D"]
                 },
-                "parents": ["A==0.1.0"],
+                "parents": ["A==0.1.0"]
             },
             "D==0.1.0": {
                 "package": {
                     "identifier": "D==0.1.0",
                     "definition-identifier": "D",
-                    "requirements": ["E"],
+                    "requirements": ["E"]
                 },
-                "parents": ["C==1.2.3"],
+                "parents": ["C==1.2.3"]
             },
             "E==0.2.0": {
                 "package": {
                     "identifier": "E==0.2.0",
-                    "definition-identifier": "E",
+                    "definition-identifier": "E"
                 },
-                "parents": ["D==0.1.0"],
+                "parents": ["D==0.1.0"]
             }
         },
         "link_mapping": {
@@ -1200,17 +1200,17 @@ def test_graph_update_from_requirements_with_variants(
         "A[V1]==0.2.0": wiz.package.Package({
             "identifier": "A[V1]==0.2.0",
             "variant-name": "V1",
-            "definition-identifier": "A",
+            "definition-identifier": "A"
         }),
         "A[V2]==0.2.0": wiz.package.Package({
             "identifier": "A[V2]==0.2.0",
             "variant-name": "V2",
-            "definition-identifier": "A",
+            "definition-identifier": "A"
         }),
         "A[V3]==0.2.0": wiz.package.Package({
             "identifier": "A[V3]==0.2.0",
             "variant-name": "V3",
-            "definition-identifier": "A",
+            "definition-identifier": "A"
         }),
     }
 
@@ -1218,7 +1218,7 @@ def test_graph_update_from_requirements_with_variants(
         [
             _mapping["A[V1]==0.2.0"],
             _mapping["A[V2]==0.2.0"],
-            _mapping["A[V3]==0.2.0"],
+            _mapping["A[V3]==0.2.0"]
         ],
     ]
 
@@ -1231,32 +1231,32 @@ def test_graph_update_from_requirements_with_variants(
                 "package": {
                     "identifier": "A[V1]==0.2.0",
                     "variant-name": "V1",
-                    "definition-identifier": "A",
+                    "definition-identifier": "A"
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             },
             "A[V2]==0.2.0": {
                 "package": {
                     "identifier": "A[V2]==0.2.0",
                     "variant-name": "V2",
-                    "definition-identifier": "A",
+                    "definition-identifier": "A"
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             },
             "A[V3]==0.2.0": {
                 "package": {
                     "identifier": "A[V3]==0.2.0",
                     "variant-name": "V3",
-                    "definition-identifier": "A",
+                    "definition-identifier": "A"
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             },
         },
         "link_mapping": {
             "root": {
                 "A[V1]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
                 "A[V2]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
-                "A[V3]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
+                "A[V3]==0.2.0": {"requirement": Requirement("A"), "weight": 1}
             },
         },
         "identifiers_per_definition": {
@@ -1313,7 +1313,7 @@ def test_graph_update_from_requirements_with_namespaces(
                     "namespace": "Foo",
                     "definition-identifier": "A"
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             },
             "Foo::B==2.1.1": {
                 "package": {
@@ -1321,7 +1321,7 @@ def test_graph_update_from_requirements_with_namespaces(
                     "namespace": "Foo",
                     "definition-identifier": "B"
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             }
         },
         "link_mapping": {
@@ -1336,7 +1336,7 @@ def test_graph_update_from_requirements_with_namespaces(
         },
         "identifiers_per_definition": {
             "A": ["Foo::A==0.2.0"],
-            "B": ["Foo::B==2.1.1"],
+            "B": ["Foo::B==2.1.1"]
         },
         "variants_per_definition": {},
         "conditioned_nodes": [],
@@ -1459,7 +1459,7 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
                     "identifier": "A==0.2.0",
                     "definition-identifier": "A"
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             },
             "B==2.1.1": {
                 "package": {
@@ -1468,7 +1468,7 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
                     "conditions": ["A"],
                     "conditions-processed": True,
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             }
         },
         "link_mapping": {
@@ -1509,7 +1509,7 @@ def test_graph_update_from_requirements_with_errors(
         "B==2.1.1": wiz.package.Package({
             "identifier": "B==2.1.1",
             "definition-identifier": "B",
-            "requirements": ["incorrect1", "incorrect2"],
+            "requirements": ["incorrect1", "incorrect2"]
         })
     }
 
@@ -1530,15 +1530,15 @@ def test_graph_update_from_requirements_with_errors(
                     "identifier": "A==0.2.0",
                     "definition-identifier": "A"
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             },
             "B==2.1.1": {
                 "package": {
                     "identifier": "B==2.1.1",
                     "definition-identifier": "B",
-                    "requirements": ["incorrect1", "incorrect2"],
+                    "requirements": ["incorrect1", "incorrect2"]
                 },
-                "parents": ["root"],
+                "parents": ["root"]
             }
         },
         "link_mapping": {
