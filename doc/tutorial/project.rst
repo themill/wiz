@@ -35,16 +35,18 @@ location of the :term:`TD SVN` root folder within the project:
         "identifier": "tdsvn",
         "description": "Environment for TD SVN.",
         "environ": {
-            "TDSVN_ROOT": "${MILL_EPISODE_PATH}/.common/3d"
+            "PYTHONPATH": "${INSTALL_LOCATION}/library/python:${PYTHONPATH}",
+            "MAYA_MODULE_PATH": "${INSTALL_LOCATION}/maya/modules:${MAYA_MODULE_PATH}",
+            "MAYA_SCRIPT_PATH": "${INSTALL_LOCATION}/maya/scripts:${MAYA_SCRIPT_PATH}"
         },
         "requirements": [
             "job"
-        ]
+        ],
+        "install-location": "${MILL_EPISODE_PATH}/.common/3d"
     }
 
-
 Additionally, create a :file:`project.json` package definition file to set the
-:term:`Maya` version and :term:`TD SVN` requirement.
+desired :term:`Maya` version and :term:`TD SVN` requirement.
 
 .. code-block:: console
 
@@ -55,10 +57,8 @@ Additionally, create a :file:`project.json` package definition file to set the
        "conditions": [
            "maya"
        ],
-       "constraints": [
-           "maya == 2016.*"
-       ],
        "requirements": [
+           "maya == 2016.*",
            "td-svn"
        ]
     }
@@ -72,10 +72,8 @@ Let's break down this :file:`project.json` package definition:
 * The :ref:`conditions <definition/conditions>` keyword ensures that this
   definition is only being considered if 'maya' is part of the requests.
 
-* The :ref:`constraints <definition/constraints>` keyword is used to enforce
-  that any requests for 'maya' will be constraint to a maya version of 2016.*.
-
-* The :ref:`requirements <definition/requirements>` keyword ensures that the
+* The :ref:`requirements <definition/requirements>` keyword ensures that any
+  requests for 'maya' will be constraint to a maya version of 2016.* and the
   "tdsvn" package is being added to the graph.
 
 
