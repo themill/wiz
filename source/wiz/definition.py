@@ -66,10 +66,6 @@ def fetch(paths, system_mapping=None, max_depth=None):
     for definition in discover(
         paths, system_mapping=system_mapping, max_depth=max_depth
     ):
-        wiz_constraint = definition.get("wiz-constraint")
-        if wiz_constraint and not wiz_constraint.contains(__version__):
-            continue
-
         _add_to_mapping(definition, mapping[wiz.symbol.PACKAGE_REQUEST_TYPE])
 
         # Record commands from definition.
@@ -409,6 +405,11 @@ def discover(paths, system_mapping=None, max_depth=None):
                     system_mapping is not None and
                     not wiz.system.validate(definition, system_mapping)
                 ):
+                    continue
+
+                # Skip definition incompatible with current wiz version.
+                wiz_constraint = definition.get("wiz-constraint")
+                if wiz_constraint and not wiz_constraint.contains(__version__):
                     continue
 
                 # Skip definition if "disabled" keyword is set to True.
