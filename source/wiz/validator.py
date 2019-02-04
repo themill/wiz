@@ -6,6 +6,7 @@ import collections
 
 import jsonschema.validators
 from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
 
@@ -52,6 +53,7 @@ _Validator = jsonschema.validators.create(
         **{
             "object": collections.Mapping,
             "requirement": Requirement,
+            "specifiers": SpecifierSet,
             "version": Version,
         }
     )

@@ -164,7 +164,7 @@
             "description": "Wiz version constraint for definition to be used.",
             "anyOf": [
                 {"type": "string"},
-                {"type": "specifier"}
+                {"type": "specifiers"}
             ]
         }
     },
