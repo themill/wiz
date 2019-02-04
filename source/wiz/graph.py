@@ -1160,7 +1160,7 @@ class Graph(object):
                     "requirement": stored_node.requirement,
                     "package": stored_node.package,
                     "parent_identifier": stored_node.parent_identifier,
-                    "weight": stored_node.weight,
+                    "weight": stored_node.weight
                 })
 
             self._update_from_queue(queue)
@@ -1225,14 +1225,14 @@ class Graph(object):
                 self._update_from_requirement(
                     data.get("requirement"), queue,
                     parent_identifier=data.get("parent_identifier"),
-                    weight=data.get("weight"),
+                    weight=data.get("weight")
                 )
 
             else:
                 self._update_from_package(
                     data.get("package"), data.get("requirement"), queue,
                     parent_identifier=data.get("parent_identifier"),
-                    weight=data.get("weight"),
+                    weight=data.get("weight")
                 )
 
     def _update_from_requirement(
@@ -1275,7 +1275,7 @@ class Graph(object):
             self._update_from_package(
                 package, requirement, queue,
                 parent_identifier=parent_identifier,
-                weight=weight,
+                weight=weight
             )
 
     def _update_from_package(
@@ -1621,7 +1621,7 @@ class StoredNode(object):
             "requirement": self._requirement,
             "package": self.package.to_dict(serialize_content=True),
             "parent_identifier": self._parent_identifier,
-            "weight": self._weight,
+            "weight": self._weight
         }
 
 
