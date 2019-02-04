@@ -37,7 +37,8 @@ location of the :term:`TD SVN` root folder within the project:
         "environ": {
             "PYTHONPATH": "${INSTALL_LOCATION}/library/python:${PYTHONPATH}",
             "MAYA_MODULE_PATH": "${INSTALL_LOCATION}/maya/modules:${MAYA_MODULE_PATH}",
-            "MAYA_SCRIPT_PATH": "${INSTALL_LOCATION}/maya/scripts:${MAYA_SCRIPT_PATH}"
+            "MAYA_SCRIPT_PATH": "${INSTALL_LOCATION}/maya/scripts:${MAYA_SCRIPT_PATH}",
+            "TDSVN_ROOT": "${INSTALL_LOCATION}"
         },
         "requirements": [
             "job"
