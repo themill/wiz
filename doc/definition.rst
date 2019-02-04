@@ -457,3 +457,17 @@ The value behind this keyword can be referenced within the
 This keyword offers greater flexibility as to where the data is located or moved
 to on the file system, especially when several package definitions share a
 common root path.
+
+.. _definition/wiz_constraint:
+
+Wiz-constraint
+--------------
+
+The optional ``wiz-constraint`` keyword can be used to indicate the version of
+Wiz compatible with a definition.
+
+.. code-block:: json
+
+    {
+        "wiz-constraint": ">=1, <2"
+    }

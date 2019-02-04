@@ -63,6 +63,13 @@ Release Notes
     .. change:: new
         :tags: definition
 
+        Added optional :ref:`wiz-constraint <definition/wiz_constraint>` keyword
+        which can be used to indicate the version of Wiz compatible with a
+        definition.
+
+    .. change:: new
+        :tags: definition
+
         Added optional :ref:`conditions <definition/conditions>` keyword to
         definition schema which can be used to indicate a list of packages
         which must be in the resolution graph for the package to be included.
