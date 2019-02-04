@@ -14,6 +14,7 @@ from packaging.requirements import (
 )
 
 from packaging.requirements import Requirement, InvalidRequirement
+from packaging.specifiers import SpecifierSet, InvalidSpecifier
 from packaging.version import Version, InvalidVersion
 
 import wiz.symbol
@@ -36,36 +37,30 @@ packaging.requirements.REQUIREMENT = (
 )
 
 
-def _display_requirement(_requirement):
-    """Improve readability when displaying Requirement instance.
+def _display_specifiers(_specifiers):
+    """Improve readability when displaying SpecifierSet instance.
 
     Before::
 
-        >>> Requirement("nuke>=10,<11")
-        <Requirement('nuke<11,>=10')>
+        >>> SpecifierSet(">=10,<11")
+        <SpecifierSet('<11,>=10')>
 
     After::
 
-        >>> Requirement("nuke>=10,<11")
-        <Requirement('nuke >=10, <11')>
+        >>> SpecifierSet(">=10,<11")
+        <SpecifierSet('>=10, <11')>
 
     """
-    content = _requirement.name
-
-    variant = ",".join(_requirement.extras)
-    if len(variant) > 0:
-        content += "[{}]".format(variant)
-
-    if len(_requirement.specifier) > 0:
-        content += " " + ", ".join(sorted([
-            str(specifier) for specifier in _requirement.specifier
+    if len(_specifiers) > 0:
+        return " " + ", ".join(sorted([
+            str(specifier) for specifier in _specifiers
         ], reverse=True))
 
-    return content
+    return ""
 
 
 #: Monkeypatch magic method to improve readability of serialized item.
-Requirement.__str__ = _display_requirement
+SpecifierSet.__str__ = _display_specifiers
 
 
 def _compare_requirement(_requirement, other):
@@ -110,6 +105,27 @@ def get_requirement(content):
     except InvalidRequirement:
         raise wiz.exception.InvalidRequirement(
             "The requirement '{}' is incorrect".format(content)
+        )
+
+
+def get_specifiers(content):
+    """Return the corresponding specifier instance from *content*.
+
+    The specifier returned is a :class:`packaging.requirements.SpecifierSet`
+    instance.
+
+    *content* must be a string which represent a specifier set
+    (e.g. ">= 1, < 2").
+
+    Raises :exc:`wiz.exception.InvalidSpecifier` if the specifier is
+    incorrect.
+
+    """
+    try:
+        return SpecifierSet(content)
+    except InvalidSpecifier:
+        raise wiz.exception.InvalidSpecifier(
+            "The specifier '{}' is incorrect".format(content)
         )
 
 

@@ -103,6 +103,12 @@ class InvalidRequirement(WizError):
     default_message = "The requirement is incorrect."
 
 
+class InvalidSpecifier(WizError):
+    """Raise when a specifier is incorrect."""
+
+    default_message = "The specifier is incorrect."
+
+
 class InvalidVersion(WizError):
     """Raise when a version is incorrect."""
 
