@@ -897,6 +897,39 @@ def test_discover_without_disabled(mocked_load, registries, definitions):
     ]
 
 
+def test_discover_with_wiz_constraint(mocked_load, registries, definitions):
+    """Discover and yield definitions without incompatible definitions."""
+    definitions[2] = wiz.definition.Definition(
+        dict(
+            {"wiz-constraint": "<1"},
+            **definitions[2].to_dict(serialize_content=True)
+        )
+    )
+    definitions[4] = wiz.definition.Definition(
+        dict(
+            {"wiz-constraint": ">=1"},
+            **definitions[4].to_dict(serialize_content=True)
+        )
+    )
+    mocked_load.side_effect = definitions
+
+    result = wiz.definition.discover(registries)
+    assert isinstance(result, types.GeneratorType)
+    assert mocked_load.call_count == 0
+
+    discovered = list(result)
+    assert len(discovered) == 5
+    assert mocked_load.call_count == 6
+
+    assert discovered == [
+        definitions[0],
+        definitions[1],
+        definitions[3],
+        definitions[4],
+        definitions[5]
+    ]
+
+
 @pytest.mark.parametrize("exception", [
     IOError,
     ValueError,
