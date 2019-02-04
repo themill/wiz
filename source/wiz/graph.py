@@ -1106,12 +1106,14 @@ class Graph(object):
         """Return list of exceptions raised for node *identifier*."""
         return self._error_mapping.get(identifier)
 
-    def update_from_requirements(self, requirements):
+    def update_from_requirements(self, requirements, parent_identifier=None):
         """Update graph from *requirements*.
 
         *requirements* should be a list of
         class:`packaging.requirements.Requirement` instances ordered from the
         most important to the least important.
+
+        *parent_identifier* can indicate the identifier of a parent node.
 
         One or several :class:`~wiz.package.Package` instances will be
         extracted from  *requirements* and :class:`Node` instances will be added
@@ -1140,12 +1142,16 @@ class Graph(object):
 
         # Fill up queue from requirements and update the graph accordingly.
         for index, requirement in enumerate(requirements):
-            queue.put({"requirement": requirement, "weight": index + 1})
+            queue.put({
+                "requirement": requirement,
+                "parent_identifier": parent_identifier,
+                "weight": index + 1
+            })
 
         self._update_from_queue(queue)
 
         # Update graph with conditioned nodes stored if necessary.
-        stored_nodes = self._conditions_validated()
+        stored_nodes = self._fetch_required_stored_nodes()
 
         while len(stored_nodes) > 0:
             for stored_node in stored_nodes:
@@ -1159,21 +1165,22 @@ class Graph(object):
             self._update_from_queue(queue)
 
             # Check if new stored nodes need to be added to graph.
-            stored_nodes = self._conditions_validated()
+            stored_nodes = self._fetch_required_stored_nodes()
 
-    def _conditions_validated(self):
+    def _fetch_required_stored_nodes(self):
         """Return :class:`StoredNode` instances which should be added to graph.
 
         A :class:`StoredNode` instance has been created for each package which
         has one or several conditions.
 
-        Only :class:`StoredNode` instances from which conditions are fulfilled
-        are returned and removed from the condition mapping.
-
         """
         stored_nodes = []
 
         for stored_node in self._conditioned_nodes:
+            # Prevent adding stored nodes twice into the graph
+            if self.exists(stored_node.identifier):
+                continue
+
             try:
                 packages = (
                     wiz.package.extract(
@@ -1181,32 +1188,27 @@ class Graph(object):
                     ) for condition in stored_node.package.conditions
                 )
 
-                # Require all of this package identifiers to be in the node
-                # mapping.
+                # Require all package identifiers to be in the node mapping.
                 identifiers = [
                     package.qualified_identifier
                     for package in itertools.chain(*packages)
                 ]
 
             except wiz.exception.WizError:
-                # Do not raise if the request is not found.
+                # Do not raise if the condition request is incorrect.
                 continue
 
             if all(self.exists(_id) for _id in identifiers):
+                self._logger.debug(
+                    "Package '{}' fulfills conditions [{}]".format(
+                        stored_node.identifier,
+                        ", ".join(
+                            str(req) for req in stored_node.package.conditions
+                        )
+                    )
+                )
                 stored_nodes.append(stored_node)
 
-        # Reset conditions to remove those which will be added to the graph.
-        self._conditioned_nodes = [
-            stored_node for stored_node in self._conditioned_nodes
-            if stored_node not in stored_nodes
-        ]
-
-        self._logger.debug(
-            "Packages that now fulfill their conditions and need to be added "
-            "to the graph: {}".format(
-                [str(stored_node.requirement) for stored_node in stored_nodes]
-            )
-        )
         return stored_nodes
 
     def _update_from_queue(self, queue):
@@ -1581,6 +1583,18 @@ class StoredNode(object):
         self._weight = weight
 
     @property
+    def identifier(self):
+        """Return identifier of the stored node.
+
+        .. note::
+
+            The node identifier is the same as the embedded
+            :class:`~wiz.package.Package` instance qualified identifier.
+
+        """
+        return self._package.qualified_identifier
+
+    @property
     def requirement(self):
         """Return :class:`packaging.requirements.Requirement` instance."""
         return self._requirement
@@ -1604,10 +1618,7 @@ class StoredNode(object):
         """Return corresponding dictionary."""
         return {
             "requirement": self._requirement,
-            "package": (
-                self.package.to_dict(serialize_content=True)
-                if self.package else None
-            ),
+            "package": self.package.to_dict(serialize_content=True),
             "parent_identifier": self._parent_identifier,
             "weight": self._weight,
         }

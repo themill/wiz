@@ -1483,7 +1483,14 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
             "A": ["A==0.2.0"],
             "B": ["B==2.1.1"]
         },
-        "conditioned_nodes": [],
+        "conditioned_nodes": [
+            {
+                "requirement": Requirement("B >=2"),
+                "package": mock.ANY,
+                "parent_identifier": None,
+                "weight": 2
+            },
+        ],
         "variants_per_definition": {},
         "namespace_count": {},
         "error_mapping": {}
