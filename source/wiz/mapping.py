@@ -23,6 +23,7 @@ class Mapping(collections.Mapping):
         self._sanitize_wiz_constraint()
         self._sanitize_requirements()
         self._sanitize_conditions()
+        self._sanitize_constraints()
 
     def _sanitize_version(self):
         """Ensure version is a :class:`packaging.version.Version` instance.
@@ -45,22 +46,22 @@ class Mapping(collections.Mapping):
         """Ensure Wiz constraint is a :class:`packaging.requirement.Requirement`
         instance.
         """
-        constraint = self._mapping.get("wiz-constraint")
+        specifiers = self._mapping.get("wiz-constraint")
 
         try:
             if (
-                constraint and
-                not isinstance(constraint, wiz.utility.Requirement)
+                specifiers and
+                not isinstance(specifiers, wiz.utility.SpecifierSet)
             ):
                 self._mapping["wiz-constraint"] = (
-                    wiz.utility.get_requirement(constraint)
+                    wiz.utility.get_specifiers(specifiers)
                 )
 
-        except wiz.exception.InvalidVersion:
+        except wiz.exception.InvalidSpecifier:
             raise wiz.exception.IncorrectDefinition(
-                "{label} has an incorrect wiz constraint [{constraint}]".format(
+                "{label} has incorrect wiz specifiers [{specifiers}]".format(
                     label=self._label(),
-                    constraint=self._mapping["wiz-constraint"]
+                    specifiers=specifiers
                 )
             )
 
