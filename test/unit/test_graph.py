@@ -436,35 +436,23 @@ def test_trim_invalid_conditions_from_graph(
         mocker.Mock(
             identifier="A",
             package=mocker.Mock(conditions=["B", "C"]),
-            **{
-                "parent_identifiers.return_value": [],
-                "is_constraint.return_value": False
-            }
+            parent_identifiers=[]
 
         ),
         mocker.Mock(
             identifier="B",
             package=mocker.Mock(conditions=["C", "D"]),
-            **{
-                "parent_identifiers.return_value": [],
-                "is_constraint.return_value": False
-            }
+            parent_identifiers=[]
         ),
         mocker.Mock(
             identifier="C",
             package=mocker.Mock(conditions=[]),
-            **{
-                "parent_identifiers.return_value": [],
-                "is_constraint.return_value": False
-            }
+            parent_identifiers=[]
         ),
         mocker.Mock(
             identifier="D",
             package=mocker.Mock(conditions=[]),
-            **{
-                "parent_identifiers.return_value": [],
-                "is_constraint.return_value": False
-            }
+            parent_identifiers=[]
         ),
     ]
 
@@ -472,90 +460,6 @@ def test_trim_invalid_conditions_from_graph(
     assert result == (len(nodes_removed) > 0)
 
     mocked_graph.find_all.assert_not_called()
-
-    assert mocked_graph_remove_node.call_count == len(nodes_removed)
-    for node in nodes_removed:
-        mocked_graph_remove_node.assert_any_call(node)
-
-
-@pytest.mark.parametrize("distance_mapping, nodes_removed", [
-    (
-        {
-            "root": {"distance": 0, "parent": "root"},
-            "A": {"distance": 1, "parent": "root"},
-            "B": {"distance": 2, "parent": "root"},
-            "C": {"distance": 3, "parent": "root"},
-            "D": {"distance": None, "parent": None},
-        },
-        ["B"]
-    ),
-    (
-        {
-            "root": {"distance": 0, "parent": "root"},
-            "A": {"distance": 1, "parent": "root"},
-            "B": {"distance": 2, "parent": "root"},
-            "C": {"distance": 3, "parent": "root"},
-            "D": {"distance": 4, "parent": "A"},
-        },
-        []
-    ),
-], ids=[
-    "true",
-    "false",
-])
-def test_trim_invalid_constraints_from_graph(
-    mocker, mocked_graph, mocked_graph_remove_node, distance_mapping,
-    nodes_removed
-):
-    """Remove invalid nodes from graph based on distance mapping."""
-    mocked_graph.find_all.side_effect = [
-        ["B"], ["D"],
-    ]
-
-    mocked_graph.nodes.return_value = [
-        mocker.Mock(
-            identifier="A",
-            definition="A",
-            package=mocker.Mock(conditions=[]),
-            **{
-                "parent_identifiers.return_value": [],
-                "is_constraint.return_value": True
-            }
-
-        ),
-        mocker.Mock(
-            identifier="B",
-            definition="B",
-            package=mocker.Mock(conditions=[]),
-            **{
-                "parent_identifiers.return_value": [],
-                "is_constraint.return_value": True
-            }
-        ),
-        mocker.Mock(
-            identifier="C",
-            definition="C",
-            package=mocker.Mock(conditions=[]),
-            **{
-                "parent_identifiers.return_value": [],
-                "is_constraint.return_value": False
-            }
-        ),
-        mocker.Mock(
-            identifier="D",
-            definition="D",
-            package=mocker.Mock(conditions=[]),
-            **{
-                "parent_identifiers.return_value": [],
-                "is_constraint.return_value": False
-            }
-        ),
-    ]
-
-    result = wiz.graph.trim_invalid_from_graph(mocked_graph, distance_mapping)
-    assert result == (len(nodes_removed) > 0)
-
-    mocked_graph.find_matching.assert_not_called()
 
     assert mocked_graph_remove_node.call_count == len(nodes_removed)
     for node in nodes_removed:
@@ -620,15 +524,15 @@ def test_combined_requirements(mocker, mocked_graph):
     nodes = [
         mocker.Mock(
             identifier="A==3",
-            **{"parent_identifiers.return_value": ["B"]}
+            parent_identifiers=["B"]
         ),
         mocker.Mock(
             identifier="A==1.9",
-            **{"parent_identifiers.return_value": ["C"]}
+            parent_identifiers=["C"]
         ),
         mocker.Mock(
             identifier="A==1.2.3",
-            **{"parent_identifiers.return_value": ["D"]}
+            parent_identifiers=["D"]
         )
     ]
 
@@ -655,15 +559,15 @@ def test_combined_requirements_error(mocker, mocked_graph):
     nodes = [
         mocker.Mock(
             identifier="A==3",
-            **{"parent_identifiers.return_value": ["B"]}
+            parent_identifiers=["B"]
         ),
         mocker.Mock(
             identifier="Z==1.9",
-            **{"parent_identifiers.return_value": ["C"]}
+            parent_identifiers=["C"]
         ),
         mocker.Mock(
             identifier="A==1.2.3",
-            **{"parent_identifiers.return_value": ["D"]}
+            parent_identifiers=["D"]
         )
     ]
 
@@ -715,19 +619,19 @@ def test_extract_parents(mocker, mocked_graph):
     nodes = [
         mocker.Mock(
             identifier="A",
-            **{"parent_identifiers.return_value": ["E", "F"]}
+            parent_identifiers=["E", "F"]
         ),
         mocker.Mock(
             identifier="B",
-            **{"parent_identifiers.return_value": ["F", "G"]}
+            parent_identifiers=["F", "G"]
         ),
         mocker.Mock(
             identifier="C",
-            **{"parent_identifiers.return_value": ["root"]}
+            parent_identifiers=["root"]
         ),
         mocker.Mock(
             identifier="D",
-            **{"parent_identifiers.return_value": ["H"]}
+            parent_identifiers=["H"]
         )
     ]
 
@@ -748,7 +652,7 @@ def test_remove_node_and_relink(mocker, mocked_graph):
     """Remove node and relink node's parents."""
     node = mocker.Mock(
         identifier="foo",
-        **{"parent_identifiers.return_value": ["parent1", "parent2", "parent3"]}
+        parent_identifiers=["parent1", "parent2", "parent3"]
     )
 
     mocked_graph.exists.side_effect = [True, False, True]
@@ -1149,7 +1053,6 @@ def test_graph_update_from_requirements(
                     "definition-identifier": "A",
                 },
                 "parents": ["root"],
-                "constrained-from": []
             },
             "B==2.1.1": {
                 "package": {
@@ -1157,7 +1060,6 @@ def test_graph_update_from_requirements(
                     "definition-identifier": "B",
                 },
                 "parents": ["root"],
-                "constrained-from": []
             }
         },
         "link_mapping": {
@@ -1171,7 +1073,6 @@ def test_graph_update_from_requirements(
             "B": ["B==2.1.1"],
         },
         "variants_per_definition": {},
-        "constraint_mapping": {},
         "conditioned_nodes": [],
         "namespace_count": {},
         "error_mapping": {}
@@ -1230,7 +1131,6 @@ def test_graph_update_from_requirements_with_dependencies(
                     "requirements": ["B >=2", "C"],
                 },
                 "parents": ["root"],
-                "constrained-from": []
             },
             "B==3.0.0": {
                 "package": {
@@ -1238,7 +1138,6 @@ def test_graph_update_from_requirements_with_dependencies(
                     "definition-identifier": "B",
                 },
                 "parents": ["A==0.1.0"],
-                "constrained-from": []
             },
             "C==1.2.3": {
                 "package": {
@@ -1247,7 +1146,6 @@ def test_graph_update_from_requirements_with_dependencies(
                     "requirements": ["D"],
                 },
                 "parents": ["A==0.1.0"],
-                "constrained-from": []
             },
             "D==0.1.0": {
                 "package": {
@@ -1256,7 +1154,6 @@ def test_graph_update_from_requirements_with_dependencies(
                     "requirements": ["E"],
                 },
                 "parents": ["C==1.2.3"],
-                "constrained-from": []
             },
             "E==0.2.0": {
                 "package": {
@@ -1264,7 +1161,6 @@ def test_graph_update_from_requirements_with_dependencies(
                     "definition-identifier": "E",
                 },
                 "parents": ["D==0.1.0"],
-                "constrained-from": []
             }
         },
         "link_mapping": {
@@ -1290,7 +1186,6 @@ def test_graph_update_from_requirements_with_dependencies(
             "E": ["E==0.2.0"]
         },
         "variants_per_definition": {},
-        "constraint_mapping": {},
         "conditioned_nodes": [],
         "namespace_count": {},
         "error_mapping": {}
@@ -1341,7 +1236,6 @@ def test_graph_update_from_requirements_with_variants(
                     "definition-identifier": "A",
                 },
                 "parents": ["root"],
-                "constrained-from": []
             },
             "A[V2]==0.2.0": {
                 "package": {
@@ -1350,7 +1244,6 @@ def test_graph_update_from_requirements_with_variants(
                     "definition-identifier": "A",
                 },
                 "parents": ["root"],
-                "constrained-from": []
             },
             "A[V3]==0.2.0": {
                 "package": {
@@ -1359,7 +1252,6 @@ def test_graph_update_from_requirements_with_variants(
                     "definition-identifier": "A",
                 },
                 "parents": ["root"],
-                "constrained-from": []
             },
         },
         "link_mapping": {
@@ -1375,180 +1267,7 @@ def test_graph_update_from_requirements_with_variants(
         "variants_per_definition": {
             "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"],
         },
-        "constraint_mapping": {},
         "conditioned_nodes": [],
-        "namespace_count": {},
-        "error_mapping": {}
-    }
-
-
-def test_graph_update_from_requirements_with_unused_constraints(
-    mocked_resolver, mocked_package_extract
-):
-    """Update graph from requirements with un-used package constraints."""
-    graph = wiz.graph.Graph(mocked_resolver)
-
-    _mapping = {
-        "A==0.2.0": wiz.package.Package({
-            "identifier": "A==0.2.0",
-            "definition-identifier": "A",
-        }),
-        "B==2.1.1": wiz.package.Package({
-            "identifier": "B==2.1.1",
-            "definition-identifier": "B",
-            "constraints": [Requirement("C==2.0.4")],
-        }),
-    }
-
-    mocked_package_extract.side_effect = [
-        [_mapping["A==0.2.0"]],
-        [_mapping["B==2.1.1"]]
-    ]
-
-    graph.update_from_requirements([Requirement("A"), Requirement("B>=2")])
-
-    assert graph.to_dict() == {
-        "identifier": mock.ANY,
-        "node_mapping": {
-            "A==0.2.0": {
-                "package": {
-                    "identifier": "A==0.2.0",
-                    "definition-identifier": "A",
-                },
-                "parents": ["root"],
-                "constrained-from": []
-            },
-            "B==2.1.1": {
-                "package": {
-                    "identifier": "B==2.1.1",
-                    "definition-identifier": "B",
-                    "constraints": ["C ==2.0.4"],
-                },
-                "parents": ["root"],
-                "constrained-from": []
-            }
-        },
-        "link_mapping": {
-            "root": {
-                "A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
-                "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2}
-            }
-        },
-        "identifiers_per_definition": {
-            "A": ["A==0.2.0"],
-            "B": ["B==2.1.1"],
-        },
-        "constraint_mapping": {
-            "C": [
-                {
-                    "requirement": Requirement("C==2.0.4"),
-                    "package": None,
-                    "parent_identifier": "B==2.1.1",
-                    "weight": 1
-                }
-            ]
-        },
-        "conditioned_nodes": [],
-        "variants_per_definition": {},
-        "namespace_count": {},
-        "error_mapping": {}
-    }
-
-
-def test_graph_update_from_requirements_with_used_constraints(
-    mocked_resolver, mocked_package_extract
-):
-    """Update graph from requirements with used package constraints."""
-    graph = wiz.graph.Graph(mocked_resolver)
-
-    _mapping = {
-        "A==0.2.0": wiz.package.Package({
-            "identifier": "A==0.2.0",
-            "definition-identifier": "A",
-        }),
-        "B==2.1.1": wiz.package.Package({
-            "identifier": "B==2.1.1",
-            "definition-identifier": "B",
-            "constraints": [Requirement("C==2.0.4")],
-        }),
-        "C==2.0.4": wiz.package.Package({
-            "identifier": "C==2.0.4",
-            "definition-identifier": "C",
-        }),
-        "C==3.0.0": wiz.package.Package({
-            "identifier": "C==3.0.0",
-            "definition-identifier": "C",
-        }),
-    }
-
-    mocked_package_extract.side_effect = [
-        [_mapping["A==0.2.0"]],
-        [_mapping["B==2.1.1"]],
-        [_mapping["C==3.0.0"]],
-        [_mapping["C==2.0.4"]]
-    ]
-
-    graph.update_from_requirements([
-        Requirement("A"), Requirement("B>=2"), Requirement("C")
-    ])
-
-    assert graph.to_dict() == {
-        "identifier": mock.ANY,
-        "node_mapping": {
-            "A==0.2.0": {
-                "package": {
-                    "identifier": "A==0.2.0",
-                    "definition-identifier": "A",
-                },
-                "parents": ["root"],
-                "constrained-from": []
-            },
-            "B==2.1.1": {
-                "package": {
-                    "identifier": "B==2.1.1",
-                    "definition-identifier": "B",
-                    "constraints": ["C ==2.0.4"],
-                },
-                "parents": ["root"],
-                "constrained-from": []
-            },
-            "C==2.0.4": {
-                "package": {
-                    "identifier": "C==2.0.4",
-                    "definition-identifier": "C",
-                },
-                "parents": ["B==2.1.1"],
-                "constrained-from": ["B==2.1.1"]
-            },
-            "C==3.0.0": {
-                "package": {
-                    "identifier": "C==3.0.0",
-                    "definition-identifier": "C",
-                },
-                "parents": ["root"],
-                "constrained-from": []
-            }
-        },
-        "link_mapping": {
-            "root": {
-                "A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
-                "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2},
-                "C==3.0.0": {"requirement": Requirement("C"), "weight": 3}
-            },
-            "B==2.1.1": {
-                "C==2.0.4": {
-                    "requirement": Requirement("C==2.0.4"), "weight": 1
-                },
-            }
-        },
-        "identifiers_per_definition": {
-            "A": ["A==0.2.0"],
-            "B": ["B==2.1.1"],
-            "C": ["C==2.0.4", "C==3.0.0"]
-        },
-        "constraint_mapping": {},
-        "conditioned_nodes": [],
-        "variants_per_definition": {},
         "namespace_count": {},
         "error_mapping": {}
     }
@@ -1597,7 +1316,6 @@ def test_graph_update_from_requirements_with_namespaces(
                     "definition-identifier": "A"
                 },
                 "parents": ["root"],
-                "constrained-from": []
             },
             "Foo::B==2.1.1": {
                 "package": {
@@ -1606,7 +1324,6 @@ def test_graph_update_from_requirements_with_namespaces(
                     "definition-identifier": "B"
                 },
                 "parents": ["root"],
-                "constrained-from": []
             }
         },
         "link_mapping": {
@@ -1625,7 +1342,6 @@ def test_graph_update_from_requirements_with_namespaces(
         },
         "variants_per_definition": {},
         "conditioned_nodes": [],
-        "constraint_mapping": {},
         "namespace_count": {"Bar": 1, "Foo": 2},
         "error_mapping": {}
     }
@@ -1680,7 +1396,6 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
                     "definition-identifier": "A",
                 },
                 "parents": ["root"],
-                "constrained-from": []
             }
         },
         "link_mapping": {
@@ -1691,7 +1406,6 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
         "identifiers_per_definition": {
             "A": ["A==0.2.0"]
         },
-        "constraint_mapping": {},
         "conditioned_nodes": [
             {
                 "requirement": Requirement("B >=2"),
@@ -1748,7 +1462,6 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
                     "definition-identifier": "A"
                 },
                 "parents": ["root"],
-                "constrained-from": []
             },
             "B==2.1.1": {
                 "package": {
@@ -1758,7 +1471,6 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
                     "conditions-processed": True,
                 },
                 "parents": ["root"],
-                "constrained-from": []
             }
         },
         "link_mapping": {
@@ -1771,7 +1483,6 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
             "A": ["A==0.2.0"],
             "B": ["B==2.1.1"]
         },
-        "constraint_mapping": {},
         "conditioned_nodes": [],
         "variants_per_definition": {},
         "namespace_count": {},
@@ -1815,7 +1526,6 @@ def test_graph_update_from_requirements_with_errors(
                     "definition-identifier": "A"
                 },
                 "parents": ["root"],
-                "constrained-from": []
             },
             "B==2.1.1": {
                 "package": {
@@ -1824,7 +1534,6 @@ def test_graph_update_from_requirements_with_errors(
                     "requirements": ["incorrect1", "incorrect2"],
                 },
                 "parents": ["root"],
-                "constrained-from": []
             }
         },
         "link_mapping": {
@@ -1837,7 +1546,6 @@ def test_graph_update_from_requirements_with_errors(
             "A": ["A==0.2.0"],
             "B": ["B==2.1.1"]
         },
-        "constraint_mapping": {},
         "conditioned_nodes": [],
         "variants_per_definition": {},
         "namespace_count": {},
@@ -2155,13 +1863,13 @@ def test_node():
     assert node.definition == "defA"
     assert node.variant_name == "V1"
     assert node.package == package
-    assert node.parent_identifiers() == set()
+    assert node.parent_identifiers == set()
 
     node.add_parent("parent1")
     node.add_parent("parent1")
     node.add_parent("parent2")
 
-    assert node.parent_identifiers() == {"parent1", "parent2"}
+    assert node.parent_identifiers == {"parent1", "parent2"}
 
 
 def test_distance_queue():
