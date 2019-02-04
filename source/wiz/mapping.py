@@ -22,7 +22,6 @@ class Mapping(collections.Mapping):
         self._sanitize_version()
         self._sanitize_requirements()
         self._sanitize_conditions()
-        self._sanitize_constraints()
 
     def _sanitize_version(self):
         """Ensure version is a :class:`packaging.version.Version` instance.
@@ -89,30 +88,6 @@ class Mapping(collections.Mapping):
                 )
             )
 
-    def _sanitize_constraints(self):
-        """Ensure constraints are :class:`packaging.requirement.Requirement`
-        instances.
-        """
-        size = len(self._mapping.get("constraints", []))
-
-        try:
-            for index in range(size):
-                constraint = self._mapping["constraints"][index]
-
-                if not isinstance(constraint, wiz.utility.Requirement):
-                    self._mapping["constraints"][index] = (
-                        wiz.utility.get_requirement(constraint)
-                    )
-
-        except wiz.exception.InvalidRequirement as exception:
-            raise wiz.exception.IncorrectDefinition(
-                "{label} contains an incorrect package constraint "
-                "[{error}]".format(
-                    label=self._label(),
-                    error=exception
-                )
-            )
-
     def _label(self):
         """Return object label to include in exception messages."""
         return "The {type} '{identifier}'".format(
@@ -159,11 +134,6 @@ class Mapping(collections.Mapping):
     def requirements(self):
         """Return requirement list."""
         return self.get("requirements", [])
-
-    @property
-    def constraints(self):
-        """Return constraint list."""
-        return self.get("constraints", [])
 
     @property
     def conditions(self):

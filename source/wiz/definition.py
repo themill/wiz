@@ -517,7 +517,6 @@ class Definition(wiz.mapping.Mapping):
             "environ",
             "requirements",
             "conditions",
-            "constraints",
             "variants"
         ]
 

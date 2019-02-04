@@ -896,7 +896,10 @@ def test_scenario_8(
              |
              `--(C <1): C== 0.9.0
 
-    Expected: C==0.9.0, A==0.9.0, B==0.1.0
+    Expected: A==0.9.0, C==0.9.0, B==0.1.0
+
+    The position of 'C==0.9.0' / 'B==0.1.0' can vary as they have similar
+    priority numbers.
 
     """
     definition_mapping = {
@@ -938,9 +941,12 @@ def test_scenario_8(
     ])
 
     assert len(packages) == 3
-    assert packages[0].identifier == "C==0.9.0"
-    assert packages[1].identifier == "A==0.9.0"
-    assert packages[2].identifier == "B==0.1.0"
+
+    assert packages[0].identifier in ["C==0.9.0", "B==0.1.0"]
+    assert packages[1].identifier in ["C==0.9.0", "B==0.1.0"]
+    assert packages[0] != packages[1]
+
+    assert packages[2].identifier == "A==0.9.0"
 
     # Check spied functions / methods
     assert spied_fetch_next_graph.call_count == 1
@@ -1312,7 +1318,7 @@ def test_scenario_12(
              |
              `--(B >=1, <2): B==1.0.0
 
-    Expected: B==3.0.0, A[V3]==0.5.0, C
+    Expected: C, B==3.0.0, A[V3]==0.5.0
 
     """
     definition_mapping = {
@@ -1382,9 +1388,9 @@ def test_scenario_12(
     ])
 
     assert len(packages) == 3
-    assert packages[0].identifier == "B==3.0.0"
-    assert packages[1].identifier == "A[V3]==0.5.0"
-    assert packages[2].identifier == "C"
+    assert packages[0].identifier == "C"
+    assert packages[1].identifier == "B==3.0.0"
+    assert packages[2].identifier == "A[V3]==0.5.0"
 
     # Check spied functions / methods
     assert spied_fetch_next_graph.call_count == 1
@@ -2857,4 +2863,82 @@ def test_scenario_26(
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
     assert spied_remove_node_and_relink.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_27(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    A package which has been added to the graph when its conditions were
+    fulfilled will be kept when conflict resolution has resulted in the
+    removal of a node the package is conditioned as long as another node which
+    fulfill the same condition remains in the graph.
+
+    Root
+     |
+     |--(A): A==0.1.0 (Condition: B)
+     |   |
+     |   `--(B >= 0.1.0, < 1) B==0.1.0
+     |
+     `--(B): B==1.0.0
+
+    Expected: B==0.1.0, A==0.1.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0",
+                "conditions": ["B"],
+                "requirements": ["B >= 0.1.0, < 1"],
+            })
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0"
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0"
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    packages = resolver.compute_packages([Requirement("A"), Requirement("B")])
+
+    assert len(packages) == 2
+    assert packages[0].qualified_identifier == "B==0.1.0"
+    assert packages[1].qualified_identifier == "A==0.1.0"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 4
+    assert spied_extract_combinations.call_count == 1
+    assert spied_resolve_conflicts.call_count == 1
+    assert spied_compute_distance_mapping.call_count == 2
+    assert spied_generate_variant_combinations.call_count == 0
+    assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_updated_by_distance.call_count == 2
+    assert spied_extract_conflicting_nodes.call_count == 2
+    assert spied_combined_requirements.call_count == 2
+    assert spied_extract_parents.call_count == 0
+    assert spied_remove_node_and_relink.call_count == 1
     assert spied_extract_ordered_packages.call_count == 1
