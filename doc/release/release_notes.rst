@@ -119,7 +119,7 @@ Release Notes
 
             {
                 "constraints": [
-                    "maya ==2016.*",
+                    "maya ==2016.*"
                 ]
             }
 
