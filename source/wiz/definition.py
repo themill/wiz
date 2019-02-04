@@ -5,6 +5,7 @@ import json
 
 import mlog
 
+from _version import __version__
 import wiz.symbol
 import wiz.mapping
 import wiz.package
@@ -65,6 +66,10 @@ def fetch(paths, system_mapping=None, max_depth=None):
     for definition in discover(
         paths, system_mapping=system_mapping, max_depth=max_depth
     ):
+        wiz_constraint = definition.get("wiz-constraint")
+        if wiz_constraint and not wiz_constraint.contains(__version__):
+            continue
+
         _add_to_mapping(definition, mapping[wiz.symbol.PACKAGE_REQUEST_TYPE])
 
         # Record commands from definition.
