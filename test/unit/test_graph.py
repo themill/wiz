@@ -428,7 +428,7 @@ def test_trim_invalid_conditions_from_graph(
     nodes_removed
 ):
     """Remove invalid nodes from graph based on distance mapping."""
-    mocked_graph.find_matching.side_effect = [
+    mocked_graph.find.side_effect = [
         ["B"], ["C"], ["C"], ["D"],
     ]
 
@@ -458,8 +458,6 @@ def test_trim_invalid_conditions_from_graph(
 
     result = wiz.graph.trim_invalid_from_graph(mocked_graph, distance_mapping)
     assert result == (len(nodes_removed) > 0)
-
-    mocked_graph.find_all.assert_not_called()
 
     assert mocked_graph_remove_node.call_count == len(nodes_removed)
     for node in nodes_removed:
@@ -907,7 +905,7 @@ def test_graph_find_matching_identifiers(
         )),
     }
 
-    result = graph.find_matching(requirement)
+    result = graph.find(requirement)
     assert result == expected
 
 

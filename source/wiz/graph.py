@@ -600,7 +600,7 @@ def trim_invalid_from_graph(graph, distance_mapping):
     for node in graph.nodes():
         # Check if all conditions are still fulfilled.
         for requirement in node.package.conditions:
-            identifiers = graph.find_matching(requirement)
+            identifiers = graph.find(requirement)
 
             if len(identifiers) == 0 or any(
                 distance_mapping.get(identifier, {}).get("distance") is None
@@ -984,15 +984,16 @@ class Graph(object):
         """Indicate whether the node *identifier* is in the graph."""
         return identifier in self._node_mapping.keys()
 
-    def find_all(self, definition_identifier):
-        """Return existing nodes identifiers with *definition_identifier*."""
-        return self._identifiers_per_definition.get(definition_identifier, [])
-
-    def find_matching(self, requirement):
+    def find(self, requirement):
         """Return matching node identifiers in graph for *requirement*.
 
         *requirement* should be an instance of
-         :class:`packaging.requirements.Requirement`.
+        :class:`packaging.requirements.Requirement`.
+
+        .. warning::
+
+            Node identifiers which have been removed from the graph will also be
+            returned.
 
         """
         identifiers = []
