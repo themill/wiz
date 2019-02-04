@@ -161,6 +161,13 @@
             }
         }
     },
+    "wiz-constraint": {
+        "description": "Wiz version constraint for definition to be used.",
+        "anyOf": [
+            {"type": "string"},
+            {"type": "requirement"}
+        ]
+    },
     "required": ["identifier"],
     "additionalProperties": false
 }
