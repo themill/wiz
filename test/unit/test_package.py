@@ -523,8 +523,7 @@ def test_package_mapping():
         "environ": {
             "KEY1": "VALUE1"
         },
-        "requirements": ["foo"],
-        "constraints": ["bar==2.1.0"]
+        "requirements": ["foo"]
     }
 
     environment = wiz.package.Package(data)
@@ -549,8 +548,7 @@ def test_package_mapping():
         "environ": {
             "KEY1": "VALUE1"
         },
-        "requirements": [Requirement("foo")],
-        "constraints": [Requirement("bar==2.1.0")]
+        "requirements": [Requirement("foo")]
     }
 
     assert environment.encode() == (
@@ -576,9 +574,6 @@ def test_package_mapping():
         "    },\n"
         "    \"requirements\": [\n"
         "        \"foo\"\n"
-        "    ],\n"
-        "    \"constraints\": [\n"
-        "        \"bar ==2.1.0\"\n"
         "    ]\n"
         "}"
     )
@@ -601,7 +596,6 @@ def test_minimal_package_without_variant():
     assert package.command == {}
     assert package.environ == {}
     assert package.requirements == []
-    assert package.constraints == []
 
     assert len(package) == 2
     assert sorted(package) == ["definition-identifier", "identifier"]
@@ -624,9 +618,6 @@ def test_full_package_without_variant():
         "requirements": [
             "test1 >= 2",
             "test2"
-        ],
-        "constraints": [
-            "foo==0.1.0"
         ]
     })
 
@@ -640,7 +631,6 @@ def test_full_package_without_variant():
     assert package.command == {"app1": "App1", "app2": "App2"}
     assert package.environ == {"KEY1": "VALUE1", "KEY2": "VALUE2"}
     assert package.requirements == definition.requirements
-    assert package.constraints == definition.constraints
 
 
 def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
@@ -658,9 +648,6 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
         "requirements": [
             "test1 >= 2",
             "test2"
-        ],
-        "constraints": [
-            "foo==0.1.0"
         ],
         "variants": [
             {
@@ -695,9 +682,6 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
         Requirement("test1 >= 2"),
         Requirement("test2"),
         Requirement("test3 >= 1.0, < 2")
-    ]
-    assert package.constraints == [
-        Requirement("foo==0.1.0")
     ]
 
     mocked_combine_environ.assert_called_once_with(
@@ -1414,8 +1398,7 @@ def test_package_non_mutated_input():
         "environ": {
             "KEY1": "VALUE1"
         },
-        "requirements": ["foo"],
-        "constraints": ["bar==2.1.0"]
+        "requirements": ["foo"]
     }
 
     _data = copy.deepcopy(data)

@@ -219,9 +219,6 @@ def definitions():
             ],
             "requirements": [
                 "bim >= 0.1.0, < 1"
-            ],
-            "constraints": [
-                "foo == 0.1.0"
             ]
         }),
         wiz.definition.Definition({
@@ -308,9 +305,6 @@ def definition_mapping():
                     ],
                     "requirements": [
                         "bim >= 0.1.0, < 1"
-                    ],
-                    "constraints": [
-                        "foo == 0.1.0"
                     ]
                 }),
             },
@@ -1293,8 +1287,6 @@ def test_view_definition(
         "    PATH: /path/to/bin:${PATH}\n"
         "requirements:\n"
         "    bim >=0.1.0, <1\n"
-        "constraints:\n"
-        "    foo ==0.1.0\n"
         "variants:\n"
         "    identifier: Variant1\n"
         "        environ:\n"
@@ -1337,9 +1329,6 @@ def test_view_definition_json(
         "    },\n"
         "    \"requirements\": [\n"
         "        \"bim >=0.1.0, <1\"\n"
-        "    ],\n"
-        "    \"constraints\": [\n"
-        "        \"foo ==0.1.0\"\n"
         "    ],\n"
         "    \"variants\": [\n"
         "        {\n"
