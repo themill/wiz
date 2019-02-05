@@ -15,11 +15,11 @@ of the registry. A registry can be a :term:`VCS Registry` or a
 Installing to VCS registries
 -----------------------------
 
-:option:`wiz install --registry-id` option can be used to release one or several
+:option:`wiz install --registry` option can be used to release one or several
 definitions in a :term:`VCS Registry`::
 
-    >>> wiz install /path/to/foo.json --registry-id primary-registry
-    >>> wiz install /path/to/definitions/* --registry-id primary-registry
+    >>> wiz install /path/to/foo.json --registry wiz://primary-registry
+    >>> wiz install /path/to/definitions/* --registry wiz://primary-registry
 
 .. warning::
 
@@ -27,12 +27,12 @@ definitions in a :term:`VCS Registry`::
     Use this command with caution.
 
 A definition can be released into a :term:`VCS Registry` using the
-:term:`Python` API call :func:`wiz.install_definitions_to_vcs`:
+:term:`Python` API call :func:`wiz.install_definitions`:
 
     .. code-block:: python
 
-        wiz.install_definitions_to_vcs(
-            ["/path/to/foo-0.1.0.json"], "primary-registry"
+        wiz.install_definitions(
+            ["/path/to/foo-0.1.0.json"], "wiz://primary-registry"
         )
 
 .. hint::
@@ -53,11 +53,11 @@ A definition can be released into a :term:`VCS Registry` using the
 Installing to local registries
 ------------------------------
 
-:option:`wiz install --registry-path` can also be used to release one or several
+:option:`wiz install --registry` can also be used to release one or several
 definitions in a :term:`Local Registry`::
 
-    >>> wiz install /path/to/foo.json --registry-path /path/to/folder
-    >>> wiz install /path/to/definitions/* --registry-path /path/to/folder
+    >>> wiz install /path/to/foo.json --registry /path/to/folder
+    >>> wiz install /path/to/definitions/* --registry /path/to/folder
 
 .. note::
 
@@ -67,14 +67,14 @@ The :ref:`personal registry <registry/personal>` and :ref:`project registries
 <registry/project>` are *local* registries. Installing a definition in a
 personal registry can be done as follow::
 
-    >>> wiz install /path/to/foo.json --registry-path ~
+    >>> wiz install /path/to/foo.json --registry ~
 
 A definition can be released into a :term:`Local Registry` using the
-:term:`Python` API call :func:`wiz.install_definitions_to_path`:
+:term:`Python` API call :func:`wiz.install_definitions`:
 
     .. code-block:: python
 
-        wiz.install_definitions_to_path(
+        wiz.install_definitions(
             ["/path/to/foo-0.1.0.json"], "/path/to/folder"
         )
 
@@ -82,16 +82,3 @@ A definition can be released into a :term:`Local Registry` using the
 
     A definition can be manually added to a registry by just copying the
     file to location on the file system (like ``~/.wiz/registry``).
-
-
-.. _installing_definitions/install-location:
-
-Install Location
-----------------
-
-The :ref:`install-location <definition/install_location>` value of definitions
-can be set during the installation process.
-:option:`wiz install --install-location` can be used as follow::
-
-    >>> wiz install . --install-location /path/to/data --registry-path ~
-

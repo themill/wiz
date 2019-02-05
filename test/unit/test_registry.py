@@ -179,7 +179,7 @@ def test_discover_fail(mocked_filesystem_accessible):
         ["/path/to/registry1", "path/to/registry2"],
         [
             "/path/to/registry1",
-            "path/to/registry2",
+            os.path.join(os.getcwd(), "path/to/registry2"),
             "/jobs/ads/project/.common/wiz/registry",
             "/jobs/ads/project/identity/shot/.common/wiz/registry",
             "/usr/people/me/.wiz/registry"
@@ -190,7 +190,7 @@ def test_discover_fail(mocked_filesystem_accessible):
         ["/path/to/registry1", "path/to/registry2"],
         [
             "/path/to/registry1",
-            "path/to/registry2",
+            os.path.join(os.getcwd(), "path/to/registry2"),
             "/jobs/ads/project/.common/wiz/registry",
             "/jobs/ads/project/identity/shot/.common/wiz/registry"
         ]
@@ -200,14 +200,14 @@ def test_discover_fail(mocked_filesystem_accessible):
         ["/path/to/registry1", "path/to/registry2"],
         [
             "/path/to/registry1",
-            "path/to/registry2",
+            os.path.join(os.getcwd(), "path/to/registry2"),
             "/usr/people/me/.wiz/registry"
         ]
     ),
     (
         {"include_local": False, "include_working_directory": False},
-        ["/path/to/registry1", "path/to/registry2"],
-        ["/path/to/registry1", "path/to/registry2"]
+        ["/path/to/registry1", os.path.join(os.getcwd(), "path/to/registry2")],
+        ["/path/to/registry1", os.path.join(os.getcwd(), "path/to/registry2")]
     )
 ], ids=[
     "default",
@@ -231,7 +231,7 @@ def test_fetch_unreachable_local(mocked_filesystem_accessible, mocked_local):
     paths = ["/path/to/registry1", "path/to/registry2"]
     assert wiz.registry.fetch(paths) == [
         "/path/to/registry1",
-        "path/to/registry2",
+        os.path.join(os.getcwd(), "path/to/registry2"),
         "/jobs/ads/project/.common/wiz/registry",
         "/jobs/ads/project/identity/shot/.common/wiz/registry"
     ]

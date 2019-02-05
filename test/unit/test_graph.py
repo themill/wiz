@@ -6,7 +6,7 @@ import types
 import itertools
 import re
 
-from wiz.utility import Requirement
+from wiz.utility import Requirement, Version
 import wiz.graph
 import wiz.package
 import wiz.exception
@@ -39,7 +39,6 @@ def mocked_graph(mocker):
 def mocked_resolver(mocker):
     """Return mocked Resolver."""
     resolver = mocker.patch.object(wiz.graph, "Resolver")
-    resolver.definition_mapping = "DEFINITION_MAPPING"
     return resolver
 
 
@@ -50,9 +49,9 @@ def mocked_graph_remove_node(mocker):
 
 
 @pytest.fixture()
-def mocked_extract_requirement(mocker):
-    """Return mocked extract_requirement method."""
-    return mocker.patch.object(wiz.graph, "extract_requirement")
+def mocked_updated_by_distance(mocker):
+    """Return mocked updated_by_distance method."""
+    return mocker.patch.object(wiz.graph, "updated_by_distance")
 
 
 @pytest.fixture()
@@ -324,13 +323,63 @@ def test_generate_variant_combinations(
         assert combination[1] == _expected
 
 
+def test_generate_variant_combinations_with_error(mocker, mocked_graph):
+    """Return trimming combinations from variants when error is found."""
+    variant_groups = [
+        ["foo[V3]", "foo[V2]", "foo[V1]"],
+        ["bar[V4]", "bar[V3]", "bar[V2]", "bar[V1]"],
+        ["bim[V2]", "bim[V1]"]
+    ]
+
+    # Suppose that variants are always between square brackets in identifier.
+    mocked_graph.node = lambda _id: mocker.Mock(
+        identifier=_id, variant_name=re.search("(?<=\[).+(?=\])", _id).group(0)
+    )
+
+    mocked_graph.error_identifiers.return_value = ["foo[V3]"]
+
+    results = wiz.graph.generate_variant_combinations(
+        mocked_graph, variant_groups
+    )
+    assert isinstance(results, types.GeneratorType) is True
+
+    expected = [
+        ("foo[V2]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
+        ("foo[V3]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
+        ("foo[V3]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V2]"),
+        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V1]"),
+        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V2]"),
+        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V1]"),
+        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V2]"),
+        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V1]"),
+        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V2]"),
+        ("foo[V3]", "foo[V2]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
+        ("foo[V3]", "foo[V2]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V2]"),
+        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V1]"),
+        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V2]"),
+        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V1]"),
+        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V2]"),
+        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V1]"),
+        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V2]")
+    ]
+
+    for combination, _expected in itertools.izip_longest(results, expected):
+        assert combination[0] == mocked_graph
+        assert combination[1] == _expected
+
+
 def test_trim_unreachable_from_graph(
     mocker, mocked_graph, mocked_graph_remove_node
 ):
     """Remove unreachable nodes from graph based on distance mapping."""
-    identifiers = ["A", "B", "C", "D", "E", "F"]
-    nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
-    mocked_graph.nodes.return_value = nodes
+    mocked_graph.nodes.return_value = [
+        mocker.Mock(identifier="A"),
+        mocker.Mock(identifier="B"),
+        mocker.Mock(identifier="C"),
+        mocker.Mock(identifier="D"),
+        mocker.Mock(identifier="E"),
+        mocker.Mock(identifier="F"),
+    ]
 
     distance_mapping = {
         "root": {"distance": 0, "parent": "root"},
@@ -347,6 +396,72 @@ def test_trim_unreachable_from_graph(
     assert mocked_graph_remove_node.call_count == 2
     mocked_graph_remove_node.assert_any_call("B")
     mocked_graph_remove_node.assert_any_call("D")
+
+
+@pytest.mark.parametrize("distance_mapping, nodes_removed", [
+    (
+        {
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"},
+            "C": {"distance": 3, "parent": "root"},
+            "D": {"distance": None, "parent": None},
+        },
+        ["B"]
+    ),
+    (
+        {
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"},
+            "C": {"distance": 3, "parent": "root"},
+            "D": {"distance": 4, "parent": "A"},
+        },
+        []
+    ),
+], ids=[
+    "true",
+    "false",
+])
+def test_trim_invalid_conditions_from_graph(
+    mocker, mocked_graph, mocked_graph_remove_node, distance_mapping,
+    nodes_removed
+):
+    """Remove invalid nodes from graph based on distance mapping."""
+    mocked_graph.find.side_effect = [
+        ["B"], ["C"], ["C"], ["D"],
+    ]
+
+    mocked_graph.nodes.return_value = [
+        mocker.Mock(
+            identifier="A",
+            package=mocker.Mock(conditions=["B", "C"]),
+            parent_identifiers=[]
+
+        ),
+        mocker.Mock(
+            identifier="B",
+            package=mocker.Mock(conditions=["C", "D"]),
+            parent_identifiers=[]
+        ),
+        mocker.Mock(
+            identifier="C",
+            package=mocker.Mock(conditions=[]),
+            parent_identifiers=[]
+        ),
+        mocker.Mock(
+            identifier="D",
+            package=mocker.Mock(conditions=[]),
+            parent_identifiers=[]
+        ),
+    ]
+
+    result = wiz.graph.trim_invalid_from_graph(mocked_graph, distance_mapping)
+    assert result == (len(nodes_removed) > 0)
+
+    assert mocked_graph_remove_node.call_count == len(nodes_removed)
+    for node in nodes_removed:
+        mocked_graph_remove_node.assert_any_call(node)
 
 
 def test_updated_by_distance():
@@ -379,7 +494,9 @@ def test_extract_conflicting_nodes(mocker, mocked_graph):
     }
 
     mocked_graph.node = lambda _id: node_mapping[_id]
-    mocked_graph.conflicts.return_value = sorted(node_mapping.keys())
+    mocked_graph.conflicting_identifiers.return_value = sorted(
+        node_mapping.keys()
+    )
 
     assert wiz.graph.extract_conflicting_nodes(
         mocked_graph, node_mapping["F"]
@@ -403,22 +520,23 @@ def test_combined_requirements(mocker, mocked_graph):
     ]
 
     nodes = [
-        mocker.Mock(identifier="A==3"),
-        mocker.Mock(identifier="A==1.9"),
-        mocker.Mock(identifier="A==1.2.3")
+        mocker.Mock(
+            identifier="A==3",
+            parent_identifiers=["B"]
+        ),
+        mocker.Mock(
+            identifier="A==1.9",
+            parent_identifiers=["C"]
+        ),
+        mocker.Mock(
+            identifier="A==1.2.3",
+            parent_identifiers=["D"]
+        )
     ]
-
-    distance_mapping = {
-        "A==3": {"distance": 1, "parent": "B"},
-        "A==1.9": {"distance": 2, "parent": "C"},
-        "A==1.2.3": {"distance": 3, "parent": "D"},
-    }
 
     mocked_graph.link_requirement.side_effect = requirements
 
-    requirement = wiz.graph.combined_requirements(
-        mocked_graph, nodes, distance_mapping
-    )
+    requirement = wiz.graph.combined_requirements(mocked_graph, nodes)
 
     assert str(requirement) == "A >=1, ==1.2.3, <2"
 
@@ -437,36 +555,82 @@ def test_combined_requirements_error(mocker, mocked_graph):
     ]
 
     nodes = [
-        mocker.Mock(identifier="A==3"),
-        mocker.Mock(identifier="Z==1.9"),
-        mocker.Mock(identifier="A==1.2.3")
+        mocker.Mock(
+            identifier="A==3",
+            parent_identifiers=["B"]
+        ),
+        mocker.Mock(
+            identifier="Z==1.9",
+            parent_identifiers=["C"]
+        ),
+        mocker.Mock(
+            identifier="A==1.2.3",
+            parent_identifiers=["D"]
+        )
     ]
-
-    distance_mapping = {
-        "A==3": {"distance": 1, "parent": "B"},
-        "Z==1.9": {"distance": 2, "parent": "C"},
-        "A==1.2.3": {"distance": 3, "parent": "D"},
-    }
 
     mocked_graph.link_requirement.side_effect = requirements
 
     with pytest.raises(wiz.exception.GraphResolutionError):
-        wiz.graph.combined_requirements(
-            mocked_graph, nodes, distance_mapping
-        )
+        wiz.graph.combined_requirements(mocked_graph, nodes)
 
     assert mocked_graph.link_requirement.call_count == 2
     mocked_graph.link_requirement.assert_any_call("A==3", "B")
     mocked_graph.link_requirement.assert_any_call("Z==1.9", "C")
 
 
+@pytest.mark.parametrize("requirement, namespace, expected", [
+    (
+        Requirement("foo"),
+        "namespace",
+        Requirement("namespace::foo")
+    ),
+    (
+        Requirement("namespace::foo"),
+        "namespace",
+        Requirement("namespace::foo")
+    ),
+    (
+        Requirement("bar"),
+        None,
+        Requirement("bar")
+    ),
+    (
+        Requirement("::bar"),
+        None,
+        Requirement("bar")
+    ),
+], ids=[
+    "implicit-namespace",
+    "explicit-namespace",
+    "implicit-no-namespace",
+    "explicit-no-namespace",
+])
+def test_sanitize_requirement(requirement, namespace, expected):
+    """Mutate the requirement according to package namespaces."""
+    wiz.graph.sanitize_requirement(requirement, namespace)
+    assert requirement == expected
+
+
 def test_extract_parents(mocker, mocked_graph):
     """Extract parent identifiers from nodes."""
     nodes = [
-        mocker.Mock(identifier="A", parent_identifiers=["E", "F"]),
-        mocker.Mock(identifier="B", parent_identifiers=["F", "G"]),
-        mocker.Mock(identifier="C", parent_identifiers=["root"]),
-        mocker.Mock(identifier="D", parent_identifiers=["H"])
+        mocker.Mock(
+            identifier="A",
+            parent_identifiers=["E", "F"]
+        ),
+        mocker.Mock(
+            identifier="B",
+            parent_identifiers=["F", "G"]
+        ),
+        mocker.Mock(
+            identifier="C",
+            parent_identifiers=["root"]
+        ),
+        mocker.Mock(
+            identifier="D",
+            parent_identifiers=["H"]
+        )
     ]
 
     mocked_graph.node.side_effect = [
@@ -485,7 +649,8 @@ def test_extract_parents(mocker, mocked_graph):
 def test_remove_node_and_relink(mocker, mocked_graph):
     """Remove node and relink node's parents."""
     node = mocker.Mock(
-        identifier="foo", parent_identifiers=["parent1", "parent2", "parent3"]
+        identifier="foo",
+        parent_identifiers=["parent1", "parent2", "parent3"]
     )
 
     mocked_graph.exists.side_effect = [True, False, True]
@@ -524,6 +689,57 @@ def test_remove_node_and_relink(mocker, mocked_graph):
     )
     mocked_graph.create_link.assert_any_call(
         "bim", "parent3", "__REQUIREMENT__", weight=2
+    )
+
+
+def test_validate_success(mocked_graph, mocked_updated_by_distance):
+    """Validate graph with remaining errors."""
+    mocked_graph.error_identifiers.return_value = []
+    mocked_updated_by_distance.return_value = ["A", "B"]
+
+    assert wiz.graph.validate(mocked_graph, "__DISTANCE_MAPPING__") is None
+
+    mocked_updated_by_distance.assert_not_called()
+    mocked_graph.errors.assert_not_called()
+
+
+def test_validate_error(mocked_graph, mocked_updated_by_distance):
+    """Validate graph with remaining errors."""
+    error_mapping = {
+        "A": [Exception("Error1"), Exception("Error2")],
+        "B": [Exception("Error3")]
+    }
+
+    mocked_graph.error_identifiers.return_value = ["__ERRORS__"]
+    mocked_graph.errors = lambda _id: error_mapping[_id]
+    mocked_updated_by_distance.return_value = ["A", "B"]
+
+    with pytest.raises(Exception) as error:
+        wiz.graph.validate(mocked_graph, "__DISTANCE_MAPPING__")
+
+    mocked_updated_by_distance.assert_called_once_with(
+        ["__ERRORS__"], "__DISTANCE_MAPPING__"
+    )
+
+    assert "Error1" in str(error)
+
+
+def test_validate_empty(mocked_graph, mocked_updated_by_distance):
+    """Validate graph with remaining errors."""
+    mocked_graph.error_identifiers.return_value = ["__ERRORS__"]
+    mocked_updated_by_distance.return_value = []
+
+    with pytest.raises(Exception) as error:
+        wiz.graph.validate(mocked_graph, "__DISTANCE_MAPPING__")
+
+    mocked_updated_by_distance.assert_called_once_with(
+        ["__ERRORS__"], "__DISTANCE_MAPPING__"
+    )
+    mocked_graph.errors.assert_not_called()
+
+    assert (
+        "The resolution graph does not contain any valid packages."
+        in str(error)
     )
 
 
@@ -574,20 +790,32 @@ def test_remove_node_and_relink(mocker, mocked_graph):
         },
         ["G", "E", "F", "D", "B", "C", "A"]
     ),
+    (
+        ["A", "B", "C", "D", "E"],
+        {
+            "root": {"distance": 0, "parent": "root"},
+            "A": {"distance": 1, "parent": "root"},
+            "B": {"distance": 2, "parent": "root"},
+            "C": {"distance": 2, "parent": "A"},
+            "D": {"distance": None, "parent": "F"},
+            "E": {"distance": None, "parent": "G"},
+        },
+        ["B", "C", "A"]
+    )
 ], ids=[
     "no-node",
     "one-node",
     "two-nodes",
     "three-nodes",
-    "multi-levels"
+    "multi-levels",
+    "unreachable-nodes",
 ])
 def test_extract_ordered_packages(
     mocker, mocked_graph, identifiers, distance_mapping, expected
 ):
     """Extract ordered packages from graph."""
     package_mapping = {
-        _id: mocker.Mock(identifier="_" + _id)
-        for _id in identifiers
+        _id: wiz.package.Package({"identifier": _id}) for _id in identifiers
     }
 
     nodes = [
@@ -624,6 +852,61 @@ def test_graph_exists():
 
     assert graph.exists("A") is True
     assert graph.exists("B") is False
+
+
+@pytest.mark.parametrize("requirement, expected", [
+    (
+        Requirement("Z"),
+        []
+    ),
+    (
+        Requirement("A"),
+        ["A==0.1.0", "A==2.4.5"]
+    ),
+    (
+        Requirement("Name1::B"),
+        ["Name1::B"]
+    ),
+    (
+        Requirement("A > 1"),
+        ["A==2.4.5"]
+    )
+], ids=[
+    "un-found",
+    "match-definition-name",
+    "match-namespace",
+    "match-versions"
+])
+def test_graph_find_matching_identifiers(
+    requirement, expected, mocker
+):
+    """Find matching identifiers from requirement."""
+    graph = wiz.graph.Graph(None)
+    graph._node_mapping = {
+        "A==0.1.0": mocker.Mock(package=mocker.Mock(
+            definition_identifier="A",
+            version=Version("0.1.0"),
+            qualified_identifier="A==0.1.0"
+        )),
+        "A==2.4.5": mocker.Mock(package=mocker.Mock(
+            definition_identifier="A",
+            version=Version("2.4.5"),
+            qualified_identifier="A==2.4.5"
+        )),
+        "Name1::B": mocker.Mock(package=mocker.Mock(
+            definition_identifier="Name1::B",
+            version=None,
+            qualified_identifier="Name1::B"
+        )),
+        "B==1": mocker.Mock(package=mocker.Mock(
+            definition_identifier="B",
+            version=Version("1"),
+            qualified_identifier="B==1"
+        )),
+    }
+
+    result = graph.find(requirement)
+    assert result == expected
 
 
 def test_graph_variant_mapping(mocker):
@@ -732,32 +1015,24 @@ def test_graph_conflicts(definition_mapping, node_mapping, expected):
     graph._node_mapping = node_mapping
     graph._identifiers_per_definition = definition_mapping
 
-    assert graph.conflicts() == expected
+    assert graph.conflicting_identifiers() == expected
 
 
 def test_graph_update_from_requirements(
-    mocker, mocked_resolver, mocked_package_extract
+    mocked_resolver, mocked_package_extract
 ):
     """Update graph from requirements."""
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "A==0.2.0": mocker.Mock(
-            identifier="A==0.2.0",
-            variant_name=None,
-            definition_identifier="A",
-            requirements=[],
-            constraints=[],
-            **{"to_dict.return_value": "_A==0.2.0"}
-        ),
-        "B==2.1.1": mocker.Mock(
-            identifier="B==2.1.1",
-            variant_name=None,
-            definition_identifier="B",
-            requirements=[],
-            constraints=[],
-            **{"to_dict.return_value": "_B==2.1.1"}
-        ),
+        "A==0.2.0": wiz.package.Package({
+            "identifier": "A==0.2.0",
+            "definition-identifier": "A"
+        }),
+        "B==2.1.1": wiz.package.Package({
+            "identifier": "B==2.1.1",
+            "definition-identifier": "B"
+        }),
     }
 
     mocked_package_extract.side_effect = [
@@ -770,8 +1045,20 @@ def test_graph_update_from_requirements(
     assert graph.to_dict() == {
         "identifier": mock.ANY,
         "node_mapping": {
-            "A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
-            "B==2.1.1": {"package": "_B==2.1.1", "parents": ["root"]}
+            "A==0.2.0": {
+                "package": {
+                    "identifier": "A==0.2.0",
+                    "definition-identifier": "A"
+                },
+                "parents": ["root"]
+            },
+            "B==2.1.1": {
+                "package": {
+                    "identifier": "B==2.1.1",
+                    "definition-identifier": "B"
+                },
+                "parents": ["root"]
+            }
         },
         "link_mapping": {
             "root": {
@@ -781,60 +1068,45 @@ def test_graph_update_from_requirements(
         },
         "identifiers_per_definition": {
             "A": ["A==0.2.0"],
-            "B": ["B==2.1.1"],
+            "B": ["B==2.1.1"]
         },
         "variants_per_definition": {},
-        "constraints_per_definition": {}
+        "conditioned_nodes": [],
+        "namespace_count": {},
+        "error_mapping": {}
     }
 
 
 def test_graph_update_from_requirements_with_dependencies(
-    mocker, mocked_resolver, mocked_package_extract
+    mocked_resolver, mocked_package_extract
 ):
     """Update graph from requirements with dependency requirements."""
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "A==0.1.0": mocker.Mock(
-            identifier="A==0.1.0",
-            variant_name=None,
-            definition_identifier="A",
-            requirements=[Requirement("B>=2"), Requirement("C")],
-            constraints=[],
-            **{"to_dict.return_value": "_A==0.1.0"}
-        ),
-        "B==3.0.0": mocker.Mock(
-            identifier="B==3.0.0",
-            variant_name=None,
-            definition_identifier="B",
-            requirements=[],
-            constraints=[],
-            **{"to_dict.return_value": "_B==3.0.0"}
-        ),
-        "C==1.2.3": mocker.Mock(
-            identifier="C==1.2.3",
-            variant_name=None,
-            definition_identifier="C",
-            requirements=[Requirement("D")],
-            constraints=[],
-            **{"to_dict.return_value": "_C==1.2.3"}
-        ),
-        "D==0.1.0": mocker.Mock(
-            identifier="D==0.1.0",
-            variant_name=None,
-            definition_identifier="D",
-            requirements=[Requirement("E")],
-            constraints=[],
-            **{"to_dict.return_value": "_D==0.1.0"}
-        ),
-        "E==0.2.0": mocker.Mock(
-            identifier="E==0.2.0",
-            variant_name=None,
-            definition_identifier="E",
-            requirements=[],
-            constraints=[],
-            **{"to_dict.return_value": "_E==0.2.0"}
-        ),
+        "A==0.1.0": wiz.package.Package({
+            "identifier": "A==0.1.0",
+            "definition-identifier": "A",
+            "requirements": [Requirement("B>=2"), Requirement("C")],
+        }),
+        "B==3.0.0": wiz.package.Package({
+            "identifier": "B==3.0.0",
+            "definition-identifier": "B",
+        }),
+        "C==1.2.3": wiz.package.Package({
+            "identifier": "C==1.2.3",
+            "definition-identifier": "C",
+            "requirements": [Requirement("D")],
+        }),
+        "D==0.1.0": wiz.package.Package({
+            "identifier": "D==0.1.0",
+            "definition-identifier": "D",
+            "requirements": [Requirement("E")],
+        }),
+        "E==0.2.0": wiz.package.Package({
+            "identifier": "E==0.2.0",
+            "definition-identifier": "E",
+        }),
     }
 
     mocked_package_extract.side_effect = [
@@ -850,11 +1122,44 @@ def test_graph_update_from_requirements_with_dependencies(
     assert graph.to_dict() == {
         "identifier": mock.ANY,
         "node_mapping": {
-            "A==0.1.0": {"package": "_A==0.1.0", "parents": ["root"]},
-            "B==3.0.0": {"package": "_B==3.0.0", "parents": ["A==0.1.0"]},
-            "C==1.2.3": {"package": "_C==1.2.3", "parents": ["A==0.1.0"]},
-            "D==0.1.0": {"package": "_D==0.1.0", "parents": ["C==1.2.3"]},
-            "E==0.2.0": {"package": "_E==0.2.0", "parents": ["D==0.1.0"]}
+            "A==0.1.0": {
+                "package": {
+                    "identifier": "A==0.1.0",
+                    "definition-identifier": "A",
+                    "requirements": ["B >=2", "C"]
+                },
+                "parents": ["root"]
+            },
+            "B==3.0.0": {
+                "package": {
+                    "identifier": "B==3.0.0",
+                    "definition-identifier": "B"
+                },
+                "parents": ["A==0.1.0"]
+            },
+            "C==1.2.3": {
+                "package": {
+                    "identifier": "C==1.2.3",
+                    "definition-identifier": "C",
+                    "requirements": ["D"]
+                },
+                "parents": ["A==0.1.0"]
+            },
+            "D==0.1.0": {
+                "package": {
+                    "identifier": "D==0.1.0",
+                    "definition-identifier": "D",
+                    "requirements": ["E"]
+                },
+                "parents": ["C==1.2.3"]
+            },
+            "E==0.2.0": {
+                "package": {
+                    "identifier": "E==0.2.0",
+                    "definition-identifier": "E"
+                },
+                "parents": ["D==0.1.0"]
+            }
         },
         "link_mapping": {
             "root": {
@@ -879,48 +1184,41 @@ def test_graph_update_from_requirements_with_dependencies(
             "E": ["E==0.2.0"]
         },
         "variants_per_definition": {},
-        "constraints_per_definition": {}
+        "conditioned_nodes": [],
+        "namespace_count": {},
+        "error_mapping": {}
     }
 
 
 def test_graph_update_from_requirements_with_variants(
-    mocker, mocked_resolver, mocked_package_extract
+    mocked_resolver, mocked_package_extract
 ):
     """Update graph from requirements with variants of definition."""
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "A[V1]==0.2.0": mocker.Mock(
-            identifier="A[V1]==0.2.0",
-            variant_name="V1",
-            definition_identifier="A",
-            requirements=[],
-            constraints=[],
-            **{"to_dict.return_value": "_A[V1]==0.2.0"}
-        ),
-        "A[V2]==0.2.0": mocker.Mock(
-            identifier="A[V2]==0.2.0",
-            variant_name="V2",
-            definition_identifier="A",
-            requirements=[],
-            constraints=[],
-            **{"to_dict.return_value": "_A[V2]==0.2.0"}
-        ),
-        "A[V3]==0.2.0": mocker.Mock(
-            identifier="A[V3]==0.2.0",
-            variant_name="V3",
-            definition_identifier="A",
-            requirements=[],
-            constraints=[],
-            **{"to_dict.return_value": "_A[V3]==0.2.0"}
-        ),
+        "A[V1]==0.2.0": wiz.package.Package({
+            "identifier": "A[V1]==0.2.0",
+            "variant-name": "V1",
+            "definition-identifier": "A"
+        }),
+        "A[V2]==0.2.0": wiz.package.Package({
+            "identifier": "A[V2]==0.2.0",
+            "variant-name": "V2",
+            "definition-identifier": "A"
+        }),
+        "A[V3]==0.2.0": wiz.package.Package({
+            "identifier": "A[V3]==0.2.0",
+            "variant-name": "V3",
+            "definition-identifier": "A"
+        }),
     }
 
     mocked_package_extract.side_effect = [
         [
             _mapping["A[V1]==0.2.0"],
             _mapping["A[V2]==0.2.0"],
-            _mapping["A[V3]==0.2.0"],
+            _mapping["A[V3]==0.2.0"]
         ],
     ]
 
@@ -929,55 +1227,79 @@ def test_graph_update_from_requirements_with_variants(
     assert graph.to_dict() == {
         "identifier": mock.ANY,
         "node_mapping": {
-            "A[V1]==0.2.0": {"package": "_A[V1]==0.2.0", "parents": ["root"]},
-            "A[V2]==0.2.0": {"package": "_A[V2]==0.2.0", "parents": ["root"]},
-            "A[V3]==0.2.0": {"package": "_A[V3]==0.2.0", "parents": ["root"]},
+            "A[V1]==0.2.0": {
+                "package": {
+                    "identifier": "A[V1]==0.2.0",
+                    "variant-name": "V1",
+                    "definition-identifier": "A"
+                },
+                "parents": ["root"]
+            },
+            "A[V2]==0.2.0": {
+                "package": {
+                    "identifier": "A[V2]==0.2.0",
+                    "variant-name": "V2",
+                    "definition-identifier": "A"
+                },
+                "parents": ["root"]
+            },
+            "A[V3]==0.2.0": {
+                "package": {
+                    "identifier": "A[V3]==0.2.0",
+                    "variant-name": "V3",
+                    "definition-identifier": "A"
+                },
+                "parents": ["root"]
+            },
         },
         "link_mapping": {
             "root": {
                 "A[V1]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
                 "A[V2]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
-                "A[V3]==0.2.0": {"requirement": Requirement("A"), "weight": 1},
+                "A[V3]==0.2.0": {"requirement": Requirement("A"), "weight": 1}
             },
         },
         "identifiers_per_definition": {
             "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"],
         },
         "variants_per_definition": {
-            "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"]
+            "A": ["A[V1]==0.2.0", "A[V2]==0.2.0", "A[V3]==0.2.0"],
         },
-        "constraints_per_definition": {}
+        "conditioned_nodes": [],
+        "namespace_count": {},
+        "error_mapping": {}
     }
 
 
-def test_graph_update_from_requirements_with_unused_constraints(
-    mocker, mocked_resolver, mocked_package_extract
+def test_graph_update_from_requirements_with_namespaces(
+    mocked_resolver, mocked_package_extract
 ):
-    """Update graph from requirements with un-used package constraints."""
+    """Update graph from requirements with namespaces."""
+    mocked_resolver.definition_mapping = {
+        "__namespace__": {
+            "A": ["Foo"],
+            "B": ["Foo", "Bar"],
+        }
+    }
+
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "A==0.2.0": mocker.Mock(
-            identifier="A==0.2.0",
-            variant_name=None,
-            definition_identifier="A",
-            requirements=[],
-            constraints=[],
-            **{"to_dict.return_value": "_A==0.2.0"}
-        ),
-        "B==2.1.1": mocker.Mock(
-            identifier="B==2.1.1",
-            variant_name=None,
-            definition_identifier="B",
-            requirements=[],
-            constraints=[Requirement("C==2.0.4")],
-            **{"to_dict.return_value": "_B==2.1.1"}
-        ),
+        "Foo::A==0.2.0": wiz.package.Package({
+            "identifier": "A==0.2.0",
+            "namespace": "Foo",
+            "definition-identifier": "A"
+        }),
+        "Foo::B==2.1.1": wiz.package.Package({
+            "identifier": "B==2.1.1",
+            "namespace": "Foo",
+            "definition-identifier": "B"
+        })
     }
 
     mocked_package_extract.side_effect = [
-        [_mapping["A==0.2.0"]],
-        [_mapping["B==2.1.1"]]
+        [_mapping["Foo::A==0.2.0"]],
+        [_mapping["Foo::B==2.1.1"]]
     ]
 
     graph.update_from_requirements([Requirement("A"), Requirement("B>=2")])
@@ -985,8 +1307,169 @@ def test_graph_update_from_requirements_with_unused_constraints(
     assert graph.to_dict() == {
         "identifier": mock.ANY,
         "node_mapping": {
-            "A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
-            "B==2.1.1": {"package": "_B==2.1.1", "parents": ["root"]}
+            "Foo::A==0.2.0": {
+                "package": {
+                    "identifier": "A==0.2.0",
+                    "namespace": "Foo",
+                    "definition-identifier": "A"
+                },
+                "parents": ["root"]
+            },
+            "Foo::B==2.1.1": {
+                "package": {
+                    "identifier": "B==2.1.1",
+                    "namespace": "Foo",
+                    "definition-identifier": "B"
+                },
+                "parents": ["root"]
+            }
+        },
+        "link_mapping": {
+            "root": {
+                "Foo::A==0.2.0": {
+                    "requirement": Requirement("Foo::A"), "weight": 1
+                },
+                "Foo::B==2.1.1": {
+                    "requirement": Requirement("Foo::B >=2"), "weight": 2
+                }
+            }
+        },
+        "identifiers_per_definition": {
+            "A": ["Foo::A==0.2.0"],
+            "B": ["Foo::B==2.1.1"]
+        },
+        "variants_per_definition": {},
+        "conditioned_nodes": [],
+        "namespace_count": {"Bar": 1, "Foo": 2},
+        "error_mapping": {}
+    }
+
+
+def test_graph_update_from_requirements_with_skipped_conditional_packages(
+    mocked_resolver, mocked_package_extract
+):
+    """Update graph from requirements with skipped conditional packages."""
+    graph = wiz.graph.Graph(mocked_resolver)
+
+    _mapping = {
+        "A==0.2.0": wiz.package.Package({
+            "identifier": "A==0.2.0",
+            "definition-identifier": "A",
+        }),
+        "B==2.1.1": wiz.package.Package({
+            "identifier": "B==2.1.1",
+            "definition-identifier": "B",
+            "conditions": [Requirement("C > 2")]
+        }),
+        "C==2.0.4": wiz.package.Package({
+            "identifier": "C==2.0.4",
+            "definition-identifier": "C",
+        }),
+        "D==0.1.0": wiz.package.Package({
+            "identifier": "D==0.1.0",
+            "definition-identifier": "D",
+            "conditions": [Requirement("W")]
+        }),
+    }
+
+    mocked_package_extract.side_effect = [
+        [_mapping["A==0.2.0"]],
+        [_mapping["B==2.1.1"]],
+        [_mapping["D==0.1.0"]],
+        # Extract conditional package
+        [_mapping["C==2.0.4"]],
+        wiz.exception.WizError("Oh Shit!")
+    ]
+
+    graph.update_from_requirements([
+        Requirement("A"), Requirement("B>=2"), Requirement("D")
+    ])
+
+    assert graph.to_dict() == {
+        "identifier": mock.ANY,
+        "node_mapping": {
+            "A==0.2.0": {
+                "package": {
+                    "identifier": "A==0.2.0",
+                    "definition-identifier": "A",
+                },
+                "parents": ["root"],
+            }
+        },
+        "link_mapping": {
+            "root": {
+                "A==0.2.0": {"requirement": Requirement("A"), "weight": 1}
+            }
+        },
+        "identifiers_per_definition": {
+            "A": ["A==0.2.0"]
+        },
+        "conditioned_nodes": [
+            {
+                "requirement": Requirement("B >=2"),
+                "package": mock.ANY,
+                "parent_identifier": None,
+                "weight": 2
+            },
+            {
+                "requirement": Requirement("D"),
+                "package": mock.ANY,
+                "parent_identifier": None,
+                "weight": 3
+            }
+        ],
+        "variants_per_definition": {},
+        "namespace_count": {},
+        "error_mapping": {}
+    }
+
+
+def test_graph_update_from_requirements_with_used_conditional_packages(
+    mocked_resolver, mocked_package_extract
+):
+    """Update graph from requirements with used conditional packages."""
+    graph = wiz.graph.Graph(mocked_resolver)
+
+    _mapping = {
+        "A==0.2.0": wiz.package.Package({
+            "identifier": "A==0.2.0",
+            "definition-identifier": "A"
+        }),
+        "B==2.1.1": wiz.package.Package({
+            "identifier": "B==2.1.1",
+            "definition-identifier": "B",
+            "conditions": [Requirement("A")],
+        })
+    }
+
+    mocked_package_extract.side_effect = [
+        [_mapping["A==0.2.0"]],
+        [_mapping["B==2.1.1"]],
+        # Extract package from condition
+        [_mapping["A==0.2.0"]]
+    ]
+
+    graph.update_from_requirements([Requirement("A"), Requirement("B>=2")])
+
+    assert graph.to_dict() == {
+        "identifier": mock.ANY,
+        "node_mapping": {
+            "A==0.2.0": {
+                "package": {
+                    "identifier": "A==0.2.0",
+                    "definition-identifier": "A"
+                },
+                "parents": ["root"]
+            },
+            "B==2.1.1": {
+                "package": {
+                    "identifier": "B==2.1.1",
+                    "definition-identifier": "B",
+                    "conditions": ["A"],
+                    "conditions-processed": True,
+                },
+                "parents": ["root"]
+            }
         },
         "link_mapping": {
             "root": {
@@ -996,100 +1479,84 @@ def test_graph_update_from_requirements_with_unused_constraints(
         },
         "identifiers_per_definition": {
             "A": ["A==0.2.0"],
-            "B": ["B==2.1.1"],
+            "B": ["B==2.1.1"]
         },
-        "constraints_per_definition": {
-            "C": [
-                {
-                    "requirement": Requirement("C==2.0.4"),
-                    "parent_identifier": "B==2.1.1",
-                    "weight": 1
-                }
-            ]
-        },
-        "variants_per_definition": {}
+        "conditioned_nodes": [
+            {
+                "requirement": Requirement("B >=2"),
+                "package": mock.ANY,
+                "parent_identifier": None,
+                "weight": 2
+            },
+        ],
+        "variants_per_definition": {},
+        "namespace_count": {},
+        "error_mapping": {}
     }
 
 
-def test_graph_update_from_requirements_with_used_constraints(
-    mocker, mocked_resolver, mocked_package_extract
+def test_graph_update_from_requirements_with_errors(
+    mocked_resolver, mocked_package_extract
 ):
-    """Update graph from requirements with used package constraints."""
+    """Update graph from requirements with errors."""
     graph = wiz.graph.Graph(mocked_resolver)
 
     _mapping = {
-        "A==0.2.0": mocker.Mock(
-            identifier="A==0.2.0",
-            variant_name=None,
-            definition_identifier="A",
-            requirements=[],
-            constraints=[],
-            **{"to_dict.return_value": "_A==0.2.0"}
-        ),
-        "B==2.1.1": mocker.Mock(
-            identifier="B==2.1.1",
-            variant_name=None,
-            definition_identifier="B",
-            requirements=[],
-            constraints=[Requirement("C==2.0.4")],
-            **{"to_dict.return_value": "_B==2.1.1"}
-        ),
-        "C==2.0.4": mocker.Mock(
-            identifier="C==2.0.4",
-            variant_name=None,
-            definition_identifier="C",
-            requirements=[],
-            constraints=[],
-            **{"to_dict.return_value": "_C==2.0.4"}
-        ),
-        "C==3.0.0": mocker.Mock(
-            identifier="C==3.0.0",
-            variant_name=None,
-            definition_identifier="C",
-            requirements=[],
-            constraints=[],
-            **{"to_dict.return_value": "_C==3.0.0"}
-        ),
+        "A==0.2.0": wiz.package.Package({
+            "identifier": "A==0.2.0",
+            "definition-identifier": "A"
+        }),
+        "B==2.1.1": wiz.package.Package({
+            "identifier": "B==2.1.1",
+            "definition-identifier": "B",
+            "requirements": ["incorrect1", "incorrect2"]
+        })
     }
 
     mocked_package_extract.side_effect = [
         [_mapping["A==0.2.0"]],
         [_mapping["B==2.1.1"]],
-        [_mapping["C==3.0.0"]],
-        [_mapping["C==2.0.4"]]
+        wiz.exception.RequestNotFound("incorrect1"),
+        wiz.exception.RequestNotFound("incorrect2"),
     ]
 
-    graph.update_from_requirements([
-        Requirement("A"), Requirement("B>=2"), Requirement("C")
-    ])
+    graph.update_from_requirements([Requirement("A"), Requirement("B>=2")])
 
     assert graph.to_dict() == {
         "identifier": mock.ANY,
         "node_mapping": {
-            "A==0.2.0": {"package": "_A==0.2.0", "parents": ["root"]},
-            "B==2.1.1": {"package": "_B==2.1.1", "parents": ["root"]},
-            "C==2.0.4": {"package": "_C==2.0.4", "parents": ["B==2.1.1"]},
-            "C==3.0.0": {"package": "_C==3.0.0", "parents": ["root"]}
+            "A==0.2.0": {
+                "package": {
+                    "identifier": "A==0.2.0",
+                    "definition-identifier": "A"
+                },
+                "parents": ["root"]
+            },
+            "B==2.1.1": {
+                "package": {
+                    "identifier": "B==2.1.1",
+                    "definition-identifier": "B",
+                    "requirements": ["incorrect1", "incorrect2"]
+                },
+                "parents": ["root"]
+            }
         },
         "link_mapping": {
             "root": {
                 "A==0.2.0": {"requirement": Requirement("A"), "weight": 1},
-                "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2},
-                "C==3.0.0": {"requirement": Requirement("C"), "weight": 3}
-            },
-            "B==2.1.1": {
-                "C==2.0.4": {
-                    "requirement": Requirement("C==2.0.4"), "weight": 1
-                },
+                "B==2.1.1": {"requirement": Requirement("B >=2"), "weight": 2}
             }
         },
         "identifiers_per_definition": {
             "A": ["A==0.2.0"],
-            "B": ["B==2.1.1"],
-            "C": ["C==2.0.4", "C==3.0.0"]
+            "B": ["B==2.1.1"]
         },
-        "constraints_per_definition": {},
+        "conditioned_nodes": [],
         "variants_per_definition": {},
+        "namespace_count": {},
+        "error_mapping": {
+            "B==2.1.1": ["incorrect1", "incorrect2"],
+        }
     }
 
 
@@ -1108,7 +1575,7 @@ def test_graph_update_from_requirement_existing(
     mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
 ):
     """Update graph from requirement."""
-    package = mocker.Mock(identifier="A==0.1.0")
+    package = wiz.package.Package(identifier="A==0.1.0")
     node = mocker.Mock(identifier="_A==0.1.0")
     requirement = Requirement("A")
 
@@ -1152,9 +1619,7 @@ def test_graph_update_from_requirement_non_existing(
     mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
 ):
     """Update graph from requirement."""
-    package = mocker.Mock(
-        identifier="A==0.1.0", requirements=[], constraints=[]
-    )
+    package = wiz.package.Package(identifier="A==0.1.0")
     node = mocker.Mock(identifier="_A==0.1.0")
     requirement = Requirement("A")
 
@@ -1198,8 +1663,13 @@ def test_graph_update_from_requirement_non_existing_with_requirements(
     mocker, mocked_resolver, mocked_package_extract, mocked_queue, options
 ):
     """Update graph from requirement."""
-    package = mocker.Mock(
-        identifier="A==0.1.0", requirements=["B", "C", "D"], constraints=[]
+    package = wiz.package.Package(
+        identifier="A==0.1.0",
+        requirements=[
+            Requirement("B"),
+            Requirement("C"),
+            Requirement("D")
+        ],
     )
     node = mocker.Mock(identifier="_A==0.1.0")
     requirement = Requirement("A")
@@ -1228,13 +1698,19 @@ def test_graph_update_from_requirement_non_existing_with_requirements(
 
     assert mocked_queue.put.call_count == 3
     mocked_queue.put.assert_any_call({
-        "requirement": "B", "parent_identifier": "A==0.1.0", "weight": 1
+        "requirement": Requirement("B"),
+        "parent_identifier": "A==0.1.0",
+        "weight": 1
     })
     mocked_queue.put.assert_any_call({
-        "requirement": "C", "parent_identifier": "A==0.1.0", "weight": 2
+        "requirement": Requirement("C"),
+        "parent_identifier": "A==0.1.0",
+        "weight": 2
     })
     mocked_queue.put.assert_any_call({
-        "requirement": "D", "parent_identifier": "A==0.1.0", "weight": 3
+        "requirement": Requirement("D"),
+        "parent_identifier": "A==0.1.0",
+        "weight": 3
     })
 
 
@@ -1254,15 +1730,9 @@ def test_graph_update_from_requirement_multi_packages(
 ):
     """Update graph from requirement."""
     packages = [
-        mocker.Mock(
-            identifier="A[variant1]==0.1.0", requirements=[], constraints=[]
-        ),
-        mocker.Mock(
-            identifier="A[variant2]==0.1.0", requirements=[], constraints=[]
-        ),
-        mocker.Mock(
-            identifier="A[variant3]==0.1.0", requirements=[], constraints=[]
-        )
+        wiz.package.Package(identifier="A[variant1]==0.1.0"),
+        wiz.package.Package(identifier="A[variant2]==0.1.0"),
+        wiz.package.Package(identifier="A[variant3]==0.1.0")
     ]
 
     nodes = [
@@ -1308,13 +1778,12 @@ def test_graph_update_from_requirement_multi_packages(
     mocked_queue.put.assert_not_called()
 
 
-def test_graph_create_node_from_package(mocker):
+def test_graph_create_node_from_package():
     """Create node in graph from package."""
-    package = mocker.Mock(
-        identifier="A==0.1.0",
-        requirements=[],
-        definition_identifier="defA"
-    )
+    package = wiz.package.Package({
+        "identifier": "A==0.1.0",
+        "definition-identifier": "defA"
+    })
 
     graph = wiz.graph.Graph(None)
     graph._create_node_from_package(package)
@@ -1348,17 +1817,24 @@ def test_graph_create_link(options):
     }
 
 
-def test_graph_create_link_error():
-    """Fail to create link between two nodes when one already exists."""
-    requirement = Requirement("A")
-
+def test_graph_create_link_overwrite():
+    """Overwrite existing link between two nodes."""
     graph = wiz.graph.Graph(None)
     graph._link_mapping = {
-        "parent": {"child": {"requirement": requirement, "weight": 1}}
+        "parent": {"child": {"requirement": Requirement("A"), "weight": 3}}
     }
 
-    with pytest.raises(wiz.exception.IncorrectDefinition):
-        graph.create_link("child", "parent", Requirement("A"))
+    # Ignore when weight is higher
+    graph.create_link("child", "parent", Requirement("A>2"), weight=4)
+
+    assert graph.link_requirement("child", "parent") == Requirement("A")
+    assert graph.link_weight("child", "parent") == 3
+
+    # Don't ignore when weight is lower
+    graph.create_link("child", "parent", Requirement("A>2"), weight=1)
+
+    assert graph.link_requirement("child", "parent") == Requirement("A>2")
+    assert graph.link_weight("child", "parent") == 1
 
 
 def test_graph_remove_node():
@@ -1372,29 +1848,20 @@ def test_graph_remove_node():
     graph.remove_node("A1")
 
     assert graph._node_mapping == {"A2": "_A2", "B": "B"}
-    assert graph._identifiers_per_definition == {"defA": ["A1", "A2"], "defB": ["B"]}
+    assert graph._identifiers_per_definition == {
+        "defA": ["A1", "A2"], "defB": ["B"]
+    }
     assert graph._variants_per_definition == {"_id": ["A1", "A2"]}
     assert graph._link_mapping == {"A1": {"B": "LINK"}}
 
 
-def test_graph_reset_variants():
-    """Reset variant groups in graph."""
-    graph = wiz.graph.Graph(None)
-    graph._variants_per_definition = {"_id": ["A1", "A2"]}
-    assert graph._variants_per_definition == {"_id": ["A1", "A2"]}
-
-    graph.reset_variants()
-
-    assert graph._variants_per_definition == {}
-
-
-def test_node(mocker):
+def test_node():
     """Create and use node."""
-    package = mocker.Mock(
-        identifier="A[V1]==0.1.0",
-        variant_name="V1",
-        definition_identifier="defA"
-    )
+    package = wiz.package.Package({
+        "identifier": "A[V1]==0.1.0",
+        "variant-name": "V1",
+        "definition-identifier": "defA"
+    })
 
     node = wiz.graph.Node(package)
     assert node.identifier == "A[V1]==0.1.0"

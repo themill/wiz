@@ -80,6 +80,60 @@ The version could also be specified when running a command directly::
 
 If no version is requested, the latest version is automatically fetched.
 
+.. _definition/namespace:
+
+Namespace
+---------
+
+the optional ``namespace`` keyword can be used to provides a scope to a
+package definition.
+
+.. code-block:: json
+
+    {
+        "namespace": "maya"
+    }
+
+It can be used to organize packages into logical groups and prevent name
+collisions that can occur, especially for plugins.
+
+.. code-block:: console
+
+    >>> wiz use maya::xmlf
+    >>> wiz use houdini::xmlf
+
+When a package identifier only exists under one namespace, it can be called
+without it. For instance, if "foo" only exists under the "bar" namespace,
+then both commands will be correct:
+
+.. code-block:: console
+
+    >>> wiz use bar::foo
+    >>> wiz use foo
+
+If many namespaces are available for one package identifier, it must be
+specified in the command line. However, namespaces from packages previously
+fetched, as well as package names that were part of the original request, can be
+used as a hint to guess the namespace of the following requests if only the
+identifier is used:
+
+.. code-block:: console
+
+    >>> wiz use maya xmlf
+    >>> wiz use xmlf maya
+    >>> wiz use maya::maya maya::xmlf
+
+.. note::
+
+    Only one namespace per definition can be setup at this point. A hyphen can
+    be used in the namespace if necessary (e.g. "A-B::foo").
+
+.. note::
+
+    A package without namespace can be called explicitely as follows:
+
+    >>> wiz use ::foo
+
 .. _definition/description:
 
 Description
@@ -201,21 +255,6 @@ let the user call the command directly with the ``run`` command:
     Each command must be unique within a :ref:`registry` and could be
     overwritten by another package definition in another registry.
 
-.. _definition/group:
-
-Group
------
-
-the optional ``group`` keyword can be used to indicate where in the hierarchy of
-a :term:`VCS Registry` a definition will be installed.
-
-.. code-block:: json
-
-    {
-        "group": "python"
-    }
-
-
 .. _definition/requirements:
 
 Requirements
@@ -251,6 +290,37 @@ will have priority over the latest.
             "nuke",
             "maya"
         ]
+
+.. _definition/conditions:
+
+Conditions
+----------
+
+The optional ``conditions`` keyword can be used to reference a list of package
+definitions which should be in the resolution graph for the package to be
+included. If not all conditions are fulfilled, the package will be ignored.
+
+The same version specifiers defined in :term:`PEP 440` can be used:
+
+.. code-block:: json
+
+    {
+        "conditions": [
+            "houdini",
+            "python >= 2, < 3"
+        ]
+    }
+
+.. warning::
+
+    Packages will be silently ignored when conditions are not met. For an error
+    to be raised, :ref:`requirements <definition/requirements>` should be used
+    instead.
+
+.. important::
+
+    ``conditions`` only operate on the entire definition and can not be scoped
+    to :ref:`variants <definition/variants>`.
 
 .. _definition/variants:
 
@@ -294,14 +364,45 @@ returned. However, a variant can also be requested individually::
 
     >>> wiz use foo[variant1]
 
+.. important::
+
+    :ref:`conditions <definition/conditions>` only operate on the entire
+    definition and can not be scoped to variants.
+
+    While it is in theory possible to combine these features, it adds complexity
+    to the system which could increase human error when setting up definitions.
+    As there is no currently known case that would use a setup that would
+    require this combination of features, it is not supported.
+
+.. _definition/auto-use:
+
+Auto Use
+--------
+
+The optional ``auto-use`` boolean keyword can be used to always include the
+definition in the resolution graph, even when it isn't explicitly called.
+By default this keyword is set to false.
+
+
+.. code-block:: json
+
+    {
+        "auto-use": true
+    }
+
+.. warning::
+
+    This keyword should be used carefully as it could potentially pollute all
+    other requests.
+
 .. _definition/install_location:
 
 Install Location
 ----------------
 
 If a package definition is referencing data on the file system it can be useful
-to define the ``install-location`` which would indicate the root location for
-that data:
+to define the ``install-location`` which would indicate the location for that
+data:
 
 .. code-block:: json
 
@@ -319,9 +420,40 @@ This location can be referenced within each ``environ`` value (including the
         "install-location": "/path/to/data",
         "environ": {
             "PATH": "${INSTALL_LOCATION}/bin:${PATH}",
-            "PYTHONPATH": "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}",
+            "PYTHONPATH": "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}"
         }
     }
 
 When the context is resolved, the :envvar:`INSTALL_LOCATION` environment
 variable is replaced by the ``install-location`` value within the definition.
+
+.. _definition/install_root:
+
+Install Root
+------------
+
+If a package definition is referencing data on the file system it can be useful
+to define the ``install-root`` which would indicate the root location for that
+data:
+
+.. code-block:: json
+
+    {
+        "install-root": "/path/to/root"
+    }
+
+The value behind this keyword can be referenced within the
+:ref:`install-location <definition/install_location>` value using the
+:envvar:`INSTALL_ROOT` environment variable:
+
+.. code-block:: json
+
+    {
+        "definition": "foo",
+        "install-root": "/path/to/root",
+        "install-location": "${INSTALL_ROOT}/data"
+    }
+
+This keyword offers greater flexibility as to where the data is located or moved
+to on the file system, especially when several package definitions share a
+common root path.

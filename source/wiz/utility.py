@@ -1,16 +1,39 @@
 # :coding: utf-8
 
 import re
+import pipes
 import json
 import zlib
 import base64
 import hashlib
 
+import packaging.requirements
+from packaging.requirements import (
+    L, Combine, Word, ZeroOrMore, ALPHANUM, Optional, EXTRAS,
+    URL_AND_MARKER, VERSION_AND_MARKER, stringStart, stringEnd
+)
+
 from packaging.requirements import Requirement, InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
+import wiz.symbol
 import wiz.mapping
 import wiz.exception
+
+
+# Extend requirement's expression to allow namespace separators as a valid
+# identifier (e.g. "foo::test", "::test").
+PUNCTUATION = Word("-_.")
+NAME = ALPHANUM + ZeroOrMore(ALPHANUM | (ZeroOrMore(PUNCTUATION) + ALPHANUM))
+NAME_SEPARATOR = L(wiz.symbol.NAMESPACE_SEPARATOR)
+IDENTIFIER = Combine(
+    Optional(Optional(NAME) + NAME_SEPARATOR) + NAME
+)
+
+packaging.requirements.REQUIREMENT = (
+    stringStart + IDENTIFIER("name") + Optional(EXTRAS)
+    + (URL_AND_MARKER | VERSION_AND_MARKER) + stringEnd
+)
 
 
 def _display_requirement(_requirement):
@@ -173,7 +196,7 @@ def compute_system_label(definition):
         for element in ["platform", "arch", "os"]
         if definition.system.get(element) is not None
     ]
-    return " : ".join(elements)
+    return " : ".join(elements) or "noarch"
 
 
 def compute_file_name(definition):
@@ -201,3 +224,18 @@ def compute_file_name(definition):
         name += "-{}".format(encoded.rstrip("="))
 
     return "{}.json".format(name)
+
+
+def combine_command(elements):
+    """Return command *elements* as a string.
+
+    Example::
+
+        >>> combine_command(
+        ...     ['python2.7', '-c', 'import os; print(os.environ["HOME"])'])
+        ... )
+
+        python2.7 -c 'import os; print(os.environ["HOME"])'
+
+    """
+    return " ".join([pipes.quote(element) for element in elements])

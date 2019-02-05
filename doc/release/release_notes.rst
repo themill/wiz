@@ -4,6 +4,409 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+        :tags: command-line
+
+        Added :option:`--add-registry <wiz --add-registry>` to specify a path to
+        be added to the default registry paths. Previously it was only possible
+        to replace the default paths with :option:`--definition-search-paths
+        <wiz --registry>`.
+
+    .. change:: new
+        :tags: command-line
+
+        Added :option:`--timeout <wiz --timeout>` to specify a time limit after
+        which a graph resolve should be aborted to avoid the process hanging.
+
+    .. change:: new
+        :tags: command-line
+
+        Added :option:`--init <wiz --init>` to specify initial environment
+        variables, which will be extended by the resolved environment.
+        For example, now it is possible to hand in a PATH or PYTHONPATH, without
+        making them available in a definition.
+
+    .. change:: new
+        :tags: command-line
+
+        Added :option:`--version <wiz --version>` to display the package
+        version.
+
+    .. change:: new
+        :tags: command-line
+
+        Added ``wiz edit`` sub-command to edit one or several definitions with
+        the default editor or with operation option(s).
+
+    .. change:: new
+        :tags: command-line
+
+        Updated ``wiz run`` sub-command to accept unknown arguments and
+        automatically consider it as an extra argument which will be appended to
+        the command.
+
+        For instance, both of the following commands are valid::
+
+            >>> wiz run python -- -c 'print("TEST")'
+            >>> wiz run python -c 'print("TEST")'
+
+    .. change:: new
+        :tags: command-line
+
+        Added :option:`wiz search --no-arch`,
+        :option:`wiz list command --no-arch` and
+        :option:`wiz list package --no-arch` options to display all definitions
+        discovered, even when not compatible with the current system.
+
+    .. change:: new
+        :tags: definition, backwards-incompatible
+
+        Added optional :ref:`conditions <definition/conditions>` keyword to
+        definition schema which can be used to indicate a list of packages
+        which must be in the resolution graph for the package to be included.
+
+    .. change:: new
+        :tags: definition, backwards-incompatible
+
+        Added optional :ref:`namespace <definition/namespace>` keyword which
+        can be used to provide a scope to a definition. It replaces the
+        "group" keyword as it is also used to define where in the hierarchy of a
+        :term:`VCS Registry` a definition will be installed.
+
+    .. change:: new
+        :tags: definition
+
+        Added optional :ref:`install-root <definition/install_root>`
+        keyword to definition schema to indicate the root of the install
+        location of a package. The value set for this keyword can be referenced
+        in the definition with :envvar:`INSTALL_ROOT` and should form the base
+        of the :ref:`install-location <definition/install_location>` value.
+
+    .. change:: new
+        :tags: API
+
+        Added :mod:`wiz.environ` module to regroup functions dealing with the
+        environment mapping resolution. Added :mod:`wiz.environ.contains` to
+        identify specific environment variable in string and
+        :mod:`wiz.environ.substitute` to replace environment variables by their
+        respective values in string.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.combine_command` to return command elements
+        as a unified command string while keeping quoted elements in order
+        to preserve the command in the log as it was typed.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.graph.validate` to ensure that a :class:`Graph`
+        instance does not contain any remaining error after the conflict
+        resolution process. The :exc:`wiz.exception.WizError` error encapsulated
+        in the nearest accessible node will be raised if necessary.
+
+    .. change:: changed
+        :tags: definition
+
+        Removed the ``constraints`` keyword to simplify the graph resolution as
+        :ref:`conditions <definition/conditions>` could be used instead to reach
+        the same logic.
+
+        With constraint::
+
+            {
+                "constraints": [
+                    "maya ==2016.*"
+                ]
+            }
+
+        With condition::
+
+            {
+                "conditions": [
+                   "maya"
+                ],
+                "requirements": [
+                   "maya ==2016.*"
+                ]
+            }
+
+    .. change:: changed
+        :tags: shell
+
+        Updated :func:`wiz.spawn.shell` to add "command" aliases to subprocess
+        when a Wiz shell is being opened, thereby enabling the user to use the
+        same aliases in the sub-shell that have been defined in the definitions.
+
+    .. change:: changed
+        :tags: shell, backwards-incompatible
+
+        Updated :func:`wiz.spawn.shell`  to limit the Wiz shell to "bash".
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated :mod:`wiz.command_line` to use :mod:`click` instead of
+        :mod:`argparse` in order to improve code maintainability.
+
+    .. change:: new
+        :tags: command-line
+
+        Renamed :option:`--definition-search-paths <wiz --registry>` to
+        :option:`--registry <wiz --registry>` for clarity.
+
+    .. change:: new
+        :tags: command-line
+
+        Renamed :option:`--definition-search-depth <wiz --registry-depth>` to
+        :option:`--registry-depth <wiz --registry-depth>` for clarity.
+
+    .. change:: changed
+        :tags: command-line, backwards-incompatible
+
+        Updated command line arguments to use the same option
+        :option:`--registry <wiz install --registry>` for installing to a
+        :term:`Local Registry` and installing to a :term:`VCS Registry`.
+        Previously the argument was split into `--registry-path` and
+        `--registry-id`.
+
+        Now definitions can be installed using the following commands syntax::
+
+            # For local registries
+            >>> wiz install foo.json --registry /path/to/registry
+            >>> wiz install foo.json -r /path/to/registry
+
+            # For VCS registries
+            >>> wiz install foo.json -registry wiz://primary-registry
+            >>> wiz install foo.json -r wiz://primary-registry
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated ``wiz search`` sub-command to also search packages using
+        command aliases.
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated sub-commands to only accept extra arguments for the ``wiz use``
+        and ``wiz run`` sub-commands in order to execute a custom command
+        within a resolved context. Previously, extra arguments were accepted by
+        all sub-commands, which is not desired.
+
+        For instance, extra arguments could be used as follow::
+
+            wiz use python -- python -c 'print("TEST")'
+            wiz run python -- -c 'print("TEST")'
+
+    .. change:: changed
+        :tags: API, backwards-incompatible
+
+        Updated :func:`wiz.resolve_context` to prepend implicit requests to
+        explicit requests, rather than append as it previously did.
+
+        Previously when resolving the environment, a path set in the 'environ'
+        of an implicit package would be appended to the ones from explicit
+        packages, making it impossible to overwrite (e.g. shader paths from
+        within implicit packages).
+
+        This change enables the use of implicit packages for job setups by
+        guaranteeing that implicit packages will be resolved before explicit
+        packages.
+
+    .. change:: changed
+        :tags: API, command-line
+
+        Updated :func:`wiz.spawn.execute` to substitute environment variables
+        within command elements before the execution process. User can then
+        use environment variables in command, such as::
+
+            >>> wiz use python -- echo \$PIP_CONFIG_FILE
+
+    .. change:: changed
+        :tags: API, command-line, backwards-incompatible
+
+        Updated :func:`wiz.definition.fetch` to remove "requests" option which
+        could filter definitions discovered. The filtering process has been
+        moved to the command line in order to filter definitions from all
+        systems as the definition mapping returned by
+        :func:`wiz.definition.fetch` only records one definition per identifier
+        and version.
+
+    .. change:: changed
+        :tags: API, command-line, backwards-incompatible
+
+        Removed `--install-location` option from ``wiz install`` sub-command
+        and "install_location" argument from :func:`wiz.install_definitions` as
+        this can already be set with the ``wiz edit`` command before installing,
+        and just adds redundant complexity.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.spawn.execute` to display a nicer error handling for
+        the shell, when a command can not be found or executed. Now, when an
+        :exc:`OSError` is detected, it will throw an error message instead of a
+        traceback (A traceback is available if verbosity is set to 'debug').
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.definition.discover` to add a "system_mapping" option
+        which can filter out definitions :func:`invalid <wiz.system.validate>`
+        with a system mapping.
+
+    .. change:: changed
+        :tags: API, backwards-incompatible
+
+        Moved :func:`wiz.package.initiate_environ` to
+        :func:`wiz.environ.initiate`.
+
+    .. change:: changed
+        :tags: API, backwards-incompatible
+
+        Moved :func:`wiz.package.sanitise_environ_mapping` to
+        :func:`wiz.environ.sanitise`.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :mod:`wiz.resolve_command` to return resolved list of elements
+        composing the command from elements composing input command. It prevents
+        unnecessary combination which could affect the nature of the command by
+        removing single and double quotes.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.package.initiate_environ` to add the
+        :envvar:`HOSTNAME` environment variable into the initial environment.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.definition.export` to sanitized the definition with
+        :meth:`wiz.definition.Definition.sanitized` before exporting it.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.definition.load` to add 'definition-location' keyword
+        in mapping. Previously this would only be added by
+        :func:`wiz.definition.discover`.
+
+    .. change:: changed
+        :tags: API, backwards-incompatible
+
+        Added :func:`wiz.package.create` to instantiate a
+        :class:`~wiz.package.Package` instance from a
+        :class:`~wiz.definition.Definition` instance and variant identifier,
+        and updated :class:`~wiz.package.Package` constructor to just take a
+        mapping. This modification ensure that edition methods will work with
+        packages (e.g. :meth:`~wiz.mapping.Mapping.set`,
+        :meth:`~wiz.mapping.Mapping.remove`,...).
+
+    .. change:: changed
+        :tags: API, backwards-incompatible
+
+        Removed :func:`wiz.package.generate_identifier` and add
+        :attr:`wiz.definition.Definition.version_identifier` property to get
+        version identifiers from :class:`~wiz.definition.Definition` instance.
+
+    .. change:: changed
+        :tags: API
+
+        Added the following properties to get qualified identifiers from
+        :class:`~wiz.definition.Definition` and :class:`~wiz.package.Package`
+        instances:
+
+        * :attr:`wiz.definition.Definition.qualified_identifier`
+        * :attr:`wiz.definition.Definition.qualified_version_identifier`
+        * :attr:`wiz.package.Package.qualified_identifier`
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to take
+        conditions into account while resolving the graph.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
+        handle package extraction error so that it does not raise if faulty
+        packages are not in resolved packages. If a package extraction error is
+        raised for one combination of the graph, another graph combination will
+        be fetched and the error will be raised only if it appears for all
+        combinations.
+
+        The package extraction error has now a lower priority, so that it will
+        not be raised if a conflict error is raised before.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :meth:`graph.Graph.create_link` to not raise an error when a
+        link is assigned twice between two nodes. This caused an issue when
+        a package :ref:`implicitly required <definition/auto-use>` were also
+        explicitly required. Instead, it now gives priority to the link with
+        the lowest weight so it has the highest priority possible.
+
+        .. note::
+
+            If a package is required twice with two different requests, the
+            first request only will be kept::
+
+                # The following command will discard 'foo>2'
+                wiz use foo foo>2
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.resolve_context` to add an optional "timeout"
+        argument in order to modify the default graph resolution time limit.
+
+    .. change:: fixed
+
+        Fixed :func:`wiz.graph.combined_requirements` to take requirements from
+        all parent nodes into account. Previously it would use the distance
+        mapping, which would automatically pick the node with the shortest path
+        as the only parent to consider for requirements. That lead to the
+        elimination of all requirement from other parents, so conflicts would
+        not be properly detected and resolved within the graph.
+
+    .. change:: fixed
+
+        Fixed :func:`wiz.graph.updated_by_distance` to not filter out
+        :attr:`root <wiz.graph.Graph.ROOT>` node.
+
+    .. change:: fixed
+
+        Changed :mod:`wiz.validator` to open the definition JSON schema once
+        the module is loaded, rather than once per validation.
+        Previously a "too many files opened" issue could be encountered when
+        creating multiple definitions in parallel.
+
+    .. change:: fixed
+
+        Fixed :func:`wiz.registry.fetch` to resolve the absolute path of the
+        registry in order to prevent the fetching process to fail with relative
+        paths or trailing slashes.
+
+    .. change:: fixed
+
+        Fixed :class:`wiz.mapping.Mapping` to ensure that creating an instance
+        does not mutate original data.
+
+    .. change:: fixed
+        :tags: command-line, debug
+
+        Fixed :option:`--record <wiz --record>` command to ensure that path
+        exists before exporting history.
+
 .. release:: 1.2.1
     :date: 2018-10-24
 
@@ -30,7 +433,7 @@ Release Notes
     .. change:: new
         :tags: definition
 
-        Added optional :ref:`group <definition/group>` keyword to definition
+        Added optional :ref:`group <definition/namespace>` keyword to definition
         schema, which can be used to define where in the hierarchy of a
         :term:`VCS Registry` a definition will be installed (e.g. "python",
         "maya").
@@ -39,7 +442,7 @@ Release Notes
         :tags: definition
 
         Added optional :ref:`install-location <definition/install_location>`
-        keyword to definition schema to indicate the root location of a package
+        keyword to definition schema to indicate the location of a package
         data.
 
     .. change:: new
@@ -380,8 +783,8 @@ Release Notes
         :tags: API
 
         Fixed :meth:`wiz.mapping.Mapping.to_ordered_dict` to ensure that
-        the 'auto-use' keyword is displayed at a logical position in the
-        serialized definition and package instances.
+        the :ref:`auto-use <definition/auto-use>` keyword is displayed at a
+        logical position in the serialized definition and package instances.
 
 .. release:: 0.15.0
     :date: 2018-08-14
@@ -452,7 +855,7 @@ Release Notes
     .. change:: new
         :tags: definition
 
-        Added optional 'constraints' keyword to definition schema which
+        Added optional ``constraints`` keyword to definition schema which
         indicates a list of package requirements which should be used to resolve
         a context only if another package with the same definition identifier is
         required.
@@ -460,9 +863,9 @@ Release Notes
     .. change:: new
         :tags: definition
 
-        Added optional 'auto-use' keyword to definition schema which indicates
-        whether corresponding package should be used implicitly to resolve
-        context. Default is False.
+        Added optional :ref:`auto-use <definition/auto-use>` keyword to
+        definition schema which indicates whether corresponding package should
+        be used implicitly to resolve context. Default is False.
 
     .. change:: new
         :tags: command-line
@@ -639,10 +1042,10 @@ Release Notes
     .. change:: changed
         :tags: command-line
 
-        Changed the :option:`view <wiz view request>` command line option to
-        only display the full definition if the request is identified as a
-        package definition. If the request is identified as a command, only the
-        corresponding definition identifier is displayed.
+        Changed the ``wiz view`` sub-command to only display the full definition
+        if the request is identified as a package definition. If the request is
+        identified as a command, only the corresponding definition identifier is
+        displayed.
 
     .. change:: changed
         :tags: API
@@ -767,7 +1170,7 @@ Release Notes
     .. change:: changed
         :tags: command-line
 
-        Moved :option:`--definition-search-paths <wiz --definition-search-paths>`,
+        Moved :option:`--definition-search-paths <wiz --registry>`,
         to the top level parser so that registries could be modified for every
         sub-commands.
 

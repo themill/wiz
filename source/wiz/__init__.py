@@ -7,6 +7,7 @@ from _version import __version__
 import wiz.registry
 import wiz.definition
 import wiz.package
+import wiz.environ
 import wiz.graph
 import wiz.symbol
 import wiz.spawn
@@ -114,7 +115,9 @@ def fetch_package_request_from_command(command_request, definition_mapping):
         ...     "command": {"hiero": "nuke"},
         ...     "package": {"nuke": ...}
         ... }
-        >>> fetch_package_request_from_command("hiero==10.5.*")
+        >>> fetch_package_request_from_command(
+        ...     "hiero==10.5.*", definition_mapping
+        ... )
         nuke==10.5.*
 
     *command_request* should be a string indicating the command requested
@@ -144,7 +147,7 @@ def fetch_package_request_from_command(command_request, definition_mapping):
 
 def resolve_context(
     requests, definition_mapping=None, ignore_implicit=False,
-    environ_mapping=None
+    environ_mapping=None, timeout=300
 ):
     """Return context mapping from *requests*.
 
@@ -188,6 +191,12 @@ def resolve_context(
     *environ_mapping* can be a mapping of environment variables which would
     be augmented by the resolved environment.
 
+    *timeout* is the max time to expire before the resolve process is being
+    cancelled (in seconds). Default is 5 minutes.
+
+    Raises :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
+    resolved in time.
+
     """
     # To prevent mutating input list.
     _requests = requests[:]
@@ -198,17 +207,20 @@ def resolve_context(
         )
 
     if not ignore_implicit:
-        _requests += definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, [])
+        # Prepend implicit requests to explicit ones.
+        _requests = (
+            definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, []) + _requests
+        )
 
     requirements = map(wiz.utility.get_requirement, _requests)
 
     registries = definition_mapping["registries"]
     resolver = wiz.graph.Resolver(
-        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE], timeout
     )
     packages = resolver.compute_packages(requirements)
 
-    _environ_mapping = wiz.package.initiate_environ(environ_mapping)
+    _environ_mapping = wiz.environ.initiate(environ_mapping)
     context = wiz.package.extract_context(
         packages, environ_mapping=_environ_mapping
     )
@@ -226,35 +238,31 @@ def resolve_context(
     return context
 
 
-def resolve_command(command, command_mapping):
-    """Return resolved command from *command* and *command_mapping*.
+def resolve_command(elements, command_mapping):
+    """Return resolved command elements from *elements* and *command_mapping*.
 
-    *command* should be a command line in the form off::
+    *elements* should include all command line elements in the form off::
 
-        app_exe
-        app_exe --option value
-        app_exe --option value /path/to/script
+        ["app_exe"]
+        ["app_exe", "--option", "value"]
+        ["app_exe", "--option", "value", "/path/to/script"]
 
     *command_mapping* should associate command aliases to real command.
 
     Example::
 
         >>> resolve_command(
-        ...     "app --option value /path/to/script",
+        ...     ["app", "--option", "value", "/path/to/script"],
         ...     {"app": "App0.1 --modeX"}
         ... )
 
-        "App0.1 --modeX --option value /path/to/script"
+        ["App0.1", "--modeX", "--option", "value", "/path/to/script"]
 
     """
-    commands = shlex.split(command)
+    if elements[0] in command_mapping.keys():
+        elements = shlex.split(command_mapping[elements[0]]) + elements[1:]
 
-    if commands[0] in command_mapping.keys():
-        commands = (
-            shlex.split(command_mapping[commands[0]]) + commands[1:]
-        )
-
-    return " ".join(commands)
+    return elements
 
 
 def discover_context():
@@ -312,7 +320,7 @@ def discover_context():
         for identifier in package_identifiers
     ]
 
-    _environ_mapping = wiz.package.initiate_environ()
+    _environ_mapping = wiz.environ.initiate()
     context = wiz.package.extract_context(
         packages, environ_mapping=_environ_mapping
     )
@@ -377,84 +385,42 @@ def export_definition(path, data, overwrite=False):
     return wiz.definition.export(path, data, overwrite=overwrite)
 
 
-def install_definitions_to_path(
-    paths, registry_path, install_location=None, overwrite=False
-):
-    """Install a definition file to a registry on the file system.
+def install_definitions(paths, registry_target, overwrite=False):
+    """Install a definition file to a registry.
 
     *paths* is the path list to all definition files.
 
-    *registry_path* is the path to the target registry to install to.
-
-    *install_location* could be the path to the package data which will be set
-    in the 'install-location' keyword of the installed definition. This path
-    will be used to resolve the :envvar:`INSTALL_LOCATION` environment variable
-    within the environment mapping.
+    *registry_target* should be a valid :term:`VCS` registry URI or a path to a
+    local registry.
 
     If *overwrite* is True, any existing definitions in the target registry
     will be overwritten.
 
-    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
+    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *paths* cannot
     create a valid instance of :class:`wiz.definition.Definition`.
 
     Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
     the target registry and *overwrite* is False.
 
-    Raises :exc:`OSError` if the definition can not be exported in *path*.
+    Raises :exc:`OSError` if the definition can not be exported in a registry
+    local *path*.
 
     """
-    _definitions = []
+    definitions = []
 
     for path in paths:
         _definition = wiz.load_definition(path)
+        definitions.append(_definition)
 
-        if install_location is not None:
-            _definition = _definition.set("install-location", install_location)
+    if registry_target.startswith(wiz.registry.SCHEME):
+        wiz.registry.install_to_vcs(
+            definitions, registry_target, overwrite=overwrite
+        )
 
-        _definitions.append(_definition)
-
-    wiz.registry.install_to_path(
-        _definitions, registry_path, overwrite=overwrite
-    )
-
-
-def install_definitions_to_vcs(
-    paths, registry_identifier, install_location=None, overwrite=False
-):
-    """Install a list of definition files to a :term:`Wiz Vault` registry.
-
-    *paths* is the path list to all definition files.
-
-    *registry_identifier* is the ID of the target :term:`Wiz Vault` registry to
-    install to (e.g. "primary-registry").
-
-    *install_location* could be the path to the package data which will be set
-    in the 'install-location' keyword of the installed definition. This path
-    will be used to resolve the :envvar:`INSTALL_LOCATION` environment variable
-    within the environment mapping.
-
-    If *overwrite* is True, any existing definitions in the target registry
-    will be overwritten.
-
-    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *path* cannot
-    create a valid instance of :class:`wiz.definition.Definition`.
-
-    Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
-    the target registry and *overwrite* is False.
-
-    """
-    _definitions = []
-
-    for path in paths:
-        _definition = wiz.load_definition(path)
-        if install_location is not None:
-            _definition = _definition.set("install-location", install_location)
-
-        _definitions.append(_definition)
-
-    wiz.registry.install_to_vcs(
-        _definitions, registry_identifier, overwrite=overwrite
-    )
+    else:
+        wiz.registry.install_to_path(
+            definitions, registry_target, overwrite=overwrite
+        )
 
 
 def export_script(
@@ -466,7 +432,7 @@ def export_script(
 
     *path* should be a valid directory to save the exported wrapper.
 
-    *script_type* should be either "csh" or "bash".
+    *script_type* should be either "tcsh" or "bash".
 
     *identifier* should define the name of the exported wrapper.
 
@@ -494,7 +460,7 @@ def export_script(
 
     if script_type == "bash":
         content = "#!/bin/bash\n"
-    elif script_type == "csh":
+    elif script_type == "tcsh":
         content = "#!/bin/tcsh -f\n"
     else:
         raise ValueError("'{}' is not a valid script type.".format(script_type))

@@ -1,143 +1,61 @@
 # :coding: utf-8
 
-import os
+import datetime
+import tempfile
 
 import pytest
+import click
+from click.testing import CliRunner
 
 import wiz.command_line
 import wiz.registry
+import wiz.symbol
+import wiz.definition
+import wiz.package
+import wiz.spawn
+import wiz.exception
+import wiz.filesystem
+import wiz.history
+import wiz.utility
 
 
 @pytest.fixture()
-def mock_fetch_registry(mocker):
-    """Return mocked 'wiz.registry.fetch' function."""
+def mock_datetime_now(mocker):
+    """Return mocked 'wiz.fetch_definition_mapping' function."""
+    _date = mocker.Mock(**{"isoformat.return_value": "NOW"})
     return mocker.patch.object(
-        wiz.registry, "fetch",
-        return_value=["/path/to/registry1", "/path/to/registry2"]
+        datetime, "datetime", **{"now.return_value": _date}
     )
 
 
 @pytest.fixture()
-def mock_fetch_definition_mapping(mocker):
-    """Mock fetched definition mapping."""
-    test1_020_item = {
-        "registry": "/path/to/registry1"
-    }
-    test1_020 = mocker.Mock(
-        identifier="test1",
-        description="This is test1.",
-        version="0.2.0",
-        registry="/path/to/registry1",
-        variants=[],
-        **{"get": lambda key: test1_020_item[key]}
-    )
-
-    test1_010_item = {
-        "registry": "/path/to/registry1"
-    }
-    test1_010 = mocker.Mock(
-        identifier="test1",
-        description="This is test1.",
-        version="0.1.0",
-        registry="/path/to/registry1",
-        variants=[],
-        **{"get": lambda key: test1_010_item[key]}
-    )
-
-    test2_010_item = {
-        "registry": "/path/to/registry2"
-    }
-    test2_010 = mocker.Mock(
-        identifier="test2",
-        description="This is test2.",
-        version="0.1.0",
-        registry="/path/to/registry2",
-        variants=[
-            mocker.Mock(identifier="variant2"),
-            mocker.Mock(identifier="variant1"),
-        ],
-        **{"get": lambda key: test2_010_item[key]}
-    )
-
-    test3_011_item = {
-        "registry": "/path/to/registry2"
-    }
-    test3_011 = mocker.Mock(
-        identifier="test3",
-        description="This is test3.",
-        version="0.1.1",
-        registry="/path/to/registry2",
-        variants=[],
-        **{"get": lambda key: test3_011_item[key]}
-    )
-
-    test3_010_item = {
-        "registry": "/path/to/registry1"
-    }
-    test3_010 = mocker.Mock(
-        identifier="test3",
-        description="This is test3.",
-        version="0.1.0",
-        registry="/path/to/registry1",
-        variants=[],
-        **{"get": lambda key: test3_010_item[key]}
-    )
-
-    mocker.patch.object(
-        wiz, "fetch_definition_mapping",
-        return_value={
-            "command": {
-                "app1": "test1",
-                "app3": "test3",
-            },
-            "package": {
-                "test1": {
-                    "0.2.0": test1_020,
-                    "0.1.0": test1_010,
-                },
-                "test2": {
-                    "0.1.0": test2_010,
-                },
-                "test3": {
-                    "0.1.1": test3_011,
-                    "0.1.0": test3_010,
-                }
-            },
-            "registries": ["/path/to/registry1", "/path/to/registry2"]
-        }
-    )
+def mocked_click_edit(mocker):
+    """Return mocked 'click.edit' function."""
+    return mocker.patch.object(click, "edit")
 
 
 @pytest.fixture()
-def mock_query_identifier(mocker):
-    """Return mocked 'wiz.command_line._query_identifier' function."""
-    mocker.patch.object(
-        wiz.command_line, "_query_identifier", return_value="foo"
-    )
+def mocked_click_prompt(mocker):
+    """Return mocked 'click.prompt' function."""
+    return mocker.patch.object(click, "prompt")
 
 
 @pytest.fixture()
-def mock_query_description(mocker):
-    """Return mocked 'wiz.command_line.mock_query_description' function."""
-    mocker.patch.object(
-        wiz.command_line, "_query_description", return_value="This is a test"
-    )
+def mocked_click_confirm(mocker):
+    """Return mocked 'click.confirm' function."""
+    return mocker.patch.object(click, "confirm")
 
 
 @pytest.fixture()
-def mock_query_command(mocker):
-    """Return mocked 'wiz.command_line._query_command' function."""
-    mocker.patch.object(
-        wiz.command_line, "_query_command", return_value="AppExe"
-    )
+def mocked_fetch_definition_mapping(mocker):
+    """Return mocked 'wiz.fetch_definition_mapping' function."""
+    return mocker.patch.object(wiz, "fetch_definition_mapping")
 
 
 @pytest.fixture()
-def mock_query_version(mocker):
-    """Return mocked 'wiz.command_line._query_version' function."""
-    mocker.patch.object(
-        wiz.command_line, "_query_version", return_value="0.1.0"
-    )
+def mocked_load_definition(mocker):
+    """Return mocked 'wiz.load_definition' function."""
+    return mocker.patch.object(wiz, "load_definition")
 
 
 @pytest.fixture()
@@ -147,239 +65,3601 @@ def mocked_resolve_context(mocker):
 
 
 @pytest.fixture()
-def mocked_fetch_definition_mapping(mocker):
-    """Return mocked 'wiz.fetch_definition_mapping' function."""
-    return mocker.patch.object(wiz, "fetch_definition_mapping")
+def mocked_resolve_command(mocker):
+    """Return mocked 'wiz.resolve_command' function."""
+    return mocker.patch.object(wiz, "resolve_command")
 
 
-def test_empty_arguments(capsys):
-    """Raise error for empty arguments."""
-    with pytest.raises(SystemExit):
-        wiz.command_line.main()
-
-    _, stderror_message = capsys.readouterr()
-    assert "wiz: error: too few arguments" in stderror_message
+@pytest.fixture()
+def mocked_fetch_package_request_from_command(mocker):
+    """Return mocked 'wiz.fetch_package_request_from_command' function."""
+    return mocker.patch.object(wiz, "fetch_package_request_from_command")
 
 
-@pytest.mark.usefixtures("mock_fetch_registry")
-@pytest.mark.usefixtures("mock_fetch_definition_mapping")
-def test_list_packages(capsys):
+@pytest.fixture()
+def mocked_export_definition(mocker):
+    """Return mocked 'wiz.export_definition' function."""
+    return mocker.patch.object(wiz, "export_definition")
+
+
+@pytest.fixture()
+def mocked_export_script(mocker):
+    """Return mocked 'wiz.export_script' function."""
+    return mocker.patch.object(wiz, "export_script")
+
+
+@pytest.fixture()
+def mocked_install_definitions(mocker):
+    """Return mocked 'wiz.install_definitions' function."""
+    return mocker.patch.object(wiz, "install_definitions")
+
+
+@pytest.fixture()
+def mocked_definition_discover(mocker):
+    """Return mocked 'wiz.definition.discover' function."""
+    return mocker.patch.object(wiz.definition, "discover")
+
+
+@pytest.fixture()
+def mocked_history_start_recording(mocker):
+    """Return mocked 'wiz.history.start_recording' function."""
+    return mocker.patch.object(wiz.history, "start_recording")
+
+
+@pytest.fixture()
+def mocked_history_record_action(mocker):
+    """Return mocked 'wiz.history.record_action' function."""
+    return mocker.patch.object(wiz.history, "record_action")
+
+
+@pytest.fixture()
+def mocked_history_get(mocker):
+    """Return mocked 'wiz.history.get' function."""
+    return mocker.patch.object(wiz.history, "get")
+
+
+@pytest.fixture()
+def mocked_spawn_execute(mocker):
+    """Return mocked 'wiz.spawn.execute' function."""
+    return mocker.patch.object(wiz.spawn, "execute")
+
+
+@pytest.fixture()
+def mocked_spawn_shell(mocker):
+    """Return mocked 'wiz.spawn.shell' function."""
+    return mocker.patch.object(wiz.spawn, "shell")
+
+
+@pytest.fixture()
+def mocked_filesystem_export(mocker):
+    """Return mocked 'wiz.filesystem.export' function."""
+    return mocker.patch.object(wiz.filesystem, "export")
+
+
+@pytest.fixture()
+def mocked_system_query(mocker):
+    """Return mocked 'wiz.system.query' function."""
+    return mocker.patch.object(wiz.system, "query")
+
+
+@pytest.fixture()
+def mocked_registry_fetch(mocker):
+    """Return mocked 'wiz.registry.fetch' function."""
+    return mocker.patch.object(wiz.registry, "fetch")
+
+
+@pytest.fixture()
+def definitions():
+    """Return mocked definitions."""
+    return [
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "version": "0.2.0",
+            "description": "This is Foo 0.2.0.",
+            "registry": "/registry1",
+            "command": {
+                "fooExe": "fooExe -X"
+            },
+            "system": {
+                "platform": "linux",
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "version": "0.2.0",
+            "description": "This is Foo 0.2.0.",
+            "registry": "/registry1",
+            "command": {
+                "fooExe": "fooExe -X"
+            },
+            "system": {
+                "platform": "mac",
+            }
+        }),
+        wiz.definition.Definition({
+            "identifier": "foo",
+            "version": "0.1.0",
+            "description": "This is Foo 0.1.0.",
+            "registry": "/registry1",
+            "command": {
+                "fooExe": "fooExe -X"
+            },
+            "system": {
+                "platform": "linux",
+            },
+            "environ": {
+                "PATH": "/path/to/bin:${PATH}",
+                "PYTHONPATH": "/path/to/lib:${PYTHONPATH}",
+            },
+            "requirements": [
+                "bim >= 0.1.0, < 1"
+            ]
+        }),
+        wiz.definition.Definition({
+            "identifier": "bar",
+            "version": "0.1.0",
+            "description": "This is Bar 0.1.0.",
+            "registry": "/registry2",
+            "environ": {
+                "PATH": "/path/to/bin:${PATH}",
+            },
+            "variants": [
+                {
+                    "identifier": "Variant1",
+                    "environ": {
+                        "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
+                    }
+                },
+                {
+                    "identifier": "Variant2",
+                    "environ": {
+                        "PYTHONPATH": "/path/to/lib/2:${PYTHONPATH}",
+                    }
+                },
+            ],
+            "requirements": [
+                "bim >= 0.1.0, < 1"
+            ]
+        }),
+        wiz.definition.Definition({
+            "identifier": "bim",
+            "version": "0.1.1",
+            "description": "This is Bim 0.1.1.",
+            "registry": "/registry2",
+            "command": {
+                "bimExe": "bimExe -X"
+            },
+            "variants": [
+                {
+                    "identifier": "Variant1",
+                    "environ": {
+                        "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
+                    }
+                },
+            ],
+        }),
+        wiz.definition.Definition({
+            "identifier": "bim",
+            "version": "0.1.0",
+            "description": "This is Bim 0.1.0.",
+            "registry": "/registry2",
+            "command": {
+                "bimExe": "bimExe -X"
+            },
+        })
+    ]
+
+
+@pytest.fixture()
+def definition_mapping():
+    """Return mocked definition mapping."""
+    return {
+        "command": {
+            "fooExe": "foo",
+            "bimExe": "bim",
+        },
+        "package": {
+            "foo": {
+                "0.2.0": wiz.definition.Definition({
+                    "identifier": "foo",
+                    "version": "0.2.0",
+                    "description": "This is Foo 0.2.0.",
+                    "registry": "/registry1",
+                }),
+                "0.1.0": wiz.definition.Definition({
+                    "identifier": "foo",
+                    "version": "0.1.0",
+                    "description": "This is Foo 0.1.0.",
+                    "registry": "/registry1",
+                    "environ": {
+                        "PATH": "/path/to/bin:${PATH}",
+                        "PYTHONPATH": "/path/to/lib:${PYTHONPATH}",
+                    },
+                    "requirements": [
+                        "bim >= 0.1.0, < 1"
+                    ]
+                }),
+            },
+            "bar": {
+                "0.1.0": wiz.definition.Definition({
+                    "identifier": "bar",
+                    "version": "0.1.0",
+                    "description": "This is Bar 0.1.0.",
+                    "registry": "/registry2",
+                    "environ": {
+                        "PATH": "/path/to/bin:${PATH}",
+                    },
+                    "variants": [
+                        {
+                            "identifier": "Variant1",
+                            "environ": {
+                                "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
+                            }
+                        },
+                        {
+                            "identifier": "Variant2",
+                            "environ": {
+                                "PYTHONPATH": "/path/to/lib/2:${PYTHONPATH}",
+                            }
+                        },
+                    ],
+                    "requirements": [
+                        "bim >= 0.1.0, < 1"
+                    ]
+                }),
+            },
+            "bim": {
+                "0.1.1": wiz.definition.Definition({
+                    "identifier": "bim",
+                    "version": "0.1.1",
+                    "description": "This is Bim 0.1.1.",
+                    "registry": "/registry2",
+                    "variants": [
+                        {
+                            "identifier": "Variant1",
+                            "environ": {
+                                "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
+                            }
+                        },
+                    ],
+                }),
+                "0.1.0": wiz.definition.Definition({
+                    "identifier": "bim",
+                    "version": "0.1.0",
+                    "description": "This is Bim 0.1.0.",
+                    "registry": "/registry2",
+                }),
+            }
+        },
+        "registries": ["/registry1", "/registry2"]
+    }
+
+
+@pytest.fixture()
+def wiz_context():
+    """Return mocked context."""
+    foo_definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "version": "0.1.0",
+        "description": "This is Foo 0.1.0.",
+        "registry": "/registry1",
+        "environ": {
+            "PATH": "/path/to/foo/bin:${PATH}",
+            "PYTHONPATH": "/path/to/foo/lib:${PYTHONPATH}",
+        },
+        "requirements": [
+            "bim >= 0.1.0, < 1"
+        ]
+    })
+
+    bim_definition = wiz.definition.Definition({
+        "identifier": "bim",
+        "version": "0.1.1",
+        "description": "This is Bim 0.1.1.",
+        "registry": "/registry2",
+        "environ": {
+            "PATH": "/path/to/bim/bin:${PATH}",
+            "PYTHONPATH": "/path/to/bim/lib:${PYTHONPATH}",
+            "LICENSE_ENV": "license@bim.com:2000"
+        },
+        "variants": [
+            {
+                "identifier": "Variant1",
+                "environ": {
+                    "PYTHONPATH": "/path/to/bim/lib:${PYTHONPATH}",
+                }
+            }
+        ]
+    })
+
+    return {
+        "command": {
+            "fooExe": "foo",
+            "fooExeDebug": "foo --debug",
+        },
+        "environ": {
+            "KEY1": "value1",
+            "KEY2": "value2",
+        },
+        "packages": [
+            wiz.package.create(foo_definition),
+            wiz.package.create(
+                bim_definition, variant_identifier="Variant1"
+            ),
+        ],
+        "registries": ["/registry1", "/registry2"]
+    }
+
+
+def test_empty_arguments(
+    mocked_history_start_recording, mocked_history_get,
+    mocked_filesystem_export, mocked_system_query,
+    mocked_registry_fetch, mocked_fetch_definition_mapping
+):
+    """Do not raise error for empty arguments."""
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main)
+    assert result.exit_code == 0
+    assert not result.exception
+
+    mocked_history_start_recording.assert_not_called()
+    mocked_history_get.assert_not_called()
+    mocked_filesystem_export.assert_not_called()
+    mocked_system_query.assert_not_called()
+    mocked_registry_fetch.assert_not_called()
+    mocked_fetch_definition_mapping.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "options, platform, architecture, os_name, os_version", [
+        ([], None, None, None, None),
+        (["--platform", "linux"], "linux", None, None, None),
+        (["--architecture", "x86_64"], None, "x86_64", None, None),
+        (["--os-name", "centos"], None, None, "centos", None),
+        (["--os-version", "7.4.1708"], None, None, None, "7.4.1708"),
+    ], ids=[
+        "no-options",
+        "override-platform",
+        "override-architecture",
+        "override-os-name",
+        "override-os-version",
+    ]
+)
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+def test_query_system(
+    mocked_system_query, options, platform, architecture, os_name, os_version
+):
+    """Override system with options."""
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, options + ["list", "package"])
+    assert result.exit_code == 0
+    assert not result.exception
+
+    mocked_system_query.assert_called_once_with(
+        platform=platform,
+        architecture=architecture,
+        os_name=os_name,
+        os_version=os_version,
+    )
+
+
+@pytest.mark.parametrize(
+    "options, paths, depth, include_local, include_cwd", [
+        ([], None, None, True, True),
+        (
+            ["-r", "/path1", "-r", "/path2"],
+            ["/path1", "/path2"], None, True, True
+        ),
+        (["-rd", "2"], None, 2, True, True),
+        (
+            ["-add", "/path1"],
+            [
+                "/mill3d/server/apps/WIZ/registry/primary/default",
+                "/mill3d/server/apps/WIZ/registry/secondary/default",
+                "/jobs/.wiz/registry/default",
+                "/path1"
+            ], None, True, True
+        ),
+        (["--no-local"], None, None, False, True),
+        (["--no-cwd"], None, None, True, False),
+    ], ids=[
+        "no-options",
+        "change-search-paths",
+        "change-search-depth",
+        "add-search-path",
+        "skip-local",
+        "skip-cwd",
+    ]
+)
+def test_fetch_registry(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    options, paths, depth, include_local, include_cwd
+):
+    """Override registries with options."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, options + ["list", "package"])
+    assert result.exit_code == 0
+    assert not result.exception
+
+    mocked_registry_fetch.assert_called_once_with(
+        tuple(paths or wiz.registry.get_defaults()),
+        include_local=include_local,
+        include_working_directory=include_cwd
+    )
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__",
+        max_depth=depth
+    )
+
+
+@pytest.mark.parametrize("options, recorded", [
+    ([], False),
+    (["--record", tempfile.gettempdir()], True)
+], ids=[
+    "normal",
+    "recorded",
+])
+@pytest.mark.usefixtures("mock_datetime_now")
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+def test_list_packages_recorded(
+    mocked_history_start_recording, mocked_history_get,
+    mocked_filesystem_export, options, recorded
+):
+    """Record history when displaying list of available packages."""
+    mocked_history_get.return_value = "__HISTORY__"
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, options + ["list", "package"])
+    print(options + ["list", "package"])
+    print(result.output)
+    assert result.exit_code == 0
+    assert not result.exception
+
+    if recorded:
+        mocked_history_start_recording.assert_called_once_with(
+            command=" ".join(["wiz"] + options + ["list", "package"])
+        )
+        mocked_history_get.assert_called_once_with(serialized=True)
+        mocked_filesystem_export.assert_called_once_with(
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
+        )
+
+    else:
+        mocked_history_start_recording.assert_not_called()
+        mocked_history_get.assert_not_called()
+        mocked_filesystem_export.assert_not_called()
+
+
+def test_list_packages_empty(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover
+):
+    """Display list of packages when no packages are available."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = []
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["list", "package"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries\n"
+        "----------\n"
+        "No registries to display.\n"
+        "\n"
+        "\n"
+        "Package   Version   System   Registry   Description\n"
+        "-------   -------   ------   --------   -----------\n"
+        "No packages to display.\n"
+        "\n"
+    )
+
+    mocked_definition_discover.assert_called_once_with(
+        [], system_mapping="__SYSTEM__", max_depth=None
+    )
+
+
+def test_list_packages(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
+):
     """Display list of available packages."""
-    wiz.command_line.main(["list", "package"])
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
 
-    stdout_message, stderror_message = capsys.readouterr()
-    assert stderror_message == ""
-    assert stdout_message == (
-        "\nRegistries            "
-        "\n----------------------"
-        "\n[0] /path/to/registry1"
-        "\n[1] /path/to/registry2"
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["list", "package"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
         "\n"
         "\n"
-        "\nPackage            Version   Registry   Description   "
-        "\n----------------   -------   --------   --------------"
-        "\ntest1              0.2.0     0          This is test1."
-        "\ntest2 [variant2]   0.1.0     1          This is test2."
-        "\ntest2 [variant1]   0.1.0     1          This is test2."
-        "\ntest3              0.1.1     1          This is test3."
-        "\n\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bar [Variant1]   0.1.0     noarch   1          This is Bar 0.1.0.\n"
+        "bar [Variant2]   0.1.0     noarch   1          This is Bar 0.1.0.\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "foo              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "foo              0.2.0     mac      0          This is Foo 0.2.0.\n"
+        "\n"
+    )
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
 
-@pytest.mark.usefixtures("mock_fetch_registry")
-@pytest.mark.usefixtures("mock_fetch_definition_mapping")
-def test_list_packages_all(capsys):
-    """Display list of available packages versions."""
-    wiz.command_line.main(["list", "package", "--all"])
+def test_list_packages_with_versions(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
+):
+    """Display list of available packages with versions."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
 
-    stdout_message, stderror_message = capsys.readouterr()
-    assert stderror_message == ""
-    assert stdout_message == (
-        "\nRegistries            "
-        "\n----------------------"
-        "\n[0] /path/to/registry1"
-        "\n[1] /path/to/registry2"
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["list", "package", "--all"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
         "\n"
         "\n"
-        "\nPackage            Version   Registry   Description   "
-        "\n----------------   -------   --------   --------------"
-        "\ntest1              0.2.0     0          This is test1."
-        "\ntest1              0.1.0     0          This is test1."
-        "\ntest2 [variant2]   0.1.0     1          This is test2."
-        "\ntest2 [variant1]   0.1.0     1          This is test2."
-        "\ntest3              0.1.1     1          This is test3."
-        "\ntest3              0.1.0     0          This is test3."
-        "\n\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bar [Variant1]   0.1.0     noarch   1          This is Bar 0.1.0.\n"
+        "bar [Variant2]   0.1.0     noarch   1          This is Bar 0.1.0.\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bim              0.1.0     noarch   1          This is Bim 0.1.0.\n"
+        "foo              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "foo              0.2.0     mac      0          This is Foo 0.2.0.\n"
+        "foo              0.1.0     linux    0          This is Foo 0.1.0.\n"
+        "\n"
+    )
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
 
-@pytest.mark.usefixtures("mock_fetch_registry")
-@pytest.mark.usefixtures("mock_fetch_definition_mapping")
-def test_list_commands(capsys):
+@pytest.mark.parametrize("options", [
+    ["--", "--incorrect"],
+    ["--incorrect"],
+], ids=[
+    "extra-arguments",
+    "unknown-arguments",
+])
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+def test_list_packages_error(options):
+    """Fail to list available packages."""
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["list", "package"] + options)
+    assert result.exit_code == 2
+    assert result.exception
+
+
+@pytest.mark.parametrize("options, recorded", [
+    ([], False),
+    (["--record", tempfile.gettempdir()], True)
+], ids=[
+    "normal",
+    "recorded",
+])
+@pytest.mark.usefixtures("mock_datetime_now")
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+def test_list_commands_recorded(
+    mocked_history_start_recording, mocked_history_get,
+    mocked_filesystem_export, options, recorded
+):
+    """Record history when displaying list of available commands."""
+    mocked_history_get.return_value = "__HISTORY__"
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, options + ["list", "command"])
+    print(result.output)
+    assert result.exit_code == 0
+    assert not result.exception
+
+    if recorded:
+        mocked_history_start_recording.assert_called_once_with(
+            command=" ".join(["wiz"] + options + ["list", "command"])
+        )
+        mocked_history_get.assert_called_once_with(serialized=True)
+        mocked_filesystem_export.assert_called_once_with(
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
+        )
+
+    else:
+        mocked_history_start_recording.assert_not_called()
+        mocked_history_get.assert_not_called()
+        mocked_filesystem_export.assert_not_called()
+
+
+def test_list_commands_empty(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover
+):
+    """Display list of commands when no commands are available."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = []
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["list", "command"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries\n"
+        "----------\n"
+        "No registries to display.\n"
+        "\n"
+        "\n"
+        "Command   Version   System   Registry   Description\n"
+        "-------   -------   ------   --------   -----------\n"
+        "No commands to display.\n"
+        "\n"
+    )
+
+    mocked_definition_discover.assert_called_once_with(
+        [], system_mapping="__SYSTEM__", max_depth=None
+    )
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+def test_list_commands(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
+):
     """Display list of available commands."""
-    wiz.command_line.main(["list", "command"])
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
 
-    stdout_message, stderror_message = capsys.readouterr()
-    assert stderror_message == ""
-    assert stdout_message == (
-        "\nRegistries            "
-        "\n----------------------"
-        "\n[0] /path/to/registry1"
-        "\n[1] /path/to/registry2"
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["list", "command"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
         "\n"
         "\n"
-        "\nCommand   Version   Registry   Description   "
-        "\n-------   -------   --------   --------------"
-        "\napp1      0.2.0     0          This is test1."
-        "\napp3      0.1.1     1          This is test3."
-        "\n\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "fooExe              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "fooExe              0.2.0     mac      0          This is Foo 0.2.0.\n"
+        "\n"
+    )
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
 
-@pytest.mark.usefixtures("mock_fetch_registry")
-@pytest.mark.usefixtures("mock_fetch_definition_mapping")
-def test_list_commands_all(capsys):
-    """Display list of available commands versions."""
-    wiz.command_line.main(["list", "command", "--all"])
-
-    stdout_message, stderror_message = capsys.readouterr()
-    assert stderror_message == ""
-    assert stdout_message == (
-        "\nRegistries            "
-        "\n----------------------"
-        "\n[0] /path/to/registry1"
-        "\n[1] /path/to/registry2"
-        "\n"
-        "\n"
-        "\nCommand   Version   Registry   Description   "
-        "\n-------   -------   --------   --------------"
-        "\napp1      0.2.0     0          This is test1."
-        "\napp1      0.1.0     0          This is test1."
-        "\napp3      0.1.1     1          This is test3."
-        "\napp3      0.1.0     0          This is test3."
-        "\n\n"
-    )
-
-
-@pytest.mark.usefixtures("mock_query_identifier")
-@pytest.mark.usefixtures("mock_query_description")
-@pytest.mark.usefixtures("mock_query_version")
-def test_freeze_definition(
-    temporary_directory,
-    mocked_fetch_definition_mapping,
-    mocked_resolve_context
+def test_list_commands_with_versions(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
 ):
-    """Freeze a Wiz definition."""
-    mocked_fetch_definition_mapping.return_value = "__DEFINITION_MAPPING__"
-    mocked_resolve_context.return_value = {
-        "command": {"app": "AppExe"},
-        "environ": {"KEY": "VALUE"},
-    }
+    """Display list of available commands with versions."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
 
-    wiz.command_line.main(["freeze", "bim", "bar", "-o", temporary_directory])
-
-    mocked_resolve_context.assert_called_once_with(
-        ["bim", "bar"], "__DEFINITION_MAPPING__", ignore_implicit=False
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["list", "command", "--all"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bimExe              0.1.0     noarch   1          This is Bim 0.1.0.\n"
+        "fooExe              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "fooExe              0.2.0     mac      0          This is Foo 0.2.0.\n"
+        "fooExe              0.1.0     linux    0          This is Foo 0.1.0.\n"
+        "\n"
     )
 
-    file_path = os.path.join(temporary_directory, "foo-0.1.0.json")
-    assert os.path.isfile(file_path) is True
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
 
-    with open(file_path, "r") as stream:
-        assert stream.read() == (
-             "{\n"
-             "    \"identifier\": \"foo\",\n"
-             "    \"version\": \"0.1.0\",\n"
-             "    \"description\": \"This is a test\",\n"
-             "    \"command\": {\n"
-             "        \"app\": \"AppExe\"\n"
-             "    },\n"
-             "    \"environ\": {\n"
-             "        \"KEY\": \"VALUE\"\n"
-             "    }\n"
-             "}"
+
+@pytest.mark.parametrize("options", [
+    ["--", "--incorrect"],
+    ["--incorrect"],
+], ids=[
+    "extra-arguments",
+    "unknown-arguments",
+])
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+def test_list_commands_error(options):
+    """Fail to list available commands."""
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["list", "command"] + options)
+    assert result.exit_code == 2
+    assert result.exception
+
+
+@pytest.mark.parametrize("options, recorded", [
+    ([], False),
+    (["--record", tempfile.gettempdir()], True)
+], ids=[
+    "normal",
+    "recorded",
+])
+@pytest.mark.usefixtures("mock_datetime_now")
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+def test_search_recorded(
+    mocked_history_start_recording, mocked_history_get,
+    mocked_filesystem_export, options, recorded
+):
+    """Record history when searching packages and commands."""
+    mocked_history_get.return_value = "__HISTORY__"
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, options + ["search", "foo"])
+    assert result.exit_code == 0
+    assert not result.exception
+
+    if recorded:
+        mocked_history_start_recording.assert_called_once_with(
+            command=" ".join(["wiz"] + options + ["search", "foo"])
+        )
+        mocked_history_get.assert_called_once_with(serialized=True)
+        mocked_filesystem_export.assert_called_once_with(
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
         )
 
+    else:
+        mocked_history_start_recording.assert_not_called()
+        mocked_history_get.assert_not_called()
+        mocked_filesystem_export.assert_not_called()
 
-@pytest.mark.usefixtures("mock_query_identifier")
-@pytest.mark.usefixtures("mock_query_command")
-def test_freeze_definition_csh(
-    temporary_directory, mocker,
-    mocked_fetch_definition_mapping,
-    mocked_resolve_context
+
+def test_search_empty(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    logger
 ):
-    """Freeze a Wiz definition into a CSH script."""
-    mocked_fetch_definition_mapping.return_value = "__DEFINITION_MAPPING__"
+    """Display empty list of searched commands and packages."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = []
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["search", "foo"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries\n"
+        "----------\n"
+        "No registries to display.\n"
+        "\n"
+    )
+
+    logger.warning.assert_called_once_with("No results found.\n")
+
+    mocked_definition_discover.assert_called_once_with(
+        [], system_mapping="__SYSTEM__", max_depth=None
+    )
+
+
+@pytest.mark.parametrize("options", [
+    [], ["--type", "all"]
+], ids=[
+    "default",
+    "with-option",
+])
+def test_search(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    logger, definitions, options
+):
+    """Display searched available commands and packages."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, ["search", "bim"] + options
+    )
+    # assert result.exit_code == 0
+    # assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "\n"
+        "\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "\n"
+    )
+
+    logger.warning.assert_not_called()
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__",
+        max_depth=None
+    )
+
+
+@pytest.mark.parametrize("options", [
+    [], ["--type", "all"]
+], ids=[
+    "default",
+    "with-option",
+])
+def test_search_filtered_command(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    logger, definitions, options
+):
+    """Display searched available commands and packages."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, ["search", "Exe"] + options
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "fooExe              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "fooExe              0.2.0     mac      0          This is Foo 0.2.0.\n"
+        "\n"
+        "\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "foo              0.2.0     linux    0          This is Foo 0.2.0.\n"
+        "foo              0.2.0     mac      0          This is Foo 0.2.0.\n"
+        "\n"
+    )
+
+    logger.warning.assert_not_called()
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__",
+        max_depth=None
+    )
+
+
+def test_search_with_versions(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    logger, definitions
+):
+    """Display searched commands and packages with all versions."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, ["search", "bim", "--all"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bimExe              0.1.0     noarch   1          This is Bim 0.1.0.\n"        
+        "\n"
+        "\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bim              0.1.0     noarch   1          This is Bim 0.1.0.\n"
+        "\n"
+    )
+
+    logger.warning.assert_not_called()
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__",
+        max_depth=None
+    )
+
+
+def test_search_packages(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
+):
+    """Display searched list of available packages."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, ["search", "bim", "-t", "package"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "\n"
+    )
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__",
+        max_depth=None
+    )
+
+
+def test_search_packages_with_versions(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
+):
+    """Display searched available packages with all versions."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["search", "bim", "-t", "package", "--all"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Package          Version   System   Registry   Description       \n"
+        "--------------   -------   ------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bim              0.1.0     noarch   1          This is Bim 0.1.0.\n"
+        "\n"
+    )
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__",
+        max_depth=None
+    )
+
+
+def test_search_commands(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
+):
+    """Display searched list of available commands."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, ["search", "bim", "-t", "command"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "\n"
+    )
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__",
+        max_depth=None
+    )
+
+
+def test_search_commands_with_versions(
+    mocked_system_query, mocked_registry_fetch, mocked_definition_discover,
+    definitions
+):
+    """Display searched available commands with all versions."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_definition_discover.return_value = definitions
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["search", "bim", "-t", "command", "--all"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Command             Version   System   Registry   Description       \n"
+        "-----------------   -------   ------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "bimExe              0.1.0     noarch   1          This is Bim 0.1.0.\n"
+        "\n"
+    )
+
+    mocked_definition_discover.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__",
+        max_depth=None
+    )
+
+
+@pytest.mark.parametrize("options", [
+    ["--", "--incorrect"],
+    ["--incorrect"],
+], ids=[
+    "extra-arguments",
+    "unknown-arguments",
+])
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+def test_search_error(options):
+    """Fail to search available packages and commands."""
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["search", "foo"] + options)
+    assert result.exit_code == 2
+    assert result.exception
+
+
+@pytest.mark.parametrize("options, recorded", [
+    ([], False),
+    (["--record", tempfile.gettempdir()], True)
+], ids=[
+    "normal",
+    "recorded",
+])
+@pytest.mark.usefixtures("mock_datetime_now")
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+def test_view_recorded(
+    mocked_history_start_recording, mocked_history_get,
+    mocked_filesystem_export, options, recorded
+):
+    """Record history when viewing a definition."""
+    mocked_history_get.return_value = "__HISTORY__"
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, options + ["view", "foo"])
+    assert result.exit_code == 0
+    assert not result.exception
+
+    if recorded:
+        mocked_history_start_recording.assert_called_once_with(
+            command=" ".join(["wiz"] + options + ["view", "foo"])
+        )
+        mocked_history_get.assert_called_once_with(serialized=True)
+        mocked_filesystem_export.assert_called_once_with(
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
+        )
+
+    else:
+        mocked_history_start_recording.assert_not_called()
+        mocked_history_get.assert_not_called()
+        mocked_filesystem_export.assert_not_called()
+
+
+def test_view_not_found(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    logger
+):
+    """Fail to view definition when request cannot be found."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = {
+        "command": {},
+        "package": {}
+    }
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["view", "foo"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    logger.warning.assert_called_once_with("No definition found.\n")
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+
+def test_view_definition(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    definition_mapping, logger
+):
+    """Display definition from identifier."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = definition_mapping
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["view", "bar"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "identifier: bar\n"
+        "version: 0.1.0\n"
+        "description: This is Bar 0.1.0.\n"
+        "registry: /registry2\n"
+        "environ:\n"
+        "    PATH: /path/to/bin:${PATH}\n"
+        "requirements:\n"
+        "    bim >=0.1.0, <1\n"
+        "variants:\n"
+        "    identifier: Variant1\n"
+        "        environ:\n"
+        "            PYTHONPATH: /path/to/lib/1:${PYTHONPATH}\n"
+        "    identifier: Variant2\n"
+        "        environ:\n"
+        "            PYTHONPATH: /path/to/lib/2:${PYTHONPATH}\n"
+    )
+
+    logger.info.assert_called_once_with("View definition: bar==0.1.0")
+    logger.warning.assert_not_called()
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+
+def test_view_definition_json(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    definition_mapping, logger
+):
+    """Display definition from identifier in JSON format."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = definition_mapping
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["view", "bar", "--json"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "{\n"
+        "    \"identifier\": \"bar\",\n"
+        "    \"version\": \"0.1.0\",\n"
+        "    \"description\": \"This is Bar 0.1.0.\",\n"
+        "    \"registry\": \"/registry2\",\n"
+        "    \"environ\": {\n"
+        "        \"PATH\": \"/path/to/bin:${PATH}\"\n"
+        "    },\n"
+        "    \"requirements\": [\n"
+        "        \"bim >=0.1.0, <1\"\n"
+        "    ],\n"
+        "    \"variants\": [\n"
+        "        {\n"
+        "            \"identifier\": \"Variant1\",\n"
+        "            \"environ\": {\n"
+        "                \"PYTHONPATH\": \"/path/to/lib/1:${PYTHONPATH}\"\n"
+        "            }\n"
+        "        },\n"
+        "        {\n"
+        "            \"identifier\": \"Variant2\",\n"
+        "            \"environ\": {\n"
+        "                \"PYTHONPATH\": \"/path/to/lib/2:${PYTHONPATH}\"\n"
+        "            }\n"
+        "        }\n"
+        "    ]\n"
+        "}\n"
+    )
+
+    logger.info.assert_called_once_with("View definition: bar==0.1.0")
+    logger.warning.assert_not_called()
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+
+def test_view_definition_from_command(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    definition_mapping, logger
+):
+    """Indicate that identifier is referring to a definition."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = definition_mapping
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["view", "fooExe"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    logger.info.assert_called_once_with(
+        "Command found in definition: foo==0.2.0"
+    )
+    logger.warning.assert_not_called()
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+
+@pytest.mark.parametrize("options", [
+    ["--", "--incorrect"],
+    ["--incorrect"],
+], ids=[
+    "extra-arguments",
+    "unknown-arguments",
+])
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+def test_view_error(options):
+    """Fail to view definitions."""
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["view", "foo"] + options)
+    assert result.exit_code == 2
+    assert result.exception
+
+
+@pytest.mark.parametrize("options, recorded", [
+    ([], False),
+    (["--record", tempfile.gettempdir()], True)
+], ids=[
+    "normal",
+    "recorded",
+])
+@pytest.mark.usefixtures("mock_datetime_now")
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+@pytest.mark.usefixtures("mocked_resolve_context")
+@pytest.mark.usefixtures("mocked_resolve_command")
+@pytest.mark.usefixtures("mocked_spawn_execute")
+@pytest.mark.usefixtures("mocked_spawn_shell")
+@pytest.mark.usefixtures("mocked_history_record_action")
+def test_use_recorded(
+    mocked_history_start_recording, mocked_history_get,
+    mocked_filesystem_export, options, recorded
+):
+    """Record history when using a resolved context."""
+    mocked_history_get.return_value = "__HISTORY__"
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, options + ["use", "foo"])
+    assert result.exit_code == 0
+    assert not result.exception
+
+    if recorded:
+        mocked_history_start_recording.assert_called_once_with(
+            command=" ".join(["wiz"] + options + ["use", "foo"])
+        )
+        mocked_history_get.assert_called_once_with(serialized=True)
+        mocked_filesystem_export.assert_called_once_with(
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__", compressed=True
+        )
+
+    else:
+        mocked_history_start_recording.assert_not_called()
+        mocked_history_get.assert_not_called()
+        mocked_filesystem_export.assert_not_called()
+
+
+def test_use_spawn_shell(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
+    mocked_spawn_shell, mocked_history_record_action, wiz_context, logger
+):
+    """Use a resolved context."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["use", "foo"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        timeout=300
+    )
+
+    mocked_spawn_shell.assert_called_once_with({
+        "KEY1": "value1",
+        "KEY2": "value2"
+    }, {
+        "fooExe": "foo",
+        "fooExeDebug": "foo --debug",
+    })
+
+    mocked_resolve_command.assert_not_called()
+    mocked_spawn_execute.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_use_spawn_shell_view(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
+    mocked_spawn_shell, mocked_history_record_action, wiz_context, logger
+):
+    """View a resolved context."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["use", "foo", "--view"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Package          Version   Registry   Description       \n"
+        "--------------   -------   --------   ------------------\n"
+        "foo              0.1.0     0          This is Foo 0.1.0.\n"
+        "bim [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
+        "\n"
+        "\n"
+        "Command       Value      \n"
+        "-----------   -----------\n"
+        "fooExe        foo        \n"
+        "fooExeDebug   foo --debug\n"
+        "\n"
+        "\n"
+        "Environment Variable   Environment Value\n"
+        "--------------------   -----------------\n"
+        "KEY1                   value1           \n"
+        "KEY2                   value2           \n"
+        "\n"
+    )
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        timeout=300
+    )
+
+    mocked_spawn_shell.assert_not_called()
+    mocked_resolve_command.assert_not_called()
+    mocked_spawn_execute.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_use_spawn_shell_view_empty(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
+    mocked_spawn_shell, mocked_history_record_action, logger
+):
+    """View an empty resolved context."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
     mocked_resolve_context.return_value = {
-        "command": {"app": "AppExe"},
-        "environ": {"KEY": "VALUE"},
-        "packages": [
-            mocker.Mock(identifier="test1==1.1.0", version="1.1.0"),
-            mocker.Mock(identifier="test2==0.3.0", version="0.3.0"),
+        "command": {},
+        "environ": {},
+        "packages": [],
+        "registries": ["/registry1", "/registry2"]
+    }
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["use", "foo", "--view"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Package   Version   Registry   Description\n"
+        "-------   -------   --------   -----------\n"
+        "No packages to display.\n"
+        "\n"
+        "\n"
+        "Command   Value\n"
+        "-------   -----\n"
+        "No commands to display.\n"
+        "\n"
+        "\n"
+        "Environment Variable   Environment Value\n"
+        "--------------------   -----------------\n"
+        "No environment variables to display.\n"
+        "\n"
+    )
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        timeout=300
+    )
+
+    mocked_spawn_shell.assert_not_called()
+    mocked_resolve_command.assert_not_called()
+    mocked_spawn_execute.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_use_execute_command(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
+    mocked_spawn_shell, mocked_history_record_action, wiz_context, logger
+):
+    """Execute a command within a resolved context."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+    mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["use", "foo", "--", "fooExeDebug", "-t", "/path/to/script.foo"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        timeout=300
+    )
+
+    mocked_resolve_command.assert_called_once_with(
+        ["fooExeDebug", "-t", "/path/to/script.foo"],
+        {
+            "fooExe": "foo",
+            "fooExeDebug": "foo --debug",
+        }
+    )
+
+    mocked_spawn_execute.assert_called_once_with(
+        "__RESOLVED_COMMAND__",
+        {
+            "KEY1": "value1",
+            "KEY2": "value2"
+        }
+    )
+
+    mocked_spawn_shell.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_use_with_resolution_error(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
+    mocked_spawn_shell, mocked_history_record_action, logger
+):
+    """Fail to resolve a context."""
+    exception = wiz.exception.WizError("Oh Shit!")
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.side_effect = exception
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["use", "foo", "bim==0.1.*"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo", "bim==0.1.*"], "__MAPPING__", ignore_implicit=False,
+        environ_mapping={}, timeout=300
+    )
+
+    mocked_spawn_shell.assert_not_called()
+    mocked_resolve_command.assert_not_called()
+    mocked_spawn_execute.assert_not_called()
+
+    mocked_history_record_action.assert_called_once_with(
+        "RAISE_EXCEPTION", error=exception
+    )
+
+    logger.error.assert_called_once_with("Oh Shit!", traceback=True)
+
+
+@pytest.mark.parametrize("options", [
+    ["--incorrect"],
+], ids=[
+    "unknown-arguments",
+])
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+@pytest.mark.usefixtures("mocked_resolve_context")
+@pytest.mark.usefixtures("mocked_resolve_command")
+@pytest.mark.usefixtures("mocked_spawn_execute")
+@pytest.mark.usefixtures("mocked_spawn_shell")
+@pytest.mark.usefixtures("mocked_history_record_action")
+def test_use_error(options):
+    """Fail to view definitions."""
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["use", "foo"] + options)
+    assert result.exit_code == 2
+    assert result.exception
+
+
+def test_use_initial_environment(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
+    wiz_context
+):
+    """Execurting a command to extend an initial environment."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+    mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, [
+            "--init", "PATH=/path", "--init", "PYTHONPATH=/other-path",
+            "use", "foo", "--", "fooExeDebug", "-t", "/path/to/script.foo"
         ]
-    }
-
-    wiz.command_line.main([
-        "freeze", "bim", "bar", "--format", "tcsh", "-o", temporary_directory
-    ])
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
 
     mocked_resolve_context.assert_called_once_with(
-        ["bim", "bar"], "__DEFINITION_MAPPING__", ignore_implicit=False
+        ["foo"], "__MAPPING__", ignore_implicit=False,
+        environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"},
+        timeout=300
     )
 
-    file_path = os.path.join(temporary_directory, "foo")
-    assert os.path.isfile(file_path) is True
 
-    with open(file_path, "r") as stream:
-        assert stream.read() == (
-            "#!/bin/tcsh -f\n"
-            "#\n"
-            "# Generated by wiz with the following environments:\n"
-            "# - test1==1.1.0\n"
-            "# - test2==0.3.0\n"
-            "#\n"
-            "setenv KEY \"VALUE\"\n"
-            "AppExe $argv:q\n"
-        )
-
-
-@pytest.mark.usefixtures("mock_query_identifier")
-@pytest.mark.usefixtures("mock_query_command")
-def test_freeze_definition_bash(
-    temporary_directory, mocker,
-    mocked_fetch_definition_mapping,
-    mocked_resolve_context
+@pytest.mark.parametrize("options, recorded", [
+    ([], False),
+    (["--record", tempfile.gettempdir()], True)
+], ids=[
+    "normal",
+    "recorded",
+])
+@pytest.mark.usefixtures("mock_datetime_now")
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+@pytest.mark.usefixtures("mocked_fetch_package_request_from_command")
+@pytest.mark.usefixtures("mocked_resolve_context")
+@pytest.mark.usefixtures("mocked_spawn_execute")
+@pytest.mark.usefixtures("mocked_history_record_action")
+def test_run_recorded(
+    mocked_history_start_recording, mocked_history_get,
+    mocked_filesystem_export, mocked_resolve_command, options, recorded
 ):
-    """Freeze a Wiz definition into a Bash script."""
-    mocked_fetch_definition_mapping.return_value = "__DEFINITION_MAPPING__"
-    mocked_resolve_context.return_value = {
-        "command": {"app": "AppExe"},
-        "environ": {"KEY": "VALUE"},
-        "packages": [
-            mocker.Mock(identifier="test1==1.1.0", version="1.1.0"),
-            mocker.Mock(identifier="test2==0.3.0", version="0.3.0"),
-        ]
-    }
+    """Record history when running command within a resolved context."""
+    mocked_history_get.return_value = "__HISTORY__"
+    mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
 
-    wiz.command_line.main([
-        "freeze", "bim", "bar", "--format", "bash", "-o", temporary_directory
-    ])
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, options + ["run", "fooExe"])
+    assert result.exit_code == 0
+    assert not result.exception
 
-    mocked_resolve_context.assert_called_once_with(
-        ["bim", "bar"], "__DEFINITION_MAPPING__", ignore_implicit=False
+    if recorded:
+        mocked_history_start_recording.assert_called_once_with(
+            command=" ".join(["wiz"] + options + ["run", "fooExe"])
+        )
+        mocked_history_get.assert_called_once_with(serialized=True)
+        mocked_filesystem_export.assert_called_once_with(
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__", compressed=True
+        )
+
+    else:
+        mocked_history_start_recording.assert_not_called()
+        mocked_history_get.assert_not_called()
+        mocked_filesystem_export.assert_not_called()
+
+
+def test_run(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_fetch_package_request_from_command, mocked_resolve_context,
+    mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
+    wiz_context, logger
+):
+    """Execute a command within a resolved context."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+    mocked_fetch_package_request_from_command.return_value = "__PACKAGE__"
+    mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["run", "fooExe"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
     )
 
-    file_path = os.path.join(temporary_directory, "foo")
-    assert os.path.isfile(file_path) is True
+    mocked_fetch_package_request_from_command.assert_called_once_with(
+        "fooExe", "__MAPPING__"
+    )
 
-    with open(file_path, "r") as stream:
-        assert stream.read() == (
-            "#!/bin/bash\n"
-            "#\n"
-            "# Generated by wiz with the following environments:\n"
-            "# - test1==1.1.0\n"
-            "# - test2==0.3.0\n"
-            "#\n"
-            "export KEY=\"VALUE\"\n"
-            "AppExe $@\n"
+    mocked_resolve_context.assert_called_once_with(
+        ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
+        environ_mapping={}, timeout=300
+    )
+
+    mocked_resolve_command.assert_called_once_with(
+        ["fooExe"],
+        {
+            "fooExe": "foo",
+            "fooExeDebug": "foo --debug",
+        }
+    )
+
+    mocked_spawn_execute.assert_called_once_with(
+        "__RESOLVED_COMMAND__",
+        {
+            "KEY1": "value1",
+            "KEY2": "value2"
+        }
+    )
+
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_run_view(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_fetch_package_request_from_command, mocked_resolve_context,
+    mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
+    wiz_context, logger
+):
+    """View a resolved context from a command execution."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+    mocked_fetch_package_request_from_command.return_value = "__PACKAGE__"
+    mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["run", "fooExe", "--view"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Package          Version   Registry   Description       \n"
+        "--------------   -------   --------   ------------------\n"
+        "foo              0.1.0     0          This is Foo 0.1.0.\n"
+        "bim [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
+        "\n"
+        "\n"
+        "Command       Value      \n"
+        "-----------   -----------\n"
+        "fooExe        foo        \n"
+        "fooExeDebug   foo --debug\n"
+        "\n"
+        "\n"
+        "Environment Variable   Environment Value\n"
+        "--------------------   -----------------\n"
+        "KEY1                   value1           \n"
+        "KEY2                   value2           \n"
+        "\n"
+    )
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_fetch_package_request_from_command.assert_called_once_with(
+        "fooExe", "__MAPPING__"
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
+        environ_mapping={}, timeout=300
+    )
+
+    mocked_resolve_command.assert_not_called()
+    mocked_spawn_execute.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_run_view_empty(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_fetch_package_request_from_command, mocked_resolve_context,
+    mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
+    logger
+):
+    """View an empty resolved context from a command execution."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = {
+        "command": {},
+        "environ": {},
+        "packages": [],
+        "registries": ["/registry1", "/registry2"]
+    }
+    mocked_fetch_package_request_from_command.return_value = "__PACKAGE__"
+    mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["run", "fooExe", "--view"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "\n"
+        "Registries    \n"
+        "--------------\n"
+        "[0] /registry1\n"
+        "[1] /registry2\n"
+        "\n"
+        "\n"
+        "Package   Version   Registry   Description\n"
+        "-------   -------   --------   -----------\n"
+        "No packages to display.\n"
+        "\n"
+        "\n"
+        "Command   Value\n"
+        "-------   -----\n"
+        "No commands to display.\n"
+        "\n"
+        "\n"
+        "Environment Variable   Environment Value\n"
+        "--------------------   -----------------\n"
+        "No environment variables to display.\n"
+        "\n"
+    )
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_fetch_package_request_from_command.assert_called_once_with(
+        "fooExe", "__MAPPING__"
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
+        environ_mapping={}, timeout=300
+    )
+
+    mocked_resolve_command.assert_not_called()
+    mocked_spawn_execute.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_run_with_resolution_error(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_fetch_package_request_from_command, mocked_resolve_context,
+    mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
+    logger
+):
+    """Fail to resolve a context."""
+    exception = wiz.exception.WizError("Oh Shit!")
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_fetch_package_request_from_command.return_value = "__PACKAGE__"
+    mocked_resolve_context.side_effect = exception
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["run", "fooExe"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
+        environ_mapping={}, timeout=300
+    )
+
+    mocked_fetch_package_request_from_command.assert_called_once_with(
+        "fooExe", "__MAPPING__"
+    )
+
+    mocked_resolve_command.assert_not_called()
+    mocked_spawn_execute.assert_not_called()
+
+    mocked_history_record_action.assert_called_once_with(
+        "RAISE_EXCEPTION", error=exception
+    )
+
+    logger.error.assert_called_once_with("Oh Shit!", traceback=True)
+
+
+def test_run_initial_environment(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_fetch_package_request_from_command, mocked_resolve_context,
+    mocked_resolve_command, mocked_spawn_execute, wiz_context
+):
+    """Execute a command to extend an initial environment."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+    mocked_fetch_package_request_from_command.return_value = "__PACKAGE__"
+    mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, [
+            "--init", "PATH=/path", "--init", "PYTHONPATH=/other-path",
+            "run", "fooExe"
+        ])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_resolve_context.assert_called_once_with(
+        ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
+        environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"},
+        timeout=300
+    )
+
+
+@pytest.mark.parametrize("options, recorded", [
+    ([], False),
+    (["--record", tempfile.gettempdir()], True)
+], ids=[
+    "normal",
+    "recorded",
+])
+@pytest.mark.usefixtures("mock_datetime_now")
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+@pytest.mark.usefixtures("mocked_resolve_context")
+@pytest.mark.usefixtures("mocked_export_definition")
+@pytest.mark.usefixtures("mocked_export_script")
+@pytest.mark.usefixtures("mocked_history_record_action")
+def test_freeze_recorded(
+    mocked_history_start_recording, mocked_history_get,
+    mocked_filesystem_export, mocked_click_prompt, options, recorded
+):
+    """Record history when freezing a resolved environment."""
+    mocked_history_get.return_value = "__HISTORY__"
+    mocked_click_prompt.side_effect = ["foo", "This is a description", "0.1.0"]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        options + ["freeze", "foo", "-o", "/output/path"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    if recorded:
+        mocked_history_start_recording.assert_called_once_with(
+            command=" ".join(
+                ["wiz"] + options + ["freeze", "foo", "-o", "/output/path"]
+            )
         )
+        mocked_history_get.assert_called_once_with(serialized=True)
+        mocked_filesystem_export.assert_called_once_with(
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
+        )
+
+    else:
+        mocked_history_start_recording.assert_not_called()
+        mocked_history_get.assert_not_called()
+        mocked_filesystem_export.assert_not_called()
+
+
+@pytest.mark.parametrize("options", [
+    [], ["--format", "wiz"]
+], ids=[
+    "default",
+    "with-option",
+])
+def test_freeze(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_export_definition, mocked_export_script,
+    mocked_history_record_action, logger, mocked_click_prompt, wiz_context,
+    options
+):
+    """Freeze a resolved environment."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+    mocked_click_prompt.side_effect = ["foo", "This is a description.", "0.1.0"]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["freeze", "foo", "-o", "/output/path"] + options,
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        timeout=300
+    )
+
+    mocked_export_definition.assert_called_once_with(
+        "/output/path",
+        {
+            "identifier": "foo",
+            "version": "0.1.0",
+            "description": "This is a description.",
+            "command": {
+                "fooExe": "foo",
+                "fooExeDebug": "foo --debug"
+            },
+            "environ": {
+                "KEY1": "value1",
+                "KEY2": "value2",
+            }
+        }
+    )
+
+    mocked_export_script.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+
+@pytest.mark.parametrize("options", [
+    [], ["--format", "wiz"]
+], ids=[
+    "default",
+    "with-option",
+])
+def test_freeze_empty(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_export_definition, mocked_export_script,
+    mocked_history_record_action, logger, mocked_click_prompt, options
+):
+    """Freeze an empty resolved environment."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = {}
+    mocked_click_prompt.side_effect = ["foo", "This is a description.", "0.1.0"]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["freeze", "foo", "-o", "/output/path"] + options,
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        timeout=300
+    )
+
+    mocked_export_definition.assert_called_once_with(
+        "/output/path",
+        {
+            "identifier": "foo",
+            "version": "0.1.0",
+            "description": "This is a description."
+        }
+    )
+
+    mocked_export_script.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+
+@pytest.mark.parametrize("format_name, options, command", [
+    ("tcsh", ["--format", "tcsh"], None),
+    ("tcsh", ["--format", "tcsh"], "fooExe"),
+    ("bash", ["--format", "bash"], None),
+    ("bash", ["--format", "bash"], "fooExe"),
+], ids=[
+    "tcsh",
+    "tcsh-with-command",
+    "bash",
+    "bash-with-command",
+])
+def test_freeze_as_script(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_export_definition, mocked_export_script,
+    mocked_history_record_action, logger, mocked_click_prompt, wiz_context,
+    format_name, options, command
+):
+    """Freeze a resolved environment as a script."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+    mocked_click_prompt.side_effect = ["foo", command]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["freeze", "foo", "-o", "/output/path"] + options,
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == (
+        "Available aliases:\n"
+        "- foo --debug\n"
+        "- foo\n"
+    )
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        timeout=300
+    )
+
+    mocked_export_script.assert_called_once_with(
+        "/output/path", format_name, "foo",
+        environ={"KEY1": "value1", "KEY2": "value2"},
+        command=command,
+        packages=wiz_context["packages"]
+    )
+
+    mocked_export_definition.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+
+@pytest.mark.parametrize("format_name, options, command", [
+    ("tcsh", ["--format", "tcsh"], None),
+    ("tcsh", ["--format", "tcsh"], "fooExe"),
+    ("bash", ["--format", "bash"], None),
+    ("bash", ["--format", "bash"], "fooExe"),
+], ids=[
+    "tcsh",
+    "tcsh-with-command",
+    "bash",
+    "bash-with-command",
+])
+def test_freeze_as_script_without_commands(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_export_definition, mocked_export_script,
+    mocked_history_record_action, logger, mocked_click_prompt, wiz_context,
+    format_name, options, command
+):
+    """Freeze a resolved environment as a script."""
+    wiz_context["command"] = {}
+
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+    mocked_click_prompt.side_effect = ["foo", command]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["freeze", "foo", "-o", "/output/path"] + options,
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        timeout=300
+    )
+
+    mocked_export_script.assert_called_once_with(
+        "/output/path", format_name, "foo",
+        environ={"KEY1": "value1", "KEY2": "value2"},
+        command=command,
+        packages=wiz_context["packages"]
+    )
+
+    mocked_export_definition.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+
+def test_freeze_with_resolution_error(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, mocked_export_definition, mocked_export_script,
+    mocked_history_record_action, logger, mocked_click_prompt
+):
+    """Fail to resolve a context."""
+    exception = wiz.exception.WizError("Oh Shit!")
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_fetch_package_request_from_command.return_value = "__PACKAGE__"
+    mocked_resolve_context.side_effect = exception
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, ["freeze", "foo", "-o", "/output/path"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        ["/registry1", "/registry2"],
+        system_mapping="__SYSTEM__", max_depth=None
+    )
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        timeout=300
+    )
+
+    mocked_click_prompt.assert_not_called()
+    mocked_export_definition.assert_not_called()
+    mocked_export_script.assert_not_called()
+
+    mocked_history_record_action.assert_called_once_with(
+        "RAISE_EXCEPTION", error=exception
+    )
+
+    logger.error.assert_called_once_with("Oh Shit!", traceback=True)
+    logger.warning.assert_not_called()
+
+
+@pytest.mark.parametrize("options", [
+    ["--", "--incorrect"],
+    ["--incorrect"],
+], ids=[
+    "extra-arguments",
+    "unknown-arguments",
+])
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+@pytest.mark.usefixtures("mocked_resolve_context")
+@pytest.mark.usefixtures("mocked_export_definition")
+@pytest.mark.usefixtures("mocked_export_script")
+@pytest.mark.usefixtures("mocked_history_record_action")
+def test_freeze_error(options):
+    """Fail to freeze resolved environment."""
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["freeze", "foo"] + options)
+    assert result.exit_code == 2
+    assert result.exception
+
+
+@pytest.mark.usefixtures("mocked_export_definition")
+def test_freeze_initial_environment(
+    mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
+    mocked_resolve_context, wiz_context, mocked_click_prompt
+):
+    """Freeze a resolved environment with initial environment."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
+    mocked_resolve_context.return_value = wiz_context
+    mocked_click_prompt.side_effect = ["foo", "This is a description.", "0.1.0"]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, [
+           "--init", "PATH=/path", "--init", "PYTHONPATH=/other-path",
+           "freeze", "foo", "-o", "/output/path"
+        ],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_resolve_context.assert_called_once_with(
+        ["foo"], "__MAPPING__", ignore_implicit=False,
+        environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"},
+        timeout=300
+    )
+
+
+@pytest.mark.parametrize("options, recorded", [
+    ([], False),
+    (["--record", tempfile.gettempdir()], True)
+], ids=[
+    "normal",
+    "recorded",
+])
+@pytest.mark.usefixtures("mock_datetime_now")
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+@pytest.mark.usefixtures("mocked_install_definitions")
+@pytest.mark.usefixtures("mocked_click_confirm")
+@pytest.mark.usefixtures("mocked_history_record_action")
+def test_install_recorded(
+    mocked_history_start_recording, mocked_history_get,
+    mocked_filesystem_export, options, recorded
+):
+    """Record history when installing definition(s)."""
+    mocked_history_get.return_value = "__HISTORY__"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        options + ["install", "/path/to/foo.json", "-r", "/somewhere"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    if recorded:
+        mocked_history_start_recording.assert_called_once_with(
+            command=" ".join(
+                ["wiz"] + options + [
+                    "install", "/path/to/foo.json", "-r", "/somewhere"
+                ]
+            )
+        )
+        mocked_history_get.assert_called_once_with(serialized=True)
+        mocked_filesystem_export.assert_called_once_with(
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
+        )
+
+    else:
+        mocked_history_start_recording.assert_not_called()
+        mocked_history_get.assert_not_called()
+        mocked_filesystem_export.assert_not_called()
+
+
+@pytest.mark.parametrize("options, definitions", [
+    (["/foo.json"], ("/foo.json",)),
+    (["/foo.json", "/bar.json"], ("/foo.json", "/bar.json"))
+], ids=[
+    "one-definition",
+    "several-definitions"
+])
+def test_install_to_path(
+    mocked_system_query, mocked_registry_fetch,
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger, options, definitions
+):
+    """Install definition in local registry."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install"] + options + ["--registry", "/registry"],
+    )
+    assert not result.exception
+    assert result.exit_code == 0
+    assert result.output == ""
+
+    mocked_install_definitions.assert_called_once_with(
+        definitions, "/registry",
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.warning.assert_not_called()
+    logger.error.assert_not_called()
+
+
+@pytest.mark.parametrize("options, definitions", [
+    (["/foo.json"], ("/foo.json",)),
+    (["/foo.json", "/bar.json"], ("/foo.json", "/bar.json"))
+], ids=[
+    "one-definition",
+    "several-definitions"
+])
+def test_install_vcs(
+    mocked_system_query, mocked_registry_fetch,
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger, options, definitions
+):
+    """Install definition in VCS registry."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install"] + options + ["--registry", "registry-id"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_install_definitions.assert_called_once_with(
+        definitions, "registry-id",
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.warning.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_install_local_overwrite_existing(
+    mocked_system_query, mocked_registry_fetch,
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
+):
+    """Overwrite definition in local registry."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_install_definitions.side_effect = (
+        wiz.exception.DefinitionsExist(["foo [0.1.0]"]),
+        None
+    )
+    mocked_click_confirm.return_value = True
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install", "/foo.json", "--registry", "/registry"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    assert mocked_install_definitions.call_count == 2
+    mocked_install_definitions.assert_any_call(
+        ("/foo.json",), "/registry",
+        overwrite=False
+    )
+    mocked_install_definitions.assert_any_call(
+        ("/foo.json",), "/registry",
+        overwrite=True
+    )
+
+    mocked_click_confirm.assert_called_once_with(
+        "1 definition(s) already exist in registry.\n"
+        "- foo [0.1.0]\n"
+        "Overwrite?"
+    )
+
+    mocked_history_record_action.assert_not_called()
+    logger.warning.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_install_local_skip_existing(
+    mocked_system_query, mocked_registry_fetch,
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
+):
+    """Skip definition in local registry."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_install_definitions.side_effect = (
+        wiz.exception.DefinitionsExist(["foo [0.1.0]"]),
+    )
+    mocked_click_confirm.return_value = False
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install", "/foo.json", "--registry", "/registry"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_install_definitions.assert_called_once_with(
+        ("/foo.json",), "/registry",
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_called_once_with(
+        "1 definition(s) already exist in registry.\n"
+        "- foo [0.1.0]\n"
+        "Overwrite?"
+    )
+
+    mocked_history_record_action.assert_not_called()
+    logger.warning.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_install_vcs_overwrite_existing(
+    mocked_system_query, mocked_registry_fetch,
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
+):
+    """Overwrite definition in VCS registry."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_install_definitions.side_effect = (
+        wiz.exception.DefinitionsExist(["foo [0.1.0]"]),
+        None
+    )
+    mocked_click_confirm.return_value = True
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install", "/foo.json", "--registry", "registry-id"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    assert mocked_install_definitions.call_count == 2
+    mocked_install_definitions.assert_any_call(
+        ("/foo.json",), "registry-id",
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_called_once_with(
+        "1 definition(s) already exist in registry.\n"
+        "- foo [0.1.0]\n"
+        "Overwrite?"
+    )
+
+    mocked_history_record_action.assert_not_called()
+    logger.warning.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_install_vcs_skip_existing(
+    mocked_system_query, mocked_registry_fetch,
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
+):
+    """Skip definition in VCS registry."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_install_definitions.side_effect = (
+        wiz.exception.DefinitionsExist(["foo [0.1.0]"]),
+        None
+    )
+    mocked_click_confirm.return_value = False
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install", "/foo.json", "--registry", "registry-id"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_install_definitions.assert_called_once_with(
+        ("/foo.json",), "registry-id",
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_called_once_with(
+        "1 definition(s) already exist in registry.\n"
+        "- foo [0.1.0]\n"
+        "Overwrite?"
+    )
+
+    mocked_history_record_action.assert_not_called()
+    logger.warning.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_install_local_no_change(
+    mocked_system_query, mocked_registry_fetch,
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
+):
+    """Installation to local registry with no changes."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_install_definitions.side_effect = (
+        wiz.exception.InstallNoChanges()
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install", "/foo.json", "--registry", "/registry"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_install_definitions.assert_called_once_with(
+        ("/foo.json",), "/registry",
+        overwrite=False
+    )
+
+    logger.warning.assert_called_once_with("No changes detected in release.")
+
+    mocked_click_confirm.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_install_vcs_no_change(
+    mocked_system_query, mocked_registry_fetch,
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
+):
+    """Installation to VCS registry with no changes."""
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_install_definitions.side_effect = (
+        wiz.exception.InstallNoChanges()
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install", "/foo.json", "--registry", "registry-id"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_install_definitions.assert_called_once_with(
+        ("/foo.json",), "registry-id",
+        overwrite=False
+    )
+
+    logger.warning.assert_called_once_with("No changes detected in release.")
+
+    mocked_click_confirm.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+
+def test_install_local_error(
+    mocked_system_query, mocked_registry_fetch,
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
+):
+    """Fail to install definition to local registry."""
+    exception = wiz.exception.WizError("Oh Shit!")
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_install_definitions.side_effect = exception
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install", "/foo.json", "--registry", "/registry"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_install_definitions.assert_called_once_with(
+        ("/foo.json",), "/registry",
+        overwrite=False
+    )
+
+    logger.error.assert_called_once_with(exception, traceback=True)
+
+    mocked_history_record_action.assert_called_once_with(
+        "RAISE_EXCEPTION", error=exception
+    )
+
+    mocked_click_confirm.assert_not_called()
+    logger.warning.assert_not_called()
+
+
+def test_install_vcs_error(
+    mocked_system_query, mocked_registry_fetch,
+    mocked_install_definitions, mocked_click_confirm,
+    mocked_history_record_action, logger
+):
+    """Fail to install definition to VCS registry."""
+    exception = wiz.exception.WizError("Oh Shit!")
+    mocked_system_query.return_value = "__SYSTEM__"
+    mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
+    mocked_install_definitions.side_effect = exception
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install", "/foo.json", "--registry", "registry-id"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_install_definitions.assert_called_once_with(
+        ("/foo.json",), "registry-id",
+        overwrite=False
+    )
+
+    logger.error.assert_called_once_with(exception, traceback=True)
+
+    mocked_history_record_action.assert_called_once_with(
+        "RAISE_EXCEPTION", error=exception
+    )
+
+    mocked_click_confirm.assert_not_called()
+    logger.warning.assert_not_called()
+
+
+@pytest.mark.parametrize("options", [
+    ["--", "--incorrect"],
+    ["--incorrect"],
+], ids=[
+    "extra-arguments",
+    "unknown-arguments",
+])
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+@pytest.mark.usefixtures("mocked_install_definitions")
+@pytest.mark.usefixtures("mocked_click_confirm")
+@pytest.mark.usefixtures("mocked_history_record_action")
+def test_install_local_command_error(options):
+    """Fail to install definition to local registry."""
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install"] + options + ["/foo.json", "--registry-path", "/registry"],
+    )
+    assert result.exit_code == 2
+    assert result.exception
+
+
+@pytest.mark.parametrize("options", [
+    ["--", "--incorrect"],
+    ["--incorrect"],
+], ids=[
+    "extra-arguments",
+    "unknown-arguments",
+])
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_fetch_definition_mapping")
+@pytest.mark.usefixtures("mocked_install_definitions")
+@pytest.mark.usefixtures("mocked_click_confirm")
+@pytest.mark.usefixtures("mocked_history_record_action")
+def test_install_vcs_command_error(options):
+    """Fail to install definition to VCS registry."""
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["install"] + options + ["/foo.json", "--registry-id", "registry-id"],
+    )
+    assert result.exit_code == 2
+    assert result.exception
+
+
+@pytest.mark.parametrize("options, recorded", [
+    ([], False),
+    (["--record", tempfile.gettempdir()], True)
+], ids=[
+    "normal",
+    "recorded",
+])
+@pytest.mark.usefixtures("mock_datetime_now")
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+@pytest.mark.usefixtures("mocked_load_definition")
+@pytest.mark.usefixtures("mocked_click_confirm")
+@pytest.mark.usefixtures("mocked_click_edit")
+@pytest.mark.usefixtures("mocked_history_record_action")
+def test_edit_recorded(
+    mocked_history_start_recording, mocked_history_get,
+    mocked_filesystem_export, options, recorded
+):
+    """Record history when editing definition(s)."""
+    mocked_history_get.return_value = "__HISTORY__"
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        options + ["edit", "/path/to/foo.json"],
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    if recorded:
+        mocked_history_start_recording.assert_called_once_with(
+            command=" ".join(
+                ["wiz"] + options + ["edit", "/path/to/foo.json"]
+            )
+        )
+        mocked_history_get.assert_called_once_with(serialized=True)
+        mocked_filesystem_export.assert_called_once_with(
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__", compressed=True
+        )
+
+    else:
+        mocked_history_start_recording.assert_not_called()
+        mocked_history_get.assert_not_called()
+        mocked_filesystem_export.assert_not_called()
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with editor."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+    mocked_click_edit.return_value = (
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}"
+    )
+    mocked_click_confirm.return_value = True
+    mocked_filesystem_export.side_effect = [wiz.exception.FileExists(), None]
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["edit", "/path/to/foo.json"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+    mocked_click_edit.assert_called_once_with(
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}",
+        extension=".json"
+    )
+
+    mocked_click_confirm.assert_called_once_with("Overwrite 'foo'?")
+
+    assert mocked_filesystem_export.call_count == 2
+    mocked_filesystem_export.assert_any_call(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\"\n"
+            "}"
+        ),
+        overwrite=False
+    )
+    mocked_filesystem_export.assert_any_call(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\"\n"
+            "}"
+        ),
+        overwrite=True
+    )
+
+    mocked_history_record_action.assert_not_called()
+
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_non_saved(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Skip definition editing when updated data is unsaved in editor."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+    mocked_click_edit.return_value = None
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["edit", "/path/to/foo.json"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+    mocked_click_edit.assert_called_once_with(
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}",
+        extension=".json"
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_filesystem_export.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+    logger.info.assert_called_once_with("Edit 'foo'.")
+    logger.warning.assert_called_once_with("Skip edition for 'foo'.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_overwrite_existing(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with editor by overwriting original."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+    mocked_click_edit.return_value = (
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["edit", "/path/to/foo.json", "--overwrite"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+    mocked_click_edit.assert_called_once_with(
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}",
+        extension=".json"
+    )
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\"\n"
+            "}"
+        ),
+        overwrite=True
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_skip_existing(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Abort definition edition by skipping overwriting."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+    mocked_click_edit.return_value = (
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}"
+    )
+
+    mocked_click_confirm.return_value = False
+    mocked_filesystem_export.side_effect = wiz.exception.FileExists()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main, ["edit", "/path/to/foo.json"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+    mocked_click_edit.assert_called_once_with(
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}",
+        extension=".json"
+    )
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\"\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_called_once_with("Overwrite 'foo'?")
+
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+
+    logger.warning.assert_called_once_with("Skip edition for 'foo'.")
+    logger.info.assert_called_once_with("Edit 'foo'.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_output(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with editor and save in different output path."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+    mocked_click_edit.return_value = (
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        ["edit", "/path/to/foo.json", "--output", "/path/to/target"]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+    mocked_click_edit.assert_called_once_with(
+        "{\n"
+        "    \"identifier\": \"foo\",\n"
+        "    \"registry\": \"/path\",\n"
+        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "}",
+        extension=".json"
+    )
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/target/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"version\": \"0.1.0\"\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/target/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_set(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'set'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--set", "install-location", "/path/to/data"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"install-location\": \"/path/to/data\"\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_update(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'update'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "environ": {
+            "KEY1": "VALUE1"
+        },
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--update", "environ", "{\"KEY1\": \"VALUE2\"}"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"environ\": {\n"
+            "        \"KEY1\": \"VALUE2\"\n"
+            "    }\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_extend(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'extend'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "requirements": [
+            "bar >= 0.1.0, < 1"
+        ],
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--extend", "requirements", "[\"bim >= 2.5, < 3\", \"baz\"]"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"requirements\": [\n"
+            "        \"bar >=0.1.0, <1\",\n"
+            "        \"bim >=2.5, <3\",\n"
+            "        \"baz\"\n"
+            "    ]\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_insert(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'insert'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "requirements": [
+            "bar >= 0.1.0, < 1",
+            "bim >= 2.5, < 3"
+        ],
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--insert", "requirements", "baz", "1"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"requirements\": [\n"
+            "        \"bar >=0.1.0, <1\",\n"
+            "        \"baz\",\n"
+            "        \"bim >=2.5, <3\"\n"
+            "    ]\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_remove(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'remove'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "requirements": [
+            "bar >= 0.1.0, < 1",
+            "bim >= 2.5, < 3"
+        ],
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--remove", "requirements"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\"\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_remove_key(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'remove-key'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "environ": {
+            "KEY1": "VALUE1",
+            "KEY2": "VALUE2",
+        },
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--remove-key", "environ", "KEY2"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"environ\": {\n"
+            "        \"KEY1\": \"VALUE1\"\n"
+            "    }\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_with_operation_remove_index(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Edit definition with operation 'remove-index'."""
+    definition = wiz.definition.Definition({
+        "identifier": "foo",
+        "registry": "/path",
+        "definition-location": "/path/to/foo.json",
+        "requirements": [
+            "bar >= 0.1.0, < 1",
+            "bim >= 2.5, < 3"
+        ],
+    })
+
+    mocked_load_definition.return_value = definition
+
+    runner = CliRunner()
+    result = runner.invoke(
+        wiz.command_line.main,
+        [
+            "edit", "/path/to/foo.json",
+            "--remove-index", "requirements", "0"
+        ]
+    )
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_filesystem_export.assert_called_once_with(
+        "/path/to/foo.json",
+        (
+            "{\n"
+            "    \"identifier\": \"foo\",\n"
+            "    \"requirements\": [\n"
+            "        \"bim >=2.5, <3\"\n"
+            "    ]\n"
+            "}"
+        ),
+        overwrite=False
+    )
+
+    mocked_click_confirm.assert_not_called()
+    mocked_click_edit.assert_not_called()
+    mocked_history_record_action.assert_not_called()
+    logger.error.assert_not_called()
+    logger.warning.assert_not_called()
+
+    assert logger.info.call_count == 2
+    logger.info.assert_any_call("Edit 'foo'.")
+    logger.info.assert_any_call("Saved 'foo' in /path/to/foo.json.")
+
+
+@pytest.mark.usefixtures("mocked_system_query")
+@pytest.mark.usefixtures("mocked_registry_fetch")
+def test_edit_error_raised(
+    mocked_load_definition, mocked_click_confirm, mocked_click_edit,
+    mocked_history_record_action, mocked_filesystem_export, logger
+):
+    """Fail to edit definition when error is saved."""
+    exception = Exception("Oh Shit!")
+    mocked_load_definition.side_effect = exception
+
+    runner = CliRunner()
+    result = runner.invoke(wiz.command_line.main, ["edit", "/path/to/foo.json"])
+    assert result.exit_code == 0
+    assert not result.exception
+    assert result.output == ""
+
+    mocked_load_definition.assert_called_once_with("/path/to/foo.json")
+
+    mocked_click_edit.assert_not_called()
+    mocked_click_confirm.assert_not_called()
+    mocked_filesystem_export.assert_not_called()
+
+    logger.info.assert_not_called()
+    logger.warning.assert_not_called()
+
+    logger.error.assert_called_once_with("Oh Shit!", traceback=True)
+
+    mocked_history_record_action.assert_called_once_with(
+        "RAISE_EXCEPTION", error=exception
+    )

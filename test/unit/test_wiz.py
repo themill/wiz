@@ -9,6 +9,7 @@ from wiz._version import __version__
 import wiz
 import wiz.definition
 import wiz.package
+import wiz.environ
 import wiz.system
 import wiz.graph
 import wiz.utility
@@ -82,9 +83,9 @@ def mocked_package_extract(mocker):
 
 
 @pytest.fixture()
-def mocked_package_initiate_environ(mocker):
-    """Return mocked 'wiz.package.initiate_environ' function."""
-    return mocker.patch.object(wiz.package, "initiate_environ")
+def mocked_environ_initiate(mocker):
+    """Return mocked 'wiz.environ.initiate' function."""
+    return mocker.patch.object(wiz.environ, "initiate")
 
 
 @pytest.fixture()
@@ -143,7 +144,8 @@ def test_fetch_definition_mapping(
     assert result == definition_mapping
 
     mocked_definition_fetch.assert_called_once_with(
-        paths, max_depth=options.get("max_depth"),
+        paths,
+        max_depth=options.get("max_depth"),
         system_mapping=options.get("system_mapping", default_system_mapping)
     )
 
@@ -232,7 +234,7 @@ def test_fetch_package_request_from_command_error():
 ])
 def test_resolve_context(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
-    mocked_graph_resolver, mocked_package_initiate_environ,
+    mocked_graph_resolver, mocked_environ_initiate,
     mocked_package_extract_context, mocked_utility_encode, mocker, options
 ):
     """Get resolved context mapping."""
@@ -248,7 +250,7 @@ def test_resolve_context(
 
     mocked_resolver = mocker.Mock(**{"compute_packages.return_value": packages})
     mocked_graph_resolver.return_value = mocked_resolver
-    mocked_package_initiate_environ.return_value = "__INITIAL_ENVIRON__"
+    mocked_environ_initiate.return_value = "__INITIAL_ENVIRON__"
     mocked_package_extract_context.return_value = context
     mocked_utility_encode.return_value = "__ENCODED_CONTEXT__"
 
@@ -273,12 +275,14 @@ def test_resolve_context(
     mocked_registry_defaults.assert_not_called()
     mocked_fetch_definition_mapping.assert_not_called()
 
-    mocked_graph_resolver.assert_called_once_with("__PACKAGE_DEFINITIONS__")
+    mocked_graph_resolver.assert_called_once_with(
+        "__PACKAGE_DEFINITIONS__", 300
+    )
     mocked_resolver.compute_packages.assert_called_once_with([
         Requirement(request) for request in requests
     ])
 
-    mocked_package_initiate_environ.assert_called_once_with(
+    mocked_environ_initiate.assert_called_once_with(
         options.get("environ_mapping")
     )
 
@@ -296,7 +300,7 @@ def test_resolve_context(
 ])
 def test_resolve_context_with_default_definition_mapping(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
-    mocked_graph_resolver, mocked_package_initiate_environ,
+    mocked_graph_resolver, mocked_environ_initiate,
     mocked_package_extract_context, mocked_utility_encode, mocker, options
 ):
     """Get resolved context mapping with default definition mapping."""
@@ -312,7 +316,7 @@ def test_resolve_context_with_default_definition_mapping(
 
     mocked_resolver = mocker.Mock(**{"compute_packages.return_value": packages})
     mocked_graph_resolver.return_value = mocked_resolver
-    mocked_package_initiate_environ.return_value = "__INITIAL_ENVIRON__"
+    mocked_environ_initiate.return_value = "__INITIAL_ENVIRON__"
     mocked_package_extract_context.return_value = context
     mocked_utility_encode.return_value = "__ENCODED_CONTEXT__"
     mocked_registry_defaults.return_value = paths
@@ -337,12 +341,14 @@ def test_resolve_context_with_default_definition_mapping(
     mocked_registry_defaults.asset_called_once()
     mocked_fetch_definition_mapping.asset_called_once_with(paths)
 
-    mocked_graph_resolver.assert_called_once_with("__PACKAGE_DEFINITIONS__")
+    mocked_graph_resolver.assert_called_once_with(
+        "__PACKAGE_DEFINITIONS__", 300
+    )
     mocked_resolver.compute_packages.assert_called_once_with([
         Requirement(request) for request in requests
     ])
 
-    mocked_package_initiate_environ.assert_called_once_with(
+    mocked_environ_initiate.assert_called_once_with(
         options.get("environ_mapping")
     )
 
@@ -360,7 +366,7 @@ def test_resolve_context_with_default_definition_mapping(
 ])
 def test_resolve_context_with_implicit_packages(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
-    mocked_graph_resolver, mocked_package_initiate_environ,
+    mocked_graph_resolver, mocked_environ_initiate,
     mocked_package_extract_context, mocked_utility_encode, mocker, options
 ):
     """Get resolved context mapping with implicit packages."""
@@ -377,7 +383,7 @@ def test_resolve_context_with_implicit_packages(
 
     mocked_resolver = mocker.Mock(**{"compute_packages.return_value": packages})
     mocked_graph_resolver.return_value = mocked_resolver
-    mocked_package_initiate_environ.return_value = "__INITIAL_ENVIRON__"
+    mocked_environ_initiate.return_value = "__INITIAL_ENVIRON__"
     mocked_package_extract_context.return_value = context
     mocked_utility_encode.return_value = "__ENCODED_CONTEXT__"
 
@@ -403,12 +409,14 @@ def test_resolve_context_with_implicit_packages(
     mocked_registry_defaults.asset_called_once()
     mocked_fetch_definition_mapping.asset_called_once_with(paths)
 
-    mocked_graph_resolver.assert_called_once_with("__PACKAGE_DEFINITIONS__")
+    mocked_graph_resolver.assert_called_once_with(
+        "__PACKAGE_DEFINITIONS__", 300
+    )
     mocked_resolver.compute_packages.assert_called_once_with([
-        Requirement(request) for request in requests + implicit
+        Requirement(request) for request in implicit + requests
     ])
 
-    mocked_package_initiate_environ.assert_called_once_with(
+    mocked_environ_initiate.assert_called_once_with(
         options.get("environ_mapping")
     )
 
@@ -426,7 +434,7 @@ def test_resolve_context_with_implicit_packages(
 ])
 def test_resolve_context_with_implicit_packages_ignored(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
-    mocked_graph_resolver, mocked_package_initiate_environ,
+    mocked_graph_resolver, mocked_environ_initiate,
     mocked_package_extract_context, mocked_utility_encode, mocker, options
 ):
     """Get resolved context mapping with implicit packages ignored."""
@@ -443,7 +451,7 @@ def test_resolve_context_with_implicit_packages_ignored(
 
     mocked_resolver = mocker.Mock(**{"compute_packages.return_value": packages})
     mocked_graph_resolver.return_value = mocked_resolver
-    mocked_package_initiate_environ.return_value = "__INITIAL_ENVIRON__"
+    mocked_environ_initiate.return_value = "__INITIAL_ENVIRON__"
     mocked_package_extract_context.return_value = context
     mocked_utility_encode.return_value = "__ENCODED_CONTEXT__"
 
@@ -470,12 +478,14 @@ def test_resolve_context_with_implicit_packages_ignored(
     mocked_registry_defaults.asset_called_once()
     mocked_fetch_definition_mapping.asset_called_once_with(paths)
 
-    mocked_graph_resolver.assert_called_once_with("__PACKAGE_DEFINITIONS__")
+    mocked_graph_resolver.assert_called_once_with(
+        "__PACKAGE_DEFINITIONS__", 300
+    )
     mocked_resolver.compute_packages.assert_called_once_with([
         Requirement(request) for request in requests
     ])
 
-    mocked_package_initiate_environ.assert_called_once_with(
+    mocked_environ_initiate.assert_called_once_with(
         options.get("environ_mapping")
     )
 
@@ -486,17 +496,19 @@ def test_resolve_context_with_implicit_packages_ignored(
 
 def test_resolve_command():
     """Resolve a command from command mapping."""
-    command = "app --option value /path/to/script"
-    result = wiz.resolve_command(command, {})
-    assert result == command
+    elements = ["app", "--option", "value", "/path/to/script"]
+    result = wiz.resolve_command(elements, {})
+    assert result == elements
 
-    result = wiz.resolve_command(command, {"app": "App0.1 --modeX"})
-    assert result == "App0.1 --modeX --option value /path/to/script"
+    result = wiz.resolve_command(elements, {"app": "App0.1 --modeX"})
+    assert result == [
+        "App0.1", "--modeX", "--option", "value", "/path/to/script"
+    ]
 
 
 def test_discover_context(
     monkeypatch, mocked_utility_decode, mocked_fetch_definition_mapping,
-    mocked_fetch_package, mocked_package_initiate_environ,
+    mocked_fetch_package, mocked_environ_initiate,
     mocked_package_extract_context,
 ):
     """Discover context from environment variable."""
@@ -509,7 +521,7 @@ def test_discover_context(
     mocked_fetch_package.side_effect = [
         {"identifier": "package1==0.1.2"}, {"identifier": "package2==1.0.2"}
     ]
-    mocked_package_initiate_environ.return_value = {"KEY": "VALUE"}
+    mocked_environ_initiate.return_value = {"KEY": "VALUE"}
     mocked_package_extract_context.return_value = {
         "command": {},
         "environ": {"KEY": "VALUE"},
@@ -600,7 +612,7 @@ def test_install_definitions_to_path(
     ]
     mocked_load_definition.side_effect = definitions
 
-    wiz.install_definitions_to_path(
+    wiz.install_definitions(
         ["/path/to/foo.json", "/path/to/bar.json"],
         "/path/to/registry", **options
     )
@@ -620,19 +632,17 @@ def test_install_definitions_to_path_with_install_location(
     ]
     mocked_load_definition.side_effect = definitions
 
-    wiz.install_definitions_to_path(
+    wiz.install_definitions(
         ["/path/to/foo.json", "/path/to/bar.json"],
-        "/path/to/registry", install_location="/path/to/package"
+        "/path/to/registry",
     )
 
     _definitions = [
         wiz.definition.Definition({
-            "identifier": "foo",
-            "install-location": "/path/to/package"
+            "identifier": "foo"
         }),
         wiz.definition.Definition({
-            "identifier": "bar",
-            "install-location": "/path/to/package"
+            "identifier": "bar"
         })
     ]
 
@@ -665,13 +675,13 @@ def test_install_definitions_to_vcs(
     ]
     mocked_load_definition.side_effect = definitions
 
-    wiz.install_definitions_to_vcs(
+    wiz.install_definitions(
         ["/path/to/foo.json", "/path/to/bar.json"],
-        "registry-id", **options
+        "wiz://registry-id", **options
     )
 
     mocked_registry_install_to_vcs.assert_called_once_with(
-        definitions, "registry-id", **install_options
+        definitions, "wiz://registry-id", **install_options
     )
 
 
@@ -685,25 +695,22 @@ def test_install_definitions_to_vcs_with_install_location(
     ]
     mocked_load_definition.side_effect = definitions
 
-    wiz.install_definitions_to_vcs(
+    wiz.install_definitions(
         ["/path/to/foo.json", "/path/to/bar.json"],
-        "registry-id",
-        install_location="/path/to/package"
+        "wiz://registry-id",
     )
 
     _definitions = [
         wiz.definition.Definition({
-            "identifier": "foo",
-            "install-location": "/path/to/package"
+            "identifier": "foo"
         }),
         wiz.definition.Definition({
-            "identifier": "bar",
-            "install-location": "/path/to/package"
+            "identifier": "bar"
         })
     ]
 
     mocked_registry_install_to_vcs.assert_called_once_with(
-        _definitions, "registry-id", overwrite=False
+        _definitions, "wiz://registry-id", overwrite=False
     )
 
 
@@ -787,7 +794,7 @@ def test_export_csh_script(temporary_directory, options, packages, expected):
     options.update({"packages": packages})
 
     wiz.export_script(
-        temporary_directory, "csh", "foo", **options
+        temporary_directory, "tcsh", "foo", **options
     )
 
     file_path = os.path.join(temporary_directory, "foo")
@@ -800,7 +807,7 @@ def test_export_csh_script(temporary_directory, options, packages, expected):
 def test_export_csh_script_environ_error(temporary_directory):
     """Fail to export CSH script with empty environment mapping."""
     with pytest.raises(ValueError) as error:
-        wiz.export_script(temporary_directory, "csh", "foo", {})
+        wiz.export_script(temporary_directory, "tcsh", "foo", {})
 
     assert "The environment mapping should not be empty." in str(error)
 

@@ -3,6 +3,7 @@
 import copy
 import itertools
 import uuid
+import signal
 from collections import Counter
 from heapq import heapify, heappush, heappop
 try:
@@ -80,11 +81,14 @@ class Resolver(object):
 
     """
 
-    def __init__(self, definition_mapping):
+    def __init__(self, definition_mapping, timeout=300):
         """Initialise Resolver with *requirements*.
 
         *definition_mapping* is a mapping regrouping all available definitions
         associated with their unique identifier.
+
+        *timeout* is the max time to expire before the resolve process is being
+        cancelled (in seconds). Default is 5 minutes.
 
         """
         self._logger = mlog.Logger(__name__ + ".Resolver")
@@ -105,12 +109,28 @@ class Resolver(object):
         # conflicting variant node identifiers to remove before instantiation.
         self._iterator = iter([])
 
+        # Time limit for the resolution process.
+        self._timeout = timeout
+
     @property
     def definition_mapping(self):
         """Return mapping of all available definitions."""
         return self._definition_mapping
 
     def compute_packages(self, requirements):
+        """Resolve requirements graphs and return list of packages.
+
+        *requirements* should be a list of
+        :class:`packaging.requirements.Requirement` instances.
+
+        Raises :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
+        resolved in time.
+
+        """
+        with Timeout(self._timeout):
+            return self._compute_packages(requirements)
+
+    def _compute_packages(self, requirements):
         """Resolve requirements graphs and return list of packages.
 
         *requirements* should be a list of
@@ -128,7 +148,17 @@ class Resolver(object):
                 raise latest_error
 
             try:
+                # Raise error if a conflict in graph cannot be solved.
                 self._resolve_conflicts(graph)
+
+                # Compute distance mapping if necessary.
+                distance_mapping, _ = self._fetch_distance_mapping(graph)
+
+                # Raise remaining error found in graph if necessary.
+                validate(graph, distance_mapping)
+
+                # Extract packages ordered by descending order of distance.
+                return extract_ordered_packages(graph, distance_mapping)
 
             except wiz.exception.WizError as error:
                 wiz.history.record_action(
@@ -138,10 +168,6 @@ class Resolver(object):
 
                 self._logger.debug("Failed to resolve graph: {}".format(error))
                 latest_error = error
-
-            else:
-                distance_mapping, _ = self._fetch_distance_mapping(graph)
-                return extract_ordered_packages(graph, distance_mapping)
 
     def _initiate(self, requirements):
         """Initialize iterator with a graph created from *requirement*.
@@ -222,7 +248,7 @@ class Resolver(object):
 
         """
         variant_mapping = graph.variant_mapping()
-        if len(variant_mapping) == 0:
+        if not variant_mapping:
             self._logger.debug(
                 "No package variants are conflicting in the graph."
             )
@@ -272,8 +298,8 @@ class Resolver(object):
         a division of the graph.
 
         """
-        conflicts = graph.conflicts()
-        if len(conflicts) == 0:
+        conflicts = graph.conflicting_identifiers()
+        if not conflicts:
             self._logger.debug("No conflicts in the graph.")
             return
 
@@ -288,17 +314,19 @@ class Resolver(object):
             distance_mapping, updated = self._fetch_distance_mapping(graph)
 
             # Update graph and conflicts to remove all unreachable nodes if
-            # distance mapping have been updated.
-            if updated:
+            # there are remaining conflicts in the graph or if distance mapping
+            # have been updated.
+            if updated and conflicts:
                 trim_unreachable_from_graph(graph, distance_mapping)
                 conflicts = updated_by_distance(conflicts, distance_mapping)
 
             # If no nodes are left in the queue, exit the loop. The graph
             # is officially resolved. Hooray!
-            if len(conflicts) == 0:
+            if not conflicts:
                 return
 
-            # Pick up the nearest conflicting node identifier.
+            # Pick up the furthest conflicting node identifier so that nearest
+            # node have priorities.
             identifier = conflicts.pop()
             node = graph.node(identifier)
 
@@ -307,7 +335,7 @@ class Resolver(object):
 
             # Compute valid node identifier from combined requirements.
             requirement = combined_requirements(
-                graph, [node] + conflicting_nodes, distance_mapping
+                graph, [node] + conflicting_nodes
             )
 
             # Query packages from combined requirement.
@@ -330,14 +358,14 @@ class Resolver(object):
                     )
                 )
 
-            identifiers = [package.identifier for package in packages]
+            identifiers = [package.qualified_identifier for package in packages]
 
             if identifier not in identifiers:
                 self._logger.debug("Remove '{}'".format(identifier))
                 remove_node_and_relink(graph, node, identifiers, requirement)
 
                 # The graph changed in a way that can affect the distances of
-                # other nodes, so the distance mapping is discarded.
+                # other nodes, so the distance mapping cached is discarded.
                 self._distance_mapping = None
 
                 # Identify whether some of the newly extracted packages are not
@@ -348,7 +376,7 @@ class Resolver(object):
                 )
 
                 # If not all extracted packages are identified as conflicts, it
-                # means that variants need to be added to the  graph. If
+                # means that variants need to be added to the graph. If
                 # variants from this definition identifier have  already been
                 # processed, the update is skipped.
                 if (
@@ -361,7 +389,9 @@ class Resolver(object):
                     graph.update_from_requirements([requirement])
 
                     # Update conflict list if necessary.
-                    conflicts = list(set(conflicts + graph.conflicts()))
+                    conflicts = list(
+                        set(conflicts + graph.conflicting_identifiers())
+                    )
 
                     # If the updated graph contains conflicting variants, the
                     # relevant combination must be extracted, therefore the
@@ -370,6 +400,11 @@ class Resolver(object):
                         raise wiz.exception.GraphResolutionError(
                             "The current graph has conflicting variants."
                         )
+
+            # Search and trim invalid nodes from graph if conditions are no
+            # longer fulfilled. If so reset the distance mapping.
+            while trim_invalid_from_graph(graph, distance_mapping):
+                self._distance_mapping = None
 
 
 def compute_distance_mapping(graph):
@@ -501,12 +536,23 @@ def generate_variant_combinations(graph, variant_groups):
         )
         _groups.append(_tuple_group)
 
+    # Record variant node with error to prevent it being used more than once.
+    blacklist = set()
+
     for combination in itertools.product(*_groups):
         _identifiers = [_id for _group in combination for _id in _group]
+
+        # Skip combination which contains blacklisted node.
+        if blacklist.intersection(_identifiers):
+            continue
+
         yield (
             graph,
             tuple([_id for _id in identifiers if _id not in _identifiers])
         )
+
+        # Update blacklist with error encountered in current combination.
+        blacklist = set(_identifiers).intersection(graph.error_identifiers())
 
 
 def trim_unreachable_from_graph(graph, distance_mapping):
@@ -532,6 +578,45 @@ def trim_unreachable_from_graph(graph, distance_mapping):
             graph.remove_node(node.identifier)
 
 
+def trim_invalid_from_graph(graph, distance_mapping):
+    """Remove invalid nodes from *graph* based on *distance_mapping*.
+
+    Return boolean value indicating whether invalid nodes have been removed.
+
+    If any packages that a node is conditioned by are no longer in the graph,
+    the node is marked invalid and must be removed from the graph.
+
+    *graph* must be an instance of :class:`Graph`.
+
+    *distance_mapping* is a mapping indicating the shortest possible distance
+    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+    *graph* with its corresponding parent node identifier.
+
+    """
+    logger = mlog.Logger(__name__ + ".trim_invalid_from_graph")
+
+    nodes_removed = False
+
+    for node in graph.nodes():
+        # Check if all conditions are still fulfilled.
+        for requirement in node.package.conditions:
+            identifiers = graph.find(requirement)
+
+            if len(identifiers) == 0 or any(
+                distance_mapping.get(identifier, {}).get("distance") is None
+                for identifier in identifiers
+            ):
+                logger.debug(
+                    "Remove '{}' as conditions are no longer "
+                    "fulfilled".format(node.identifier)
+                )
+                graph.remove_node(node.identifier)
+                nodes_removed = True
+                break
+
+    return nodes_removed
+
+
 def updated_by_distance(identifiers, distance_mapping):
     """Return updated node *identifiers* according to *distance_mapping*.
 
@@ -550,7 +635,8 @@ def updated_by_distance(identifiers, distance_mapping):
 
     """
     _identifiers = filter(
-        lambda _id: distance_mapping.get(_id, {}).get("distance"), identifiers
+        lambda _id: distance_mapping.get(_id, {}).get("distance") is not None,
+        identifiers
     )
     return sorted(
         _identifiers, key=lambda _id: distance_mapping[_id]["distance"]
@@ -568,7 +654,7 @@ def extract_conflicting_nodes(graph, node):
     *node* should be a :class:`Node` instance.
 
     """
-    nodes = (graph.node(_id) for _id in graph.conflicts())
+    nodes = (graph.node(_id) for _id in graph.conflicting_identifiers())
 
     return [
         _node for _node in nodes
@@ -577,16 +663,12 @@ def extract_conflicting_nodes(graph, node):
     ]
 
 
-def combined_requirements(graph, nodes, distance_mapping):
+def combined_requirements(graph, nodes):
     """Return combined requirements from *nodes* in *graph*.
 
     *graph* must be an instance of :class:`Graph`.
 
     *nodes* should be a list of :class:`Node` instances.
-
-    *distance_mapping* is a mapping indicating the shortest possible distance
-    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-    graph with its corresponding parent node identifier.
 
     Raise :exc:`wiz.exception.GraphResolutionError` if requirements cannot
     be combined.
@@ -595,25 +677,52 @@ def combined_requirements(graph, nodes, distance_mapping):
     requirement = None
 
     for node in nodes:
-        _requirement = graph.link_requirement(
-            node.identifier, distance_mapping[node.identifier]["parent"]
+        _requirements = (
+            graph.link_requirement(node.identifier, _identifier)
+            for _identifier in node.parent_identifiers
+            if _identifier is graph.ROOT or graph.exists(_identifier)
         )
 
-        if requirement is None:
-            requirement = copy.copy(_requirement)
+        for _requirement in _requirements:
+            if requirement is None:
+                requirement = copy.copy(_requirement)
 
-        elif requirement.name != _requirement.name:
-            raise wiz.exception.GraphResolutionError(
-                "Impossible to combine requirements with different names "
-                "['{}' and '{}'].".format(
-                    requirement.name, _requirement.name
+            elif requirement.name != _requirement.name:
+                raise wiz.exception.GraphResolutionError(
+                    "Impossible to combine requirements with different names "
+                    "['{}' and '{}'].".format(
+                        requirement.name, _requirement.name
+                    )
                 )
-            )
 
-        else:
-            requirement.specifier &= _requirement.specifier
+            else:
+                requirement.specifier &= _requirement.specifier
 
     return requirement
+
+
+def sanitize_requirement(requirement, namespace):
+    """Mutate package *requirement* according to the package *namespace*.
+
+    This is necessary so that the requirement name is always qualified to
+    prevent error when :func:`combining requirements <combined_requirements>`
+    during the conflict resolution process.
+
+    If the requirement "foo > 1" was used to fetch the package "namespace::foo",
+    the requirement will be mutated to "namespace::foo > 1"
+
+    On the other had, if the requirement "::bar==0.1.0" was used to fetch the
+    package "bar" which doesn't have a namespace, the requirement will be
+    mutated to "bar==0.1.0"
+
+    """
+    separator = wiz.symbol.NAMESPACE_SEPARATOR
+
+    if namespace is not None and separator not in requirement.name:
+        requirement.name = namespace + separator + requirement.name
+
+    elif namespace is None and separator in requirement.name:
+        requirement.name = requirement.name.rsplit(separator, 1)[-1]
 
 
 def extract_parents(graph, nodes):
@@ -662,18 +771,77 @@ def remove_node_and_relink(graph, node, identifiers, requirement):
     graph.remove_node(node.identifier)
 
     for parent_identifier in node.parent_identifiers:
-        if not graph.exists(parent_identifier):
+        if (
+            not graph.exists(parent_identifier) and
+            not parent_identifier == graph.ROOT
+        ):
             continue
 
         weight = graph.link_weight(node.identifier, parent_identifier)
 
         for _identifier in identifiers:
+            # Add parent to node if node already exists in graph.
+            _node = graph.node(_identifier)
+            if _node is not None:
+                _node.add_parent(parent_identifier)
+
             graph.create_link(
                 _identifier,
                 parent_identifier,
                 requirement,
                 weight=weight
             )
+
+
+def validate(graph, distance_mapping):
+    """Ensure that *graph* does not have remaining errors.
+
+    The identifier nearest to the :attr:`root <Graph.ROOT>` level are analyzed
+    first, and the first exception raised under one this identifier will be
+    raised.
+
+    *graph* must be an instance of :class:`Graph`.
+
+    *distance_mapping* is a mapping indicating the shortest possible distance
+    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+    graph with its corresponding parent node identifier.
+
+    An :exc:`wiz.exception.WizError` is raised if an error attached to the
+    :attr:`root <Graph.ROOT>` level or any reachable node is found.
+
+    """
+    logger = mlog.Logger(__name__ + ".validate")
+
+    errors = graph.error_identifiers()
+    if not errors:
+        logger.debug("No errors in the graph.")
+        return
+
+    logger.debug("Errors: {}".format(", ".join(errors)))
+
+    wiz.history.record_action(
+        wiz.symbol.GRAPH_ERROR_IDENTIFICATION_ACTION,
+        graph=graph, errors=errors
+    )
+
+    # Updating identifier list from distance mapping automatically filter out
+    # unreachable nodes.
+    identifiers = updated_by_distance(errors, distance_mapping)
+    if len(identifiers) == 0:
+        raise wiz.exception.GraphResolutionError(
+            "The resolution graph does not contain any valid packages."
+        )
+
+    # Pick up nearest node identifier which contains an error.
+    identifier = identifiers[0]
+
+    exceptions = graph.errors(identifier)
+    logger.debug(
+        "{} exception(s) raised under {}".format(len(exceptions), identifier)
+    )
+
+    # Raise first exception found when updating graph if necessary.
+    raise exceptions[0]
 
 
 def extract_ordered_packages(graph, distance_mapping):
@@ -696,11 +864,16 @@ def extract_ordered_packages(graph, distance_mapping):
         key=lambda n: distance_mapping[n.identifier].items(),
         reverse=True
     ):
+        # Skip node if unreachable.
+        if distance_mapping[node.identifier].get("distance") is None:
+            continue
+
+        # Otherwise keep the package.
         packages.append(node.package)
 
     logger.debug(
         "Sorted packages: {}".format(
-            ", ".join([package.identifier for package in packages])
+            ", ".join([package.qualified_identifier for package in packages])
         )
     )
 
@@ -731,18 +904,26 @@ class Graph(object):
         # All nodes created per node identifier.
         self._node_mapping = {}
 
-        # Record the weight of each link in the graph.
+        # Record the weight and requirement of each link in the graph.
         self._link_mapping = {}
 
         # Set of node identifiers organised per definition identifier.
         self._identifiers_per_definition = {}
 
-        # List of constraint instances organised per definition identifier.
-        self._constraints_per_definition = {}
+        # List of stored nodes with related conditions.
+        self._conditioned_nodes = []
 
         # List of node identifiers with variant organised per definition
         # identifier.
         self._variants_per_definition = {}
+
+        # :class:`collections.Counter` instance which record of occurrences of
+        # namespaces from package included in the graph.
+        # e.g. Counter({u'maya': 2, u'houdini': 1})
+        self._namespace_count = Counter()
+
+        # List of exception raised per node identifier.
+        self._error_mapping = {}
 
     def __deepcopy__(self, memo):
         """Ensure that only necessary element are copied in the new graph."""
@@ -752,12 +933,12 @@ class Graph(object):
         result._identifiers_per_definition = (
             copy.deepcopy(self._identifiers_per_definition)
         )
-        result._constraints_per_definition = (
-            copy.deepcopy(self._constraints_per_definition)
-        )
+        result._conditioned_nodes = copy.deepcopy(self._conditioned_nodes)
         result._variants_per_definition = (
             copy.deepcopy(self._variants_per_definition)
         )
+        result._namespace_count = copy.deepcopy(self._namespace_count)
+        result._error_mapping = copy.deepcopy(self._error_mapping)
 
         memo[id(self)] = result
         return result
@@ -780,11 +961,15 @@ class Graph(object):
                 _id: sorted(node_ids) for _id, node_ids
                 in self._identifiers_per_definition.items()
             },
-            "constraints_per_definition": {
-                _id: [constraint.to_dict() for constraint in constraints]
-                for _id, constraints in self._constraints_per_definition.items()
-            },
+            "conditioned_nodes": [
+                stored_node.to_dict() for stored_node in self._conditioned_nodes
+            ],
             "variants_per_definition": self._variants_per_definition,
+            "namespace_count": dict(self._namespace_count),
+            "error_mapping": {
+                _id: [str(exception) for exception in exceptions]
+                for _id, exceptions in self._error_mapping.items()
+            },
         }
 
     def node(self, identifier):
@@ -798,6 +983,36 @@ class Graph(object):
     def exists(self, identifier):
         """Indicate whether the node *identifier* is in the graph."""
         return identifier in self._node_mapping.keys()
+
+    def find(self, requirement):
+        """Return matching node identifiers in graph for *requirement*.
+
+        *requirement* should be an instance of
+        :class:`packaging.requirements.Requirement`.
+
+        .. warning::
+
+            Node identifiers which have been removed from the graph will also be
+            returned.
+
+        """
+        identifiers = []
+
+        for node in self.nodes():
+            qualified_name = node.package.definition_identifier
+            name = qualified_name.split(wiz.symbol.NAMESPACE_SEPARATOR, 1)[-1]
+            if requirement.name not in [qualified_name, name]:
+                continue
+
+            # Node is matching if package has no version.
+            if node.package.version is None:
+                identifiers.append(node.package.qualified_identifier)
+
+            # Node is matching if requirement contains package version.
+            elif requirement.specifier.contains(node.package.version):
+                identifiers.append(node.package.qualified_identifier)
+
+        return identifiers
 
     def variant_mapping(self):
         """Return variant groups organised per definition identifier.
@@ -860,8 +1075,8 @@ class Graph(object):
         """
         return self._link_mapping[parent_identifier][identifier]["requirement"]
 
-    def conflicts(self):
-        """Return conflicting nodes identifiers instances.
+    def conflicting_identifiers(self):
+        """Return conflicting nodes identifiers.
 
         A conflict appears when several nodes are found for a single
         definition identifier.
@@ -880,12 +1095,26 @@ class Graph(object):
 
         return conflicting
 
-    def update_from_requirements(self, requirements):
+    def error_identifiers(self):
+        """Return list of existing node identifiers which encapsulate an error.
+        """
+        return [
+            identifier for identifier in self._error_mapping.keys()
+            if identifier == self.ROOT or self.exists(identifier)
+        ]
+
+    def errors(self, identifier):
+        """Return list of exceptions raised for node *identifier*."""
+        return self._error_mapping.get(identifier)
+
+    def update_from_requirements(self, requirements, parent_identifier=None):
         """Update graph from *requirements*.
 
         *requirements* should be a list of
         class:`packaging.requirements.Requirement` instances ordered from the
         most important to the least important.
+
+        *parent_identifier* can indicate the identifier of a parent node.
 
         One or several :class:`~wiz.package.Package` instances will be
         extracted from  *requirements* and :class:`Node` instances will be added
@@ -896,7 +1125,7 @@ class Graph(object):
         <https://en.wikipedia.org/wiki/Breadth-first_search>`_ algorithm so that
         potential errors are raised for top-level packages first.
 
-        Constraint packages will be recorded as :class:`Constraint` instances.
+        Conditions will be recorded as :class:`StoredNode` instances.
         Corresponding packages will be added to the graph only if at least one
         package with the same definition identifier has previously been added
         to the graph.
@@ -909,53 +1138,79 @@ class Graph(object):
             graph=self, requirements=requirements
         )
 
-        # Fill up queue from constraint and update the graph accordingly.
+        # Record namespaces from all requirement names.
+        self._update_namespace_count(requirements)
+
+        # Fill up queue from requirements and update the graph accordingly.
         for index, requirement in enumerate(requirements):
-            queue.put({"requirement": requirement, "weight": index + 1})
+            queue.put({
+                "requirement": requirement,
+                "parent_identifier": parent_identifier,
+                "weight": index + 1
+            })
 
         self._update_from_queue(queue)
 
-        # If constraints have been found, identify those which have
-        # corresponding definition identifier in the graph and add it to the
-        # queue to convert them into nodes.
+        # Update graph with conditioned nodes stored if necessary.
+        stored_nodes = self._fetch_required_stored_nodes()
 
-        constraints_needed = self._constraints_identified_in_graph()
-
-        while len(constraints_needed) > 0:
-            for constraint in constraints_needed:
+        while len(stored_nodes) > 0:
+            for stored_node in stored_nodes:
                 queue.put({
-                    "requirement": constraint.requirement,
-                    "parent_identifier": constraint.parent_identifier,
-                    "weight": constraint.weight
+                    "requirement": stored_node.requirement,
+                    "package": stored_node.package,
+                    "parent_identifier": stored_node.parent_identifier,
+                    "weight": stored_node.weight
                 })
 
             self._update_from_queue(queue)
 
-            # Check if other new constraints need to be added to graph after
-            # updating graph with previous constraints.
-            constraints_needed = self._constraints_identified_in_graph()
+            # Check if new stored nodes need to be added to graph.
+            stored_nodes = self._fetch_required_stored_nodes()
 
-    def _constraints_identified_in_graph(self):
-        """Return :class:`Constraint` instances which should be added to graph.
+    def _fetch_required_stored_nodes(self):
+        """Return :class:`StoredNode` instances which should be added to graph.
 
-        A constraint should be added to the graph once its definition identifier
-        is found in the graph. The constraints returned will be removed from
-        constraint mapping recorded by graph.
+        A :class:`StoredNode` instance has been created for each package which
+        has one or several conditions.
 
         """
-        constraints = []
+        stored_nodes = []
 
-        for identifier in self._constraints_per_definition.keys():
-            if identifier in self._identifiers_per_definition.keys():
-                constraints += self._constraints_per_definition[identifier]
-                del self._constraints_per_definition[identifier]
+        for stored_node in self._conditioned_nodes:
+            # Prevent adding stored nodes twice into the graph
+            if self.exists(stored_node.identifier):
+                continue
 
-        self._logger.debug(
-            "Constraints which needs to be added to the graph: {}".format(
-                [str(constraint.requirement) for constraint in constraints]
-            )
-        )
-        return constraints
+            try:
+                packages = (
+                    wiz.package.extract(
+                        condition, self._resolver.definition_mapping
+                    ) for condition in stored_node.package.conditions
+                )
+
+                # Require all package identifiers to be in the node mapping.
+                identifiers = [
+                    package.qualified_identifier
+                    for package in itertools.chain(*packages)
+                ]
+
+            except wiz.exception.WizError:
+                # Do not raise if the condition request is incorrect.
+                continue
+
+            if all(self.exists(_id) for _id in identifiers):
+                self._logger.debug(
+                    "Package '{}' fulfills conditions [{}]".format(
+                        stored_node.identifier,
+                        ", ".join(
+                            str(req) for req in stored_node.package.conditions
+                        )
+                    )
+                )
+                stored_nodes.append(stored_node)
+
+        return stored_nodes
 
     def _update_from_queue(self, queue):
         """Recursively update graph from data contained in *queue*.
@@ -966,17 +1221,24 @@ class Graph(object):
         while not queue.empty():
             data = queue.get()
 
-            # The queue will be augmented with all dependent requirements.
-            self._update_from_requirement(
-                data.get("requirement"), queue,
-                parent_identifier=data.get("parent_identifier"),
-                weight=data.get("weight")
-            )
+            if data.get("package") is None:
+                self._update_from_requirement(
+                    data.get("requirement"), queue,
+                    parent_identifier=data.get("parent_identifier"),
+                    weight=data.get("weight")
+                )
+
+            else:
+                self._update_from_package(
+                    data.get("package"), data.get("requirement"), queue,
+                    parent_identifier=data.get("parent_identifier"),
+                    weight=data.get("weight")
+                )
 
     def _update_from_requirement(
         self, requirement, queue, parent_identifier=None, weight=1
     ):
-        """Update graph from *requirement* and return updated *queue*.
+        """Update graph from *requirement*.
 
         *requirement* should be an instance of
         :class:`packaging.requirements.Requirement`.
@@ -994,48 +1256,91 @@ class Graph(object):
         self._logger.debug("Update from requirement: {}".format(requirement))
 
         # Get packages from requirement.
-        packages = wiz.package.extract(
-            requirement, self._resolver.definition_mapping
-        )
+        try:
+            packages = wiz.package.extract(
+                requirement, self._resolver.definition_mapping,
+                namespace_counter=self._namespace_count
+            )
+
+        except wiz.exception.WizError as error:
+            parent = parent_identifier or self.ROOT
+            self._error_mapping.setdefault(parent, [])
+            self._error_mapping[parent].append(error)
+            return
 
         # Create a node for each package if necessary.
         for package in packages:
-            if not self.exists(package.identifier):
-                self._create_node_from_package(package)
+            sanitize_requirement(requirement, package.namespace)
 
-                # Update queue with dependent requirement.
-                for index, _requirement in enumerate(package.requirements):
-                    queue.put({
-                        "requirement": _requirement,
-                        "parent_identifier": package.identifier,
-                        "weight": index + 1
-                    })
-
-                # Record constraints so that it could be added later to the
-                # graph as nodes if necessary.
-                for index, _requirement in enumerate(package.constraints):
-                    _identifier = _requirement.name
-                    self._constraints_per_definition.setdefault(_identifier, [])
-                    self._constraints_per_definition[_identifier].append(
-                        Constraint(
-                            _requirement, package.identifier, weight=index + 1
-                        )
-                    )
-
-            else:
-                # Update variant mapping if necessary
-                self._update_variant_mapping(package.identifier)
-
-            node = self._node_mapping[package.identifier]
-            node.add_parent(parent_identifier or self.ROOT)
-
-            # Create link with requirement and weight.
-            self.create_link(
-                node.identifier,
-                parent_identifier or self.ROOT,
-                requirement,
+            self._update_from_package(
+                package, requirement, queue,
+                parent_identifier=parent_identifier,
                 weight=weight
             )
+
+    def _update_from_package(
+        self, package, requirement, queue, parent_identifier=None, weight=1
+    ):
+        """Update graph from *package*.
+
+        *package* should be an instance of :class:`wiz.package.Package`.
+
+        *requirement* should be an instance of
+        :class:`packaging.requirements.Requirement`.
+
+        *queue* should be a :class:`Queue` instance that will be updated with
+        all dependent requirements data.
+
+        *parent_identifier* can indicate the identifier of a parent node.
+
+        *weight* is a number which indicate the importance of the dependency
+        link from the node to its parent. The lesser this number, the higher is
+        the importance of the link. Default is 1.
+
+        """
+        identifier = package.qualified_identifier
+
+        if not self.exists(identifier):
+
+            # Do not add the node to the graph if conditions are unprocessed.
+            if (
+                len(package.conditions) > 0 and
+                not package.get("conditions-processed")
+            ):
+                self._conditioned_nodes.append(
+                    StoredNode(
+                        requirement,
+                        package.set("conditions-processed", True),
+                        parent_identifier=parent_identifier,
+                        weight=weight
+                    )
+                )
+                return
+
+            self._create_node_from_package(package)
+
+            # Update queue with dependent requirement.
+            for index, _requirement in enumerate(package.requirements):
+                queue.put({
+                    "requirement": _requirement,
+                    "parent_identifier": identifier,
+                    "weight": index + 1
+                })
+
+        else:
+            # Update variant mapping if necessary
+            self._update_variant_mapping(identifier)
+
+        node = self._node_mapping[identifier]
+        node.add_parent(parent_identifier or self.ROOT)
+
+        # Create link with requirement and weight.
+        self.create_link(
+            node.identifier,
+            parent_identifier or self.ROOT,
+            requirement,
+            weight=weight
+        )
 
     def _create_node_from_package(self, package):
         """Create node in graph from *package*.
@@ -1043,20 +1348,21 @@ class Graph(object):
         *package* should be a :class:`~wiz.package.Package` instance.
 
         """
-        self._logger.debug("Adding package: {}".format(package.identifier))
-        self._node_mapping[package.identifier] = Node(package)
+        identifier = package.qualified_identifier
+
+        self._logger.debug("Adding package: {}".format(identifier))
+        self._node_mapping[identifier] = Node(package)
 
         # Record node identifiers per package to identify conflicts.
         _definition_id = package.definition_identifier
         self._identifiers_per_definition.setdefault(_definition_id, set())
-        self._identifiers_per_definition[_definition_id].add(package.identifier)
+        self._identifiers_per_definition[_definition_id].add(identifier)
 
         # Record variant per unique key identifier if necessary.
-        self._update_variant_mapping(package.identifier)
+        self._update_variant_mapping(identifier)
 
         wiz.history.record_action(
-            wiz.symbol.GRAPH_NODE_CREATION_ACTION,
-            graph=self, node=package.identifier
+            wiz.symbol.GRAPH_NODE_CREATION_ACTION, graph=self, node=identifier
         )
 
     def _update_variant_mapping(self, identifier):
@@ -1066,8 +1372,27 @@ class Graph(object):
         if node.variant_name is None:
             return
 
+        # TODO: Shouldn't it be a set?
         self._variants_per_definition.setdefault(node.definition, [])
         self._variants_per_definition[node.definition].append(identifier)
+
+    def _update_namespace_count(self, requirements):
+        """Record namespace occurrences from *requirements*.
+
+        Requirement names are used to find out all available namespaces.
+
+        *requirements* should be a list of
+        class:`packaging.requirements.Requirement` instances.
+
+        """
+        mapping = self._resolver.definition_mapping.get("__namespace__", {})
+
+        namespaces = []
+
+        for requirement in requirements:
+            namespaces += mapping.get(requirement.name, [])
+
+        self._namespace_count.update(namespaces)
 
     def create_link(
         self, identifier, parent_identifier, requirement, weight=1
@@ -1087,23 +1412,34 @@ class Graph(object):
         link. The lesser this number, the higher is the importance of the link.
         Default is 1.
 
-        Raise :exc:`wiz.exception.IncorrectEnvironment` is *package*
-        identifier has already be set for this *parent*.
+        .. note::
+
+            If a link already exists between *identifier* and
+            *parent_identifier*, it will be overwritten only if the new weight
+            is lower than the current one. This way, the priority of the node
+            can raise, but never decrease.
 
         """
-        self._logger.debug(
-            "Add dependency link from '{parent}' to '{child}'".format(
-                parent=parent_identifier, child=identifier
-            )
-        )
-
         self._link_mapping.setdefault(parent_identifier, {})
 
         if identifier in self._link_mapping[parent_identifier].keys():
-            raise wiz.exception.IncorrectDefinition(
-                "There cannot be several dependency links to '{child}' from "
-                "'{parent}'.".format(parent=parent_identifier, child=identifier)
+            _weight = (
+                self._link_mapping[parent_identifier][identifier]["weight"]
             )
+
+            # Skip if a link is already set between these two nodes with
+            # a lower weight:
+            if weight > _weight:
+                return
+
+        self._logger.debug(
+            "Add dependency link from '{parent}' to '{child}' "
+            "[weight: {weight}]".format(
+                parent=parent_identifier,
+                child=identifier,
+                weight=weight
+            )
+        )
 
         link = {"requirement": requirement, "weight": weight}
         self._link_mapping[parent_identifier][identifier] = link
@@ -1140,17 +1476,6 @@ class Graph(object):
                 graph=self, node=identifier
             )
 
-    def reset_variants(self):
-        """Reset list of variant node identifiers .
-
-        .. warning::
-
-            A lazy deletion is performed as only the variant identifiers are
-            deleted, but not the nodes themselves.
-
-        """
-        self._variants_per_definition = {}
-
 
 class Node(object):
     """Representation of an element of the :class:`Graph`.
@@ -1181,10 +1506,10 @@ class Node(object):
         .. note::
 
             The node identifier is the same as the embedded
-            :class:`~wiz.package.Package` instance identifier.
+            :class:`~wiz.package.Package` instance qualified identifier.
 
         """
-        return self._package.identifier
+        return self._package.qualified_identifier
 
     @property
     def variant_name(self):
@@ -1219,26 +1544,33 @@ class Node(object):
         }
 
 
-class Constraint(object):
-    """Representation of a constraint mapping within the :class:`Graph`.
+class StoredNode(object):
+    """Representation of a node mapping within the :class:`Graph`.
 
-    It encapsulates one :class:`packaging.requirements.Requirement` instance,
+    It encapsulates one :class:`packaging.requirements.Requirement` instance
+    and corresponding :class:`wiz.package.Package` instance retrieved with
     its parent package identifier and a weight number.
 
-    A constraint will be converted into one or several :class:`Node` instances
-    as soon as the corresponding definition identifier is found in the graph.
+    A StoredNode instance is used when a package request cannot be immediately
+    added to the graph.
 
-    For instance, if a constraint has a requirement such as
-    `foo >= 0.1.0, < 0.2.0`, it will be added to the graph only if another
-    package from the `foo` definition(s) has been previously added to the graph.
+    Examples:
+
+    * When a package contains conditions, a StoredNode instance is created for
+      this package request until the validation can be validated. If the
+      conditions are not validated, the package will not be added to the graph.
 
     """
 
-    def __init__(self, requirement, parent_identifier, weight=1):
-        """Initialize Constraint.
+    def __init__(
+        self, requirement, package, parent_identifier=None, weight=1
+    ):
+        """Initialize StoredNode.
 
         *requirement* should be an instance of
         :class:`packaging.requirements.Requirement`.
+
+        *package* should be an instance of :class:`wiz.package.Package`.
 
         *parent_identifier* can indicate the identifier of a parent node.
 
@@ -1247,13 +1579,31 @@ class Constraint(object):
 
         """
         self._requirement = requirement
+        self._package = package
         self._parent_identifier = parent_identifier
         self._weight = weight
+
+    @property
+    def identifier(self):
+        """Return identifier of the stored node.
+
+        .. note::
+
+            The node identifier is the same as the embedded
+            :class:`~wiz.package.Package` instance qualified identifier.
+
+        """
+        return self._package.qualified_identifier
 
     @property
     def requirement(self):
         """Return :class:`packaging.requirements.Requirement` instance."""
         return self._requirement
+
+    @property
+    def package(self):
+        """Return :class:`wiz.package.Package` instance."""
+        return self._package
 
     @property
     def parent_identifier(self):
@@ -1269,8 +1619,9 @@ class Constraint(object):
         """Return corresponding dictionary."""
         return {
             "requirement": self._requirement,
+            "package": self.package.to_dict(serialize_content=True),
             "parent_identifier": self._parent_identifier,
-            "weight": self._weight,
+            "weight": self._weight
         }
 
 
@@ -1348,3 +1699,31 @@ class _DistanceQueue(dict):
 
         del self[identifier]
         return identifier
+
+
+class Timeout(object):
+    """Handle a time out on :class:`Graph` methods.
+
+    Raise :exc:`wiz.exception.GraphResolutionError` when the time limit is
+    reached.
+
+    .. warning::
+
+        It does not work on Windows operating system as it uses
+        :func:`signal.alarm` to raise the exception.
+
+    """
+    def __init__(self, seconds):
+        self._time_limit = seconds
+
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self._raises_exception)
+        signal.setitimer(signal.ITIMER_REAL, self._time_limit)
+
+    def __exit__(self, _type, value, traceback):
+        signal.alarm(0)
+
+    def _raises_exception(self, signum, frame):
+        raise wiz.exception.GraphResolutionError(
+            "Timeout reached. Graph resolution took too long."
+        )

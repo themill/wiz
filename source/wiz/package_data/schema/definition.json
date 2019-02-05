@@ -12,7 +12,10 @@
         },
         "version": {
             "description": "Version of the definition.",
-            "type": "string"
+            "anyOf": [
+                {"type": "string"},
+                {"type": "version"}
+            ]
         },
         "auto-use": {
             "description": "Indicate whether the definition should be used implicitly.",
@@ -32,12 +35,16 @@
             "description": "Path to the definition file.",
             "type": "string"
         },
+        "install-root": {
+            "description": "Root path of the install location for the package data.",
+            "type": "string"
+        },
         "install-location": {
             "description": "Install location to the package data.",
             "type": "string"
         },
-        "group": {
-            "description": "Group in registry to place definition into.",
+        "namespace": {
+            "description": "Namespace of the definition.",
             "type": "string"
         },
         "system": {
@@ -78,16 +85,22 @@
             "minItems": 1,
             "uniqueItems": true,
             "items": {
-                "type": "string"
+                "anyOf": [
+                    {"type": "string"},
+                    {"type": "requirement"}
+                ]
             }
         },
-        "constraints": {
-            "description": "List of package constraints imposed by the definition.",
+        "conditions": {
+            "description": "List of preliminary conditions to use the definition.",
             "type": "array",
             "minItems": 1,
             "uniqueItems": true,
             "items": {
-                "type": "string"
+                "anyOf": [
+                    {"type": "string"},
+                    {"type": "requirement"}
+                ]
             }
         },
         "variants": {
@@ -100,6 +113,10 @@
                 "properties": {
                     "identifier": {
                         "description": "Unique identifier for the definition variant.",
+                        "type": "string"
+                    },
+                    "install-location": {
+                        "description": "Install location to the package data.",
                         "type": "string"
                     },
                     "command": {
@@ -120,16 +137,10 @@
                         "minItems": 1,
                         "uniqueItems": true,
                         "items": {
-                            "type": "string"
-                        }
-                    },
-                    "constraints": {
-                        "description": "List of package constraints imposed by the definition variant.",
-                        "type": "array",
-                        "minItems": 1,
-                        "uniqueItems": true,
-                        "items": {
-                            "type": "string"
+                            "anyOf": [
+                                {"type": "string"},
+                                {"type": "requirement"}
+                            ]
                         }
                     }
                 },

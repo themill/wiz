@@ -1,61 +1,16 @@
 # :coding: utf-8
 
-import re
-import os
-
 import mlog
 
 import wiz.definition
 import wiz.mapping
 import wiz.symbol
 import wiz.history
+import wiz.environ
 import wiz.exception
 
 
-def generate_identifier(definition, variant_identifier=None):
-    """Generate package identifier from *definition*.
-
-    *definition* should be an instance of :class:`~wiz.definition.Definition`.
-
-    If *variant_identifier* is specified, the package identifier will be
-    generated accordingly.
-
-    Raise :exc:`wiz.exception.IncorrectDefinition` if *variant_identifier*
-    is not found in *definition*.
-
-    .. note::
-
-        The package identifier returned is usable as a request to query the
-        corresponding :class:`Package` instance.
-
-    """
-    identifier = definition.identifier
-
-    if variant_identifier is not None:
-        identifiers = [variant.identifier for variant in definition.variants]
-        if variant_identifier not in identifiers:
-            raise wiz.exception.IncorrectDefinition(
-                "The definition '{identifier}{version}' does not contain a "
-                "variant identified as '{variant}'".format(
-                    identifier=identifier,
-                    version=(
-                        "=={}".format(definition.version)
-                        if definition.version != wiz.symbol.UNKNOWN_VALUE
-                        else ""
-                    ),
-                    variant=variant_identifier
-                )
-            )
-
-        identifier += "[{}]".format(variant_identifier)
-
-    if definition.version != wiz.symbol.UNKNOWN_VALUE:
-        identifier += "=={}".format(definition.version)
-
-    return identifier
-
-
-def extract(requirement, definition_mapping):
+def extract(requirement, definition_mapping, namespace_counter=None):
     """Extract list of :class:`Package` instances from *requirement*.
 
     The best matching :class:`~wiz.definition.Definition` version instances
@@ -69,40 +24,32 @@ def extract(requirement, definition_mapping):
     *definition_mapping* is a mapping regrouping all available definitions
     associated with their unique identifier.
 
-    """
-    definition = wiz.definition.query(requirement, definition_mapping)
+    *namespace_counter* is an optional :class:`collections.Counter` instance
+    which indicate occurrence of namespaces used as hints for package
+    identification.
 
-    # Extract variants from definition if available.
-    variants = definition.variants
+    """
+    definition = wiz.definition.query(
+        requirement, definition_mapping,
+        namespace_counter=namespace_counter
+    )
 
     # Extract and return the requested variant if necessary.
     if len(requirement.extras) > 0:
-        variant_identifier = next(iter(requirement.extras))
-        variant_mapping = reduce(
-            lambda res, mapping: dict(res, **{mapping["identifier"]: mapping}),
-            variants, {}
-        )
-
-        if variant_identifier not in variant_mapping.keys():
-            raise wiz.exception.RequestNotFound(
-                "The variant '{variant}' could not been resolved for "
-                "'{definition}' [{version}].".format(
-                    variant=variant_identifier,
-                    definition=definition.identifier,
-                    version=definition.version
-                )
-            )
-
-        return [Package(definition, variant_mapping[variant_identifier])]
+        variant = next(iter(requirement.extras))
+        return [create(definition, variant_identifier=variant)]
 
     # Simply return the package corresponding to the main definition if no
     # variants are available.
-    elif len(variants) == 0:
-        return [Package(definition)]
+    elif len(definition.variants) == 0:
+        return [create(definition)]
 
     # Otherwise, extract and return all possible variants.
     else:
-        return map(lambda variant: Package(definition, variant), variants)
+        return [
+            create(definition, variant_identifier=variant.identifier)
+            for variant in definition.variants
+        ]
 
 
 def extract_context(packages, environ_mapping=None):
@@ -145,7 +92,7 @@ def extract_context(packages, environ_mapping=None):
         return dict(command=_command, environ=_environ)
 
     mapping = reduce(_combine, packages, dict(environ=environ_mapping or {}))
-    mapping["environ"] = sanitise_environ_mapping(mapping.get("environ", {}))
+    mapping["environ"] = wiz.environ.sanitise(mapping.get("environ", {}))
 
     wiz.history.record_action(
         wiz.symbol.CONTEXT_EXTRACTION_ACTION,
@@ -222,7 +169,7 @@ def combine_environ_mapping(package_identifier, mapping1, mapping2):
             mapping[key] = str(value1)
 
         else:
-            if value1 is not None and "${{{}}}".format(key) not in value2:
+            if value1 is not None and not wiz.environ.contains(value2, key):
                 logger.warning(
                     "The '{key}' variable is being overridden "
                     "in '{identifier}'".format(
@@ -230,10 +177,7 @@ def combine_environ_mapping(package_identifier, mapping1, mapping2):
                     )
                 )
 
-            mapping[key] = re.sub(
-                "\${(\w+)}", lambda m: mapping1.get(m.group(1)) or m.group(0),
-                str(value2)
-            )
+            mapping[key] = wiz.environ.substitute(str(value2), mapping1)
 
     return mapping
 
@@ -282,141 +226,95 @@ def combine_command_mapping(package_identifier, mapping1, mapping2):
     return mapping
 
 
-def sanitise_environ_mapping(mapping):
-    """Return sanitised environment *mapping*.
+def create(definition, variant_identifier=None):
+    """Create and return a package from *definition*.
 
-    Resolve all key references within *mapping* values and remove all
-    self-references::
+    *definition* must be a valid :class:`~wiz.definition.Definition` instance.
 
-        >>> sanitise_environ_mapping(
-        ...     "PLUGIN": "${HOME}/.app:/path/to/somewhere:${PLUGIN}",
-        ...     "HOME": "/usr/people/me"
-        ... )
+    *variant_identifier* could be a valid variant identifier.
 
-        {
-            "HOME": "/usr/people/me",
-            "PLUGIN": "/usr/people/me/.app:/path/to/somewhere"
-        }
+    .. note::
 
-    """
-    _mapping = {}
+        In case of conflicted elements in 'data' or 'command' elements, the
+        elements from the variant will have priority.
 
-    for key, value in mapping.items():
-        _value = re.sub(
-            "(\${{{0}}}:?|:?\${{{0}}})".format(key), lambda m: "", value
-        )
-        _value = re.sub(
-            "\${(\w+)}", lambda m: mapping.get(m.group(1)) or m.group(0), _value
-        )
-        _mapping[key] = _value
-
-    return _mapping
-
-
-def initiate_environ(mapping=None):
-    """Return the minimal environment mapping to augment.
-
-    The initial environment mapping contains basic variables from the external
-    environment that can be used by the resolved environment, such as
-    the *USER* or the *HOME* variables.
-
-    The other variable added are:
-
-    * DISPLAY:
-        This variable is necessary to open user interface within the current
-        X display name.
-
-    * XAUTHORITY:
-        This variable is necessary to indicate the file used to store
-        credentials in cookies used by xauth_ for authentication of X sessions.
-
-    * PATH:
-        This variable is initialised with default values to have access to the
-        basic UNIX commands.
-
-    *mapping* can be a custom environment mapping which will be added to the
-    initial environment.
-
-    .. _xauth: https://www.x.org/releases/X11R6.8.2/doc/xauth.1.html
+    Raise :exc:`wiz.exception.RequestNotFound` if *variant_identifier* is not a
+    valid variant identifier of *definition*.
 
     """
-    environ = {
-        "USER": os.environ.get("USER"),
-        "LOGNAME": os.environ.get("LOGNAME"),
-        "HOME": os.environ.get("HOME"),
-        "DISPLAY": os.environ.get("DISPLAY"),
-        "XAUTHORITY": os.environ.get("XAUTHORITY"),
-        "PATH": os.pathsep.join([
-            "/usr/local/sbin",
-            "/usr/local/bin",
-            "/usr/sbin",
-            "/usr/bin",
-            "/sbin",
-            "/bin",
-        ])
-    }
+    mapping = definition.to_dict()
 
-    if mapping is not None:
-        environ.update(**mapping)
+    # Set definition identifier
+    mapping["definition-identifier"] = definition.qualified_identifier
 
-    return environ
+    # Update identifier.
+    if variant_identifier is not None:
+        mapping["identifier"] += "[{}]".format(variant_identifier)
+
+    if mapping.get("version") is not None:
+        mapping["identifier"] += "=={}".format(mapping.get("version"))
+
+    # Extract data from variants.
+    variants = mapping.pop("variants", [])
+
+    if variant_identifier is not None:
+        success = False
+
+        for _mapping in variants:
+            if variant_identifier == _mapping.get("identifier"):
+                mapping["variant-name"] = variant_identifier
+
+                if len(_mapping.get("environ", {})) > 0:
+                    mapping["environ"] = combine_environ_mapping(
+                        mapping["identifier"],
+                        definition.environ, _mapping.environ
+                    )
+
+                if len(_mapping.get("command", {})) > 0:
+                    mapping["command"] = combine_command_mapping(
+                        mapping["identifier"],
+                        definition.command, _mapping.command
+                    )
+
+                if len(_mapping.get("requirements", [])) > 0:
+                    mapping["requirements"] = (
+                        # To prevent mutating the the original requirement list.
+                        mapping.get("requirements", [])[:]
+                        + _mapping["requirements"]
+                    )
+
+                if _mapping.get("install-location") is not None:
+                    mapping["install-location"] = _mapping["install-location"]
+
+                success = True
+                break
+
+        if not success:
+            raise wiz.exception.RequestNotFound(
+                "The variant '{variant}' could not been resolved for "
+                "'{definition}' [{version}].".format(
+                    variant=variant_identifier,
+                    definition=definition.identifier,
+                    version=definition.version
+                )
+            )
+
+    return Package(mapping)
 
 
 class Package(wiz.mapping.Mapping):
     """Package object."""
 
-    def __init__(self, definition, variant=None):
-        """Initialise Package from *definition*.
+    def __init__(self, *args, **kwargs):
+        """Initialise package."""
+        super(Package, self).__init__(*args, **kwargs)
 
-        *definition* must be a valid :class:`~wiz.definition.Definition`
-        instance.
-
-        *variant* could be a valid variant mapping which should have at least
-        an 'identifier' keyword.
-
-        .. note::
-
-            In case of conflicted elements in 'data' or 'command' elements,
-            the elements from the *variant* will have priority.
-
-        """
-        definition_data = definition.to_dict()
-        mapping = dict(
-            (k, v) for k, v in definition_data.items() if k != "variants"
-        )
-
-        mapping["identifier"] = generate_identifier(
-            definition, variant.identifier if variant else None
-        )
-        mapping["definition-identifier"] = definition.identifier
-        mapping["variant_name"] = None
-
-        if variant is not None:
-            mapping["variant_name"] = variant.identifier
-
-            mapping["environ"] = combine_environ_mapping(
-                mapping["identifier"], definition.environ, variant.environ
-            )
-
-            mapping["command"] = combine_command_mapping(
-                mapping["identifier"], definition.command, variant.command
-            )
-
-            if len(variant.get("requirements", [])) > 0:
-                mapping["requirements"] = (
-                    # To prevent mutating the the original requirement list.
-                    definition_data.get("requirements", [])[:]
-                    + variant["requirements"]
-                )
-
-            if len(variant.get("constraints", [])) > 0:
-                mapping["constraints"] = (
-                    # To prevent mutating the the original constraint list.
-                    definition_data.get("constraints", [])[:]
-                    + variant["constraints"]
-                )
-
-        super(Package, self).__init__(mapping)
+    @property
+    def qualified_identifier(self):
+        """Return qualified identifier with optional namespace."""
+        if self.namespace is not None:
+            return "{}::{}".format(self.namespace, self.identifier)
+        return self.identifier
 
     @property
     def definition_identifier(self):
@@ -426,7 +324,7 @@ class Package(wiz.mapping.Mapping):
     @property
     def variant_name(self):
         """Return variant name."""
-        return self.get("variant_name")
+        return self.get("variant-name")
 
     @property
     def _ordered_keywords(self):
@@ -434,29 +332,40 @@ class Package(wiz.mapping.Mapping):
         return [
             "identifier",
             "definition-identifier",
-            "variant_name",
+            "variant-name",
             "version",
+            "namespace",
             "description",
             "registry",
             "definition-location",
+            "install-root",
             "install-location",
             "auto-use",
             "system",
             "command",
             "environ",
             "requirements",
-            "constraints"
+            "conditions"
         ]
 
     def localized_environ(self):
         """Return localized environ mapping."""
+        # Extract install location value.
+        _install_location = self.get("install-location")
+
+        if "install-root" in self.keys():
+            _install_location = wiz.environ.substitute(
+                self.get("install-location"),
+                {wiz.symbol.INSTALL_ROOT: self.get("install-root")}
+            )
+
+        # Localize each environment variable.
         _environ = self.environ
 
         def _replace_location(mapping, item):
-            """Replace location in *item* for *mapping*."""
-            mapping[item[0]] = item[1].replace(
-                "${{{}}}".format(wiz.symbol.INSTALL_LOCATION),
-                self.get("install-location")
+            """Replace install-location in *item* for *mapping*."""
+            mapping[item[0]] = wiz.environ.substitute(
+                item[1], {wiz.symbol.INSTALL_LOCATION: _install_location}
             )
             return mapping
 
