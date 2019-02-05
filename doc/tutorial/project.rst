@@ -55,6 +55,7 @@ desired :term:`Maya` version and :term:`TD SVN` requirement.
     {
         "identifier": "project",
         "namespace": "maya",
+        "description": "Project Setup for Maya.",
         "auto-use": true,
         "conditions": [
             "maya"
@@ -90,3 +91,30 @@ include all :term:`TD SVN` scripts and modules.
 
     >>> cd /jobs/ads/my_project
     >>> wiz run maya
+
+.. hint::
+
+    Which definitions were used to create the environment :term:`Maya` launches
+    in can be viewed like::
+
+        >>> wiz use maya --view
+
+        Registries
+        ------------------------------------------------------
+        [0] /mill3d/server/apps/WIZ/registry/primary/default
+        [1] /mill3d/server/apps/WIZ/registry/secondary/default
+        [2] /jobs/.wiz/registry/default
+        [3] /jobs/ads/my_project/.wiz/registry
+
+
+        Package         Version   Registry   Description
+        -------------   -------   --------   ------------------------------------------------
+        base-maya       unknown   0          Base environment variables for Maya Application.
+        site            unknown   2          Current Mill site.
+        maya            2016      0          Maya Application.
+        job             unknown   3          Project Job setup.
+        tdsvn           unknown   3          Environment for TD SVN.
+        maya::project   unknown   3          Project Setup for Maya.
+
+    In addition to the environment variables set, ``--view`` displays all
+    definitions resolved and which registries they were found in.
