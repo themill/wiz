@@ -366,8 +366,8 @@ returned. However, a variant can also be requested individually::
 
 .. important::
 
-    ``constraints`` and ``conditions`` only operate on the entire definition and
-    and can not be scoped to Variants.
+    :ref:`conditions <definition/conditions>` only operate on the entire
+    definition and can not be scoped to variants.
 
     While it is in theory possible to combine these features, it adds complexity
     to the system which could increase human error when setting up definitions.

@@ -61,14 +61,14 @@ Release Notes
         discovered, even when not compatible with the current system.
 
     .. change:: new
-        :tags: definition
+        :tags: definition, backwards-incompatible
 
         Added optional :ref:`conditions <definition/conditions>` keyword to
         definition schema which can be used to indicate a list of packages
         which must be in the resolution graph for the package to be included.
 
     .. change:: new
-        :tags: definition
+        :tags: definition, backwards-incompatible
 
         Added optional :ref:`namespace <definition/namespace>` keyword which
         can be used to provide a scope to a definition. It replaces the
@@ -142,7 +142,7 @@ Release Notes
         same aliases in the sub-shell that have been defined in the definitions.
 
     .. change:: changed
-        :tags: shell
+        :tags: shell, backwards-incompatible
 
         Updated :func:`wiz.spawn.shell`  to limit the Wiz shell to "bash".
 
@@ -165,9 +165,9 @@ Release Notes
         :option:`--registry-depth <wiz --registry-depth>` for clarity.
 
     .. change:: changed
-        :tags: command-line
+        :tags: command-line, backwards-incompatible
 
-        Update command line arguments to use the same option
+        Updated command line arguments to use the same option
         :option:`--registry <wiz install --registry>` for installing to a
         :term:`Local Registry` and installing to a :term:`VCS Registry`.
         Previously the argument was split into `--registry-path` and
@@ -203,7 +203,7 @@ Release Notes
             wiz run python -- -c 'print("TEST")'
 
     .. change:: changed
-        :tags: API
+        :tags: API, backwards-incompatible
 
         Updated :func:`wiz.resolve_context` to prepend implicit requests to
         explicit requests, rather than append as it previously did.
@@ -227,7 +227,7 @@ Release Notes
             >>> wiz use python -- echo \$PIP_CONFIG_FILE
 
     .. change:: changed
-        :tags: API, command-line
+        :tags: API, command-line, backwards-incompatible
 
         Updated :func:`wiz.definition.fetch` to remove "requests" option which
         could filter definitions discovered. The filtering process has been
@@ -237,9 +237,9 @@ Release Notes
         and version.
 
     .. change:: changed
-        :tags: API, command-line
+        :tags: API, command-line, backwards-incompatible
 
-        Removed ``--install-location`` option from ``wiz install`` subcommand
+        Removed `--install-location` option from ``wiz install`` sub-command
         and "install_location" argument from :func:`wiz.install_definitions` as
         this can already be set with the ``wiz edit`` command before installing,
         and just adds redundant complexity.
@@ -260,13 +260,13 @@ Release Notes
         with a system mapping.
 
     .. change:: changed
-        :tags: API
+        :tags: API, backwards-incompatible
 
         Moved :func:`wiz.package.initiate_environ` to
         :func:`wiz.environ.initiate`.
 
     .. change:: changed
-        :tags: API
+        :tags: API, backwards-incompatible
 
         Moved :func:`wiz.package.sanitise_environ_mapping` to
         :func:`wiz.environ.sanitise`.
@@ -299,7 +299,7 @@ Release Notes
         :func:`wiz.definition.discover`.
 
     .. change:: changed
-        :tags: API
+        :tags: API, backwards-incompatible
 
         Added :func:`wiz.package.create` to instantiate a
         :class:`~wiz.package.Package` instance from a
@@ -310,7 +310,7 @@ Release Notes
         :meth:`~wiz.mapping.Mapping.remove`,...).
 
     .. change:: changed
-        :tags: API
+        :tags: API, backwards-incompatible
 
         Removed :func:`wiz.package.generate_identifier` and add
         :attr:`wiz.definition.Definition.version_identifier` property to get

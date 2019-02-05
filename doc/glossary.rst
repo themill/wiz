@@ -18,6 +18,14 @@ Glossary
 
         .. seealso:: https://en.wikipedia.org/wiki/C_shell
 
+    Chore
+
+        Chore is a tool to create a :term:`Wiz` registry directory structure in
+        a job and add definitions describing the level of the hierarchy with
+        environment variables.
+
+        .. seealso:: http://rtd.themill.com/docs/chore/en/stable/
+
     C-Shell
         :term:`Unix Shell` created in the late 1970s. It is available on most
         Linux distributions and Apple macOS, though it is usually considered as
@@ -25,6 +33,15 @@ Glossary
         <http://www.faqs.org/faqs/unix-faq/shell/csh-whynot/>`_.
 
         .. seealso:: https://en.wikipedia.org/wiki/C_shell
+
+    DCC
+        A category of applications used for Digital Content Creation. Includes
+        applications like :term:`Maya`, :term:`Houdini` and :term:`Nuke`.
+
+    Houdini
+        A DCC tool provided by SideFX. Utilises a procedural node-based workflow.
+
+        .. seealso:: https://www.sidefx.com/products/houdini-fx/
 
     JSON
         JavaScript Object Notation is a lightweight data-interchange format.
@@ -36,6 +53,15 @@ Glossary
         documents. Useful in defining data contracts.
 
         .. seealso:: http://json-schema.org/
+
+    Git
+        Git is a free and open source distributed version control system
+        designed to handle everything from small to very large projects with
+        speed and efficiency.
+
+        .. seealso::
+
+            https://git-scm.com/
 
     Gitlab
         Centralised server for :term:`Git` that provides additional
@@ -55,6 +81,22 @@ Glossary
         A digital content creator provided by Autodesk.
 
         .. seealso:: https://www.autodesk.co.uk/products/maya/overview
+
+    mill_cd
+
+        A script that defines environment variables when cd'ing into a
+        directory.
+
+        .. seealso::
+
+            .. code-block:: bash
+
+                >>> cat /jobs/.common/bin/mill_cd
+
+    Nuke
+        A DCC tool focused on compositing, editorial and review workflows.
+
+        .. seealso:: https://www.foundry.com/products/nuke
 
     PEP 440
         Version Identification and Dependency Specification for :term:`Python`.
@@ -77,6 +119,12 @@ Glossary
         self contained directory structure.
 
         .. seealso:: http://rtd.themill.com/docs/qip/en/stable/
+
+    TD SVN
+
+        TD script and python tool collection using Subversion management.
+
+        .. seealso:: http://svn3d/rnd/trunk
 
     Unix Shell
         Command line interpreter providing a user interaction to use traditional

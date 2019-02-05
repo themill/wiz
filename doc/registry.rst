@@ -140,12 +140,15 @@ Setting up for Development
 To set up a wiz registry for testing, create a :file:`~/.wiz/registry` directory
 in your user directory.
 Any :term:`Json` definition in this directory, regardless of hierarchy, will
-be picked up by Wiz and contributes to building the graph.
+be picked up by Wiz and can contribute to building the graph.
 
-However, when developing on multiple registries (like the primary and secondary
-global one), it might be beneficial to create a custom :term:`C-Shell` wrapper:
+When developing on multiple registries, they can be set as follows::
 
-.. code-block:: csh
+    wiz -r {PATH_TO}/registry1 -r {PATH_TO}/registry2 use foo
 
-    #!/bin/tcsh -f
-    wiz -r {PATH_TO}/primary-registry -r {PATH_TO}/secondary-registry $argv
+It is also possible to add a registry to the default one which will result in
+the following registry order: :ref:`global <registry/global>`,
+:ref:`site <registry/site>`, :ref:`project <registry/project>`,
+*custom_registry*, :ref:`personal <registry/personal>`::
+
+    wiz -add {PATH_TO}/custom_registry use foo
