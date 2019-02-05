@@ -59,9 +59,31 @@ actively used for the definition query and package extraction process.
 
 .. rubric:: conditions
 
-The optional :ref:`conditions <definition/conditions>` keyword has been used to
-indicate a list of packages which must be in the resolution graph for the
-package to be include.
+The optional :ref:`conditions <definition/conditions>` keyword has been added to
+indicate a list of packages which must be in the resolution graph for a
+definition package to be include.
+
+It replaces the "constraints" keyword as the same logic can be achieved with
+:ref:`conditions <definition/conditions>` instead.
+
+With constraint::
+
+    {
+        "constraints": [
+            "maya ==2016.*"
+        ]
+    }
+
+With condition::
+
+    {
+        "conditions": [
+           "maya"
+        ],
+        "requirements": [
+           "maya ==2016.*"
+        ]
+    }
 
 .. rubric:: implicit packages
 
