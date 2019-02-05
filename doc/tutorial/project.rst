@@ -51,7 +51,7 @@ desired :term:`Maya` version and :term:`TD SVN` requirement.
 
 .. code-block:: console
 
-    >>> cat /jobs/ads/my_project/.wiz/registry/project.json
+    >>> cat /jobs/ads/my_project/.wiz/registry/project-maya.json
     {
         "identifier": "project",
         "namespace": "maya",
