@@ -320,39 +320,7 @@ The same version specifiers defined in :term:`PEP 440` can be used:
 .. important::
 
     ``conditions`` only operate on the entire definition and can not be scoped
-    to Variants.
-
-.. _definition/constraints:
-
-Constraints
------------
-
-The optional ``constraints`` keyword can be used to reference a list of package
-specifiers that should be taken into account only if corresponding packages are
-in the graph. It should be used to limit the range of versions available for
-a specific package.
-
-The same version specifiers defined in :term:`PEP 440` can be used:
-
-.. code-block:: json
-
-    {
-        "constraints": [
-            "nuke >= 10 < 11",
-            "houdini == 16.5.323"
-        ]
-    }
-
-.. note::
-
-    This keyword is most commonly used in combination with :ref:`auto-use
-    <definition/auto-use>` within project registries as it allows to lock
-    the version for a specific package.
-
-.. important::
-
-    ``constraints`` only operate on the entire definition and can not be scoped
-    to Variants.
+    to :ref:`variants <definition/variants>`.
 
 .. _definition/variants:
 

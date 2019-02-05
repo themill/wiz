@@ -109,6 +109,32 @@ Release Notes
         in the nearest accessible node will be raised if necessary.
 
     .. change:: changed
+        :tags: definition
+
+        Removed the ``constraints`` keyword to simplify the graph resolution as
+        :ref:`conditions <definition/conditions>` could be used instead to reach
+        the same logic.
+
+        With constraint::
+
+            {
+                "constraints": [
+                    "maya ==2016.*"
+                ]
+            }
+
+        With condition::
+
+            {
+                "conditions": [
+                   "maya"
+                ],
+                "requirements": [
+                   "maya ==2016.*"
+                ]
+            }
+
+    .. change:: changed
         :tags: shell
 
         Updated :func:`wiz.spawn.shell` to add "command" aliases to subprocess
@@ -829,10 +855,10 @@ Release Notes
     .. change:: new
         :tags: definition
 
-        Added optional :ref:`constraints <definition/constraints>` keyword to
-        definition schema which indicates a list of package requirements which
-        should be used to resolve a context only if another package with the
-        same definition identifier is required.
+        Added optional ``constraints`` keyword to definition schema which
+        indicates a list of package requirements which should be used to resolve
+        a context only if another package with the same definition identifier is
+        required.
 
     .. change:: new
         :tags: definition

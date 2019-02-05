@@ -365,7 +365,7 @@ class Resolver(object):
                 remove_node_and_relink(graph, node, identifiers, requirement)
 
                 # The graph changed in a way that can affect the distances of
-                # other nodes, so the distance mapping is discarded.
+                # other nodes, so the distance mapping cached is discarded.
                 self._distance_mapping = None
 
                 # Identify whether some of the newly extracted packages are not
@@ -376,7 +376,7 @@ class Resolver(object):
                 )
 
                 # If not all extracted packages are identified as conflicts, it
-                # means that variants need to be added to the  graph. If
+                # means that variants need to be added to the graph. If
                 # variants from this definition identifier have  already been
                 # processed, the update is skipped.
                 if (
@@ -401,9 +401,9 @@ class Resolver(object):
                             "The current graph has conflicting variants."
                         )
 
-            # Search and trim invalid nodes from graph if conditions are
-            # no longer fulfilled. If so reset the distance mapping.
-            if trim_invalid_from_graph(graph, distance_mapping):
+            # Search and trim invalid nodes from graph if conditions are no
+            # longer fulfilled. If so reset the distance mapping.
+            while trim_invalid_from_graph(graph, distance_mapping):
                 self._distance_mapping = None
 
 
@@ -598,16 +598,21 @@ def trim_invalid_from_graph(graph, distance_mapping):
     nodes_removed = False
 
     for node in graph.nodes():
-        if any(
-            distance_mapping[identifier].get("distance") is None
-            for identifier in node.conditioned_by
-        ):
-            logger.debug(
-                "Remove '{}' as conditions are no longer "
-                "fulfilled".format(node.identifier)
-            )
-            graph.remove_node(node.identifier)
-            nodes_removed = True
+        # Check if all conditions are still fulfilled.
+        for requirement in node.package.conditions:
+            identifiers = graph.find(requirement)
+
+            if len(identifiers) == 0 or any(
+                distance_mapping.get(identifier, {}).get("distance") is None
+                for identifier in identifiers
+            ):
+                logger.debug(
+                    "Remove '{}' as conditions are no longer "
+                    "fulfilled".format(node.identifier)
+                )
+                graph.remove_node(node.identifier)
+                nodes_removed = True
+                break
 
     return nodes_removed
 
@@ -766,12 +771,20 @@ def remove_node_and_relink(graph, node, identifiers, requirement):
     graph.remove_node(node.identifier)
 
     for parent_identifier in node.parent_identifiers:
-        if not graph.exists(parent_identifier):
+        if (
+            not graph.exists(parent_identifier) and
+            not parent_identifier == graph.ROOT
+        ):
             continue
 
         weight = graph.link_weight(node.identifier, parent_identifier)
 
         for _identifier in identifiers:
+            # Add parent to node if node already exists in graph.
+            _node = graph.node(_identifier)
+            if _node is not None:
+                _node.add_parent(parent_identifier)
+
             graph.create_link(
                 _identifier,
                 parent_identifier,
@@ -891,17 +904,14 @@ class Graph(object):
         # All nodes created per node identifier.
         self._node_mapping = {}
 
-        # Record the weight of each link in the graph.
+        # Record the weight and requirement of each link in the graph.
         self._link_mapping = {}
 
         # Set of node identifiers organised per definition identifier.
         self._identifiers_per_definition = {}
 
-        # List of stored nodes organised per definition identifier.
-        self._constraint_mapping = {}
-
-        # List of stored nodes organised per condition tuple.
-        self._condition_mapping = {}
+        # List of stored nodes with related conditions.
+        self._conditioned_nodes = []
 
         # List of node identifiers with variant organised per definition
         # identifier.
@@ -923,12 +933,7 @@ class Graph(object):
         result._identifiers_per_definition = (
             copy.deepcopy(self._identifiers_per_definition)
         )
-        result._constraint_mapping = (
-            copy.deepcopy(self._constraint_mapping)
-        )
-        result._condition_mapping = (
-            copy.deepcopy(self._condition_mapping)
-        )
+        result._conditioned_nodes = copy.deepcopy(self._conditioned_nodes)
         result._variants_per_definition = (
             copy.deepcopy(self._variants_per_definition)
         )
@@ -956,14 +961,9 @@ class Graph(object):
                 _id: sorted(node_ids) for _id, node_ids
                 in self._identifiers_per_definition.items()
             },
-            "constraint_mapping": {
-                _id: [stored_node.to_dict() for stored_node in stored_nodes]
-                for _id, stored_nodes in self._constraint_mapping.items()
-            },
-            "condition_mapping": {
-                tuple(str(c) for c in conditions): stored_node.to_dict()
-                for conditions, stored_node in self._condition_mapping.items()
-            },
+            "conditioned_nodes": [
+                stored_node.to_dict() for stored_node in self._conditioned_nodes
+            ],
             "variants_per_definition": self._variants_per_definition,
             "namespace_count": dict(self._namespace_count),
             "error_mapping": {
@@ -983,6 +983,36 @@ class Graph(object):
     def exists(self, identifier):
         """Indicate whether the node *identifier* is in the graph."""
         return identifier in self._node_mapping.keys()
+
+    def find(self, requirement):
+        """Return matching node identifiers in graph for *requirement*.
+
+        *requirement* should be an instance of
+        :class:`packaging.requirements.Requirement`.
+
+        .. warning::
+
+            Node identifiers which have been removed from the graph will also be
+            returned.
+
+        """
+        identifiers = []
+
+        for node in self.nodes():
+            qualified_name = node.package.definition_identifier
+            name = qualified_name.split(wiz.symbol.NAMESPACE_SEPARATOR, 1)[-1]
+            if requirement.name not in [qualified_name, name]:
+                continue
+
+            # Node is matching if package has no version.
+            if node.package.version is None:
+                identifiers.append(node.package.qualified_identifier)
+
+            # Node is matching if requirement contains package version.
+            elif requirement.specifier.contains(node.package.version):
+                identifiers.append(node.package.qualified_identifier)
+
+        return identifiers
 
     def variant_mapping(self):
         """Return variant groups organised per definition identifier.
@@ -1077,12 +1107,14 @@ class Graph(object):
         """Return list of exceptions raised for node *identifier*."""
         return self._error_mapping.get(identifier)
 
-    def update_from_requirements(self, requirements):
+    def update_from_requirements(self, requirements, parent_identifier=None):
         """Update graph from *requirements*.
 
         *requirements* should be a list of
         class:`packaging.requirements.Requirement` instances ordered from the
         most important to the least important.
+
+        *parent_identifier* can indicate the identifier of a parent node.
 
         One or several :class:`~wiz.package.Package` instances will be
         extracted from  *requirements* and :class:`Node` instances will be added
@@ -1092,11 +1124,6 @@ class Graph(object):
         Package's requirement are traversed with a `Breadth-first search
         <https://en.wikipedia.org/wiki/Breadth-first_search>`_ algorithm so that
         potential errors are raised for top-level packages first.
-
-        Constraints will be recorded as :class:`StoredNode` instances.
-        Corresponding packages will be added to the graph only if at least one
-        package with the same definition identifier has previously been added
-        to the graph.
 
         Conditions will be recorded as :class:`StoredNode` instances.
         Corresponding packages will be added to the graph only if at least one
@@ -1114,17 +1141,18 @@ class Graph(object):
         # Record namespaces from all requirement names.
         self._update_namespace_count(requirements)
 
-        # Fill up queue from constraint and update the graph accordingly.
+        # Fill up queue from requirements and update the graph accordingly.
         for index, requirement in enumerate(requirements):
-            queue.put({"requirement": requirement, "weight": index + 1})
+            queue.put({
+                "requirement": requirement,
+                "parent_identifier": parent_identifier,
+                "weight": index + 1
+            })
 
         self._update_from_queue(queue)
 
-        # Update graph with nodes stored if necessary.
-        stored_nodes = (
-            self._conditions_validated()
-            + self._constraints_identified_in_graph()
-        )
+        # Update graph with conditioned nodes stored if necessary.
+        stored_nodes = self._fetch_required_stored_nodes()
 
         while len(stored_nodes) > 0:
             for stored_node in stored_nodes:
@@ -1138,81 +1166,50 @@ class Graph(object):
             self._update_from_queue(queue)
 
             # Check if new stored nodes need to be added to graph.
-            stored_nodes = (
-                self._conditions_validated()
-                + self._constraints_identified_in_graph()
-            )
+            stored_nodes = self._fetch_required_stored_nodes()
 
-    def _conditions_validated(self):
+    def _fetch_required_stored_nodes(self):
         """Return :class:`StoredNode` instances which should be added to graph.
 
         A :class:`StoredNode` instance has been created for each package which
         has one or several conditions.
 
-        Only :class:`StoredNode` instances from which conditions are fulfilled
-        are returned and removed from the condition mapping.
-
         """
         stored_nodes = []
 
-        for conditions in self._condition_mapping.keys():
+        for stored_node in self._conditioned_nodes:
+            # Prevent adding stored nodes twice into the graph
+            if self.exists(stored_node.identifier):
+                continue
+
             try:
                 packages = (
                     wiz.package.extract(
                         condition, self._resolver.definition_mapping
-                    ) for condition in conditions
+                    ) for condition in stored_node.package.conditions
                 )
 
-                # Require all of this package identifiers to be in the node
-                # mapping.
+                # Require all package identifiers to be in the node mapping.
                 identifiers = [
                     package.qualified_identifier
                     for package in itertools.chain(*packages)
                 ]
 
             except wiz.exception.WizError:
-                # Do not raise if the request is not found.
+                # Do not raise if the condition request is incorrect.
                 continue
 
-            if all(_id in self._node_mapping.keys() for _id in identifiers):
-                stored_node = self._condition_mapping[conditions]
-                stored_node.set_condition_packages(identifiers)
+            if all(self.exists(_id) for _id in identifiers):
+                self._logger.debug(
+                    "Package '{}' fulfills conditions [{}]".format(
+                        stored_node.identifier,
+                        ", ".join(
+                            str(req) for req in stored_node.package.conditions
+                        )
+                    )
+                )
                 stored_nodes.append(stored_node)
 
-                # Remove condition from graph once it is fulfilled.
-                del self._condition_mapping[conditions]
-
-        self._logger.debug(
-            "Packages that now fulfill their conditions and need to be added "
-            "to the graph: {}".format(
-                [str(stored_node.requirement) for stored_node in stored_nodes]
-            )
-        )
-        return stored_nodes
-
-    def _constraints_identified_in_graph(self):
-        """Return :class:`StoredNode` instances which should be added to graph.
-
-        A :class:`StoredNode` instance has been created for each constraint
-        found in packages.
-
-        Only :class:`StoredNode` instances from which one or several packages
-        with similar definition identifier exist in the graph are returned and
-        removed from constraint mapping.
-
-        """
-        stored_nodes = []
-
-        for identifier in self._constraint_mapping.keys():
-            if identifier in self._identifiers_per_definition.keys():
-                stored_nodes += self._constraint_mapping[identifier]
-                del self._constraint_mapping[identifier]
-
-        self._logger.debug(
-            "Constraints which needs to be added to the graph: {}".format(
-                [str(stored_node.requirement) for stored_node in stored_nodes]
-            )
-        )
         return stored_nodes
 
     def _update_from_queue(self, queue):
@@ -1228,18 +1225,18 @@ class Graph(object):
                 self._update_from_requirement(
                     data.get("requirement"), queue,
                     parent_identifier=data.get("parent_identifier"),
-                    weight=data.get("weight"),
+                    weight=data.get("weight")
                 )
 
             else:
                 self._update_from_package(
                     data.get("package"), data.get("requirement"), queue,
                     parent_identifier=data.get("parent_identifier"),
-                    weight=data.get("weight"),
+                    weight=data.get("weight")
                 )
 
     def _update_from_requirement(
-        self, requirement, queue, parent_identifier=None, weight=1,
+        self, requirement, queue, parent_identifier=None, weight=1
     ):
         """Update graph from *requirement*.
 
@@ -1305,14 +1302,18 @@ class Graph(object):
 
         if not self.exists(identifier):
 
-            # Do not add the node in the graph if conditions are set.
-            if len(package.conditions) > 0:
-                conditions = tuple(package.conditions)
-                self._condition_mapping[conditions] = StoredNode(
-                    requirement,
-                    package=package.remove("conditions"),
-                    parent_identifier=parent_identifier,
-                    weight=weight
+            # Do not add the node to the graph if conditions are unprocessed.
+            if (
+                len(package.conditions) > 0 and
+                not package.get("conditions-processed")
+            ):
+                self._conditioned_nodes.append(
+                    StoredNode(
+                        requirement,
+                        package.set("conditions-processed", True),
+                        parent_identifier=parent_identifier,
+                        weight=weight
+                    )
                 )
                 return
 
@@ -1325,19 +1326,6 @@ class Graph(object):
                     "parent_identifier": identifier,
                     "weight": index + 1
                 })
-
-            # Record constraints so that it could be added later to the
-            # graph as nodes if necessary.
-            for index, _requirement in enumerate(package.constraints):
-                _identifier = _requirement.name
-                self._constraint_mapping.setdefault(_identifier, [])
-                self._constraint_mapping[_identifier].append(
-                    StoredNode(
-                        _requirement,
-                        parent_identifier=identifier,
-                        weight=index + 1
-                    )
-                )
 
         else:
             # Update variant mapping if necessary
@@ -1518,7 +1506,7 @@ class Node(object):
         .. note::
 
             The node identifier is the same as the embedded
-            :class:`~wiz.package.Package` instance identifier.
+            :class:`~wiz.package.Package` instance qualified identifier.
 
         """
         return self._package.qualified_identifier
@@ -1544,11 +1532,6 @@ class Node(object):
         """Return set of parent identifiers."""
         return self._parent_identifiers
 
-    @property
-    def conditioned_by(self):
-        """Return list of package identifiers the package is conditioned by."""
-        return self._package.get("conditioned-by", [])
-
     def add_parent(self, identifier):
         """Add *identifier* as a parent to the node."""
         self._parent_identifiers.add(identifier)
@@ -1564,19 +1547,14 @@ class Node(object):
 class StoredNode(object):
     """Representation of a node mapping within the :class:`Graph`.
 
-    It encapsulates one :class:`packaging.requirements.Requirement` instance,
+    It encapsulates one :class:`packaging.requirements.Requirement` instance
+    and corresponding :class:`wiz.package.Package` instance retrieved with
     its parent package identifier and a weight number.
 
-    A StoredNode instance is used when a package request cannot be  immediately
-    converted into one or several :class:`Node` instances in the graph.
+    A StoredNode instance is used when a package request cannot be immediately
+    added to the graph.
 
     Examples:
-
-    * When a package contains constraints, a StoredNode instance is created for
-      each constraint in case it is judged necessary to be added to the graph.
-      If a package has a constraint such as `foo >= 0.1.0, < 0.2.0`, it will be
-      added to the graph only if another package from the `foo` definition(s)
-      has been added to the graph.
 
     * When a package contains conditions, a StoredNode instance is created for
       this package request until the validation can be validated. If the
@@ -1585,12 +1563,14 @@ class StoredNode(object):
     """
 
     def __init__(
-        self, requirement, package=None, parent_identifier=None, weight=1
+        self, requirement, package, parent_identifier=None, weight=1
     ):
         """Initialize StoredNode.
 
         *requirement* should be an instance of
         :class:`packaging.requirements.Requirement`.
+
+        *package* should be an instance of :class:`wiz.package.Package`.
 
         *parent_identifier* can indicate the identifier of a parent node.
 
@@ -1602,6 +1582,18 @@ class StoredNode(object):
         self._package = package
         self._parent_identifier = parent_identifier
         self._weight = weight
+
+    @property
+    def identifier(self):
+        """Return identifier of the stored node.
+
+        .. note::
+
+            The node identifier is the same as the embedded
+            :class:`~wiz.package.Package` instance qualified identifier.
+
+        """
+        return self._package.qualified_identifier
 
     @property
     def requirement(self):
@@ -1623,20 +1615,13 @@ class StoredNode(object):
         """Return weight number."""
         return self._weight
 
-    def set_condition_packages(self, identifiers):
-        """Store *identifier* which fulfill package conditions."""
-        self._package = self._package.set("conditioned-by", identifiers)
-
     def to_dict(self):
         """Return corresponding dictionary."""
         return {
             "requirement": self._requirement,
-            "package": (
-                self.package.to_dict(serialize_content=True)
-                if self.package else None
-            ),
+            "package": self.package.to_dict(serialize_content=True),
             "parent_identifier": self._parent_identifier,
-            "weight": self._weight,
+            "weight": self._weight
         }
 
 
