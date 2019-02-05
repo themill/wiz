@@ -84,7 +84,7 @@ Let's break down this :file:`project-maya.json` package definition:
 
 
 It is now possible to start :term:`Maya` anywhere under the project folder to
-include all TD SVN scripts and modules.
+include all :term:`TD SVN` scripts and modules.
 
 .. code-block:: console
 
