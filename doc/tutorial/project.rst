@@ -46,26 +46,31 @@ location of the :term:`TD SVN` root folder within the project:
         "install-location": "${MILL_EPISODE_PATH}/.common/3d"
     }
 
-Additionally, create a :file:`project.json` package definition file to set the
+Additionally, create a :file:`project-maya.json` package definition file to set the
 desired :term:`Maya` version and :term:`TD SVN` requirement.
 
 .. code-block:: console
 
     >>> cat /jobs/ads/my_project/.wiz/registry/project.json
     {
-       "identifier": "project",
-       "auto-use": true,
-       "conditions": [
-           "maya"
-       ],
-       "requirements": [
-           "maya == 2016.*",
-           "td-svn"
-       ]
+        "identifier": "project",
+        "namespace": "maya",
+        "auto-use": true,
+        "conditions": [
+            "maya"
+        ],
+        "requirements": [
+            "maya == 2016.*",
+            "td-svn"
+        ]
     }
 
 
-Let's break down this :file:`project.json` package definition:
+Let's break down this :file:`project-maya.json` package definition:
+
+* The :ref:`namespace <definition/namespace>` keyword helps identifying the
+  package, allowing similar definitions to be created for :term:`DCCs <DCC>`
+  like Houdini or Nuke.
 
 * The :ref:`auto-use <definition/auto-use>` keyword ensures that the package
   will always be added to the graph when this registry is included.
