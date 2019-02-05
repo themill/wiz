@@ -34,6 +34,15 @@ Glossary
 
         .. seealso:: https://en.wikipedia.org/wiki/C_shell
 
+    DCC
+        A category of applications used for Digital Content Creation. Includes
+        applications like :term:`Maya`, :term:`Houdini` and :term:`Nuke`.
+
+    Houdini
+        A DCC tool provided by SideFX. Utilises a procedural node-based workflow.
+
+        .. seealso:: https://www.sidefx.com/products/houdini-fx/
+
     JSON
         JavaScript Object Notation is a lightweight data-interchange format.
 
@@ -83,6 +92,11 @@ Glossary
             .. code-block:: bash
 
                 >>> cat /jobs/.common/bin/mill_cd
+
+    Nuke
+        A DCC tool focused on compositing, editorial and review workflows.
+
+        .. seealso:: https://www.foundry.com/products/nuke
 
     PEP 440
         Version Identification and Dependency Specification for :term:`Python`.

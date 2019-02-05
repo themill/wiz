@@ -70,7 +70,7 @@ Let's break down this :file:`project-maya.json` package definition:
 
 * The :ref:`namespace <definition/namespace>` keyword helps identifying the
   package, allowing similar definitions to be created for :term:`DCCs <DCC>`
-  like Houdini or Nuke.
+  like :term:`Houdini` or :term:`Nuke`.
 
 * The :ref:`auto-use <definition/auto-use>` keyword ensures that the package
   will always be added to the graph when this registry is included.
