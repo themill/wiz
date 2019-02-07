@@ -7,9 +7,9 @@ import itertools
 import collections
 import datetime
 
-import mlog
 import click
 
+import wiz.logging
 import wiz.registry
 import wiz.symbol
 import wiz.definition
@@ -103,7 +103,7 @@ class _MainGroup(click.Group):
 @click.option(
     "-v", "--verbosity",
     help="Set the logging output verbosity.",
-    type=click.Choice(mlog.levels),
+    type=click.Choice(wiz.logging.levels),
     default="info",
     show_default=True
 )
@@ -199,8 +199,8 @@ class _MainGroup(click.Group):
 @click.pass_context
 def main(click_context, **kwargs):
     """Main entry point for the command line interface."""
-    mlog.configure()
-    logger = mlog.Logger(__name__ + ".main")
+    wiz.logging.configure()
+    logger = wiz.logging.Logger(__name__ + ".main")
 
     if kwargs["record"] is not None:
         wiz.history.start_recording(
@@ -208,7 +208,9 @@ def main(click_context, **kwargs):
         )
 
     # Set verbosity level.
-    mlog.root.handlers["stderr"].filterer.filterers[0].min = kwargs["verbosity"]
+    wiz.logging.root.handlers["stderr"].filterer.filterers[0].min = (
+        kwargs["verbosity"]
+    )
 
     # Identify system mapping.
     system_mapping = wiz.system.query(
@@ -437,7 +439,7 @@ def wiz_list_command(click_context, **kwargs):
 @click.pass_context
 def wiz_search(click_context, **kwargs):
     """Search and display definitions from request(s)."""
-    logger = mlog.Logger(__name__ + ".wiz_search")
+    logger = wiz.logging.Logger(__name__ + ".wiz_search")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -533,7 +535,7 @@ def wiz_search(click_context, **kwargs):
 @click.pass_context
 def wiz_view(click_context, **kwargs):
     """Display definition from identifier or command."""
-    logger = mlog.Logger(__name__ + ".wiz_view")
+    logger = wiz.logging.Logger(__name__ + ".wiz_view")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -630,7 +632,7 @@ def wiz_view(click_context, **kwargs):
 @click.pass_context
 def wiz_use(click_context, **kwargs):
     """Resolve and use context from command."""
-    logger = mlog.Logger(__name__ + ".wiz_use")
+    logger = wiz.logging.Logger(__name__ + ".wiz_use")
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
@@ -711,7 +713,7 @@ def wiz_use(click_context, **kwargs):
 @click.pass_context
 def wiz_run(click_context, **kwargs):
     """Run application from resolved context."""
-    logger = mlog.Logger(__name__ + ".wiz_run")
+    logger = wiz.logging.Logger(__name__ + ".wiz_run")
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
@@ -797,7 +799,7 @@ def wiz_run(click_context, **kwargs):
 @click.pass_context
 def wiz_freeze(click_context, **kwargs):
     """Freeze resolved context into a package definition or a script."""
-    logger = mlog.Logger(__name__ + ".wiz_freeze")
+    logger = wiz.logging.Logger(__name__ + ".wiz_freeze")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -909,7 +911,7 @@ def wiz_freeze(click_context, **kwargs):
 @click.pass_context
 def wiz_install(click_context, **kwargs):
     """Install a definition to a registry."""
-    logger = mlog.Logger(__name__ + ".wiz_install")
+    logger = wiz.logging.Logger(__name__ + ".wiz_install")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -1058,7 +1060,7 @@ def wiz_install(click_context, **kwargs):
 @click.pass_context
 def wiz_edit(click_context, **kwargs):
     """Edit one or several definition(s)."""
-    logger = mlog.Logger(__name__ + ".wiz_edit")
+    logger = wiz.logging.Logger(__name__ + ".wiz_edit")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -1548,7 +1550,7 @@ def _casted_argument(argument):
 
 def _query_identifier():
     """Query an identifier for a resolved context."""
-    logger = mlog.Logger(__name__ + "._query_identifier")
+    logger = wiz.logging.Logger(__name__ + "._query_identifier")
 
     while True:
         value = click.prompt("Please enter a definition identifier")
@@ -1564,7 +1566,7 @@ def _query_identifier():
 
 def _query_description():
     """Query an description for a resolved context."""
-    logger = mlog.Logger(__name__ + "._query_description")
+    logger = wiz.logging.Logger(__name__ + "._query_description")
 
     while True:
         value = click.prompt("Please enter a description:")
@@ -1581,7 +1583,7 @@ def _query_description():
 
 def _query_version(default="0.1.0"):
     """Query a version for a resolved context."""
-    logger = mlog.Logger(__name__ + "._query_version")
+    logger = wiz.logging.Logger(__name__ + "._query_version")
 
     while True:
         content = click.prompt("Please indicate a version", default=default)
@@ -1724,7 +1726,7 @@ def _fetch_definition_mapping_from_context(click_context):
 
 def _export_history_if_requested(click_context):
     """Return definition mapping from elements stored in *click_context*."""
-    logger = mlog.Logger(__name__ + "._export_history_if_requested")
+    logger = wiz.logging.Logger(__name__ + "._export_history_if_requested")
 
     if click_context.obj["recording_path"] is None:
         return

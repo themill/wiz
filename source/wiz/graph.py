@@ -11,8 +11,7 @@ try:
 except ImportError:
     import Queue as _queue
 
-import mlog
-
+import wiz.logging
 import wiz.package
 import wiz.exception
 import wiz.symbol
@@ -91,7 +90,7 @@ class Resolver(object):
         cancelled (in seconds). Default is 5 minutes.
 
         """
-        self._logger = mlog.Logger(__name__ + ".Resolver")
+        self._logger = wiz.logging.Logger(__name__ + ".Resolver")
 
         # All available definitions.
         self._definition_mapping = definition_mapping
@@ -428,7 +427,7 @@ def compute_distance_mapping(graph):
         distance is being kept.
 
     """
-    logger = mlog.Logger(__name__ + ".compute_distance_mapping")
+    logger = wiz.logging.Logger(__name__ + ".compute_distance_mapping")
     logger.debug("Compute distance mapping...")
 
     # Initiate mapping
@@ -570,7 +569,7 @@ def trim_unreachable_from_graph(graph, distance_mapping):
     *graph* with its corresponding parent node identifier.
 
     """
-    logger = mlog.Logger(__name__ + ".trim_unreachable_from_graph")
+    logger = wiz.logging.Logger(__name__ + ".trim_unreachable_from_graph")
 
     for node in graph.nodes():
         if distance_mapping[node.identifier].get("distance") is None:
@@ -593,7 +592,7 @@ def trim_invalid_from_graph(graph, distance_mapping):
     *graph* with its corresponding parent node identifier.
 
     """
-    logger = mlog.Logger(__name__ + ".trim_invalid_from_graph")
+    logger = wiz.logging.Logger(__name__ + ".trim_invalid_from_graph")
 
     nodes_removed = False
 
@@ -810,7 +809,7 @@ def validate(graph, distance_mapping):
     :attr:`root <Graph.ROOT>` level or any reachable node is found.
 
     """
-    logger = mlog.Logger(__name__ + ".validate")
+    logger = wiz.logging.Logger(__name__ + ".validate")
 
     errors = graph.error_identifiers()
     if not errors:
@@ -855,7 +854,7 @@ def extract_ordered_packages(graph, distance_mapping):
     graph with its corresponding parent node identifier.
 
     """
-    logger = mlog.Logger(__name__ + ".extract_ordered_packages")
+    logger = wiz.logging.Logger(__name__ + ".extract_ordered_packages")
 
     packages = []
 
@@ -897,7 +896,7 @@ class Graph(object):
         *resolver* should be an instance of :class:`Resolver`.
 
         """
-        self._logger = mlog.Logger(__name__ + ".Graph")
+        self._logger = wiz.logging.Logger(__name__ + ".Graph")
         self._resolver = resolver
         self._identifier = uuid.uuid4().hex
 
