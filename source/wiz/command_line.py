@@ -1214,7 +1214,7 @@ def wiz_doctor(click_context, **kwargs):
 
         except wiz.exception.WizError as error:
             print(":")
-            wiz.logging.display_error(str(error))
+            wiz.logging.display_error("critical: {}".format(str(error)))
             success = False
 
         if success:
