@@ -208,9 +208,7 @@ def main(click_context, **kwargs):
         )
 
     # Set verbosity level.
-    wiz.logging.root.handlers["stderr"].filterer.filterers[0].min = (
-        kwargs["verbosity"]
-    )
+    wiz.logging.root.handlers["stderr"].filterer.min = kwargs["verbosity"]
 
     # Identify system mapping.
     system_mapping = wiz.system.query(
