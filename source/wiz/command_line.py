@@ -1130,6 +1130,99 @@ def wiz_edit(click_context, **kwargs):
     _export_history_if_requested(click_context)
 
 
+@main.command(
+    "doctor",
+    help=(
+        """
+        Analyze all reachable definitions and display corresponding errors and
+        warnings.
+
+        Example::
+
+            \b
+            wiz doctor
+
+        """
+    ),
+    short_help="Analyze all reachable definitions.",
+    context_settings=CONTEXT_SETTINGS
+)
+@click.option(
+    "--no-arch",
+    help="Analyze definition for all platforms.",
+    is_flag=True,
+    default=False
+)
+@click.pass_context
+def wiz_doctor(click_context, **kwargs):
+    """Display warning and error for each registry."""
+
+    definition_mapping = _fetch_definition_mapping_from_context(click_context)
+    system_mapping = (
+        None if kwargs["no_arch"] else click_context.obj["system_mapping"]
+    )
+
+    latest_registry = None
+
+    for definition in wiz.definition.discover(
+        click_context.obj["registry_paths"],
+        system_mapping=system_mapping,
+        max_depth=click_context.obj["registry_search_depth"]
+    ):
+        success = True
+
+        if latest_registry != definition.get("registry"):
+            wiz.logging.display_info(
+                "\nRegistry: {}\n".format(definition.get("registry"))
+            )
+            latest_registry = definition.get("registry")
+
+        identifier = definition.qualified_version_identifier
+
+        print("  - {}".format(identifier), end="")
+        if kwargs["no_arch"]:
+            print(
+                " [{}]".format(wiz.utility.compute_system_label(definition)),
+                end=""
+            )
+
+        # Configure logger so that errors and warnings are recorded and not
+        # directly displayed.
+        log_error, log_warning = wiz.logging.configure_for_debug()
+
+        try:
+            _context = wiz.resolve_context(
+                [identifier], definition_mapping,
+                ignore_implicit=True,
+                timeout=click_context.obj["timeout"]
+            )
+
+            error = log_error.getvalue()
+            warning = log_warning.getvalue()
+            if len(error) > 0 or len(warning) > 0:
+                print(":")
+                success = False
+
+            if len(error) > 0:
+                print(error)
+
+            if len(warning) > 0:
+                print(warning)
+
+            log_error.close()
+            log_warning.close()
+
+        except wiz.exception.WizError as error:
+            print(":")
+            wiz.logging.display_error(str(error))
+            success = False
+
+        if success:
+            wiz.logging.display_green(" ✔")
+
+    print()
+
+
 def display_registries(paths):
     """Display *paths* for each registry.
 
