@@ -1141,6 +1141,8 @@ def wiz_edit(click_context, **kwargs):
 
             \b
             wiz doctor
+            wiz -r /path/to/registry doctor
+            wiz -add /path/to/additional/registry doctor
 
         """
     ),
