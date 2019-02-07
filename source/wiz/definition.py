@@ -278,6 +278,14 @@ def _guess_default_namespace(
             if namespace_counter[namespace] == max_occurrence
         ]
 
+    # If more than one namespace is available and one namespace is identical to
+    # the definition identifier (e.g. "maya::maya"), it will be selected by
+    # default.
+    if len(_namespaces) > 1 and any(
+        namespace == identifier for namespace in _namespaces
+    ):
+        _namespaces = [identifier]
+
     if len(_namespaces) == 1:
         return _namespaces.pop()
 
