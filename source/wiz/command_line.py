@@ -1196,10 +1196,10 @@ def wiz_doctor(click_context, **kwargs):
             print(":")
 
             if len(errors) > 0:
-                print("\n".join(errors))
+                print(wiz.utility.colored("\n".join(errors), color="red"))
 
             if len(warnings) > 0:
-                print("\n".join(warnings))
+                print(wiz.utility.colored("\n".join(warnings), color="yellow"))
 
         else:
             print(wiz.utility.colored(" ✔", color="green"))
