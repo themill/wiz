@@ -15,6 +15,7 @@ import wiz.system
 import wiz.filesystem
 import wiz.exception
 import wiz.utility
+import wiz.logging
 
 
 def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
@@ -494,3 +495,123 @@ def export_script(
 
     wiz.filesystem.export(file_path, content)
     return file_path
+
+
+def validate_definition(definition, definition_mapping=None, timeout=300):
+    """Return validation mapping for *definition*.
+
+     Return a mapping in the form of::
+
+        {
+            "errors": [],
+            "warnings": []
+        }
+
+    *definition* is an instance of :class:`wiz.definition.Definition`.
+
+    *definition_mapping* is a mapping regrouping all available definitions
+    available. It could be fetched with :func:`fetch_definition_mapping`.
+    If no definition mapping is provided, a sensible one will be fetched from
+    :func:`default registries <wiz.registry.get_defaults>`.
+
+    *timeout* is the max time to expire before the resolve process is being
+    cancelled (in seconds). Default is 5 minutes.
+
+    """
+    if definition_mapping is None:
+        definition_mapping = wiz.fetch_definition_mapping(
+            wiz.registry.get_defaults()
+        )
+
+    # Record current logging handlers to set it back once validation is done.
+    _handlers = wiz.logging.root.handlers.copy()
+
+    # Configure logger so that errors and warnings are recorded and not
+    # directly displayed.
+    log_error, log_warning = wiz.logging.configure_for_debug()
+
+    mapping = _fetch_validation_mapping(
+        log_error, log_warning, definition, definition_mapping, timeout
+    )
+
+    # Reset logging handlers.
+    wiz.logging.root.handlers = _handlers
+
+    return mapping
+
+
+def _fetch_validation_mapping(
+    log_error, log_warning, definition, definition_mapping, timeout
+):
+    """Fetch errors and warnings from definition for *definition*.
+
+     Return a mapping in the form of::
+
+        {
+            "errors": [],
+            "warnings": []
+        }
+
+    *log_error* and *log_warning* are instances of :class:`io.StringIO` such as
+    those returned by :func:`wiz.logging.configure_for_debug`. They will receive
+    possible error and warning logged during the context resolution process.
+
+    *definition* is an instance of :class:`wiz.definition.Definition`.
+
+    *definition_mapping* is a mapping regrouping all available definitions
+    available. It could be fetched with :func:`fetch_definition_mapping`.
+
+    *timeout* is the max time to expire before the resolve process is being
+    cancelled (in seconds).
+
+    .. warning::
+
+        *log_error* and *log_warning* variables will be :meth:`closed
+        <io.StringIO.close>` and should not be re-used.
+
+    """
+    mapping = {"errors": [], "warnings": []}
+
+    try:
+        _context = wiz.resolve_context(
+            [definition.qualified_version_identifier],
+            definition_mapping,
+            ignore_implicit=True,
+            timeout=timeout
+        )
+
+        error = log_error.getvalue()
+        warning = log_warning.getvalue()
+
+        if len(error) > 0:
+            mapping["errors"].append(error)
+
+        if len(warning) > 0:
+            mapping["warnings"].append(warning)
+
+        log_error.close()
+        log_warning.close()
+
+    except wiz.exception.WizError as error:
+        mapping["errors"].append(
+            wiz.utility.colored("critical: {}".format(str(error)), color="red")
+        )
+
+    else:
+        for key, value in _context.get("environ", {}).items():
+            unresolved_variables = []
+            for variable_tuple in wiz.environ.ENV_PATTERN.findall(value):
+                unresolved_variables.append("".join(variable_tuple))
+
+            if len(unresolved_variables) > 0:
+                warning = (
+                    "warning: the '{}' environment variable contains "
+                    "unresolved elements: {}".format(
+                        key, ", ".join(unresolved_variables)
+                    )
+                )
+                mapping["warnings"].append(
+                    wiz.utility.colored(warning, color="yellow")
+                )
+
+    return mapping
