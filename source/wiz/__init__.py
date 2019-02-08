@@ -593,9 +593,7 @@ def _fetch_validation_mapping(
         log_warning.close()
 
     except wiz.exception.WizError as error:
-        mapping["errors"].append(
-            wiz.utility.colored("critical: {}".format(str(error)), color="red")
-        )
+        mapping["errors"].append("critical: {}".format(str(error)))
 
     else:
         for key, value in _context.get("environ", {}).items():
@@ -610,8 +608,6 @@ def _fetch_validation_mapping(
                         key, ", ".join(unresolved_variables)
                     )
                 )
-                mapping["warnings"].append(
-                    wiz.utility.colored(warning, color="yellow")
-                )
+                mapping["warnings"].append(warning)
 
     return mapping
