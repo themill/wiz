@@ -191,13 +191,7 @@ def query(requirement, definition_mapping, namespace_counter=None):
             namespace_counter=namespace_counter
         )
 
-        if _namespace is not None:
-            identifier = "{}::{}".format(_namespace, identifier)
-
-    # If identifier starts with namespace separator, that means the identifier
-    # without namespace is required.
-    if identifier.startswith(wiz.symbol.NAMESPACE_SEPARATOR):
-        identifier = identifier[2:]
+        identifier = "{}::{}".format(_namespace or "", identifier)
 
     if identifier not in definition_mapping:
         raise wiz.exception.RequestNotFound(requirement)
@@ -475,9 +469,10 @@ class Definition(wiz.mapping.Mapping):
     @property
     def qualified_identifier(self):
         """Return qualified identifier with optional namespace."""
-        if self.namespace is not None:
-            return "{}::{}".format(self.namespace, self.identifier)
-        return self.identifier
+        return (
+            (self.namespace or "") + wiz.symbol.NAMESPACE_SEPARATOR +
+            self.identifier
+        )
 
     @property
     def version_identifier(self):
@@ -489,9 +484,10 @@ class Definition(wiz.mapping.Mapping):
     @property
     def qualified_version_identifier(self):
         """Return qualified version identifier with optional namespace."""
-        if self.namespace is not None:
-            return "{}::{}".format(self.namespace, self.version_identifier)
-        return self.version_identifier
+        return (
+            (self.namespace or "") + wiz.symbol.NAMESPACE_SEPARATOR +
+            self.version_identifier
+        )
 
     @property
     def variants(self):
