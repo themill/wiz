@@ -30,31 +30,6 @@ root = sawmill.root
 # as it may change depending on the configuration.
 levels = sawmill.levels
 
-#: Color symbols.
-_COLOR = {
-    "error": colorama.Fore.RED,
-    "err": colorama.Fore.RED,
-    "warning": colorama.Fore.YELLOW,
-    "warn": colorama.Fore.YELLOW,
-    "info": colorama.Fore.CYAN,
-    "except": colorama.Style.BRIGHT + colorama.Fore.RED,
-}
-
-
-def display_info(message):
-    """Display an info that will not be handled by :class:`Logger`."""
-    print(_COLOR["info"] + message + colorama.Style.RESET_ALL)
-
-
-def display_error(message):
-    """Display an error that will not be handled by :class:`Logger`."""
-    print(_COLOR["error"] + message + colorama.Style.RESET_ALL)
-
-
-def display_green(message):
-    """Display a green message that will not be handled by :class:`Logger`."""
-    print(colorama.Fore.GREEN + message + colorama.Style.RESET_ALL)
-
 
 def configure(stderr_level="info"):
     """Configure logging handlers.
@@ -86,11 +61,11 @@ def configure(stderr_level="info"):
     wiz.filesystem.ensure_directory(logging_path_prefix)
 
     pid = os.getpid()
-    filepath = os.path.join(
+    file_path = os.path.join(
         logging_path_prefix, "{}_{}.log".format(pid, int(time.time()))
     )
     file_filterer = sawmill.filterer.level.Level(min="warning", max=None)
-    file_stream = open(filepath, "a", 1)
+    file_stream = open(file_path, "a", 1)
     file_handler = sawmill.handler.stream.Stream(file_stream)
     file_handler.filterer = file_filterer
 
@@ -156,6 +131,15 @@ def configure_for_debug():
 class Formatter(sawmill.formatter.mustache.Mustache):
     """:term:`Mustache` template to format :class:`logs <sawmill.log.Log>`.
     """
+    #: Color symbols per level.
+    _COLOR = {
+        "error": colorama.Fore.RED,
+        "err": colorama.Fore.RED,
+        "warning": colorama.Fore.YELLOW,
+        "warn": colorama.Fore.YELLOW,
+        "info": colorama.Fore.CYAN,
+        "except": colorama.Style.BRIGHT + colorama.Fore.RED,
+    }
 
     def __init__(self, template):
         """Initialize with :term:`Mustache` template."""
@@ -170,9 +154,9 @@ class Formatter(sawmill.formatter.mustache.Mustache):
             line = self._renderer.render(self.template, log)
 
             if "level" in log.keys():
-                if log["level"] in _COLOR.keys():
+                if log["level"] in self._COLOR.keys():
                     line = (
-                        _COLOR[log["level"]] + line +
+                        self._COLOR[log["level"]] + line +
                         colorama.Style.RESET_ALL
                     )
 
