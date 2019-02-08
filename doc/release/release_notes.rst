@@ -6,6 +6,18 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.colored` to return a text with a specific
+        terminal color.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.validate_definition` to return a validation mapping of
+        a definition with possible errors and warnings.
+
     .. change:: changed
         :tags: command-line, API
 
