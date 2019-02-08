@@ -1171,56 +1171,38 @@ def wiz_doctor(click_context, **kwargs):
         system_mapping=system_mapping,
         max_depth=click_context.obj["registry_search_depth"]
     ):
-        success = True
-
         if latest_registry != definition.get("registry"):
-            wiz.logging.display_info(
-                "\nRegistry: {}\n".format(definition.get("registry"))
-            )
+            info = "\nRegistry: {}\n".format(definition.get("registry"))
+            print(wiz.utility.colored(info, color="cyan"))
             latest_registry = definition.get("registry")
 
         identifier = definition.qualified_version_identifier
 
         print("  - {}".format(identifier), end="")
         if kwargs["no_arch"]:
-            print(
-                " [{}]".format(wiz.utility.compute_system_label(definition)),
-                end=""
-            )
+            system_label = wiz.utility.compute_system_label(definition)
+            print(" [{}]".format(system_label), end="")
 
-        # Configure logger so that errors and warnings are recorded and not
-        # directly displayed.
-        log_error, log_warning = wiz.logging.configure_for_debug()
+        mapping = wiz.validate_definition(
+            definition,
+            definition_mapping=definition_mapping,
+            timeout=click_context.obj["timeout"]
+        )
 
-        try:
-            _context = wiz.resolve_context(
-                [identifier], definition_mapping,
-                ignore_implicit=True,
-                timeout=click_context.obj["timeout"]
-            )
+        errors = mapping.get("errors", [])
+        warnings = mapping.get("warnings", [])
 
-            error = log_error.getvalue()
-            warning = log_warning.getvalue()
-            if len(error) > 0 or len(warning) > 0:
-                print(":")
-                success = False
-
-            if len(error) > 0:
-                print(error)
-
-            if len(warning) > 0:
-                print(warning)
-
-            log_error.close()
-            log_warning.close()
-
-        except wiz.exception.WizError as error:
+        if len(errors) > 0 or len(warnings) > 0:
             print(":")
-            wiz.logging.display_error("critical: {}".format(str(error)))
-            success = False
 
-        if success:
-            wiz.logging.display_green(" ✔")
+            if len(errors) > 0:
+                print("\n".join(errors))
+
+            if len(warnings) > 0:
+                print("\n".join(warnings))
+
+        else:
+            print(wiz.utility.colored(" ✔", color="green"))
 
     print()
 
