@@ -101,7 +101,8 @@ def configure_for_debug():
     # Error handler
     error_handler = sawmill.handler.stream.Stream(error_captured)
     error_formatter = Formatter(
-        "{{level}}: {{message}}{{#traceback}}\n{{.}}:{{/traceback}}\n"
+        "{{level}}: {{message}}{{#traceback}}\n{{.}}:{{/traceback}}\n",
+        with_color=False
     )
     error_handler.formatter = error_formatter
 
@@ -112,7 +113,7 @@ def configure_for_debug():
 
     # Warning handler
     warning_handler = sawmill.handler.stream.Stream(warning_captured)
-    warning_formatter = Formatter("{{level}}: {{message}}\n")
+    warning_formatter = Formatter("{{level}}: {{message}}\n", with_color=False)
     warning_handler.formatter = warning_formatter
 
     warning_filterer = sawmill.filterer.level.Level(
@@ -141,9 +142,10 @@ class Formatter(sawmill.formatter.mustache.Mustache):
         "except": colorama.Style.BRIGHT + colorama.Fore.RED,
     }
 
-    def __init__(self, template):
+    def __init__(self, template, with_color=True):
         """Initialize with :term:`Mustache` template."""
         self._renderer = pystache.Renderer(escape=lambda value: value)
+        self._with_color = with_color
         super(Formatter, self).__init__(template, batch=False)
 
     def format(self, logs):
@@ -153,7 +155,7 @@ class Formatter(sawmill.formatter.mustache.Mustache):
         for log in logs:
             line = self._renderer.render(self.template, log)
 
-            if "level" in log.keys():
+            if self._with_color and "level" in log.keys():
                 if log["level"] in self._COLOR.keys():
                     line = (
                         self._COLOR[log["level"]] + line +
