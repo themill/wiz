@@ -311,10 +311,9 @@ class Package(wiz.mapping.Mapping):
     @property
     def qualified_identifier(self):
         """Return qualified identifier with optional namespace."""
-        return (
-            (self.namespace or "") + wiz.symbol.NAMESPACE_SEPARATOR +
-            self.identifier
-        )
+        if self.namespace is not None:
+            return "{}::{}".format(self.namespace, self.identifier)
+        return self.identifier
 
     @property
     def definition_identifier(self):
