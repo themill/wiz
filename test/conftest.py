@@ -5,7 +5,6 @@ import shutil
 import tempfile
 import uuid
 
-import mlog
 import pytest
 
 
