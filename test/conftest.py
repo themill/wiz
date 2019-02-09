@@ -48,12 +48,13 @@ def temporary_directory(request):
 
 @pytest.fixture(autouse=True)
 def logger(mocker):
-    """Mock the mlog module and return logger."""
-    mocker.patch.object(mlog, "configure")
-    mocker.patch.object(mlog, "root")
+    """Mock the 'wiz.logging' module and return logger."""
+    import wiz.logging
+    mocker.patch.object(wiz.logging, "configure")
+    mocker.patch.object(wiz.logging, "root")
 
     mock_logger = mocker.Mock()
     mocker.patch.object(
-        mlog, "Logger", return_value=mock_logger
+        wiz.logging, "Logger", return_value=mock_logger
     )
     return mock_logger
