@@ -112,6 +112,9 @@ class Resolver(object):
         # Time limit for the resolution process.
         self._timeout = timeout
 
+        # Record errors raised during the packages computation process.
+        self._errors = []
+
     @property
     def definition_mapping(self):
         """Return mapping of all available definitions."""
@@ -139,13 +142,10 @@ class Resolver(object):
         """
         self._initiate(requirements)
 
-        # Store latest exception to raise if necessary.
-        latest_error = None
-
         while True:
             graph = self._fetch_next_graph()
             if graph is None:
-                raise latest_error
+                raise self._errors.pop()
 
             try:
                 # Raise error if a conflict in graph cannot be solved.
@@ -167,7 +167,7 @@ class Resolver(object):
                 )
 
                 self._logger.debug("Failed to resolve graph: {}".format(error))
-                latest_error = error
+                self._errors.append(error)
 
     def _initiate(self, requirements):
         """Initialize iterator with a graph created from *requirement*.
