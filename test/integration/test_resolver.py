@@ -2942,3 +2942,76 @@ def test_scenario_27(
     assert spied_extract_parents.call_count == 0
     assert spied_remove_node_and_relink.call_count == 1
     assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_28(
+    spied_fetch_next_graph,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_remove_node_and_relink,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    When a graph cannot be resolved due to resolution conflicts like in the
+    scenario 2, the conflicted packages are dropped to the next available
+    version within requirement limit.
+
+    Root
+     |
+     |--(A): A==0.2.0
+     |
+     `--(G): G==2.0.2
+         |
+         `--(B<0.2.0): B==0.1.0
+             |
+             |--(D>0.1.0): D==0.1.4
+             |   |
+             |   `--(E>=2): E==2.3.0
+             |       |
+             |       `--(F>=0.2): F==1.0.0
+             |
+             `--(F>=1): F==1.0.0
+
+    Expected: F==1.0.0, D==0.1.0, B==0.1.0, C==0.3.2, G==2.0.2, A==0.2.0
+
+    The position of 'D==0.1.0' / 'B==0.1.0' and 'C==0.3.2' / 'G==2.0.2' can
+    vary as they have similar priority numbers.
+
+    """
+    definition_mapping = {
+        "A": {
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "2.0.0",
+            }),
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0"
+            })
+        },
+        "B": {
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0",
+                "requirements": ["A >= 2, < 3"]
+            }),
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0",
+                "requirements": ["A >= 1, < 2"]
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    resolver.compute_packages([Requirement("A==1.*"), Requirement("B")])
