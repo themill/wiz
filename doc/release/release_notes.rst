@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.utility.compute_label` to use qualified identifier of
+        input definition.
+
 .. release:: 2.1.0
     :date: 2019-02-11
 
