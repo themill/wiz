@@ -242,16 +242,16 @@ def _guess_qualified_identifier(
     Rules are as follow:
 
     * If definition does not have any namespaces, return identifier;
-    * If definition have one namespace, return identifier with namespace;
-    * If definition have one namespace and also exists without identifier,
+    * If definition has one namespace, return identifier with namespace;
+    * If definition has one namespace and also exists without identifier,
       return the one without a namespace;
-    * If definition have several namespaces available, use the
+    * If definition has several namespaces available, use the
       *namespace_counter* to filter out namespaces which don't have the maximum
-      occurrence number. If only one namespace remain, use this one;
-    * If definition still have several namespaces available after checking
+      occurrence number. If only one namespace remains, use this one;
+    * If definition still has several namespaces available after checking
       occurrences, if one of these namespaces is equal to the identifier (e.g.
       "maya::maya"), return that one.
-    * If definition still have several namespaces after exhausting all other
+    * If definition still has several namespaces after exhausting all other
       options, raise :exc:`wiz.exception.RequestNotFound`.
 
     """
