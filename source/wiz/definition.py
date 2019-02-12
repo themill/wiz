@@ -183,16 +183,10 @@ def query(requirement, definition_mapping, namespace_counter=None):
     identifier = requirement.name
 
     # Extend identifier with namespace if necessary.
-    namespace_mapping = definition_mapping.get("__namespace__", {})
     if wiz.symbol.NAMESPACE_SEPARATOR not in identifier:
-        _namespace = _guess_default_namespace(
-            identifier, namespace_mapping,
-            exists=identifier in definition_mapping,
-            namespace_counter=namespace_counter
+        identifier = _guess_qualified_identifier(
+            identifier, definition_mapping, namespace_counter=namespace_counter
         )
-
-        if _namespace is not None:
-            identifier = "{}::{}".format(_namespace, identifier)
 
     # If identifier starts with namespace separator, that means the identifier
     # without namespace is required.
@@ -230,61 +224,81 @@ def query(requirement, definition_mapping, namespace_counter=None):
     return definition
 
 
-def _guess_default_namespace(
-    identifier, namespace_mapping, exists=False, namespace_counter=None
+def _guess_qualified_identifier(
+    identifier, definition_mapping, namespace_counter=None
 ):
-    """Return namespace corresponding to *identifier* if available.
+    """Return qualified identifier with default namespace if possible.
 
-    *identifier* should be a definition identifier.
+    *identifier* is a definition identifier.
 
-    *namespace_mapping* should be a mapping in the form of::
-
-        {
-            "foo": ["namespace1", "namespace2"]
-            ...
-        }
-
-    *exists* indicates whether the definition *identifier* exists without a
-    namespace.
+    *definition_mapping* is a mapping regrouping all available definition
+    associated with their unique identifier.
 
     *namespace_counter* is an optional :class:`collections.Counter` instance
     which indicate occurrence of namespaces used as hints for package
     identification.
 
+    Rules are as follow:
+
+    * If definition does not have any namespaces, return identifier;
+    * If definition has one namespace, return identifier with namespace;
+    * If definition has one namespace and also exists without identifier,
+      return the one without a namespace;
+    * If definition has several namespaces available, use the
+      *namespace_counter* to filter out namespaces which don't have the maximum
+      occurrence number. If only one namespace remains, use this one;
+    * If definition still has several namespaces available after checking
+      occurrences, if one of these namespaces is equal to the identifier (e.g.
+      "maya::maya"), return that one.
+    * If definition still has several namespaces after exhausting all other
+      options, raise :exc:`wiz.exception.RequestNotFound`.
+
     """
+    namespace_mapping = definition_mapping.get("__namespace__", {})
+
     _namespaces = list(namespace_mapping.get(identifier, []))
+
+    # If no namespace are found, just return identifier unchanged.
     if len(_namespaces) == 0:
-        return
+        return identifier
 
     max_occurrence = 0
 
     # Fetch number of occurrence of the namespace for counter if available.
     if namespace_counter is not None:
-        max_occurrence = max([
-            namespace_counter[namespace] for namespace in _namespaces
-        ])
-
-    # If definition exists without a namespace and namespace does not occur more
-    # than once in the counter, the definition without namespace is kept
-    if exists and len(_namespaces) == 1 and max_occurrence < 2:
-        return
+        max_occurrence = max([namespace_counter[name] for name in _namespaces])
 
     # If more than one namespace is available, attempt to use counter to only
     # keep those which are used the most.
-    if len(_namespaces) > 1 and max_occurrence > 0:
+    if len(_namespaces) > 1 and max_occurrence > 1:
         _namespaces = [
             namespace for namespace in _namespaces
             if namespace_counter[namespace] == max_occurrence
         ]
 
+    # If more than one namespace is available and one namespace is identical to
+    # the definition identifier (e.g. "maya::maya"), it will be selected by
+    # default.
+    if len(_namespaces) > 1 and any(name == identifier for name in _namespaces):
+        _namespaces = [identifier]
+
+    # If more than one namespace is available or if we didn't need to shrink the
+    # namespace list from occurrences and definition exists without a namespace,
+    # it will be selected by default.
+    if (
+        (len(_namespaces) > 1 or max_occurrence <= 1)
+        and identifier in definition_mapping
+    ):
+        return identifier
+
     if len(_namespaces) == 1:
-        return _namespaces.pop()
+        return _namespaces.pop() + wiz.symbol.NAMESPACE_SEPARATOR + identifier
 
     raise wiz.exception.RequestNotFound(
         "Cannot guess default namespace for '{definition}' "
         "[available: {namespaces}].".format(
             definition=identifier,
-            namespaces=", ".join(sorted(namespace_mapping.get(identifier, [])))
+            namespaces=", ".join(sorted(_namespaces))
         )
     )
 

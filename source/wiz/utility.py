@@ -167,7 +167,7 @@ def compute_label(definition):
     *definition* should be a :class:`wiz.definition.Definition` instance.
 
     """
-    label = "'{}'".format(definition.identifier)
+    label = "'{}'".format(definition.qualified_identifier)
 
     if definition.get("version"):
         label += " [{}]".format(definition.version)
