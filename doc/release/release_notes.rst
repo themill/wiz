@@ -12,6 +12,21 @@ Release Notes
         Updated :func:`wiz.utility.compute_label` to use qualified identifier of
         input definition.
 
+.. release:: 2.1.0
+    :date: 2019-02-11
+
+    .. change:: changed
+
+        Updated :func:`wiz.definition.query` to add the following rule when
+        guessing the namespace of a package definition: If several namespaces
+        are available, default to the one which is identical to the identifier
+        if possible.
+
+        For instance, the following command will default to ``massive::massive``
+        even if ``maya::massive`` is available::
+
+            >> wiz use massive
+
 .. release:: 2.0.0
     :date: 2019-02-04
 
