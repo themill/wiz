@@ -1131,7 +1131,7 @@ def wiz_edit(click_context, **kwargs):
 
 
 @main.command(
-    "doctor",
+    "analyze",
     help=(
         """
         Analyze all reachable definitions and display corresponding errors and
@@ -1140,9 +1140,9 @@ def wiz_edit(click_context, **kwargs):
         Example::
 
             \b
-            wiz doctor
-            wiz -r /path/to/registry doctor
-            wiz -add /path/to/additional/registry doctor
+            wiz analyze
+            wiz -r /path/to/registry analyze
+            wiz -add /path/to/additional/registry analyze
 
         """
     ),
@@ -1156,7 +1156,7 @@ def wiz_edit(click_context, **kwargs):
     default=False
 )
 @click.pass_context
-def wiz_doctor(click_context, **kwargs):
+def wiz_analyze(click_context, **kwargs):
     """Display warning and error for each registry."""
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
