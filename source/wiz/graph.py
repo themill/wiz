@@ -366,32 +366,20 @@ class Resolver(object):
                 self._logger.debug("Remove '{}'".format(identifier))
                 graph.remove_node(node.identifier)
 
-                relink_parents(graph, node, identifiers, requirement)
-
                 # The graph changed in a way that can affect the distances of
                 # other nodes, so the distance mapping cached is discarded.
                 self._distance_mapping = None
 
-                # Identify whether some of the newly extracted packages are not
-                # in the list of conflicting nodes to decide if the graph should
-                # be updated.
-                _identifiers = set(identifiers).difference(
-                    set([_node.identifier for _node in conflicting_nodes])
+                # Update the graph with new nodes if necessary. Discard the
+                # whole graph if a variant division is needed.
+                updated = self._update_graph_if_necessary(
+                    graph, packages, requirement, conflicting_nodes
                 )
 
-                # If not all extracted packages are identified as conflicts, it
-                # means that variants need to be added to the graph. If
-                # variants from this definition identifier have  already been
-                # processed, the update is skipped.
-                if (
-                    len(_identifiers) == len(conflicting_nodes) and
-                    node.definition not in self._definitions_with_variants
-                ):
-                    self._logger.debug(
-                        "Add to graph: {}".format(", ".join(_identifiers))
-                    )
-                    graph.update_from_requirements([requirement], graph.ROOT)
+                # Relink node parents to package identifiers.
+                relink_parents(graph, node, identifiers, requirement)
 
+                if updated:
                     # Update conflict list if necessary.
                     conflicts = list(
                         set(conflicts + graph.conflicting_identifiers())
@@ -399,7 +387,7 @@ class Resolver(object):
 
                     # If the updated graph contains conflicting variants, the
                     # relevant combination must be extracted, therefore the
-                    # current combination cannot be resolved.
+                    # current graph combination cannot be resolved.
                     if self._extract_combinations(graph):
                         raise wiz.exception.GraphResolutionError(
                             "The current graph has conflicting variants."
@@ -409,6 +397,70 @@ class Resolver(object):
             # longer fulfilled. If so reset the distance mapping.
             while trim_invalid_from_graph(graph, distance_mapping):
                 self._distance_mapping = None
+
+    def _update_graph_if_necessary(
+        self, graph, packages, requirement, conflicting_nodes,
+    ):
+        """Update *graph* with new node(s) from *packages* if necessary.
+
+        Return whether the graph has been updated.
+
+        *graph* must be an instance of :class:`Graph`.
+
+        *packages* must be a list of :class:`~wiz.package.Package` instances
+        which are variants of the same definition identifier version. It can
+        also be a unique package version without variants.
+
+        *requirement* must be the :class:`packaging.requirements.Requirement`
+        which led to the package extraction.
+
+        *conflicting_nodes* should be a list of :class:`Node` instances
+        representing conflicting version of a definition within the *graph*.
+
+        *parent_identifiers* should be a list of package identifiers (or
+        :attr:`root <Graph.ROOT>` which should be set as parents to the new
+        nodes)
+
+        .. note::
+
+            If the *packages* list contains more than one item, it means that
+            several variants of one definition version have been extracted. If
+            not all extracted *packages* are identified in the
+            *conflicting_nodes* list, it might be because the graph has already
+            divided the graph for this particular definition identifier.
+
+            We need all items from the *packages* list to be new and their
+            definition identifier to be new so that it could be added to the
+            graph.
+
+        """
+        # Extract common definition identifier.
+        definition_identifier = packages[0].definition_identifier
+
+        # Identify whether some of the newly extracted packages are not
+        # in the list of conflicting nodes.
+        identifiers = [package.qualified_identifier for package in packages]
+        identifiers = set(identifiers).difference(
+            set([_node.identifier for _node in conflicting_nodes])
+        )
+
+        # If all newly packages have the same number of variants (or no
+        # variants at all) and the definition identifier hasn't been used to ,
+        # divide the graph yet, it will be added to the graph.
+        if (
+            len(identifiers) == len(conflicting_nodes) and
+            definition_identifier not in self._definitions_with_variants
+        ):
+            self._logger.debug(
+                "Add to graph: {}".format(", ".join(identifiers))
+            )
+
+            for package in packages:
+                graph.update_from_package(package, requirement)
+
+            return True
+
+        return False
 
 
 def compute_distance_mapping(graph):
@@ -1151,6 +1203,57 @@ class Graph(object):
                 "weight": index + 1
             })
 
+        self._update_graph(queue)
+
+    def update_from_package(
+        self, package, requirement, parent_identifier=None, weight=1
+    ):
+        """Update graph from *package*.
+
+        *package* should be a class:`~wiz.package.Package` instance.
+
+        *requirement* should be an instance of
+        :class:`packaging.requirements.Requirement` which led to the *package*
+        extraction.
+
+        *parent_identifier* can indicate a parent node identifier. Default is
+        None, which means that *package* will not be linked to any parent.
+
+        *weight* is a number which indicate the importance of the dependency
+        link from the node to its parent. The lesser this number, the higher is
+        the importance of the link. Default is 1.
+
+        .. note::
+
+            *weight* is irrelevant if no *parent_identifier* is given.
+
+        """
+        queue = _queue.Queue()
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_UPDATE_ACTION,
+            graph=self, requirements=[requirement],
+        )
+
+        # Record namespaces from all requirement names.
+        self._update_namespace_count([requirement])
+
+        # Add package to queue to start updating.
+        queue.put({
+            "requirement": requirement,
+            "package": package,
+            "parent_identifier": parent_identifier,
+            "weight": weight
+        })
+
+        self._update_graph(queue)
+
+    def _update_graph(self, queue):
+        """Update graph and fetch stored nodes from data contained in *queue*.
+
+        *queue* should be a :class:`Queue` instance.
+
+        """
         self._update_from_queue(queue)
 
         # Update graph with conditioned nodes stored if necessary.
@@ -1334,15 +1437,17 @@ class Graph(object):
             self._update_variant_mapping(identifier)
 
         node = self._node_mapping[identifier]
-        node.add_parent(parent_identifier)
 
-        # Create links with requirement and weight.
-        self.create_link(
-            node.identifier,
-            parent_identifier,
-            requirement,
-            weight=weight
-        )
+        if parent_identifier is not None:
+            node.add_parent(parent_identifier)
+
+            # Create links with requirement and weight.
+            self.create_link(
+                node.identifier,
+                parent_identifier,
+                requirement,
+                weight=weight
+            )
 
     def _create_node_from_package(self, package):
         """Create node in graph from *package*.
