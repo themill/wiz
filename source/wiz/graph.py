@@ -184,7 +184,7 @@ class Resolver(object):
         )
 
         # Update the graph.
-        graph.update_from_requirements(requirements)
+        graph.update_from_requirements(requirements, graph.ROOT)
 
         # Reset the iterator.
         self._iterator = iter([])
@@ -358,6 +358,8 @@ class Resolver(object):
                     )
                 )
 
+            # If current node is not in the packages extracted from the combined
+            # requirement, it needs to be removed from the graph.
             identifiers = [package.qualified_identifier for package in packages]
 
             if identifier not in identifiers:
@@ -386,7 +388,7 @@ class Resolver(object):
                     self._logger.debug(
                         "Add to graph: {}".format(", ".join(_identifiers))
                     )
-                    graph.update_from_requirements([requirement])
+                    graph.update_from_requirements([requirement], graph.ROOT)
 
                     # Update conflict list if necessary.
                     conflicts = list(
@@ -1107,14 +1109,14 @@ class Graph(object):
         """Return list of exceptions raised for node *identifier*."""
         return self._error_mapping.get(identifier)
 
-    def update_from_requirements(self, requirements, parent_identifier=None):
+    def update_from_requirements(self, requirements, parent_identifier):
         """Update graph from *requirements*.
 
         *requirements* should be a list of
         class:`packaging.requirements.Requirement` instances ordered from the
         most important to the least important.
 
-        *parent_identifier* can indicate the identifier of a parent node.
+        *parent_identifier* should indicate a parent node identifier.
 
         One or several :class:`~wiz.package.Package` instances will be
         extracted from  *requirements* and :class:`Node` instances will be added
@@ -1135,7 +1137,7 @@ class Graph(object):
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_UPDATE_ACTION,
-            graph=self, requirements=requirements
+            graph=self, requirements=requirements,
         )
 
         # Record namespaces from all requirement names.
@@ -1223,30 +1225,32 @@ class Graph(object):
 
             if data.get("package") is None:
                 self._update_from_requirement(
-                    data.get("requirement"), queue,
-                    parent_identifier=data.get("parent_identifier"),
+                    data.get("requirement"),
+                    data.get("parent_identifier"),
+                    queue,
                     weight=data.get("weight")
                 )
 
             else:
                 self._update_from_package(
-                    data.get("package"), data.get("requirement"), queue,
-                    parent_identifier=data.get("parent_identifier"),
+                    data.get("package"), data.get("requirement"),
+                    data.get("parent_identifier"),
+                    queue,
                     weight=data.get("weight")
                 )
 
     def _update_from_requirement(
-        self, requirement, queue, parent_identifier=None, weight=1
+        self, requirement, parent_identifier, queue, weight=1
     ):
         """Update graph from *requirement*.
 
         *requirement* should be an instance of
         :class:`packaging.requirements.Requirement`.
 
+        *parent_identifier* indicate a parent node identifier.
+
         *queue* should be a :class:`Queue` instance that will be updated with
         all dependent requirements data.
-
-        *parent_identifier* can indicate the identifier of a parent node.
 
         *weight* is a number which indicate the importance of the dependency
         link from the node to its parent. The lesser this number, the higher is
@@ -1263,9 +1267,8 @@ class Graph(object):
             )
 
         except wiz.exception.WizError as error:
-            parent = parent_identifier or self.ROOT
-            self._error_mapping.setdefault(parent, [])
-            self._error_mapping[parent].append(error)
+            self._error_mapping.setdefault(parent_identifier, [])
+            self._error_mapping[parent_identifier].append(error)
             return
 
         # Create a node for each package if necessary.
@@ -1273,13 +1276,12 @@ class Graph(object):
             sanitize_requirement(requirement, package.namespace)
 
             self._update_from_package(
-                package, requirement, queue,
-                parent_identifier=parent_identifier,
+                package, requirement, parent_identifier, queue,
                 weight=weight
             )
 
     def _update_from_package(
-        self, package, requirement, queue, parent_identifier=None, weight=1
+        self, package, requirement, parent_identifier, queue, weight=1
     ):
         """Update graph from *package*.
 
@@ -1288,10 +1290,10 @@ class Graph(object):
         *requirement* should be an instance of
         :class:`packaging.requirements.Requirement`.
 
+        *parent_identifier* indicate a parent node identifier.
+
         *queue* should be a :class:`Queue` instance that will be updated with
         all dependent requirements data.
-
-        *parent_identifier* can indicate the identifier of a parent node.
 
         *weight* is a number which indicate the importance of the dependency
         link from the node to its parent. The lesser this number, the higher is
@@ -1332,12 +1334,12 @@ class Graph(object):
             self._update_variant_mapping(identifier)
 
         node = self._node_mapping[identifier]
-        node.add_parent(parent_identifier or self.ROOT)
+        node.add_parent(parent_identifier)
 
-        # Create link with requirement and weight.
+        # Create links with requirement and weight.
         self.create_link(
             node.identifier,
-            parent_identifier or self.ROOT,
+            parent_identifier,
             requirement,
             weight=weight
         )
@@ -1533,7 +1535,7 @@ class Node(object):
         return self._parent_identifiers
 
     def add_parent(self, identifier):
-        """Add *identifier* as a parent to the node."""
+        """Add *identifier* as parent to the node."""
         self._parent_identifiers.add(identifier)
 
     def to_dict(self):
@@ -1562,9 +1564,7 @@ class StoredNode(object):
 
     """
 
-    def __init__(
-        self, requirement, package, parent_identifier=None, weight=1
-    ):
+    def __init__(self, requirement, package, parent_identifier, weight=1):
         """Initialize StoredNode.
 
         *requirement* should be an instance of
@@ -1572,7 +1572,7 @@ class StoredNode(object):
 
         *package* should be an instance of :class:`wiz.package.Package`.
 
-        *parent_identifier* can indicate the identifier of a parent node.
+        *parent_identifier* indicate a parent node identifier.
 
         *weight* is a number which indicate the importance of the dependency
         link from the node to its parent. Default is 1.
