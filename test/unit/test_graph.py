@@ -646,8 +646,8 @@ def test_extract_parents(mocker, mocked_graph):
     assert sorted(parents) == ["E", "F", "G"]
 
 
-def test_remove_node_and_relink(mocker, mocked_graph):
-    """Remove node and relink node's parents."""
+def test_relink_parents(mocker, mocked_graph):
+    """Relink node's parents to new identifiers."""
     node = mocker.Mock(
         identifier="foo",
         parent_identifiers=["parent1", "parent2", "parent3"]
@@ -656,11 +656,9 @@ def test_remove_node_and_relink(mocker, mocked_graph):
     mocked_graph.exists.side_effect = [True, False, True]
     mocked_graph.link_weight.side_effect = [1, 2]
 
-    wiz.graph.remove_node_and_relink(
+    wiz.graph.relink_parents(
         mocked_graph, node, ["bar", "baz", "bim"], "__REQUIREMENT__"
     )
-
-    mocked_graph.remove_node.assert_called_once_with("foo")
 
     assert mocked_graph.exists.call_count == 3
     mocked_graph.exists.assert_any_call("parent1")

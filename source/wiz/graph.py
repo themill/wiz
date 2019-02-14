@@ -364,7 +364,9 @@ class Resolver(object):
 
             if identifier not in identifiers:
                 self._logger.debug("Remove '{}'".format(identifier))
-                remove_node_and_relink(graph, node, identifiers, requirement)
+                graph.remove_node(node.identifier)
+
+                relink_parents(graph, node, identifiers, requirement)
 
                 # The graph changed in a way that can affect the distances of
                 # other nodes, so the distance mapping cached is discarded.
@@ -753,8 +755,8 @@ def extract_parents(graph, nodes):
     return identifiers
 
 
-def remove_node_and_relink(graph, node, identifiers, requirement):
-    """Remove *node* from *graph* and relink node's parents to *identifiers*
+def relink_parents(graph, node, identifiers, requirement):
+    """Relink *node*'s parents to *identifiers*.
 
     When creating the new links, the same weight connecting the *node* to its
     parents is being used. *requirement* indicate the new requirement link for
@@ -770,8 +772,6 @@ def remove_node_and_relink(graph, node, identifiers, requirement):
     instance.
 
     """
-    graph.remove_node(node.identifier)
-
     for parent_identifier in node.parent_identifiers:
         if (
             not graph.exists(parent_identifier) and
