@@ -1189,7 +1189,7 @@ class Graph(object):
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_UPDATE_ACTION,
-            graph=self, requirements=requirements,
+            graph=self, requirements=requirements
         )
 
         # Record namespaces from all requirement names.
