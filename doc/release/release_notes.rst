@@ -4,6 +4,15 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
+        ensure that packages added during the conflict resolution process are
+        correctly linked to the correct parents instead of
+        :attr:`root <wiz.graph.Graph.ROOT>`.
+
 .. release:: 2.1.0
     :date: 2019-02-11
 
