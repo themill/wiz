@@ -364,7 +364,7 @@ class Resolver(object):
 
             if identifier not in identifiers:
                 self._logger.debug("Remove '{}'".format(identifier))
-                graph.remove_node(node.identifier)
+                graph.remove_node(identifier)
 
                 # The graph changed in a way that can affect the distances of
                 # other nodes, so the distance mapping cached is discarded.
