@@ -372,7 +372,7 @@ class Resolver(object):
 
                 # Update the graph with new nodes if necessary. Discard the
                 # whole graph if a variant division is needed.
-                updated = self._update_graph_if_necessary(
+                updated = self._update_graph_from_conflict(
                     graph, packages, requirement, conflicting_nodes
                 )
 
@@ -398,7 +398,7 @@ class Resolver(object):
             while trim_invalid_from_graph(graph, distance_mapping):
                 self._distance_mapping = None
 
-    def _update_graph_if_necessary(
+    def _update_graph_from_conflict(
         self, graph, packages, requirement, conflicting_nodes,
     ):
         """Update *graph* with new node(s) from *packages* if necessary.
@@ -445,7 +445,7 @@ class Resolver(object):
         )
 
         # If all newly packages have the same number of variants (or no
-        # variants at all) and the definition identifier hasn't been used to ,
+        # variants at all) and the definition identifier hasn't been used to
         # divide the graph yet, it will be added to the graph.
         if (
             len(identifiers) == len(conflicting_nodes) and
@@ -1203,7 +1203,7 @@ class Graph(object):
                 "weight": index + 1
             })
 
-        self._update_graph(queue)
+        self._update(queue)
 
     def update_from_package(
         self, package, requirement, parent_identifier=None, weight=1
@@ -1246,9 +1246,9 @@ class Graph(object):
             "weight": weight
         })
 
-        self._update_graph(queue)
+        self._update(queue)
 
-    def _update_graph(self, queue):
+    def _update(self, queue):
         """Update graph and fetch stored nodes from data contained in *queue*.
 
         *queue* should be a :class:`Queue` instance.
