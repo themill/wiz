@@ -2956,7 +2956,7 @@ def test_scenario_28(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -3011,5 +3011,5 @@ def test_scenario_28(
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
