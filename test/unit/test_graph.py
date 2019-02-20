@@ -485,12 +485,30 @@ def test_updated_by_distance():
 def test_extract_conflicting_nodes(mocker, mocked_graph):
     """Extract conflicting nodes for a specific node."""
     node_mapping = {
-        "A": mocker.Mock(identifier="A", definition="defB"),
-        "B": mocker.Mock(identifier="B", definition="defB"),
-        "C": mocker.Mock(identifier="C", definition="defB"),
-        "D": mocker.Mock(identifier="D", definition="defA"),
-        "E": mocker.Mock(identifier="E", definition="defA"),
-        "F": mocker.Mock(identifier="F", definition="defA")
+        "A": mocker.Mock(
+            identifier="A",
+            definition=mocker.Mock(qualified_identifier="defB")
+        ),
+        "B": mocker.Mock(
+            identifier="B",
+            definition=mocker.Mock(qualified_identifier="defB")
+        ),
+        "C": mocker.Mock(
+            identifier="C",
+            definition=mocker.Mock(qualified_identifier="defB")
+        ),
+        "D": mocker.Mock(
+            identifier="D",
+            definition=mocker.Mock(qualified_identifier="defA")
+        ),
+        "E": mocker.Mock(
+            identifier="E",
+            definition=mocker.Mock(qualified_identifier="defA")
+        ),
+        "F": mocker.Mock(
+            identifier="F",
+            definition=mocker.Mock(qualified_identifier="defA")
+        )
     }
 
     mocked_graph.node = lambda _id: node_mapping[_id]
@@ -1850,12 +1868,12 @@ def test_node():
     package = wiz.package.Package({
         "identifier": "A[V1]==0.1.0",
         "variant-name": "V1",
-        "definition-identifier": "defA"
+        "definition": "__DEFINITION__"
     })
 
     node = wiz.graph.Node(package)
     assert node.identifier == "A[V1]==0.1.0"
-    assert node.definition == "defA"
+    assert node.definition == "__DEFINITION__"
     assert node.variant_name == "V1"
     assert node.package == package
     assert node.parent_identifiers == set()
