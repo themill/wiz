@@ -3015,7 +3015,7 @@ def test_scenario_28(
     assert spied_extract_ordered_packages.call_count == 1
 
 
-def test_scenario_28(
+def test_scenario_29(
     spied_fetch_next_graph,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
@@ -3027,7 +3027,7 @@ def test_scenario_28(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -3038,24 +3038,13 @@ def test_scenario_28(
 
     Root
      |
-     |--(A): A==0.2.0
+     |--(A): A==1.0.0
      |
-     `--(G): G==2.0.2
+     `--(B): B==2.0.0
          |
-         `--(B<0.2.0): B==0.1.0
-             |
-             |--(D>0.1.0): D==0.1.4
-             |   |
-             |   `--(E>=2): E==2.3.0
-             |       |
-             |       `--(F>=0.2): F==1.0.0
-             |
-             `--(F>=1): F==1.0.0
+         `--(A >= 2, < 3): A==2.0.0
 
-    Expected: F==1.0.0, D==0.1.0, B==0.1.0, C==0.3.2, G==2.0.2, A==0.2.0
-
-    The position of 'D==0.1.0' / 'B==0.1.0' and 'C==0.3.2' / 'G==2.0.2' can
-    vary as they have similar priority numbers.
+    Expected: A==1.0.0, B==1.0.0
 
     """
     definition_mapping = {
