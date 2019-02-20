@@ -435,7 +435,7 @@ class Resolver(object):
 
         """
         # Extract common definition identifier.
-        definition_identifier = packages[0].definition_identifier
+        definition_identifier = packages[0].definition.qualified_identifier
 
         # Identify whether some of the newly extracted packages are not
         # in the list of conflicting nodes.
@@ -714,7 +714,10 @@ def extract_conflicting_nodes(graph, node):
 
     return [
         _node for _node in nodes
-        if _node.definition == node.definition
+        if (
+            _node.definition.qualified_identifier ==
+            node.definition.qualified_identifier
+        )
         and _node.identifier != node.identifier
     ]
 
@@ -1053,7 +1056,7 @@ class Graph(object):
         identifiers = []
 
         for node in self.nodes():
-            qualified_name = node.package.definition_identifier
+            qualified_name = node.definition.qualified_identifier
             name = qualified_name.split(wiz.symbol.NAMESPACE_SEPARATOR, 1)[-1]
             if requirement.name not in [qualified_name, name]:
                 continue
@@ -1461,7 +1464,7 @@ class Graph(object):
         self._node_mapping[identifier] = Node(package)
 
         # Record node identifiers per package to identify conflicts.
-        _definition_id = package.definition_identifier
+        _definition_id = package.definition.qualified_identifier
         self._identifiers_per_definition.setdefault(_definition_id, set())
         self._identifiers_per_definition[_definition_id].add(identifier)
 
@@ -1480,8 +1483,9 @@ class Graph(object):
             return
 
         # TODO: Shouldn't it be a set?
-        self._variants_per_definition.setdefault(node.definition, [])
-        self._variants_per_definition[node.definition].append(identifier)
+        _definition_id = node.definition.qualified_identifier
+        self._variants_per_definition.setdefault(_definition_id, [])
+        self._variants_per_definition[_definition_id].append(identifier)
 
     def _update_namespace_count(self, requirements):
         """Record namespace occurrences from *requirements*.
@@ -1602,11 +1606,6 @@ class Node(object):
         self._parent_identifiers = set()
 
     @property
-    def definition(self):
-        """Return definition identifier of the node."""
-        return self._package.definition_identifier
-
-    @property
     def identifier(self):
         """Return identifier of the node.
 
@@ -1617,6 +1616,11 @@ class Node(object):
 
         """
         return self._package.qualified_identifier
+
+    @property
+    def definition(self):
+        """Return corresponding :class:`wiz.definition.Definition` instance."""
+        return self._package.definition
 
     @property
     def variant_name(self):
