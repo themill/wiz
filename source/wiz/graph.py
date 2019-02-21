@@ -565,9 +565,10 @@ def generate_variant_combinations(graph, variant_groups):
 
         for node_identifier in _group:
             node = graph.node(node_identifier)
-            variant_mapping.setdefault(node.variant_name, [])
-            variant_mapping[node.variant_name].append(node_identifier)
-            variant_mapping[node.variant_name].sort(
+            variant_name = node.package.variant_name
+            variant_mapping.setdefault(variant_name, [])
+            variant_mapping[variant_name].append(node_identifier)
+            variant_mapping[variant_name].sort(
                 key=lambda _id: _group.index(_id)
             )
 
@@ -1085,7 +1086,7 @@ class Graph(object):
                 if self._node_mapping.get(identifier)
             ]
 
-            variant_names = set([node.variant_name for node in nodes])
+            variant_names = set([node.package.variant_name for node in nodes])
             if len(variant_names) <= 1:
                 continue
 
@@ -1094,7 +1095,7 @@ class Graph(object):
                 set(nodes),
                 key=lambda n: (
                     count[n.identifier],
-                    (n.package.version, n.variant_name)
+                    (n.package.version, n.package.variant_name)
                 ),
                 reverse=True
             )
@@ -1471,7 +1472,7 @@ class Graph(object):
         """Update variant mapping according to node *identifier*.
         """
         node = self._node_mapping[identifier]
-        if node.variant_name is None:
+        if node.package.variant_name is None:
             return
 
         # This is not a set because the index of identifiers matter and
@@ -1614,17 +1615,6 @@ class Node(object):
     def definition(self):
         """Return corresponding :class:`wiz.definition.Definition` instance."""
         return self._package.definition
-
-    @property
-    def variant_name(self):
-        """Return variant name of the node.
-
-        Return the variant name of the embedded
-        :class:`~wiz.package.Package` instance. If the package does not have a
-        variant, None is returned.
-
-        """
-        return self._package.variant_name
 
     @property
     def package(self):
