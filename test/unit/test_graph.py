@@ -311,7 +311,10 @@ def test_generate_variant_combinations(
     """Return list of node trimming combinations from variants."""
     # Suppose that variants are always between square brackets in identifier.
     mocked_graph.node = lambda _id: mocker.Mock(
-        identifier=_id, variant_name=re.search("(?<=\[).+(?=\])", _id).group(0)
+        identifier=_id,
+        package=mocker.Mock(
+            variant_name=re.search("(?<=\[).+(?=\])", _id).group(0)
+        )
     )
 
     results = wiz.graph.generate_variant_combinations(
@@ -933,10 +936,10 @@ def test_graph_find_matching_identifiers(
     assert result == expected
 
 
-def test_graph_variant_mapping(mocker):
+def test_graph_variant_groups(mocker):
     """Extract variants from graph."""
     graph = wiz.graph.Graph(None)
-    assert graph.variant_mapping() == {}
+    assert graph.variant_groups() == []
 
     graph = wiz.graph.Graph(None)
     graph._node_mapping = {
@@ -955,10 +958,10 @@ def test_graph_variant_mapping(mocker):
         "C": ["C[V1]==0.1.0"],
         "D": ["D[V1]==0.1.0", "D[V1]==0.2.0"]
     }
-    assert graph.variant_mapping() == {
-        "A": ["A[V1]==0.1.0", "A[V2]==0.1.0"],
-        "B": ["B[V1]==0.1.0", "B[V2]==0.1.0", "B[V1]==0.2.0"]
-    }
+    assert graph.variant_groups() == [
+        ["A[V1]==0.1.0", "A[V2]==0.1.0"],
+        ["B[V1]==0.1.0", "B[V2]==0.1.0", "B[V1]==0.2.0"]
+    ]
 
 
 def test_graph_outcoming():
@@ -1875,14 +1878,12 @@ def test_node():
     """Create and use node."""
     package = wiz.package.Package({
         "identifier": "A[V1]==0.1.0",
-        "variant-name": "V1",
         "definition": "__DEFINITION__"
     })
 
     node = wiz.graph.Node(package)
     assert node.identifier == "A[V1]==0.1.0"
     assert node.definition == "__DEFINITION__"
-    assert node.variant_name == "V1"
     assert node.package == package
     assert node.parent_identifiers == set()
 
