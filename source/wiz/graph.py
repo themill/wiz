@@ -44,13 +44,13 @@ class Resolver(object):
         >>> graph.update_from_requirements(
         ...     Requirement("foo"), Requirement("bar"), Requirement("baz")
         ... )
-        >>> graph.variant_mapping()
+        >>> graph.variant_groups()
 
-        {
-            "foo": ["foo[V3]", "foo[V2]", "foo[V1]"],
-            "bar": ["bar[V2]", "bar[V1]"],
-            "foo": ["baz[V4]", "baz[V3]", "baz[V2]", "baz[V1]"],
-        }
+        [
+            ["foo[V3]", "foo[V2]", "foo[V1]"],
+            ["bar[V2]", "bar[V1]"],
+            ["baz[V4]", "baz[V3]", "baz[V2]", "baz[V1]"],
+        ]
 
     Instead of directly dividing the graph 24 times, a list of trimming
     combination is generated to figure out the order of the graph division and
@@ -96,9 +96,8 @@ class Resolver(object):
         # All available definitions.
         self._definition_mapping = definition_mapping
 
-        # List of definition identifiers with variants which required graph
-        # division
-        self._definitions_with_variants = []
+        # Set of node identifiers with variants which required graph division.
+        self._variant_identifiers = set()
 
         # Record mapping indicating the shortest possible distance of each node
         # identifier from the root level of the graph with corresponding
@@ -247,15 +246,18 @@ class Resolver(object):
         *graph* must be an instance of :class:`Graph`.
 
         """
-        variant_mapping = graph.variant_mapping()
-        if not variant_mapping:
+        variant_groups = graph.variant_groups()
+        if not variant_groups:
             self._logger.debug(
                 "No package variants are conflicting in the graph."
             )
             return False
 
-        # Record all definition identifiers which led to graph division.
-        self._definitions_with_variants.extend(variant_mapping.keys())
+        # Record node identifiers from all groups to prevent dividing the graph
+        # twice with the same node.
+        for group in variant_groups:
+            for identifier in group:
+                self._variant_identifiers.add(identifier)
 
         distance_mapping, _ = self._fetch_distance_mapping(graph)
 
@@ -264,7 +266,7 @@ class Resolver(object):
         # group is the node with the shortest distance as the graph has been
         # updated using a Breadth First Search algorithm.
         variant_groups = sorted(
-            variant_mapping.values(),
+            variant_groups,
             key=lambda _group: distance_mapping[_group[0]].get("distance"),
         )
 
@@ -290,8 +292,8 @@ class Resolver(object):
 
         *graph* must be an instance of :class:`Graph`.
 
-        Raise :exc:`wiz.exception.GraphResolutionError` if two node requirements
-        are incompatible.
+        Raise :exc:`wiz.exception.GraphResolutionError` if several node
+        requirements are incompatible.
 
         Raise :exc:`wiz.exception.GraphResolutionError` if new package
         versions added to the graph during the resolution process lead to
@@ -302,8 +304,6 @@ class Resolver(object):
         if not conflicts:
             self._logger.debug("No conflicts in the graph.")
             return
-
-        self._logger.debug("Conflicts: {}".format(", ".join(conflicts)))
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_VERSION_CONFLICTS_IDENTIFICATION_ACTION,
@@ -362,25 +362,26 @@ class Resolver(object):
             # requirement, it needs to be removed from the graph.
             identifiers = [package.qualified_identifier for package in packages]
 
-            if identifier not in identifiers:
-                self._logger.debug("Remove '{}'".format(identifier))
-                graph.remove_node(identifier)
+            if node.identifier not in identifiers:
+                self._logger.debug("Remove '{}'".format(node.identifier))
+                graph.remove_node(node.identifier)
 
                 # The graph changed in a way that can affect the distances of
                 # other nodes, so the distance mapping cached is discarded.
                 self._distance_mapping = None
 
-                # Update the graph with new nodes if necessary. Discard the
-                # whole graph if a variant division is needed.
-                updated = self._update_graph_from_conflict(
+                # Update the graph if necessary
+                updated = self._add_packages_to_graph(
                     graph, packages, requirement, conflicting_nodes
                 )
 
-                # Relink node parents to package identifiers.
+                # Relink node parents to package identifiers. It needs to be
+                # done before possible combination extraction otherwise newly
+                # added nodes will remained parent-less and will be discarded.
                 relink_parents(graph, node, identifiers, requirement)
 
+                # Update conflict list if necessary.
                 if updated:
-                    # Update conflict list if necessary.
                     conflicts = list(
                         set(conflicts + graph.conflicting_identifiers())
                     )
@@ -398,59 +399,43 @@ class Resolver(object):
             while trim_invalid_from_graph(graph, distance_mapping):
                 self._distance_mapping = None
 
-    def _update_graph_from_conflict(
-        self, graph, packages, requirement, conflicting_nodes,
+    def _add_packages_to_graph(
+        self, graph, packages, requirement, conflicting_nodes
     ):
-        """Update *graph* with new node(s) from *packages* if necessary.
+        """Add extracted *packages* not represented as conflict to *graph*.
 
-        Return whether the graph has been updated.
+        A package is not added to the *graph* if:
+
+        * It is already represented as a conflicted nodes.
+        * It has already led to a graph division.
+
+        Return whether the graph has been updated with at least one package.
 
         *graph* must be an instance of :class:`Graph`.
 
         *packages* must be a list of :class:`~wiz.package.Package` instances
-        which are variants of the same definition identifier version. It can
-        also be a unique package version without variants.
+        that has been extracted from *requirement*. The list contains more than
+        one package only if variants are detected.
 
         *requirement* must be the :class:`packaging.requirements.Requirement`
-        which led to the package extraction.
+        which led to the package extraction. It is a :func:`combined requirement
+        <wiz.graph.combined_requirements>` from all requirements which extracted
+        packages embedded in *conflicting_nodes*.
 
         *conflicting_nodes* should be a list of :class:`Node` instances
-        representing conflicting version of a definition within the *graph*.
-
-        *parent_identifiers* should be a list of package identifiers (or
-        :attr:`root <Graph.ROOT>` which should be set as parents to the new
-        nodes)
-
-        .. note::
-
-            If the *packages* list contains more than one item, it means that
-            several variants of one definition version have been extracted. If
-            not all extracted *packages* are identified in the
-            *conflicting_nodes* list, it might be because the graph has already
-            divided the graph for this particular definition identifier.
-
-            We need all items from the *packages* list to be new and their
-            definition identifier to be new so that it could be added to the
-            graph.
+        representing conflicting version for the same definition identifier as
+        *packages* within the *graph*.
 
         """
-        # Extract common definition identifier.
-        definition_identifier = packages[0].definition.qualified_identifier
+        identifiers = set([p.qualified_identifier for p in packages])
 
-        # Identify whether some of the newly extracted packages are not
-        # in the list of conflicting nodes.
-        identifiers = [package.qualified_identifier for package in packages]
-        identifiers = set(identifiers).difference(
-            set([_node.identifier for _node in conflicting_nodes])
-        )
+        # Filter out identifiers already set as conflict.
+        identifiers.difference_update([n.identifier for n in conflicting_nodes])
 
-        # If all newly packages have the same number of variants (or no
-        # variants at all) and the definition identifier hasn't been used to
-        # divide the graph yet, it will be added to the graph.
-        if (
-            len(identifiers) == len(conflicting_nodes) and
-            definition_identifier not in self._definitions_with_variants
-        ):
+        # Filter out identifiers which already led to graph division.
+        identifiers.difference_update(self._variant_identifiers)
+
+        if len(identifiers):
             self._logger.debug(
                 "Add to graph: {}".format(", ".join(identifiers))
             )
@@ -712,12 +697,12 @@ def extract_conflicting_nodes(graph, node):
     """
     nodes = (graph.node(_id) for _id in graph.conflicting_identifiers())
 
+    # Extract definition identifier
+    definition_identifier = node.definition.qualified_identifier
+
     return [
         _node for _node in nodes
-        if (
-            _node.definition.qualified_identifier ==
-            node.definition.qualified_identifier
-        )
+        if _node.definition.qualified_identifier == definition_identifier
         and _node.identifier != node.identifier
     ]
 
@@ -1071,44 +1056,51 @@ class Graph(object):
 
         return identifiers
 
-    def variant_mapping(self):
-        """Return variant groups organised per definition identifier.
+    def variant_groups(self):
+        """Return variant groups in graphs.
 
         A variant group list should contain at least more than one node
         identifier which belongs at least to two different variant names.
 
         The variant group list contains unique identifiers and is sorted
-        following two criteria: First by the number of occurrences of each node
-        identifier in the graph and second by the variant index defined in the
-        package definition.
+        following two criteria:
+
+        1. By the number of occurrences of each node identifier in the graph
+        2. By the version and the variant value defined in the package.
 
         The mapping should be in the form of::
 
-            {
-                "foo": ["foo[V1]==0.1.0", "foo[V2]==0.1.0"],
-                "bar": ["bar[V1]==2.1.5", "bar[V2]==2.2.0", "bar[V2]==2.1.0"]
-            }
+            [
+                ["foo[V2]==0.1.0", "foo[V1]==0.1.0"],
+                ["bar[V2]==2.1.5", "bar[V2]==2.2.0", "bar[V1]==2.1.0"]
+            ]
 
         """
-        mapping = {}
+        groups = []
 
         for definition_identifier in self._variants_per_definition.keys():
-            identifiers = self._variants_per_definition[definition_identifier]
-            variant_names = set([
-                self._node_mapping[identifier].variant_name
-                for identifier in identifiers
-            ])
+            nodes = [
+                self._node_mapping.get(identifier) for identifier
+                in self._variants_per_definition[definition_identifier]
+                if self._node_mapping.get(identifier)
+            ]
 
+            variant_names = set([node.variant_name for node in nodes])
             if len(variant_names) <= 1:
                 continue
 
-            count = Counter(identifiers)
-            mapping[definition_identifier] = sorted(
-                set(identifiers),
-                key=lambda _id: (-count[_id], identifiers.index(_id))
+            count = Counter([node.identifier for node in nodes])
+            nodes = sorted(
+                set(nodes),
+                key=lambda n: (
+                    count[n.identifier],
+                    (n.package.version, n.variant_name)
+                ),
+                reverse=True
             )
+            groups.append([node.identifier for node in nodes])
 
-        return mapping
+        return groups
 
     def outcoming(self, identifier):
         """Return outcoming node identifiers for node *identifier*."""
@@ -1482,7 +1474,8 @@ class Graph(object):
         if node.variant_name is None:
             return
 
-        # TODO: Shouldn't it be a set?
+        # This is not a set because the index of identifiers matter and
+        # duplications are removed afterwards.
         _definition_id = node.definition.qualified_identifier
         self._variants_per_definition.setdefault(_definition_id, [])
         self._variants_per_definition[_definition_id].append(identifier)
