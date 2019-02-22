@@ -122,7 +122,7 @@ class Resolver(object):
         *requirements* should be a list of
         :class:`packaging.requirements.Requirement` instances.
 
-        Raises :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
+        Raise :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
         resolved in time.
 
         """
@@ -142,11 +142,14 @@ class Resolver(object):
         latest_error = None
 
         while True:
-            graph = self._fetch_next_graph()
+            graph, nodes_to_remove = self._fetch_next_combination()
             if graph is None:
                 raise latest_error
 
             try:
+                # Compute new graph.
+                graph = self._compute_graph_combination(graph, nodes_to_remove)
+
                 # Raise error if a conflict in graph cannot be solved.
                 self._resolve_conflicts(graph)
 
@@ -191,51 +194,6 @@ class Resolver(object):
         # Initialize combinations or simply add graph to iterator.
         if not self._extract_combinations(graph):
             self._iterator = iter([(graph, [])])
-
-    def _fetch_distance_mapping(self, graph):
-        """Return tuple with distance mapping and boolean update indicator.
-
-        If no distance mapping is available, a new one is generated from
-        *graph*. The boolean update indicator is True only if a new distance
-        mapping is generated.
-
-        """
-        updated = False
-
-        if self._distance_mapping is None:
-            self._distance_mapping = compute_distance_mapping(graph)
-            updated = True
-
-        return self._distance_mapping, updated
-
-    def _fetch_next_graph(self):
-        """Return next graph computed from the iterator."""
-        try:
-            graph, nodes_to_remove = next(self._iterator)
-        except StopIteration:
-            return
-
-        self._logger.debug(
-            "Generate graph without following nodes: {!r}".format(
-                nodes_to_remove
-            )
-        )
-
-        # To prevent mutating any copy of the instance.
-        _graph = copy.deepcopy(graph)
-
-        # Reset the distance mapping for new graph.
-        self._distance_mapping = None
-
-        for identifier in nodes_to_remove:
-            _graph.remove_node(identifier, record=False)
-
-        wiz.history.record_action(
-            wiz.symbol.GRAPH_COMBINATION_EXTRACTION_ACTION,
-            graph=_graph, removed_nodes=nodes_to_remove
-        )
-
-        return _graph
 
     def _extract_combinations(self, graph):
         """Extract possible combinations from variant conflicts in *graph*.
@@ -287,6 +245,81 @@ class Resolver(object):
         )
         return True
 
+    def _fetch_distance_mapping(self, graph):
+        """Return tuple with distance mapping and boolean update indicator.
+
+        If no distance mapping is available, a new one is generated from
+        *graph*. The boolean update indicator is True only if a new distance
+        mapping is generated.
+
+        """
+        updated = False
+
+        if self._distance_mapping is None:
+            self._distance_mapping = compute_distance_mapping(graph)
+            updated = True
+
+        return self._distance_mapping, updated
+
+    def _fetch_next_combination(self):
+        """Return next graph and nodes to remove from the combination iterator.
+
+        A tuple will be returned with the next :class:`Graph` instance and a
+        list of nodes to remove from it.
+
+        If the combination iterator is empty, the graph will be returned as
+        None and the node removal list will be empty.
+
+        """
+        try:
+            graph, nodes_to_remove = next(self._iterator)
+
+            # To prevent mutating any copy of the instance.
+            _graph = copy.deepcopy(graph)
+
+            # Reset the distance mapping for new graph.
+            self._distance_mapping = None
+
+            return _graph, nodes_to_remove
+
+        except StopIteration:
+            return None, []
+
+    def _compute_graph_combination(self, graph, nodes_to_remove):
+        """Compute and return processed *graph* from combination.
+
+        *graph* must be an instance of :class:`Graph`.
+
+        *nodes_to_remove* should be a list of node identifiers that should be
+        removed from the graph as part of this combination.
+
+        Raise :exc:`wiz.exception.GraphResolutionError` if the parent of nodes
+        removed cannot be re-linked to any existing node in the graph.
+
+        """
+        self._logger.debug(
+            "Generate graph without following nodes: {!r}".format(
+                nodes_to_remove
+            )
+        )
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_COMBINATION_EXTRACTION_ACTION,
+            graph=graph, nodes_to_remove=nodes_to_remove
+        )
+
+        removed_nodes = []
+
+        for identifier in nodes_to_remove:
+            node = graph.node(identifier)
+            graph.remove_node(identifier)
+            removed_nodes.append(node)
+
+        for node in removed_nodes:
+            relink_parents(graph, node)
+
+        return graph
+
     def _resolve_conflicts(self, graph):
         """Attempt to resolve all conflicts in *graph*.
 
@@ -298,6 +331,9 @@ class Resolver(object):
         Raise :exc:`wiz.exception.GraphResolutionError` if new package
         versions added to the graph during the resolution process lead to
         a division of the graph.
+
+        Raise :exc:`wiz.exception.GraphResolutionError` if the parent of nodes
+        removed cannot be re-linked to any existing node in the graph.
 
         """
         conflicts = graph.conflicting_identifiers()
@@ -839,6 +875,9 @@ def relink_parents(graph, node, requirement=None):
     *requirement* could be a :class:`packaging.requirements.Requirement`
     instance which should be used for .
 
+    Raise :exc:`wiz.exception.GraphResolutionError` if one *node* parent cannot
+    be re-linked to any existing node in the graph.
+
     """
     identifiers = None
 
@@ -858,18 +897,25 @@ def relink_parents(graph, node, requirement=None):
         )
 
         _identifiers = identifiers or graph.find(_requirement)
+        nodes = [graph.node(_id) for _id in _identifiers]
 
-        for _identifier in _identifiers:
-            _node = graph.node(_identifier)
-            if _node is not None:
-                _node.add_parent(parent_identifier)
-
-                graph.create_link(
-                    _identifier,
-                    parent_identifier,
-                    _requirement,
-                    weight=weight
+        if not len(nodes):
+            raise wiz.exception.GraphResolutionError(
+                "'{}' can not be linked to any existing node in graph with "
+                "requirement '{}'".format(
+                    parent_identifier, _requirement
                 )
+            )
+
+        for _node in nodes:
+            _node.add_parent(parent_identifier)
+
+            graph.create_link(
+                _node.identifier,
+                parent_identifier,
+                _requirement,
+                weight=weight
+            )
 
 
 def validate(graph, distance_mapping):
@@ -1815,7 +1861,7 @@ class _DistanceQueue(dict):
     def pop_smallest(self):
         """Return item with the shortest distance from graph root and remove it.
 
-        Raises :exc:`IndexError` if the object is empty.
+        Raise :exc:`IndexError` if the object is empty.
 
         """
 
