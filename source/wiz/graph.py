@@ -341,6 +341,8 @@ class Resolver(object):
             self._logger.debug("No conflicts in the graph.")
             return
 
+        self._logger.debug("Conflicts: {}".format(", ".join(conflicts)))
+
         wiz.history.record_action(
             wiz.symbol.GRAPH_VERSION_CONFLICTS_IDENTIFICATION_ACTION,
             graph=graph, conflicting=conflicts
@@ -745,7 +747,9 @@ def updated_by_distance(identifiers, distance_mapping):
         identifiers
     )
     return sorted(
-        _identifiers, key=lambda _id: distance_mapping[_id]["distance"]
+        _identifiers,
+        key=lambda _id: (-distance_mapping[_id]["distance"], _id),
+        reverse=True
     )
 
 
