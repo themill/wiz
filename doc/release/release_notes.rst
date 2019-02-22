@@ -19,9 +19,9 @@ Release Notes
         node analyzed is removed. It then ensures that matching node(s) exist in
         the graph when the parent of the conflicting node are relinked.
 
-        Instead of passing a list of package identifiers to the function, the
-        matching nodes are found via the :meth:`wiz.Graph.find` method to
-        simplify the function's logic.
+        Furthermore, the matching nodes are now fetched via the
+        :meth:`wiz.Graph.find` method instead of passing a list of package
+        identifiers to the function to simplify the function's logic.
 
         Finally, an error is raised when a node parent cannot be linked to any
         other nodes to ensure that their requirements are always fulfilled.
@@ -40,7 +40,7 @@ Release Notes
         graph with one particular :func:`combination
         <wiz.graph.generate_variant_combinations>`. Previously, nodes removed
         during the graph combination process were not properly reconnected to
-        other node(s) in the graph which fulfil its requirement.
+        other node(s) in the graph.
 
 .. release:: 2.1.0
     :date: 2019-02-11
