@@ -220,12 +220,13 @@ class Resolver(object):
         distance_mapping, _ = self._fetch_distance_mapping(graph)
 
         # Order the variant groups in ascending order of distance from the root
-        # level of the graph. We can assume that the first identifier of each
-        # group is the node with the shortest distance as the graph has been
-        # updated using a Breadth First Search algorithm.
+        # level of the graph.
         variant_groups = sorted(
             variant_groups,
-            key=lambda _group: distance_mapping[_group[0]].get("distance"),
+            key=lambda _group: min([
+                distance_mapping[_id].get("distance") for _id in _group
+                if distance_mapping[_id].get("distance") is not None
+            ]),
         )
 
         self._logger.debug(
@@ -1566,8 +1567,8 @@ class Graph(object):
         if node.package.variant_name is None:
             return
 
-        # This is not a set because the index of identifiers matter and
-        # duplications are removed afterwards.
+        # This is not a set because the number of occurrences of each identifier
+        # is used to determine its priority within the variant group.
         _definition_id = node.definition.qualified_identifier
         self._variants_per_definition.setdefault(_definition_id, [])
         self._variants_per_definition[_definition_id].append(identifier)
