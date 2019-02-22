@@ -339,30 +339,18 @@ class Resolver(object):
             )
 
             # Query packages from combined requirement.
-            try:
-                packages = wiz.package.extract(
-                    requirement, self._definition_mapping
-                )
-            except wiz.exception.RequestNotFound:
-                _parents = extract_parents(graph, [node] + conflicting_nodes)
+            packages = self._extract_packages(
+                requirement, graph, [node] + conflicting_nodes, conflicts
+            )
+            if packages is None:
+                continue
 
-                # Discard conflicting nodes if parents are themselves
-                # conflicting.
-                if len(_parents.intersection(conflicts)) > 0:
-                    continue
-
-                raise wiz.exception.GraphResolutionError(
-                    "The combined requirement '{}' could not be resolved from "
-                    "the following packages: {!r}.\n".format(
-                        requirement, sorted(_parents)
-                    )
-                )
-
-            # If current node is not in the packages extracted from the combined
-            # requirement, it needs to be removed from the graph.
-            identifiers = [package.qualified_identifier for package in packages]
-
-            if node.identifier not in identifiers:
+            # If current node is not part of the extracted packages, it will be
+            # removed from the graph.
+            if not any(
+                node.identifier == package.qualified_identifier
+                for package in packages
+            ):
                 self._logger.debug("Remove '{}'".format(node.identifier))
                 graph.remove_node(node.identifier)
 
@@ -378,7 +366,7 @@ class Resolver(object):
                 # Relink node parents to package identifiers. It needs to be
                 # done before possible combination extraction otherwise newly
                 # added nodes will remained parent-less and will be discarded.
-                relink_parents(graph, node, identifiers, requirement)
+                relink_parents(graph, node, requirement)
 
                 # Update conflict list if necessary.
                 if updated:
@@ -398,6 +386,46 @@ class Resolver(object):
             # longer fulfilled. If so reset the distance mapping.
             while trim_invalid_from_graph(graph, distance_mapping):
                 self._distance_mapping = None
+
+    def _extract_packages(self, requirement, graph, nodes, conflicts):
+        """Return packages extracted from combined *requirement*.
+
+        If no packages could be extracted, *nodes* parent identifiers are
+        extracted from *graph* to ensure that they are not listed as
+        *conflicts*. If this is the case, the error is discarded and None is
+        returned. Otherwise, :exc:`wiz.exception.GraphResolutionError` is
+        raised.
+
+        *requirement* must be a :class:`packaging.requirements.Requirement`
+        instance.
+
+        *graph* must be an instance of :class:`Graph`.
+
+        *nodes* must be a list of :class:`Node` instances.
+
+        *conflicts* must be a list of node identifiers conflicting in *graph*.
+
+        """
+        try:
+            packages = wiz.package.extract(
+                requirement, self._definition_mapping
+            )
+        except wiz.exception.RequestNotFound:
+            _parents = extract_parents(graph, nodes)
+
+            # Discard conflicting nodes if parents are themselves
+            # conflicting.
+            if len(_parents.intersection(conflicts)) > 0:
+                return
+
+            raise wiz.exception.GraphResolutionError(
+                "The combined requirement '{}' could not be resolved from "
+                "the following packages: {!r}.\n".format(
+                    requirement, sorted(_parents)
+                )
+            )
+
+        return packages
 
     def _add_packages_to_graph(
         self, graph, packages, requirement, conflicting_nodes
@@ -796,23 +824,27 @@ def extract_parents(graph, nodes):
     return identifiers
 
 
-def relink_parents(graph, node, identifiers, requirement):
+def relink_parents(graph, node, requirement=None):
     """Relink *node*'s parents to *identifiers*.
 
     When creating the new links, the same weight connecting the *node* to its
-    parents is being used. *requirement* indicate the new requirement link for
-    all new links.
+    parents is being used. *requirement* will be used for each new link if
+    given, otherwise the same requirement connecting the *node* to its parents
+    is being used
 
     *graph* must be an instance of :class:`Graph`.
 
     *node* should be a :class:`Node` instance.
 
-    *identifiers* should be valid node identifiers.
-
-    *requirement* should be a :class:`packaging.requirements.Requirement`
-    instance.
+    *requirement* could be a :class:`packaging.requirements.Requirement`
+    instance which should be used for .
 
     """
+    identifiers = None
+
+    if requirement is not None:
+        identifiers = graph.find(requirement)
+
     for parent_identifier in node.parent_identifiers:
         if (
             not graph.exists(parent_identifier) and
@@ -821,19 +853,23 @@ def relink_parents(graph, node, identifiers, requirement):
             continue
 
         weight = graph.link_weight(node.identifier, parent_identifier)
+        _requirement = requirement or graph.link_requirement(
+            node.identifier, parent_identifier
+        )
 
-        for _identifier in identifiers:
-            # Add parent to node if node already exists in graph.
+        _identifiers = identifiers or graph.find(_requirement)
+
+        for _identifier in _identifiers:
             _node = graph.node(_identifier)
             if _node is not None:
                 _node.add_parent(parent_identifier)
 
-            graph.create_link(
-                _identifier,
-                parent_identifier,
-                requirement,
-                weight=weight
-            )
+                graph.create_link(
+                    _identifier,
+                    parent_identifier,
+                    _requirement,
+                    weight=weight
+                )
 
 
 def validate(graph, distance_mapping):
