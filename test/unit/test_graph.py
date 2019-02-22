@@ -1059,14 +1059,62 @@ def test_graph_variant_groups(mocker):
 
     graph = wiz.graph.Graph(None)
     graph._node_mapping = {
-        "A[V1]==0.1.0": mocker.Mock(variant_name="V1"),
-        "A[V2]==0.1.0": mocker.Mock(variant_name="V2"),
-        "B[V1]==0.1.0": mocker.Mock(variant_name="V1"),
-        "B[V1]==0.2.0": mocker.Mock(variant_name="V1"),
-        "B[V2]==0.1.0": mocker.Mock(variant_name="V2"),
-        "C[V1]==0.1.0": mocker.Mock(variant_name="V1"),
-        "D[V1]==0.1.0": mocker.Mock(variant_name="V1"),
-        "D[V1]==0.2.0": mocker.Mock(variant_name="V1")
+        "A[V1]==0.1.0": mocker.Mock(
+            identifier="A[V1]==0.1.0",
+            package=mocker.Mock(
+                variant_name="V1",
+                version=Version("0.1.0")
+            )
+        ),
+        "A[V2]==0.1.0": mocker.Mock(
+            identifier="A[V2]==0.1.0",
+            package=mocker.Mock(
+                variant_name="V2",
+                version=Version("0.1.0")
+            )
+        ),
+        "B[V1]==0.1.0": mocker.Mock(
+            identifier="B[V1]==0.1.0",
+            package=mocker.Mock(
+                variant_name="V1",
+                version=Version("0.1.0")
+            )
+        ),
+        "B[V1]==0.2.0": mocker.Mock(
+            identifier="B[V1]==0.2.0",
+            package=mocker.Mock(
+                variant_name="V1",
+                version=Version("0.2.0")
+            )
+        ),
+        "B[V2]==0.1.0": mocker.Mock(
+            identifier="B[V2]==0.1.0",
+            package=mocker.Mock(
+                variant_name="V2",
+                version=Version("0.1.0")
+            )
+        ),
+        "C[V1]==0.1.0": mocker.Mock(
+            identifier="C[V1]==0.1.0",
+            package=mocker.Mock(
+                variant_name="V1",
+                version=Version("0.1.0")
+            )
+        ),
+        "D[V1]==0.1.0": mocker.Mock(
+            identifier="D[V1]==0.1.0",
+            package=mocker.Mock(
+                variant_name="V1",
+                version=Version("0.1.0")
+            )
+        ),
+        "D[V1]==0.2.0": mocker.Mock(
+            identifier="D[V1]==0.2.0",
+            package=mocker.Mock(
+                variant_name="V1",
+                version=Version("0.2.0")
+            )
+        )
     }
     graph._variants_per_definition = {
         "A": ["A[V1]==0.1.0", "A[V2]==0.1.0"],
@@ -1075,8 +1123,8 @@ def test_graph_variant_groups(mocker):
         "D": ["D[V1]==0.1.0", "D[V1]==0.2.0"]
     }
     assert graph.variant_groups() == [
-        ["A[V1]==0.1.0", "A[V2]==0.1.0"],
-        ["B[V1]==0.1.0", "B[V2]==0.1.0", "B[V1]==0.2.0"]
+        ["A[V2]==0.1.0", "A[V1]==0.1.0"],
+        ["B[V1]==0.2.0", "B[V2]==0.1.0", "B[V1]==0.1.0"]
     ]
 
 
