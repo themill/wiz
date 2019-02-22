@@ -668,20 +668,37 @@ def test_extract_parents(mocker, mocked_graph):
 
 
 def test_relink_parents(mocker, mocked_graph):
-    """Relink node's parents to new identifiers."""
+    """Relink node's parents."""
     node = mocker.Mock(
         identifier="foo",
         parent_identifiers=["parent1", "parent2", "parent3"]
     )
 
-    mocked_graph.exists.side_effect = [True, False, True]
+    mocked_graph.find.side_effect = [
+        ["bar", "baz"], ["bim"]
+    ]
+    mocked_graph.exists.side_effect = [
+        True, True, False,
+        False,
+        True, True
+    ]
+    mocked_graph.node.side_effect = [
+        mocker.Mock(identifier="bar"),
+        mocker.Mock(identifier="bim")
+    ]
     mocked_graph.link_weight.side_effect = [1, 2]
+    mocked_graph.link_requirement.side_effect = ["__REQ1__", "__REQ2__"]
 
-    wiz.graph.relink_parents(
-        mocked_graph, node, ["bar", "baz", "bim"], "__REQUIREMENT__"
-    )
+    wiz.graph.relink_parents(mocked_graph, node)
 
-    assert mocked_graph.exists.call_count == 3
+    assert mocked_graph.find.call_count == 2
+    mocked_graph.find.assert_any_call("__REQ1__")
+    mocked_graph.find.assert_any_call("__REQ2__")
+
+    assert mocked_graph.exists.call_count == 6
+    mocked_graph.exists.assert_any_call("bar")
+    mocked_graph.exists.assert_any_call("baz")
+    mocked_graph.exists.assert_any_call("bim")
     mocked_graph.exists.assert_any_call("parent1")
     mocked_graph.exists.assert_any_call("parent2")
     mocked_graph.exists.assert_any_call("parent3")
@@ -690,21 +707,120 @@ def test_relink_parents(mocker, mocked_graph):
     mocked_graph.link_weight.assert_any_call("foo", "parent1")
     mocked_graph.link_weight.assert_any_call("foo", "parent3")
 
-    assert mocked_graph.create_link.call_count == 6
+    assert mocked_graph.link_requirement.call_count == 2
+    mocked_graph.link_requirement.assert_any_call("foo", "parent1")
+    mocked_graph.link_requirement.assert_any_call("foo", "parent3")
+
+    assert mocked_graph.create_link.call_count == 2
     mocked_graph.create_link.assert_any_call(
-        "bar", "parent1", "__REQUIREMENT__", weight=1
+        "bar", "parent1", "__REQ1__", weight=1
     )
     mocked_graph.create_link.assert_any_call(
-        "baz", "parent1", "__REQUIREMENT__", weight=1
+        "bim", "parent3", "__REQ2__", weight=2
+    )
+
+
+def test_relink_parents_error(mocker, mocked_graph):
+    """Fail to relink node's parents."""
+    node = mocker.Mock(
+        identifier="foo",
+        parent_identifiers=["parent1", "parent2", "parent3"]
+    )
+
+    mocked_graph.find.side_effect = [
+        ["bar", "baz"], ["bim"]
+    ]
+    mocked_graph.exists.side_effect = [
+        True, True, False,
+        False,
+        True, False
+    ]
+    mocked_graph.node.side_effect = [
+        mocker.Mock(identifier="bar")
+    ]
+    mocked_graph.link_weight.side_effect = [1, 2]
+    mocked_graph.link_requirement.side_effect = ["__REQ1__", "__REQ2__"]
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        wiz.graph.relink_parents(mocked_graph, node)
+
+    assert (
+        "GraphResolutionError: 'parent3' can not be linked to any existing "
+        "node in graph with requirement '__REQ2__'"
+    ) in str(error)
+
+    assert mocked_graph.find.call_count == 2
+    mocked_graph.find.assert_any_call("__REQ1__")
+    mocked_graph.find.assert_any_call("__REQ2__")
+
+    assert mocked_graph.exists.call_count == 6
+    mocked_graph.exists.assert_any_call("bar")
+    mocked_graph.exists.assert_any_call("baz")
+    mocked_graph.exists.assert_any_call("bim")
+    mocked_graph.exists.assert_any_call("parent1")
+    mocked_graph.exists.assert_any_call("parent2")
+    mocked_graph.exists.assert_any_call("parent3")
+
+    assert mocked_graph.link_weight.call_count == 2
+    mocked_graph.link_weight.assert_any_call("foo", "parent1")
+    mocked_graph.link_weight.assert_any_call("foo", "parent3")
+
+    assert mocked_graph.link_requirement.call_count == 2
+    mocked_graph.link_requirement.assert_any_call("foo", "parent1")
+    mocked_graph.link_requirement.assert_any_call("foo", "parent3")
+
+    assert mocked_graph.create_link.call_count == 1
+    mocked_graph.create_link.assert_any_call(
+        "bar", "parent1", "__REQ1__", weight=1
+    )
+
+
+def test_relink_parents_with_requirement(mocker, mocked_graph):
+    """Relink node's parents with global requirement."""
+    node = mocker.Mock(
+        identifier="foo",
+        parent_identifiers=["parent1", "parent2", "parent3"]
+    )
+
+    mocked_graph.find.return_value = ["bar", "baz", "bim"]
+    mocked_graph.exists.side_effect = [
+        True, False, True,
+        True, False, True
+    ]
+    mocked_graph.node.side_effect = [
+        mocker.Mock(identifier="bar"),
+        mocker.Mock(identifier="bim")
+    ]
+    mocked_graph.link_weight.side_effect = [1, 2]
+
+    wiz.graph.relink_parents(mocked_graph, node, "__REQUIREMENT__")
+
+    assert mocked_graph.find.call_count == 1
+    mocked_graph.find.assert_any_call("__REQUIREMENT__")
+
+    assert mocked_graph.exists.call_count == 6
+    mocked_graph.exists.assert_any_call("bar")
+    mocked_graph.exists.assert_any_call("baz")
+    mocked_graph.exists.assert_any_call("bim")
+    mocked_graph.exists.assert_any_call("parent1")
+    mocked_graph.exists.assert_any_call("parent2")
+    mocked_graph.exists.assert_any_call("parent3")
+
+    assert mocked_graph.link_weight.call_count == 2
+    mocked_graph.link_weight.assert_any_call("foo", "parent1")
+    mocked_graph.link_weight.assert_any_call("foo", "parent3")
+
+    mocked_graph.link_requirement.assert_not_called()
+
+    assert mocked_graph.create_link.call_count == 4
+    mocked_graph.create_link.assert_any_call(
+        "bar", "parent1", "__REQUIREMENT__", weight=1
     )
     mocked_graph.create_link.assert_any_call(
         "bim", "parent1", "__REQUIREMENT__", weight=1
     )
     mocked_graph.create_link.assert_any_call(
         "bar", "parent3", "__REQUIREMENT__", weight=2
-    )
-    mocked_graph.create_link.assert_any_call(
-        "baz", "parent3", "__REQUIREMENT__", weight=2
     )
     mocked_graph.create_link.assert_any_call(
         "bim", "parent3", "__REQUIREMENT__", weight=2

@@ -883,10 +883,13 @@ def relink_parents(graph, node, requirement=None):
     be re-linked to any existing node in the graph.
 
     """
-    identifiers = None
+    nodes = None
 
     if requirement is not None:
-        identifiers = graph.find(requirement)
+        nodes = [
+            graph.node(identifier) for identifier in graph.find(requirement)
+            if graph.exists(identifier)
+        ]
 
     for parent_identifier in node.parent_identifiers:
         if (
@@ -900,10 +903,12 @@ def relink_parents(graph, node, requirement=None):
             node.identifier, parent_identifier
         )
 
-        _identifiers = identifiers or graph.find(_requirement)
-        nodes = [graph.node(_id) for _id in _identifiers]
+        _nodes = nodes or [
+            graph.node(identifier) for identifier in graph.find(_requirement)
+            if graph.exists(identifier)
+        ]
 
-        if not len(nodes):
+        if not len(_nodes):
             raise wiz.exception.GraphResolutionError(
                 "'{}' can not be linked to any existing node in graph with "
                 "requirement '{}'".format(
@@ -911,7 +916,7 @@ def relink_parents(graph, node, requirement=None):
                 )
             )
 
-        for _node in nodes:
+        for _node in _nodes:
             _node.add_parent(parent_identifier)
 
             graph.create_link(
