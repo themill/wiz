@@ -1650,13 +1650,8 @@ class Graph(object):
             requirement=requirement
         )
 
-    def remove_node(self, identifier, record=True):
+    def remove_node(self, identifier):
         """Remove node from the graph.
-
-        *record* can indicate whether the node removal action should be recorded
-        to the history. Usually this flag should only be turned off during the
-        graph division process as the graph themselves are not recorded before
-        the removal process.
 
         .. warning::
 
@@ -1666,11 +1661,10 @@ class Graph(object):
         """
         del self._node_mapping[identifier]
 
-        if record:
-            wiz.history.record_action(
-                wiz.symbol.GRAPH_NODE_REMOVAL_ACTION,
-                graph=self, node=identifier
-            )
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_NODE_REMOVAL_ACTION,
+            graph=self, node=identifier
+        )
 
 
 class Node(object):
