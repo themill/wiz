@@ -6,6 +6,7 @@ import json
 import zlib
 import base64
 import hashlib
+import colorama
 
 import packaging.requirements
 from packaging.requirements import (
@@ -166,7 +167,7 @@ def compute_label(definition):
     *definition* should be a :class:`wiz.definition.Definition` instance.
 
     """
-    label = "'{}'".format(definition.identifier)
+    label = "'{}'".format(definition.qualified_identifier)
 
     if definition.get("version"):
         label += " [{}]".format(definition.version)
@@ -239,3 +240,16 @@ def combine_command(elements):
 
     """
     return " ".join([pipes.quote(element) for element in elements])
+
+
+def colored(message, color):
+    """Return colored *message* according to color *name*.
+
+    Available color names are: "black", "red", "green", "yellow", "blue",
+    "magenta", "cyan" and "white".
+
+    """
+    return (
+        getattr(colorama.Fore, color.upper()) + message +
+        colorama.Style.RESET_ALL
+    )

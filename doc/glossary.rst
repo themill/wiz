@@ -83,7 +83,6 @@ Glossary
         .. seealso:: https://www.autodesk.co.uk/products/maya/overview
 
     mill_cd
-
         A script that defines environment variables when cd'ing into a
         directory.
 
@@ -92,6 +91,12 @@ Glossary
             .. code-block:: bash
 
                 >>> cat /jobs/.common/bin/mill_cd
+
+    Mustache
+        Simple web template system with implementations available for multiple
+        languages
+
+        .. seealso:: https://mustache.github.io
 
     Nuke
         A DCC tool focused on compositing, editorial and review workflows.
