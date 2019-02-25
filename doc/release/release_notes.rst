@@ -10,14 +10,12 @@ Release Notes
 
         Renamed :func:`wiz.graph.remove_node_and_relink` to
         :func:`wiz.graph.relink_parents` as the node removal process is
-        extracted out of the function, and update its logic.
+        extracted out of the function.
 
-        During the conflict resolution process, an extra step was needed between
-        the removal of a node and the relinking process of its parent: Package
-        extracted extracted from the combined requirement of all conflicting
-        nodes are added to the graph - if necessary - just after the conflicting
-        node analyzed is removed. It then ensures that matching node(s) exist in
-        the graph when the parent of the conflicting node are relinked.
+        During the conflict resolution process, sometimes an extra step is
+        needed that adds additional packages to the graph. This ensures that the
+        matching node(s) exist in the graph when the parent of the conflicting
+        node are relinked.
 
         Furthermore, the matching nodes are now fetched via the
         :meth:`wiz.Graph.find` method instead of passing a list of package
