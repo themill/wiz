@@ -23,11 +23,13 @@ with open(
 
 # Compute dependencies.
 INSTALL_REQUIRES = [
-    "mlog >= 0.2.1, < 1",
-    "packaging >= 17.1, < 18",
-    "jsonschema >= 2.5, < 3",
     "click >= 7, < 8",
-    "requests >= 2.19.1, < 3"
+    "colorama >= 0.3.9, < 1",
+    "jsonschema >= 2.5, < 3",
+    "packaging >= 17.1, < 18",
+    "pystache >= 0.5.4, < 1",
+    "requests >= 2.19.1, < 3",
+    "sawmill >= 0.2.1, < 1"
 ]
 
 DOC_REQUIRES = [
@@ -43,7 +45,10 @@ TEST_REQUIRES = [
     "pytest >= 3.2.2, < 4",
     "pytest-mock >= 0.11, < 1",
     "pytest-xdist >= 1.1, < 2",
-    "pytest-cov >= 2, < 3"
+    "pytest-cov >= 2, < 3",
+
+    # Ensure that more-itertools is limited to v6 as later version don't work for python 2.7.
+    "more-itertools >= 4, < 6"
 ]
 
 

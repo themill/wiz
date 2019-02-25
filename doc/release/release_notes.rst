@@ -6,11 +6,70 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: new
+        :tags: command-line
+
+        Added ``wiz doctor`` sub-command to check the validity of accessible
+        definitions from all registries.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.colored` to return a text with a specific
+        terminal color.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.validate_definition` to return a validation mapping of
+        a definition with possible errors and warnings.
+
+    .. change:: changed
+        :tags: command-line, API
+
+        Removed ``mlog`` dependency and added :mod:`wiz.logging` using directly
+        :mod:`sawmill` to have more flexibility to configure the
+        :class:`wiz.logging.Logger` instance.
+
     .. change:: changed
         :tags: API
 
         Updated :func:`wiz.utility.compute_label` to use qualified identifier of
         input definition.
+
+    .. change:: changed
+
+        Renamed :func:`wiz.graph.remove_node_and_relink` to
+        :func:`wiz.graph.relink_parents` as the node removal process is
+        extracted out of the function.
+
+        During the conflict resolution process, sometimes an extra step is
+        needed that adds additional packages to the graph. This ensures that the
+        matching node(s) exist in the graph when the parent of the conflicting
+        node are relinked.
+
+        Furthermore, the matching nodes are now fetched via the
+        :meth:`wiz.Graph.find` method instead of passing a list of package
+        identifiers to the function to simplify the function's logic.
+
+        Finally, an error is raised when a node parent cannot be linked to any
+        other nodes to ensure that their requirements are always fulfilled.
+
+    .. change:: fixed
+
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
+        ensure that packages added during the conflict resolution process are
+        correctly linked to the correct parents instead of
+        :attr:`root <wiz.graph.Graph.ROOT>`.
+
+    .. change:: fixed
+
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
+        ensure that node's requirements are always fulfilled when computing a
+        graph with one particular :func:`combination
+        <wiz.graph.generate_variant_combinations>`. Previously, nodes removed
+        during the graph combination process were not properly reconnected to
+        other node(s) in the graph.
 
 .. release:: 2.1.0
     :date: 2019-02-11
