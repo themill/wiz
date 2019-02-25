@@ -6,12 +6,39 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: changed
+
+        Renamed :func:`wiz.graph.remove_node_and_relink` to
+        :func:`wiz.graph.relink_parents` as the node removal process is
+        extracted out of the function.
+
+        During the conflict resolution process, sometimes an extra step is
+        needed that adds additional packages to the graph. This ensures that the
+        matching node(s) exist in the graph when the parent of the conflicting
+        node are relinked.
+
+        Furthermore, the matching nodes are now fetched via the
+        :meth:`wiz.Graph.find` method instead of passing a list of package
+        identifiers to the function to simplify the function's logic.
+
+        Finally, an error is raised when a node parent cannot be linked to any
+        other nodes to ensure that their requirements are always fulfilled.
+
     .. change:: fixed
 
         Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
         ensure that packages added during the conflict resolution process are
         correctly linked to the correct parents instead of
         :attr:`root <wiz.graph.Graph.ROOT>`.
+
+    .. change:: fixed
+
+        Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
+        ensure that node's requirements are always fulfilled when computing a
+        graph with one particular :func:`combination
+        <wiz.graph.generate_variant_combinations>`. Previously, nodes removed
+        during the graph combination process were not properly reconnected to
+        other node(s) in the graph.
 
 .. release:: 2.1.0
     :date: 2019-02-11
