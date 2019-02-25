@@ -1204,6 +1204,9 @@ def wiz_analyze(click_context, **kwargs):
         else:
             print(wiz.utility.colored(" ✔", color="green"))
 
+    if latest_registry is None:
+        print(wiz.utility.colored("No definitions found.", color="red"))
+
     print()
 
 
