@@ -143,7 +143,13 @@ class Resolver(object):
         while True:
             graph, nodes_to_remove = self._fetch_next_combination()
             if graph is None:
-                raise self._errors.pop()
+                index = len(self._errors)
+                error = self._errors.pop()
+                error.message = (
+                    "Failed to resolve graph at combination #{}:\n"
+                    "- {}".format(index, error.message)
+                )
+                raise error
 
             try:
                 # Compute new graph.
