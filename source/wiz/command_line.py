@@ -1521,7 +1521,7 @@ def _display_packages_from_context(context):
     success = False
 
     for package in context.get("packages", []):
-        _identifier = package.definition_identifier
+        _identifier = package.definition.qualified_identifier
         if package.variant_name is not None:
             _identifier += " [{}]".format(package.variant_name)
 

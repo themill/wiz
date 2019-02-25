@@ -3,14 +3,21 @@
 import pytest
 
 import wiz.graph
+import wiz.history
 import wiz.definition
 from wiz.utility import Requirement
 
 
 @pytest.fixture()
-def spied_fetch_next_graph(mocker):
-    """Return spy mocker on 'wiz.graph.Resolver._fetch_next_graph'."""
-    return mocker.spy(wiz.graph.Resolver, "_fetch_next_graph")
+def spied_fetch_next_combination(mocker):
+    """Return spy mocker on 'wiz.graph.Resolver._fetch_next_combination'."""
+    return mocker.spy(wiz.graph.Resolver, "_fetch_next_combination")
+
+
+@pytest.fixture()
+def spied_compute_graph_combination(mocker):
+    """Return spy mocker on 'wiz.graph.Resolver._compute_graph_combination'."""
+    return mocker.spy(wiz.graph.Resolver, "_compute_graph_combination")
 
 
 @pytest.fixture()
@@ -52,6 +59,13 @@ def spied_trim_unreachable_from_graph(mocker):
 
 
 @pytest.fixture()
+def spied_trim_invalid_from_graph(mocker):
+    """Return spy mocker on 'wiz.graph.trim_invalid_from_graph'.
+    """
+    return mocker.spy(wiz.graph, "trim_invalid_from_graph")
+
+
+@pytest.fixture()
 def spied_updated_by_distance(mocker):
     """Return spy mocker on 'wiz.graph.updated_by_distance'."""
     return mocker.spy(wiz.graph, "updated_by_distance")
@@ -76,9 +90,9 @@ def spied_extract_parents(mocker):
 
 
 @pytest.fixture()
-def spied_remove_node_and_relink(mocker):
-    """Return spy mocker on 'wiz.graph.remove_node_and_relink'."""
-    return mocker.spy(wiz.graph, "remove_node_and_relink")
+def spied_relink_parents(mocker):
+    """Return spy mocker on 'wiz.graph.relink_parents'."""
+    return mocker.spy(wiz.graph, "relink_parents")
 
 
 @pytest.fixture()
@@ -88,19 +102,21 @@ def spied_extract_ordered_packages(mocker):
 
 
 def test_scenario_1(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
-    spied_extract_ordered_packages
+    spied_relink_parents,
+    spied_extract_ordered_packages,
 ):
     """Compute packages for the following graph.
 
@@ -224,34 +240,38 @@ def test_scenario_1(
     assert packages[5].identifier == "A==0.2.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 4
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_trim_invalid_from_graph.call_count == 2
     assert spied_updated_by_distance.call_count == 2
     assert spied_extract_conflicting_nodes.call_count == 2
     assert spied_combined_requirements.call_count == 2
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_relink_parents.call_count == 1
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_2(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Fail to compute packages for the following graph.
@@ -366,34 +386,38 @@ def test_scenario_2(
     ) in str(error)
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 2
+    assert spied_fetch_next_combination.call_count == 2
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 1
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 1
     assert spied_extract_conflicting_nodes.call_count == 1
     assert spied_combined_requirements.call_count == 1
     assert spied_extract_parents.call_count == 1
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 0
 
 
 def test_scenario_3(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -447,34 +471,38 @@ def test_scenario_3(
     assert packages[1].identifier == "A==1.0.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 6
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_trim_invalid_from_graph.call_count == 4
     assert spied_updated_by_distance.call_count == 2
     assert spied_extract_conflicting_nodes.call_count == 4
     assert spied_combined_requirements.call_count == 4
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_relink_parents.call_count == 1
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_4(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -558,34 +586,38 @@ def test_scenario_4(
     assert packages[1].identifier == "A[V4]==1.0.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 4
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
     assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 1
+    assert spied_trim_invalid_from_graph.call_count == 1
     assert spied_updated_by_distance.call_count == 1
     assert spied_extract_conflicting_nodes.call_count == 1
     assert spied_combined_requirements.call_count == 1
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 3
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_5(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -655,34 +687,38 @@ def test_scenario_5(
     assert packages[1].identifier == "A[V1]==1.0.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_6(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -769,34 +805,38 @@ def test_scenario_6(
     assert packages[1].identifier == "A[V2]==1.0.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 3
+    assert spied_fetch_next_combination.call_count == 3
+    assert spied_compute_graph_combination.call_count == 3
     assert spied_fetch_distance_mapping.call_count == 6
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 3
     assert spied_compute_distance_mapping.call_count == 4
     assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 3
+    assert spied_trim_invalid_from_graph.call_count == 1
     assert spied_updated_by_distance.call_count == 3
     assert spied_extract_conflicting_nodes.call_count == 3
     assert spied_combined_requirements.call_count == 3
     assert spied_extract_parents.call_count == 2
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 9
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_7(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -808,11 +848,15 @@ def test_scenario_7(
      |
      |--(A<=0.3.0): A==0.3.0
      |
-     `--(B): B==0.1.0
+     |--(B): B==0.1.0
+     |   |
+     |   `--(A !=0.3.0): A==1.0.0
+     |
+     `--(C): C==0.1.0
          |
-         `--(A !=0.3.0): A==1.0.0
+         `--(A <1): A==0.9.0
 
-    Expected: B==0.1.0, A==0.2.0
+    Expected: C==0.1.0, B==0.1.0, A==0.2.0
 
     """
     definition_mapping = {
@@ -820,6 +864,10 @@ def test_scenario_7(
             "1.0.0": wiz.definition.Definition({
                 "identifier": "A",
                 "version": "1.0.0"
+            }),
+            "0.9.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.9.0"
             }),
             "0.3.0": wiz.definition.Definition({
                 "identifier": "A",
@@ -836,47 +884,59 @@ def test_scenario_7(
                 "version": "0.1.0",
                 "requirements": ["A !=0.3.0"]
             })
-        }
+        },
+        "C": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.1.0",
+                "requirements": ["A <1"]
+            })
+        },
     }
 
     resolver = wiz.graph.Resolver(definition_mapping)
     packages = resolver.compute_packages([
-        Requirement("A<=0.3.0"), Requirement("B")
+        Requirement("A<=0.3.0"), Requirement("B"), Requirement("C")
     ])
 
-    assert len(packages) == 2
-    assert packages[0].identifier == "B==0.1.0"
-    assert packages[1].identifier == "A==0.2.0"
+    assert len(packages) == 3
+    assert packages[0].identifier == "C==0.1.0"
+    assert packages[1].identifier == "B==0.1.0"
+    assert packages[2].identifier == "A==0.2.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
-    assert spied_fetch_distance_mapping.call_count == 5
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
+    assert spied_fetch_distance_mapping.call_count == 6
     assert spied_extract_combinations.call_count == 2
     assert spied_resolve_conflicts.call_count == 1
-    assert spied_compute_distance_mapping.call_count == 3
+    assert spied_compute_distance_mapping.call_count == 4
     assert spied_generate_variant_combinations.call_count == 0
-    assert spied_trim_unreachable_from_graph.call_count == 2
-    assert spied_updated_by_distance.call_count == 2
-    assert spied_extract_conflicting_nodes.call_count == 3
-    assert spied_combined_requirements.call_count == 3
+    assert spied_trim_unreachable_from_graph.call_count == 3
+    assert spied_trim_invalid_from_graph.call_count == 4
+    assert spied_updated_by_distance.call_count == 3
+    assert spied_extract_conflicting_nodes.call_count == 4
+    assert spied_combined_requirements.call_count == 4
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 2
+    assert spied_relink_parents.call_count == 3
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_8(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -949,34 +1009,38 @@ def test_scenario_8(
     assert packages[2].identifier == "A==0.9.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 6
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 1
+    assert spied_trim_invalid_from_graph.call_count == 2
     assert spied_updated_by_distance.call_count == 1
     assert spied_extract_conflicting_nodes.call_count == 4
     assert spied_combined_requirements.call_count == 4
     assert spied_extract_parents.call_count == 2
-    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_relink_parents.call_count == 1
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_9(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1042,34 +1106,38 @@ def test_scenario_9(
     assert packages[2].identifier == "A==0.9.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 6
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_trim_invalid_from_graph.call_count == 3
     assert spied_updated_by_distance.call_count == 2
     assert spied_extract_conflicting_nodes.call_count == 4
     assert spied_combined_requirements.call_count == 4
     assert spied_extract_parents.call_count == 1
-    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_relink_parents.call_count == 1
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_10(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1142,34 +1210,38 @@ def test_scenario_10(
     assert packages[2].identifier == "A==0.2.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 2
+    assert spied_fetch_next_combination.call_count == 2
+    assert spied_compute_graph_combination.call_count == 2
     assert spied_fetch_distance_mapping.call_count == 6
     assert spied_extract_combinations.call_count == 2
     assert spied_resolve_conflicts.call_count == 2
     assert spied_compute_distance_mapping.call_count == 4
     assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_trim_invalid_from_graph.call_count == 2
     assert spied_updated_by_distance.call_count == 2
     assert spied_extract_conflicting_nodes.call_count == 3
     assert spied_combined_requirements.call_count == 3
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 2
+    assert spied_relink_parents.call_count == 4
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_11(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1254,34 +1326,38 @@ def test_scenario_11(
     assert packages[2].identifier == "A[V2]==1.0.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 4
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
     assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 1
+    assert spied_trim_invalid_from_graph.call_count == 1
     assert spied_updated_by_distance.call_count == 1
     assert spied_extract_conflicting_nodes.call_count == 1
     assert spied_combined_requirements.call_count == 1
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 2
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_12(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1393,42 +1469,51 @@ def test_scenario_12(
     assert packages[2].identifier == "A[V3]==0.5.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 6
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 3
     assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 1
+    assert spied_trim_invalid_from_graph.call_count == 3
     assert spied_updated_by_distance.call_count == 1
     assert spied_extract_conflicting_nodes.call_count == 3
     assert spied_combined_requirements.call_count == 3
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_relink_parents.call_count == 5
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_13(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
 
-    Variant has priority over version. When a package is added with all its
-    variants, if this package is required a second time in the tree for a
-    different version, this requirement will be ignored if the variant with
-    the highest priority does not have this version.
+    When computing a graph combination, all variant nodes that should not be
+    included are removed from the graph. During the removal process, parents
+    are relinked to ensure that all requirements are still respected. If a
+    parent cannot be linked to any existing nodes in the graph, the combination
+    cannot be resolved.
+
+    In this example, "A[V3]==0.1.0" is being computed first so all other nodes
+    belonging to the definition identifier "A" are removed, which makes it
+    impossible for "C"'s requirement to be fulfilled.
 
     Root
      |
@@ -1450,7 +1535,7 @@ def test_scenario_13(
              |
              `--(B >=1, <2): B==1.0.0
 
-    Expected: C, B==3.0.0, A[V3]==1.0.0
+    Expected: C, B==1.0.0, A[V1]==0.5.0
 
     """
     definition_mapping = {
@@ -1513,38 +1598,42 @@ def test_scenario_13(
 
     assert len(packages) == 3
     assert packages[0].identifier == "C"
-    assert packages[1].identifier == "B==3.0.0"
-    assert packages[2].identifier == "A[V3]==1.0.0"
+    assert packages[1].identifier == "B==1.0.0"
+    assert packages[2].identifier == "A[V1]==0.5.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
-    assert spied_fetch_distance_mapping.call_count == 4
+    assert spied_fetch_next_combination.call_count == 3
+    assert spied_compute_graph_combination.call_count == 3
+    assert spied_fetch_distance_mapping.call_count == 6
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
-    assert spied_compute_distance_mapping.call_count == 2
+    assert spied_compute_distance_mapping.call_count == 3
     assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 1
+    assert spied_trim_invalid_from_graph.call_count == 3
     assert spied_updated_by_distance.call_count == 1
-    assert spied_extract_conflicting_nodes.call_count == 1
-    assert spied_combined_requirements.call_count == 1
+    assert spied_extract_conflicting_nodes.call_count == 3
+    assert spied_combined_requirements.call_count == 3
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 9
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_14(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1638,34 +1727,38 @@ def test_scenario_14(
     assert packages[2].identifier == "A[V3]"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 2
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
     assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 6
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_15(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1762,34 +1855,38 @@ def test_scenario_15(
     assert packages[2].identifier == "A[V2]"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 2
+    assert spied_fetch_next_combination.call_count == 2
+    assert spied_compute_graph_combination.call_count == 2
     assert spied_fetch_distance_mapping.call_count == 3
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 2
     assert spied_compute_distance_mapping.call_count == 3
     assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 1
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 12
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_16(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1899,34 +1996,38 @@ def test_scenario_16(
     assert packages[3].identifier == "A[V2]"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 9
+    assert spied_fetch_next_combination.call_count == 9
+    assert spied_compute_graph_combination.call_count == 9
     assert spied_fetch_distance_mapping.call_count == 12
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 9
     assert spied_compute_distance_mapping.call_count == 10
     assert spied_generate_variant_combinations.call_count == 1
     assert spied_trim_unreachable_from_graph.call_count == 9
+    assert spied_trim_invalid_from_graph.call_count == 1
     assert spied_updated_by_distance.call_count == 9
     assert spied_extract_conflicting_nodes.call_count == 9
     assert spied_combined_requirements.call_count == 9
     assert spied_extract_parents.call_count == 8
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 54
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_17(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1981,34 +2082,38 @@ def test_scenario_17(
     assert packages[0].identifier == "A==1.1.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_18(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2066,34 +2171,38 @@ def test_scenario_18(
     assert packages[2].identifier == "A==1.1.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_19(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2182,34 +2291,38 @@ def test_scenario_19(
     assert packages[5].identifier == "A==0.2.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_20(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2296,34 +2409,38 @@ def test_scenario_20(
     assert packages[3].identifier == "G==2.0.2"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_21(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2441,34 +2558,38 @@ def test_scenario_21(
     assert packages[3].identifier == "G==2.0.2"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 4
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 3
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_trim_invalid_from_graph.call_count == 3
     assert spied_updated_by_distance.call_count == 2
     assert spied_extract_conflicting_nodes.call_count == 2
     assert spied_combined_requirements.call_count == 2
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_relink_parents.call_count == 1
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_22(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Fail to compute packages for the following graph.
@@ -2511,34 +2632,38 @@ def test_scenario_22(
     ) in str(error)
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 2
+    assert spied_fetch_next_combination.call_count == 2
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 1
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 0
 
 
 def test_scenario_23(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2621,34 +2746,38 @@ def test_scenario_23(
     assert packages[3].qualified_identifier == "Namespace1::A"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_24(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2690,34 +2819,38 @@ def test_scenario_24(
     assert packages[0].qualified_identifier == "A==0.1.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_25(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2771,34 +2904,38 @@ def test_scenario_25(
     assert packages[1].qualified_identifier == "Namespace1::A==0.2.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_26(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2851,34 +2988,38 @@ def test_scenario_26(
     assert packages[1].qualified_identifier == "A==0.1.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_27(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2929,34 +3070,38 @@ def test_scenario_27(
     assert packages[1].qualified_identifier == "A==0.1.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 4
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 2
     assert spied_generate_variant_combinations.call_count == 0
-    assert spied_trim_unreachable_from_graph.call_count == 2
-    assert spied_updated_by_distance.call_count == 2
+    assert spied_trim_unreachable_from_graph.call_count == 1
+    assert spied_trim_invalid_from_graph.call_count == 2
+    assert spied_updated_by_distance.call_count == 1
     assert spied_extract_conflicting_nodes.call_count == 2
     assert spied_combined_requirements.call_count == 2
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 1
+    assert spied_relink_parents.call_count == 1
     assert spied_extract_ordered_packages.call_count == 1
 
 
 def test_scenario_28(
-    spied_fetch_next_graph,
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
     spied_compute_distance_mapping,
     spied_generate_variant_combinations,
     spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
     spied_updated_by_distance,
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_parents,
-    spied_remove_node_and_relink,
+    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -3000,16 +3145,148 @@ def test_scenario_28(
     assert packages[0].qualified_identifier == "A::A==0.2.0"
 
     # Check spied functions / methods
-    assert spied_fetch_next_graph.call_count == 1
+    assert spied_fetch_next_combination.call_count == 1
+    assert spied_compute_graph_combination.call_count == 1
     assert spied_fetch_distance_mapping.call_count == 1
     assert spied_extract_combinations.call_count == 1
     assert spied_resolve_conflicts.call_count == 1
     assert spied_compute_distance_mapping.call_count == 1
     assert spied_generate_variant_combinations.call_count == 0
     assert spied_trim_unreachable_from_graph.call_count == 0
+    assert spied_trim_invalid_from_graph.call_count == 0
     assert spied_updated_by_distance.call_count == 0
     assert spied_extract_conflicting_nodes.call_count == 0
     assert spied_combined_requirements.call_count == 0
     assert spied_extract_parents.call_count == 0
-    assert spied_remove_node_and_relink.call_count == 0
+    assert spied_relink_parents.call_count == 0
+    assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_29(
+    spied_fetch_next_combination,
+    spied_compute_graph_combination,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_parents,
+    spied_relink_parents,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    Like for the scenario 7, the combined requirement of packages can lead to
+    the addition of a different package version to the graph during the conflict
+    resolution process. But when it happens with a definition with variant, all
+    variants must be added.
+
+    Root
+     |
+     |--(B): B==0.1.0
+     |   |
+     |   |--(A !=0.3.0): A[V1]==1.0.0
+     |   |
+     |   `--(A !=0.3.0): A[V2]==1.0.0
+     |
+     `--(C): C==0.1.0
+         |
+         |--(A <=0.3.0): A[V3]==0.3.0
+         |
+         |--(A <=0.3.0): A[V2]==0.3.0
+         |
+         `--(A <=0.3.0): A[V1]==0.3.0
+
+    Expected: C==0.1.0, A[V1]==0.2.0, B==0.1.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V2"
+                    },
+                    {
+                        "identifier": "V1"
+                    }
+                ]
+            }),
+            "0.3.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.3.0",
+                "variants": [
+                    {
+                        "identifier": "V3"
+                    },
+                    {
+                        "identifier": "V2"
+                    },
+                    {
+                        "identifier": "V1"
+                    }
+                ]
+            }),
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                        "requirements": ["incorrect"]
+                    },
+                    {
+                        "identifier": "V1",
+                    }
+                ]
+            })
+        },
+        "B": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "requirements": ["A !=0.3.0"]
+            })
+        },
+        "C": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.1.0",
+                "requirements": ["A <=0.3.0"]
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("B"), Requirement("C")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].identifier == "C==0.1.0"
+    assert packages[1].identifier == "A[V1]==0.2.0"
+    assert packages[2].identifier == "B==0.1.0"
+
+    # Check spied functions / methods
+    assert spied_fetch_next_combination.call_count == 3
+    assert spied_compute_graph_combination.call_count == 3
+    assert spied_fetch_distance_mapping.call_count == 8
+    assert spied_extract_combinations.call_count == 2
+    assert spied_resolve_conflicts.call_count == 3
+    assert spied_compute_distance_mapping.call_count == 6
+    assert spied_generate_variant_combinations.call_count == 2
+    assert spied_trim_unreachable_from_graph.call_count == 2
+    assert spied_trim_invalid_from_graph.call_count == 2
+    assert spied_updated_by_distance.call_count == 3
+    assert spied_extract_conflicting_nodes.call_count == 3
+    assert spied_combined_requirements.call_count == 3
+    assert spied_extract_parents.call_count == 0
+    assert spied_relink_parents.call_count == 8
     assert spied_extract_ordered_packages.call_count == 1
