@@ -244,8 +244,8 @@ def create(definition, variant_identifier=None):
     """
     mapping = definition.to_dict()
 
-    # Set definition identifier
-    mapping["definition-identifier"] = definition.qualified_identifier
+    # Set definition
+    mapping["definition"] = definition
 
     # Update identifier.
     if variant_identifier is not None:
@@ -317,9 +317,9 @@ class Package(wiz.mapping.Mapping):
         return self.identifier
 
     @property
-    def definition_identifier(self):
-        """Return definition identifier."""
-        return self.get("definition-identifier")
+    def definition(self):
+        """Return :class:`wiz.definition.Definition` instance."""
+        return self.get("definition")
 
     @property
     def variant_name(self):
@@ -331,7 +331,7 @@ class Package(wiz.mapping.Mapping):
         """Return ordered keywords."""
         return [
             "identifier",
-            "definition-identifier",
+            "definition",
             "variant-name",
             "version",
             "namespace",
