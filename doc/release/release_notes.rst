@@ -6,6 +6,37 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: new
+        :tags: command-line
+
+        Added ``wiz doctor`` sub-command to check the validity of accessible
+        definitions from all registries.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.colored` to return a text with a specific
+        terminal color.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.validate_definition` to return a validation mapping of
+        a definition with possible errors and warnings.
+
+    .. change:: changed
+        :tags: command-line, API
+
+        Removed ``mlog`` dependency and added :mod:`wiz.logging` using directly
+        :mod:`sawmill` to have more flexibility to configure the
+        :class:`wiz.logging.Logger` instance.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :func:`wiz.utility.compute_label` to use qualified identifier of
+        input definition.
+
     .. change:: changed
 
         Renamed :func:`wiz.graph.remove_node_and_relink` to

@@ -1,7 +1,6 @@
 # :coding: utf-8
 
-import mlog
-
+import wiz.logging
 import wiz.definition
 import wiz.mapping
 import wiz.symbol
@@ -157,7 +156,7 @@ def combine_environ_mapping(package_identifier, mapping1, mapping2):
         This process will stringify all variable values.
 
     """
-    logger = mlog.Logger(__name__ + ".combine_environ_mapping")
+    logger = wiz.logging.Logger(__name__ + ".combine_environ_mapping")
 
     mapping = {}
 
@@ -203,7 +202,7 @@ def combine_command_mapping(package_identifier, mapping1, mapping2):
         {"app": "App2.1"}
 
     """
-    logger = mlog.Logger(__name__ + ".combine_command_mapping")
+    logger = wiz.logging.Logger(__name__ + ".combine_command_mapping")
 
     mapping = {}
 

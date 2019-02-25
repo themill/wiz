@@ -4,8 +4,7 @@ import os
 import json
 import requests
 
-import mlog
-
+import wiz.logging
 import wiz.history
 import wiz.package
 import wiz.exception
@@ -123,7 +122,7 @@ def install_to_path(definitions, registry_path, overwrite=False):
     Raises :exc:`OSError` if definitions can not be exported in *registry_path*.
 
     """
-    logger = mlog.Logger(__name__ + ".install_to_path")
+    logger = wiz.logging.Logger(__name__ + ".install_to_path")
 
     if not os.path.isdir(registry_path):
         raise wiz.exception.InstallError(
@@ -216,7 +215,7 @@ def install_to_vcs(definitions, registry_uri, overwrite=False):
     or definition could not be installed into it.
 
     """
-    logger = mlog.Logger(__name__ + ".install_to_vcs")
+    logger = wiz.logging.Logger(__name__ + ".install_to_vcs")
 
     registry_identifier = registry_uri.strip(SCHEME)
 

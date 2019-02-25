@@ -12,8 +12,7 @@ import tty
 import pty
 import signal
 
-import mlog
-
+import wiz.logging
 import wiz.utility
 import wiz.symbol
 
@@ -27,7 +26,7 @@ def shell(environment, command=None):
     shell.
 
     """
-    logger = mlog.Logger(__name__ + ".shell")
+    logger = wiz.logging.Logger(__name__ + ".shell")
 
     if command is None:
         command = {}
@@ -89,7 +88,7 @@ def shell(environment, command=None):
 
 def execute(elements, environment):
     """Run command *elements* within a specific *environment*."""
-    logger = mlog.Logger(__name__ + ".shell")
+    logger = wiz.logging.Logger(__name__ + ".shell")
     logger.info(
         "Start command: {}".format(wiz.utility.combine_command(elements))
     )

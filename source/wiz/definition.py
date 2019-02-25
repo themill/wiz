@@ -3,8 +3,7 @@
 import os
 import json
 
-import mlog
-
+import wiz.logging
 import wiz.symbol
 import wiz.mapping
 import wiz.package
@@ -373,7 +372,7 @@ def discover(paths, system_mapping=None, max_depth=None):
     specified paths.
 
     """
-    logger = mlog.Logger(__name__ + ".discover")
+    logger = wiz.logging.Logger(__name__ + ".discover")
 
     for path in paths:
         # Ignore empty paths that could resolve to current directory.
