@@ -6,6 +6,11 @@ import wiz.definition
 import wiz.utility
 from wiz.utility import Requirement
 
+@pytest.fixture()
+def mocked_extract_version_ranges(mocker):
+    """Return mocked wiz.utility.extract_version_ranges function."""
+    return mocker.patch.object(wiz.utility, "extract_version_ranges")
+
 
 @pytest.mark.parametrize("element", [
     "This is a string",
@@ -29,6 +34,60 @@ def test_encode_and_decode(element):
     encoded = wiz.utility.encode(element)
     assert isinstance(encoded, basestring)
     assert element == wiz.utility.decode(encoded)
+
+
+@pytest.mark.parametrize("ranges1, ranges2, expected", [
+    (
+        [(None, None)],
+        [(None, None)],
+        True
+    ),
+    (
+        [(None, None)],
+        [((1, 1), (4,))],
+        True
+    ),
+    (
+        [((1, 1), (4,))],
+        [(None, None)],
+        True
+    ),
+    (
+        [((1, 1), (4,))],
+        [((1, 1), (4,))],
+        True
+    ),
+    (
+        [((4,), (4,))],
+        [((1, 1), (4,))],
+        True
+    ),
+    (
+        [((5,), (7,))],
+        [((4,), (4,))],
+        False
+    ),
+    (
+        [((4,), (4,))],
+        [((5,), (7,))],
+        False
+    )
+], ids=[
+    "yes-no-boundaries",
+    "yes-no-boundaries-left",
+    "yes-no-boundaries-right",
+    "yes-same-ranges",
+    "yes-one-version-in",
+    "no-out-of-scope-left",
+    "no-out-of-scope-right"
+
+])
+def test_is_overlapping(
+    mocked_extract_version_ranges, ranges1, ranges2, expected
+):
+    """Indicates whether requirements are overlapping."""
+    mocked_extract_version_ranges.side_effect = [ranges1, ranges2]
+    assert wiz.utility.is_overlapping("__REQ__1", "__REQ2__") == expected
 
 
 @pytest.mark.parametrize("requirement, expected", [

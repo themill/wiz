@@ -137,15 +137,30 @@ def get_version(content):
 
 
 def is_overlapping(requirement1, requirement2):
-    """Indicate whether requirements are compatible.
+    """Indicate whether requirements are overlapping.
+
+    A requirement is overlapping with another one if their intersection of
+    version ranges are not empty.
+
+    Example::
+
+        >>> is_overlapping(Requirement("foo >= 10"), Requirement("foo < 9"))
+        True
+
+        >>> is_overlapping(Requirement("foo >= 10"), Requirement("foo < 8"))
+        False
 
     *requirement1* and *requirement2* should be instances of
     :class:`packaging.requirements.Requirement`.
 
     """
-    min_ver1, max_ver1, ver_excluded1 = extract_version_ranges(requirement1)
-    min_ver2, max_ver2, ver_excluded2 = extract_version_ranges(requirement2)
-    return min_ver1 > max_ver2 or max_ver1 < min_ver2
+    r1 = extract_version_ranges(requirement1)
+    r2 = extract_version_ranges(requirement2)
+    return (
+        (r2[-1][1] is None or r2[-1][1] >= r1[0][0]) and
+        (r1[-1][1] is None or r1[-1][1] >= r2[0][0])
+    )
+
 
 
 def extract_version_ranges(requirement):
