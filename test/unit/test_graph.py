@@ -633,38 +633,66 @@ def test_sanitize_requirement(requirement, namespace, expected):
     assert requirement == expected
 
 
-def test_extract_parents(mocker, mocked_graph):
-    """Extract parent identifiers from nodes."""
+def test_extract_conflicting_requirements(mocker, mocked_graph):
+    """Extract conflicting requirements from nodes."""
     nodes = [
         mocker.Mock(
-            identifier="A",
+            definition=mocker.Mock(qualified_identifier="foo"),
+            identifier="foo==3.2.1",
             parent_identifiers=["E", "F"]
         ),
         mocker.Mock(
-            identifier="B",
-            parent_identifiers=["F", "G"]
+            definition=mocker.Mock(qualified_identifier="foo"),
+            identifier="foo==4.0.0",
+            parent_identifiers=["G", "H", "I"]
         ),
         mocker.Mock(
-            identifier="C",
+            definition=mocker.Mock(qualified_identifier="foo"),
+            identifier="foo==3.0.0",
             parent_identifiers=["root"]
-        ),
-        mocker.Mock(
-            identifier="D",
-            parent_identifiers=["H"]
         )
     ]
 
-    mocked_graph.node.side_effect = [
-        mocker.Mock(identifier="E"),
-        mocker.Mock(identifier="F"),
-        mocker.Mock(identifier="F"),
-        mocker.Mock(identifier="G"),
-        None
+    mocked_graph.exists.side_effect = [False, True, True, True, True]
+
+    mocked_graph.link_requirement.side_effect = [
+        Requirement("foo ==3.*"),
+        Requirement("foo >=4, <5"),
+        Requirement("foo >=4, <5"),
+        Requirement("foo"),
+        Requirement("foo==3.0.0"),
     ]
 
-    parents = wiz.graph.extract_parents(mocked_graph, nodes)
-    assert isinstance(parents, set) is True
-    assert sorted(parents) == ["E", "F", "G"]
+    conflicts = wiz.graph.extract_conflicting_requirements(mocked_graph, nodes)
+
+    assert mocked_graph.exists.call_count == 5
+    mocked_graph.exists.assert_any_call("E")
+    mocked_graph.exists.assert_any_call("F")
+    mocked_graph.exists.assert_any_call("G")
+    mocked_graph.exists.assert_any_call("H")
+    mocked_graph.exists.assert_any_call("I")
+
+    assert mocked_graph.link_requirement.call_count == 5
+    mocked_graph.link_requirement.assert_any_call("foo==3.2.1", "F")
+    mocked_graph.link_requirement.assert_any_call("foo==4.0.0", "G")
+    mocked_graph.link_requirement.assert_any_call("foo==4.0.0", "H")
+    mocked_graph.link_requirement.assert_any_call("foo==4.0.0", "I")
+    mocked_graph.link_requirement.assert_any_call("foo==3.0.0", "root")
+
+    assert conflicts == [
+        {
+            "requirement": Requirement("foo >=4, <5"),
+            "identifiers": {"G", "H"}
+        },
+        {
+            "requirement": Requirement("foo ==3.0.0"),
+            "identifiers": {"root"}
+        },
+        {
+            "requirement": Requirement("foo ==3.*"),
+            "identifiers": {"F"}
+        }
+    ]
 
 
 def test_relink_parents(mocker, mocked_graph):

@@ -907,12 +907,11 @@ def extract_conflicting_requirements(graph, nodes):
 
     for node in nodes:
         for parent_identifier in node.parent_identifiers:
-            if parent_identifier == graph.ROOT:
-                continue
-
             # Filter out non existing nodes from incoming.
-            parent_node = graph.node(parent_identifier)
-            if parent_node is None:
+            if (
+                parent_identifier != graph.ROOT and
+                not graph.exists(parent_identifier)
+            ):
                 continue
 
             identifier = node.identifier
@@ -932,11 +931,12 @@ def extract_conflicting_requirements(graph, nodes):
         if not wiz.utility.is_overlapping(requirement1, requirement2):
             conflicts.extend([requirement1, requirement2])
 
-    counter = Counter(conflicts)
+    c = Counter(conflicts)
+
     return [
         {"requirement": requirement, "identifiers": mapping[requirement]}
         for requirement
-        in sorted(set(conflicts), key=lambda _req: counter[_req], reverse=True)
+        in sorted(set(conflicts), key=lambda r: (c[r], str(r)), reverse=True)
     ]
 
 
