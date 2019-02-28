@@ -138,7 +138,16 @@ def is_overlapping(requirement1, requirement2):
     *requirement1* and *requirement2* should be instances of
     :class:`packaging.requirements.Requirement`.
 
+    Raise :exc:`wiz.exception.GraphResolutionError` if requirements cannot
+    be compared.
+
     """
+    if requirement1.name != requirement2.name:
+        raise wiz.exception.GraphResolutionError(
+            "Impossible to compare requirements with different names "
+            "['{}' and '{}'].".format(requirement1.name, requirement2.name)
+        )
+
     r1 = extract_version_ranges(requirement1)
     r2 = extract_version_ranges(requirement2)
     return (
