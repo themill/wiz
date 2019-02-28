@@ -83,11 +83,19 @@ def test_encode_and_decode(element):
 
 ])
 def test_is_overlapping(
-    mocked_extract_version_ranges, ranges1, ranges2, expected
+    mocker, mocked_extract_version_ranges, ranges1, ranges2, expected
 ):
     """Indicates whether requirements are overlapping."""
+    req1 = mocker.Mock()
+    req2 = mocker.Mock()
+
+    # Hack due to the impossibility to directly mock an attribute called "name"
+    # See: https://bradmontgomery.net/blog/how-world-do-you-mock-name-attribute
+    type(req1).name = mocker.PropertyMock(return_value="foo")
+    type(req2).name = mocker.PropertyMock(return_value="foo")
+
     mocked_extract_version_ranges.side_effect = [ranges1, ranges2]
-    assert wiz.utility.is_overlapping("__REQ__1", "__REQ2__") == expected
+    assert wiz.utility.is_overlapping(req1, req2) == expected
 
 
 @pytest.mark.parametrize("requirement, expected", [
