@@ -486,7 +486,8 @@ class Resolver(object):
                     "\n".join([
                         _display_conflicts(mapping) for mapping in conflicts
                     ])
-                )
+                ),
+                conflicts=conflicts
             )
 
         return packages
@@ -878,7 +879,7 @@ def extract_conflicting_requirements(graph, nodes):
                 "requirement": Requirement("foo >2"),
                 "identifiers": {"baz"}
             }
-        }
+        ]
 
     A requirement is conflicting when it is not overlapping with at least one
     other requirement from existing parents of *nodes*. The conflict list
