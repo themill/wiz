@@ -110,8 +110,9 @@ class Resolver(object):
         # Time limit for the resolution process.
         self._timeout = timeout
 
-        # Record errors raised during the packages computation process.
-        self._errors = []
+        # Record list of conflicting requirements raised when a graph
+        # combination cannot be resolved.
+        self._conflicting_requirements = []
 
     @property
     def definition_mapping(self):
@@ -140,16 +141,20 @@ class Resolver(object):
         """
         self._initiate(requirements)
 
+        # Store latest exception to raise if necessary.
+        latest_error = None
+
+        # Record the number of failed resolution attempts.
+        nb_failures = 0
+
         while True:
             graph, nodes_to_remove = self._fetch_next_combination()
             if graph is None:
-                index = len(self._errors)
-                error = self._errors.pop()
-                error.message = (
+                latest_error.message = (
                     "Failed to resolve graph at combination #{}:\n\n"
-                    "{}".format(index, error.message)
+                    "{}".format(nb_failures, latest_error.message)
                 )
-                raise error
+                raise latest_error
 
             try:
                 # Compute new graph.
@@ -173,8 +178,13 @@ class Resolver(object):
                     graph=graph, error=error
                 )
 
+                # Record requirement conflicts if possible
+                if isinstance(error, wiz.exception.GraphResolutionError):
+                    self._conflicting_requirements = error.conflicts
+
                 self._logger.debug("Failed to resolve graph: {}".format(error))
-                self._errors.append(error)
+                latest_error = error
+                nb_failures += 1
 
     def _initiate(self, requirements):
         """Initialize iterator with a graph created from *requirement*.
