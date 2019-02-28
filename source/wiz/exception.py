@@ -110,11 +110,13 @@ class GraphResolutionError(WizError):
             [
                 {
                     "requirement": Requirement("foo >=0.1.0, <1"),
-                    "identifiers": {"bar", "bim"}
+                    "identifiers": {"bar", "bim"},
+                    "conflicts": {"baz"}
                 },
                 {
                     "requirement": Requirement("foo >2"),
-                    "identifiers": {"baz"}
+                    "identifiers": {"baz"},
+                    "conflicts": {"bar", "bim"}
                 }
             ]
 

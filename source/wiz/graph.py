@@ -873,11 +873,13 @@ def extract_conflicting_requirements(graph, nodes):
         [
             {
                 "requirement": Requirement("foo >=0.1.0, <1"),
-                "identifiers": {"bar", "bim"}
+                "identifiers": {"bar", "bim"},
+                "conflicts": {"baz"}
             },
             {
                 "requirement": Requirement("foo >2"),
-                "identifiers": {"baz"}
+                "identifiers": {"baz"},
+                "conflicts": {"bar", "bim"}
             }
         ]
 
@@ -901,7 +903,7 @@ def extract_conflicting_requirements(graph, nodes):
         )
 
     # Identify all parent node identifier per requirement.
-    mapping = {}
+    mapping1 = {}
 
     for node in nodes:
         for parent_identifier in node.parent_identifiers:
@@ -915,27 +917,37 @@ def extract_conflicting_requirements(graph, nodes):
             identifier = node.identifier
             requirement = graph.link_requirement(identifier, parent_identifier)
 
-            mapping.setdefault(requirement, set([]))
-            mapping[requirement].add(parent_identifier)
+            mapping1.setdefault(requirement, set([]))
+            mapping1[requirement].add(parent_identifier)
 
     # Identify all conflicting requirements.
-    conflicts = []
+    mapping2 = {}
 
-    # Identify conflicting requirements.
     for tuple1, tuple2 in (
-        itertools.combinations(mapping.items(), 2)
+        itertools.combinations(mapping1.items(), 2)
     ):
         requirement1, requirement2 = tuple1[0], tuple2[0]
         if not wiz.utility.is_overlapping(requirement1, requirement2):
-            conflicts.extend([requirement1, requirement2])
+            mapping2.setdefault(requirement1, set([]))
+            mapping2.setdefault(requirement2, set([]))
+            mapping2[requirement1].add(requirement2)
+            mapping2[requirement2].add(requirement1)
 
-    c = Counter(conflicts)
+    # Create conflict mapping list.
+    conflicts = []
 
-    return [
-        {"requirement": requirement, "identifiers": mapping[requirement]}
-        for requirement
-        in sorted(set(conflicts), key=lambda r: (c[r], str(r)), reverse=True)
-    ]
+    for requirement, conflicting_requirements in sorted(
+        mapping2.items(), key=lambda v: (len(v[1]), str(v[0])), reverse=True
+    ):
+        conflicts.append({
+            "requirement": requirement,
+            "identifiers": mapping1[requirement],
+            "conflicts": set(itertools.chain(
+                *[mapping1[r] for r in conflicting_requirements]
+            ))
+        })
+
+    return conflicts
 
 
 def relink_parents(graph, node, requirement=None):

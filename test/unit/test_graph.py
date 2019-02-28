@@ -653,8 +653,10 @@ def test_extract_conflicting_requirements(mocker, mocked_graph):
         )
     ]
 
+    # calls for: E, F, G, H, I
     mocked_graph.exists.side_effect = [False, True, True, True, True]
 
+    # calls for: F, G, H, I, root
     mocked_graph.link_requirement.side_effect = [
         Requirement("foo ==3.*"),
         Requirement("foo >=4, <5"),
@@ -682,15 +684,18 @@ def test_extract_conflicting_requirements(mocker, mocked_graph):
     assert conflicts == [
         {
             "requirement": Requirement("foo >=4, <5"),
-            "identifiers": {"G", "H"}
+            "identifiers": {"G", "H"},
+            "conflicts": {"F", "root"}
         },
         {
             "requirement": Requirement("foo ==3.0.0"),
-            "identifiers": {"root"}
+            "identifiers": {"root"},
+            "conflicts": {"G", "H"}
         },
         {
             "requirement": Requirement("foo ==3.*"),
-            "identifiers": {"F"}
+            "identifiers": {"F"},
+            "conflicts": {"G", "H"}
         }
     ]
 
