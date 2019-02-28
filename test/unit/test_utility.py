@@ -4,6 +4,7 @@ import pytest
 
 import wiz.definition
 import wiz.utility
+from wiz.utility import Requirement
 
 
 @pytest.mark.parametrize("element", [
@@ -28,6 +29,89 @@ def test_encode_and_decode(element):
     encoded = wiz.utility.encode(element)
     assert isinstance(encoded, basestring)
     assert element == wiz.utility.decode(encoded)
+
+
+@pytest.mark.parametrize("requirement, expected", [
+    (
+        Requirement("foo"),
+        [(None, None)]
+    ),
+    (
+        Requirement("foo <=0.1.0"),
+        [(None, (0, 1, 0))]
+    ),
+    (
+        Requirement("foo >=0.1.0"),
+        [((0, 1, 0), None)]
+    ),
+    (
+        Requirement("foo >=0.1.0, <=1"),
+        [((0, 1, 0), (1,))]
+    ),
+    (
+        Requirement("foo <0.1.0"),
+        [(None, (0, 0, 9999))]
+    ),
+    (
+        Requirement("foo >0.1.0"),
+        [((0, 1, 0, 1), None)]
+    ),
+    (
+        Requirement("foo >0.1.0, <1"),
+        [((0, 1, 0, 1), (0, 9999,))]
+    ),
+    (
+        Requirement("foo >=0.1.0, <1"),
+        [((0, 1, 0), (0, 9999,))]
+    ),
+    (
+        Requirement("foo ==0.1.0"),
+        [((0, 1, 0), (0, 1, 0))]
+    ),
+    (
+        Requirement("foo ==0.1.*"),
+        [((0, 1), (0, 1, 9999))]
+    ),
+    (
+        Requirement("foo ~=0.5"),
+        [((0, 5), (0, 5, 9999))]
+    ),
+    (
+        Requirement("foo !=0.3.9"),
+        [(None, (0, 3, 8, 9999)), ((0, 3, 9, 1), None)]
+    ),
+    (
+        Requirement("foo !=0.3.*"),
+        [(None, (0, 2, 9999)), ((0, 4), None)]
+    ),
+    (
+        Requirement("foo >=9, >3, >10, <=100, <19, !=11.*"),
+        [((10, 1), (10, 9999)), ((12,), (18, 9999))]
+    ),
+    (
+        Requirement("foo !=1.*, !=1.0.0, <2, ==0.1.0"),
+        [((0, 1, 0), (0, 1, 0))]
+    )
+], ids=[
+    "none",
+    "inclusive-comparison",
+    "inclusive-comparison-min",
+    "inclusive-comparison",
+    "exclusive-comparison-max",
+    "exclusive-comparison-min",
+    "exclusive-comparison",
+    "mixed-comparison",
+    "version-matching",
+    "version-matching-with-wildcard",
+    "compatible-release",
+    "version-exclusion",
+    "version-exclusion-with-wildcard",
+    "mixed-1",
+    "mixed-2"
+])
+def test_extract_version_ranges(requirement, expected):
+    """Extract version ranges from requirements."""
+    assert wiz.utility.extract_version_ranges(requirement) == expected
 
 
 @pytest.mark.parametrize("definition, expected", [
