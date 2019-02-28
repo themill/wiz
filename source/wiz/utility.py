@@ -173,7 +173,8 @@ def extract_version_ranges(requirement):
     the specifier is incorrect.
 
     :exc:`wiz.exception.InvalidRequirement` is raised if the specifier operator
-    is not accepted.
+    is not accepted or if the requirement does not allow any versions to be
+    reached.
 
     """
     version_ranges = [(None, None)]
@@ -210,7 +211,8 @@ def extract_version_ranges(requirement):
             _update_maximum_version(_max_version, version_ranges)
 
         elif specifier.operator == "==":
-            version_ranges = [(_version, _version)]
+            _update_minimum_version(_version, version_ranges)
+            _update_maximum_version(_version, version_ranges)
 
         elif specifier.operator == "!=" and specifier.version.endswith(".*"):
             _min_version = _decrement_version(_version)
@@ -305,6 +307,14 @@ def _update_version_ranges(excluded, ranges):
     _ranges = []
 
     for r in ranges:
+        out_before = r[0] is not None and r[0] > excluded[1]
+        out_after = r[1] is not None and r[1] < excluded[0]
+
+        # Exclusion zone is outside of range.
+        if out_before or out_after:
+            _ranges.append(r)
+            continue
+
         r0_excluded = r[0] is not None and r[0] > excluded[0]
         r1_excluded = r[1] is not None and r[1] < excluded[1]
 
@@ -325,9 +335,14 @@ def _update_version_ranges(excluded, ranges):
             _ranges.append((r[0], excluded[0]))
             _ranges.append((excluded[1], r[1]))
 
-        # Exclusion zone is outside of range.
-        else:
-            _ranges.append(r)
+    if len(_ranges) == 0:
+        raise wiz.exception.InvalidRequirement(
+            "The requirement is incorrect as excluded version range '{}-{}' "
+            "makes all other versions unreachable.".format(
+                ".".join(str(v) for v in excluded[0]),
+                ".".join(str(v) for v in excluded[1]),
+            )
+        )
 
     # Mutated input ranges
     ranges[:] = _ranges
