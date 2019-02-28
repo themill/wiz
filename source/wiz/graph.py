@@ -146,8 +146,8 @@ class Resolver(object):
                 index = len(self._errors)
                 error = self._errors.pop()
                 error.message = (
-                    "Failed to resolve graph at combination #{}:\n"
-                    "- {}".format(index, error.message)
+                    "Failed to resolve graph at combination #{}:\n\n"
+                    "{}".format(index, error.message)
                 )
                 raise error
 
@@ -431,7 +431,9 @@ class Resolver(object):
             while trim_invalid_from_graph(graph, distance_mapping):
                 self._distance_mapping = None
 
-    def _extract_packages(self, requirement, graph, nodes, conflicts):
+    def _extract_packages(
+        self, requirement, graph, nodes, conflicting_identifiers
+    ):
         """Return packages extracted from combined *requirement*.
 
         If no packages could be extracted, *nodes* parent identifiers are
@@ -447,7 +449,8 @@ class Resolver(object):
 
         *nodes* must be a list of :class:`Node` instances.
 
-        *conflicts* must be a list of node identifiers conflicting in *graph*.
+        *conflicting_identifiers* must be a list of node identifiers conflicting
+        in *graph*.
 
         """
         try:
@@ -455,17 +458,34 @@ class Resolver(object):
                 requirement, self._definition_mapping
             )
         except wiz.exception.RequestNotFound:
-            _parents = extract_parents(graph, nodes)
+            conflicts = extract_conflicting_requirements(graph, nodes)
+            parents = set(
+                _id for mapping in conflicts for _id in mapping["identifiers"]
+            )
 
             # Discard conflicting nodes if parents are themselves
             # conflicting.
-            if len(_parents.intersection(conflicts)) > 0:
+            if len(parents.intersection(conflicting_identifiers)) > 0:
                 return
 
+            def _display_conflicts(mapping):
+                """Display conflicting *mapping*."""
+                identifiers = list(mapping["identifiers"])[:3]
+                if len(mapping["identifiers"]) > 3:
+                    others = len(mapping["identifiers"]) - 3
+                    identifiers += ["+{} packages...".format(others)]
+
+                return "  * {requirement} \t[{identifiers}]".format(
+                    requirement=mapping["requirement"],
+                    identifiers=", ".join(identifiers)
+                )
+
             raise wiz.exception.GraphResolutionError(
-                "The combined requirement '{}' could not be resolved from "
-                "the following packages: {!r}.\n".format(
-                    requirement, sorted(_parents)
+                "The resolution graph could not be resolved due to the "
+                "following requirement conflicts:\n{}".format(
+                    "\n".join([
+                        _display_conflicts(mapping) for mapping in conflicts
+                    ])
                 )
             )
 
@@ -844,15 +864,46 @@ def sanitize_requirement(requirement, namespace):
         requirement.name = requirement.name.rsplit(separator, 1)[-1]
 
 
-def extract_parents(graph, nodes):
-    """Return set of existing parent node identifiers from *nodes*.
+def extract_conflicting_requirements(graph, nodes):
+    """Return list of conflicting requirement mappings.
+
+    The list returned should be in the form of::
+
+        [
+            {
+                "requirement": Requirement("foo >=0.1.0, <1"),
+                "identifiers": {"bar", "bim"}
+            },
+            {
+                "requirement": Requirement("foo >2"),
+                "identifiers": {"baz"}
+            }
+        }
+
+    A requirement is conflicting when it is not overlapping with at least one
+    other requirement from existing parents of *nodes*. The conflict list
+    is sorted based on the number of time a requirement is conflicting.
 
     *graph* must be an instance of :class:`Graph`.
 
-    *nodes* should be a list of :class:`Node` instances.
+    *nodes* should be a list of :class:`Node` instances which belong to the
+    same definition identifier.
 
     """
-    identifiers = set()
+    # Ensure that definition requirement is the same for all nodes.
+    definition_identifier = set(
+        node.definition.qualified_identifier for node in nodes
+    )
+    if len(definition_identifier) > 1:
+        raise wiz.exception.GraphResolutionError(
+            "All nodes should have the same definition identifier when "
+            "attempting to extract conflicting parents ['{}']".format(
+                ", ".join(definition_identifier)
+            )
+        )
+
+    # Identify all parent node identifier per requirement.
+    mapping = {}
 
     for node in nodes:
         for parent_identifier in node.parent_identifiers:
@@ -864,10 +915,29 @@ def extract_parents(graph, nodes):
             if parent_node is None:
                 continue
 
-            parent_identifier = parent_node.identifier
-            identifiers.add(parent_identifier)
+            identifier = node.identifier
+            requirement = graph.link_requirement(identifier, parent_identifier)
 
-    return identifiers
+            mapping.setdefault(requirement, set([]))
+            mapping[requirement].add(parent_identifier)
+
+    # Identify all conflicting requirements.
+    conflicts = []
+
+    # Identify conflicting requirements.
+    for tuple1, tuple2 in (
+        itertools.combinations(mapping.items(), 2)
+    ):
+        requirement1, requirement2 = tuple1[0], tuple2[0]
+        if not wiz.utility.is_overlapping(requirement1, requirement2):
+            conflicts.extend([requirement1, requirement2])
+
+    counter = Counter(conflicts)
+    return [
+        {"requirement": requirement, "identifiers": mapping[requirement]}
+        for requirement
+        in sorted(set(conflicts), key=lambda _req: counter[_req], reverse=True)
+    ]
 
 
 def relink_parents(graph, node, requirement=None):
