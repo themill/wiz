@@ -891,15 +891,12 @@ def extract_conflicting_requirements(graph, nodes):
 
     """
     # Ensure that definition requirement is the same for all nodes.
-    definition_identifier = set(
-        node.definition.qualified_identifier for node in nodes
-    )
-    if len(definition_identifier) > 1:
+    definitions = set(node.definition.qualified_identifier for node in nodes)
+    if len(definitions) > 1:
         raise wiz.exception.GraphResolutionError(
             "All nodes should have the same definition identifier when "
-            "attempting to extract conflicting parents ['{}']".format(
-                ", ".join(definition_identifier)
-            )
+            "attempting to extract conflicting requirements from parent "
+            "nodes [{}]".format(", ".join(sorted(definitions)))
         )
 
     # Identify all parent node identifier per requirement.

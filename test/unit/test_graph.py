@@ -695,6 +695,39 @@ def test_extract_conflicting_requirements(mocker, mocked_graph):
     ]
 
 
+def test_extract_conflicting_requirements_error(mocker, mocked_graph):
+    """Fail to extract conflicting requirements from nodes."""
+    nodes = [
+        mocker.Mock(
+            definition=mocker.Mock(qualified_identifier="bar"),
+            identifier="bar==3.2.1",
+            parent_identifiers=["E", "F"]
+        ),
+        mocker.Mock(
+            definition=mocker.Mock(qualified_identifier="foo"),
+            identifier="foo==4.0.0",
+            parent_identifiers=["G", "H", "I"]
+        ),
+        mocker.Mock(
+            definition=mocker.Mock(qualified_identifier="foo"),
+            identifier="foo==3.0.0",
+            parent_identifiers=["root"]
+        )
+    ]
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        wiz.graph.extract_conflicting_requirements(mocked_graph, nodes)
+
+    assert (
+        "All nodes should have the same definition identifier when "
+        "attempting to extract conflicting requirements from parent "
+        "nodes [bar, foo]"
+    ) in str(error.value)
+
+    mocked_graph.exists.assert_not_called()
+    mocked_graph.link_requirement.assert_not_called()
+
+
 def test_relink_parents(mocker, mocked_graph):
     """Relink node's parents."""
     node = mocker.Mock(
