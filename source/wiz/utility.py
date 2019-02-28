@@ -73,27 +73,12 @@ def _display_requirement(_requirement):
 Requirement.__str__ = _display_requirement
 
 
-def _compare_requirement(_requirement, other):
-    """Improve comparison between Requirement instances.
-
-    Before::
-
-        >>> Requirement("nuke>=10,<11") == Requirement("nuke>=10,<11")
-        False
-
-    After::
-
-        >>> Requirement("nuke>=10,<11") == Requirement("nuke>=10,<11")
-        True
-
-     """
-    if isinstance(other, Requirement):
-        return str(_requirement) == str(other)
-    return False
-
-
-#: Monkeypatch magic method to allow comparison between instances.
-Requirement.__eq__ = _compare_requirement
+#: Monkeypatch magic methods to allow comparison between instances.
+Requirement.__eq__ = lambda self, other: (
+    str(self) == str(other) if isinstance(other, Requirement) else False
+)
+Requirement.__ne__ = lambda self, other: not (self == other)
+Requirement.__hash__ = lambda self: hash(str(self))
 
 
 def get_requirement(content):
