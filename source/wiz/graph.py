@@ -110,9 +110,14 @@ class Resolver(object):
         # Time limit for the resolution process.
         self._timeout = timeout
 
-        # Record list of conflicting requirements raised when a graph
-        # combination cannot be resolved.
-        self._conflicting_requirements = []
+        # Record mapping of all conflicting identifiers found during the
+        # graph resolution failed attempts.
+        self._conflicts_mapping = {}
+
+        # Record latest requirement conflicts to hint possible version to change
+        # in order to find a solution when all variant combination are
+        # exhausted.
+        self._requirement_conflicts = []
 
     @property
     def definition_mapping(self):
@@ -178,13 +183,32 @@ class Resolver(object):
                     graph=graph, error=error
                 )
 
-                # Record requirement conflicts if possible
-                if isinstance(error, wiz.exception.GraphResolutionError):
-                    self._conflicting_requirements = error.conflicts
+                # Extract conflicting identifiers and requirements if possible.
+                self._update_conflicts(error)
 
                 self._logger.debug("Failed to resolve graph: {}".format(error))
                 latest_error = error
                 nb_failures += 1
+
+    def _update_conflicts(self, exception):
+        """Extract and record conflicts from *exception* if possible.
+
+        Conflicts are only recorded in :exc:`wiz.exception.GraphResolutionError`
+        exceptions.
+
+        """
+        if not isinstance(exception, wiz.exception.GraphResolutionError):
+            return
+
+        self._requirement_conflicts = exception.conflicts
+
+        for mapping in exception.conflicts:
+            identifiers = mapping["identifiers"]
+            conflicts = mapping["conflicts"]
+
+            for identifier in identifiers:
+                self._conflicts_mapping.setdefault(identifier, set())
+                self._conflicts_mapping[identifier].update(conflicts)
 
     def _initiate(self, requirements):
         """Initialize iterator with a graph created from *requirement*.
@@ -334,6 +358,22 @@ class Resolver(object):
         for node in removed_nodes:
             relink_parents(graph, node)
 
+        # Prune unreachable and invalid nodes if necessary.
+        if len(removed_nodes) > 0:
+            self._prune_resolution_graph(graph)
+
+        # Raise an error if the graph combination cannot be resolved.
+        all_identifiers = graph.identifiers()
+
+        for identifier in all_identifiers:
+            conflicts = set(self._conflicts_mapping.get(identifier, []))
+
+            # if one conflicting node is in the graph, it cannot be solved.
+            if len(conflicts.difference(all_identifiers)) > 0:
+                raise wiz.exception.GraphResolutionError(
+                    "There are known conflicts in this graph combination."
+                )
+
         return graph
 
     def _resolve_conflicts(self, graph):
@@ -365,27 +405,31 @@ class Resolver(object):
         )
 
         while True:
-            distance_mapping, updated = self._fetch_distance_mapping(graph)
-
-            # Update graph and conflicts to remove all unreachable nodes if
-            # there are remaining conflicts in the graph or if distance mapping
-            # have been updated.
-            if updated and conflicts:
-                trim_unreachable_from_graph(graph, distance_mapping)
-                conflicts = updated_by_distance(conflicts, distance_mapping)
-
             # If no nodes are left in the queue, exit the loop. The graph
             # is officially resolved. Hooray!
             if not conflicts:
                 return
+
+            # Sort conflicting nodes by distances.
+            distance_mapping, updated = self._fetch_distance_mapping(graph)
+
+            if updated:
+                conflicts = updated_by_distance(conflicts, distance_mapping)
 
             # Pick up the furthest conflicting node identifier so that nearest
             # node have priorities.
             identifier = conflicts.pop()
             node = graph.node(identifier)
 
-            # Identify nodes conflicting with this node.
+            # If node has already been removed from graph, ignore.
+            if node is None:
+                continue
+
+            # Identify nodes conflicting with this node. Return if none are
+            # found.
             conflicting_nodes = extract_conflicting_nodes(graph, node)
+            if len(conflicting_nodes) == 0:
+                continue
 
             # Compute valid node identifier from combined requirements.
             requirement = combined_requirements(
@@ -436,10 +480,7 @@ class Resolver(object):
                             "The current graph has conflicting variants."
                         )
 
-            # Search and trim invalid nodes from graph if conditions are no
-            # longer fulfilled. If so reset the distance mapping.
-            while trim_invalid_from_graph(graph, distance_mapping):
-                self._distance_mapping = None
+            self._prune_resolution_graph(graph)
 
     def _extract_packages(
         self, requirement, graph, nodes, conflicting_identifiers
@@ -549,6 +590,43 @@ class Resolver(object):
             return True
 
         return False
+
+    def _prune_resolution_graph(self, graph):
+        """Remove unreachable and invalid nodes from *graph*.
+
+        The pruning process is done as follow:
+
+        1. If the graph distance mapping has been updated, all unreachable nodes
+           will be removed. Otherwise the method will return now.
+
+        2. If nodes have been removed, another pass through all nodes in the
+           graph ensure that all invalid nodes are removed (e.g. when conditions
+           are no longer fulfilled).
+
+        3. Step 1 and 2 are repeated until the distance mapping is not updated.
+
+        *graph* must be an instance of :class:`Graph`.
+
+        """
+        while True:
+            distance_mapping, updated = self._fetch_distance_mapping(graph)
+            if not updated:
+                return
+
+            # Remove all unreachable nodes if the graph has been updated. Reset
+            # the distance mapping if nodes have been removed.
+            if trim_unreachable_from_graph(graph, distance_mapping):
+                self._distance_mapping = None
+
+            # Fetch updated distance mapping or return now.
+            distance_mapping, updated = self._fetch_distance_mapping(graph)
+            if not updated:
+                return
+
+            # Search and trim invalid nodes from graph if conditions are no
+            # longer fulfilled. If so reset the distance mapping.
+            while trim_invalid_from_graph(graph, distance_mapping):
+                self._distance_mapping = None
 
 
 def compute_distance_mapping(graph):
@@ -703,6 +781,8 @@ def generate_variant_combinations(graph, variant_groups):
 def trim_unreachable_from_graph(graph, distance_mapping):
     """Remove unreachable nodes from *graph* based on *distance_mapping*.
 
+    Return boolean indicating if nodes have been removed.
+
     If a node within the *graph* does not have a distance, it means that it
     cannot be reached from the :attr:`root <Graph.ROOT>` level of the *graph*.
     It will then be lazily removed from the graph (the links are preserved to
@@ -717,10 +797,15 @@ def trim_unreachable_from_graph(graph, distance_mapping):
     """
     logger = wiz.logging.Logger(__name__ + ".trim_unreachable_from_graph")
 
+    nodes_removed = False
+
     for node in graph.nodes():
         if distance_mapping[node.identifier].get("distance") is None:
             logger.debug("Remove '{}'".format(node.identifier))
             graph.remove_node(node.identifier)
+            nodes_removed = True
+
+    return nodes_removed
 
 
 def trim_invalid_from_graph(graph, distance_mapping):
@@ -1209,6 +1294,10 @@ class Graph(object):
     def nodes(self):
         """Return all nodes in the graph."""
         return self._node_mapping.values()
+
+    def identifiers(self):
+        """Return all node identifiers in the graph."""
+        return self._node_mapping.keys()
 
     def exists(self, identifier):
         """Indicate whether the node *identifier* is in the graph."""
