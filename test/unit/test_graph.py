@@ -326,51 +326,6 @@ def test_generate_variant_combinations(
         assert combination[1] == _expected
 
 
-def test_generate_variant_combinations_with_error(mocker, mocked_graph):
-    """Return trimming combinations from variants when error is found."""
-    variant_groups = [
-        ["foo[V3]", "foo[V2]", "foo[V1]"],
-        ["bar[V4]", "bar[V3]", "bar[V2]", "bar[V1]"],
-        ["bim[V2]", "bim[V1]"]
-    ]
-
-    # Suppose that variants are always between square brackets in identifier.
-    mocked_graph.node = lambda _id: mocker.Mock(
-        identifier=_id, variant_name=re.search("(?<=\[).+(?=\])", _id).group(0)
-    )
-
-    mocked_graph.error_identifiers.return_value = ["foo[V3]"]
-
-    results = wiz.graph.generate_variant_combinations(
-        mocked_graph, variant_groups
-    )
-    assert isinstance(results, types.GeneratorType) is True
-
-    expected = [
-        ("foo[V2]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V1]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V2]"),
-        ("foo[V3]", "foo[V2]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V2]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V1]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V2]")
-    ]
-
-    for combination, _expected in itertools.izip_longest(results, expected):
-        assert combination[0] == mocked_graph
-        assert combination[1] == _expected
-
-
 def test_trim_unreachable_from_graph(
     mocker, mocked_graph, mocked_graph_remove_node
 ):

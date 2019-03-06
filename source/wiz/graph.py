@@ -110,6 +110,10 @@ class Resolver(object):
         # Time limit for the resolution process.
         self._timeout = timeout
 
+        # Record node identifiers with error to prevent it being used in more
+        # than one combination.
+        self._node_errors = set()
+
         # Record mapping of all conflicting identifiers found during the
         # graph resolution failed attempts.
         self._conflicts_mapping = {}
@@ -182,6 +186,9 @@ class Resolver(object):
                     wiz.symbol.GRAPH_RESOLUTION_FAILURE_ACTION,
                     graph=graph, error=error
                 )
+
+                # Extract existing node errors in the graph.
+                self._node_errors.update(graph.error_identifiers())
 
                 # Extract conflicting identifiers and requirements if possible.
                 self._update_conflicts(error)
@@ -365,10 +372,14 @@ class Resolver(object):
         # Raise an error if the graph combination cannot be resolved.
         all_identifiers = graph.identifiers()
 
+        if len(self._node_errors.intersection(all_identifiers)) > 0:
+            raise wiz.exception.GraphResolutionError(
+                "There are known errors in this graph combination."
+            )
+
         for identifier in all_identifiers:
             conflicts = set(self._conflicts_mapping.get(identifier, []))
 
-            # if one conflicting node is in the graph, it cannot be solved.
             if len(conflicts.difference(all_identifiers)) > 0:
                 raise wiz.exception.GraphResolutionError(
                     "There are known conflicts in this graph combination."
@@ -759,23 +770,13 @@ def generate_variant_combinations(graph, variant_groups):
         )
         _groups.append(_tuple_group)
 
-    # Record variant node with error to prevent it being used more than once.
-    blacklist = set()
-
     for combination in itertools.product(*_groups):
         _identifiers = [_id for _group in combination for _id in _group]
-
-        # Skip combination which contains blacklisted node.
-        if blacklist.intersection(_identifiers):
-            continue
 
         yield (
             graph,
             tuple([_id for _id in identifiers if _id not in _identifiers])
         )
-
-        # Update blacklist with error encountered in current combination.
-        blacklist = set(_identifiers).intersection(graph.error_identifiers())
 
 
 def trim_unreachable_from_graph(graph, distance_mapping):
