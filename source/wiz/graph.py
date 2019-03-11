@@ -545,9 +545,7 @@ class Resolver(object):
             raise wiz.exception.GraphResolutionError(
                 "The resolution graph could not be resolved due to the "
                 "following requirement conflicts:\n{}".format(
-                    "\n".join([
-                        _display_conflicts(mapping) for mapping in conflicts
-                    ])
+                    "\n".join([_display_conflicts(m) for m in conflicts])
                 ),
                 conflicts=conflicts
             )
@@ -970,12 +968,14 @@ def extract_conflicting_requirements(graph, nodes):
             {
                 "requirement": Requirement("foo >=0.1.0, <1"),
                 "identifiers": {"bar", "bim"},
-                "conflicts": {"baz"}
+                "conflicts": {"baz"},
+                "graph": Graph()
             },
             {
                 "requirement": Requirement("foo >2"),
                 "identifiers": {"baz"},
-                "conflicts": {"bar", "bim"}
+                "conflicts": {"bar", "bim"},
+                "graph": Graph()
             }
         ]
 
@@ -1036,6 +1036,7 @@ def extract_conflicting_requirements(graph, nodes):
         mapping2.items(), key=lambda v: (len(v[1]), str(v[0])), reverse=True
     ):
         conflicts.append({
+            "graph": graph,
             "requirement": requirement,
             "identifiers": mapping1[requirement],
             "conflicts": set(itertools.chain(
