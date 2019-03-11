@@ -118,10 +118,10 @@ class Resolver(object):
         # graph resolution failed attempts.
         self._conflicts_mapping = {}
 
-        # Record latest requirement conflicts to hint possible version to change
-        # in order to find a solution when all variant combination are
-        # exhausted.
-        self._requirement_conflicts = []
+        # Record all requirement conflict tuples which contains the
+        # corresponding graph and a set of conflicting identifiers. A Deque is
+        # used as it is a FIFO queue.
+        self._conflicts = collections.deque()
 
     @property
     def definition_mapping(self):
@@ -207,11 +207,12 @@ class Resolver(object):
         if not isinstance(exception, wiz.exception.GraphResolutionError):
             return
 
-        self._requirement_conflicts = exception.conflicts
-
         for mapping in exception.conflicts:
+            graph = mapping["graph"]
             identifiers = mapping["identifiers"]
             conflicts = mapping["conflicts"]
+
+            self._conflicts.append((graph, identifiers))
 
             for identifier in identifiers:
                 self._conflicts_mapping.setdefault(identifier, set())
