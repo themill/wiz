@@ -4,7 +4,7 @@ import copy
 import itertools
 import uuid
 import signal
-from collections import Counter
+import collections
 from heapq import heapify, heappush, heappop
 try:
     import queue as _queue
@@ -370,19 +370,28 @@ class Resolver(object):
             self._prune_resolution_graph(graph)
 
         # Raise an error if the graph combination cannot be resolved.
-        all_identifiers = graph.identifiers()
+        all_identifiers = [graph.ROOT] + graph.identifiers()
+        remaining_errors = self._node_errors.intersection(all_identifiers)
 
         if len(self._node_errors.intersection(all_identifiers)) > 0:
             raise wiz.exception.GraphResolutionError(
-                "There are known errors in this graph combination."
+                "The resolution graph could not be resolved due to the "
+                "remaining node(s) with error:\n{}".format(
+                    "\n".join(["  * " + i for i in remaining_errors])
+                )
             )
 
         for identifier in all_identifiers:
             conflicts = set(self._conflicts_mapping.get(identifier, []))
+            remaining_conflicts = conflicts.intersection(all_identifiers)
 
-            if len(conflicts.difference(all_identifiers)) > 0:
+            if len(remaining_conflicts) > 0:
                 raise wiz.exception.GraphResolutionError(
-                    "There are known conflicts in this graph combination."
+                    "The resolution graph could not be resolved due to the "
+                    "remaining node(s) conflicting with '{}':\n{}".format(
+                        identifier,
+                        "\n".join(["  * " + i for i in remaining_conflicts])
+                    )
                 )
 
         return graph
@@ -1237,7 +1246,7 @@ class Graph(object):
         # :class:`collections.Counter` instance which record of occurrences of
         # namespaces from package included in the graph.
         # e.g. Counter({u'maya': 2, u'houdini': 1})
-        self._namespace_count = Counter()
+        self._namespace_count = collections.Counter()
 
         # List of exception raised per node identifier.
         self._error_mapping = {}
@@ -1368,7 +1377,7 @@ class Graph(object):
             if len(variant_names) <= 1:
                 continue
 
-            count = Counter([node.identifier for node in nodes])
+            count = collections.Counter([node.identifier for node in nodes])
             nodes = sorted(
                 set(nodes),
                 key=lambda n: (
