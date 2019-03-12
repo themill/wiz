@@ -148,7 +148,17 @@ class Resolver(object):
         :class:`packaging.requirements.Requirement` instances.
 
         """
-        self._initiate_iterator(requirements)
+        graph = Graph(self)
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_CREATION_ACTION,
+            graph=graph, requirements=requirements
+        )
+
+        # Update the graph.
+        graph.update_from_requirements(requirements, graph.ROOT)
+
+        self._initiate_iterator(graph)
 
         # Store latest exception to raise if necessary.
         latest_error = None
@@ -218,22 +228,13 @@ class Resolver(object):
                 self._conflicts_mapping.setdefault(identifier, set())
                 self._conflicts_mapping[identifier].update(conflicts)
 
-    def _initiate_iterator(self, requirements):
-        """Initialize iterator with a graph created from *requirement*.
+    def _initiate_iterator(self, graph):
+        """Initialize iterator with a *graph*.
 
-        *requirements* should be a list of
-        class:`packaging.requirements.Requirement` instances.
+        *graph* must be an instance of :class:`Graph`.
 
         """
-        graph = Graph(self)
-
-        wiz.history.record_action(
-            wiz.symbol.GRAPH_CREATION_ACTION,
-            graph=graph, requirements=requirements
-        )
-
-        # Update the graph.
-        graph.update_from_requirements(requirements, graph.ROOT)
+        self._logger.debug("Initiate iterator from graph")
 
         # Reset the iterator.
         self._iterator = iter([])
@@ -330,9 +331,18 @@ class Resolver(object):
                 return copy.deepcopy(graph), nodes_to_remove
 
             except StopIteration:
+                self._logger.debug(
+                    "No more combination in"
+                )
+
                 # If iterator is empty, check the requirement conflicts to find
                 # out if a new graph could be computed with different versions.
                 if not self._reinitiate_from_conflicts():
+                    self._logger.debug(
+                        "Impossible to reinitiate the iterator from previous "
+                        "requirement conflicts"
+                    )
+
                     return None, []
 
     def _reinitiate_from_conflicts(self):
@@ -366,11 +376,7 @@ class Resolver(object):
                 continue
 
             # Reset the iterator.
-            self._iterator = iter([])
-
-            # Initialize combinations or simply add graph to iterator.
-            if not self._extract_combinations(_graph):
-                self._iterator = iter([(_graph, [])])
+            self._initiate_iterator(_graph)
 
             return True
 
@@ -385,12 +391,23 @@ class Resolver(object):
         *identifiers* should be valid node identifiers.
 
         """
+        # Record replacement mapping for debugging purposes.
+        replacement = {}
+
         for identifier in identifiers:
+            self._logger.debug(
+                "Attempt to fetch another version for conflicting package "
+                "'{}'".format(identifier)
+            )
             node = graph.node(identifier)
 
             # If the node does not have a version, it is impossible to replace
             # it with another version.
             if node.package.version == wiz.symbol.UNKNOWN_VALUE:
+                self._logger.debug(
+                    "Impossible to fetch another version for conflicting "
+                    "package '{}'".format(identifier)
+                )
                 return False
 
             # Extract combined requirement to node and modify it to exclude
@@ -406,6 +423,11 @@ class Resolver(object):
                     requirement, self._definition_mapping
                 )
             except wiz.exception.RequestNotFound:
+                self._logger.debug(
+                    "Impossible to fetch another version for conflicting "
+                    "package '{}' with following "
+                    "request: '{}'".format(identifier, requirement)
+                )
                 return False
 
             # Remove conflicting node from graph.
@@ -417,6 +439,19 @@ class Resolver(object):
 
             # Relink nodes.
             relink_parents(graph, node)
+
+            # Record resulting replacement
+            replacement[identifier] = [p.qualified_identifier for p in packages]
+
+        self._logger.info(
+            "Create new graph with new nodes:\n"
+            "{}".format(
+                "\n".join([
+                    "  * {} -> {}".format(identifier, identifiers)
+                    for identifier, identifiers in replacement.items()
+                ])
+            )
+        )
 
         return True
 
