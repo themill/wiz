@@ -148,7 +148,7 @@ class Resolver(object):
         :class:`packaging.requirements.Requirement` instances.
 
         """
-        self._initiate(requirements)
+        self._initiate_iterator(requirements)
 
         # Store latest exception to raise if necessary.
         latest_error = None
@@ -218,7 +218,7 @@ class Resolver(object):
                 self._conflicts_mapping.setdefault(identifier, set())
                 self._conflicts_mapping[identifier].update(conflicts)
 
-    def _initiate(self, requirements):
+    def _initiate_iterator(self, requirements):
         """Initialize iterator with a graph created from *requirement*.
 
         *requirements* should be a list of
@@ -319,19 +319,108 @@ class Resolver(object):
         None and the node removal list will be empty.
 
         """
-        try:
-            graph, nodes_to_remove = next(self._iterator)
+        while True:
+            try:
+                graph, nodes_to_remove = next(self._iterator)
+
+                # To prevent mutating any copy of the instance.
+                _graph = copy.deepcopy(graph)
+
+                # Reset the distance mapping for new graph.
+                self._distance_mapping = None
+
+                return _graph, nodes_to_remove
+
+            except StopIteration:
+                # If iterator is empty, check the requirement conflicts to find
+                # out if a new graph could be computed with different versions.
+                if not self._reinitiate_from_conflicts():
+                    return None, []
+
+    def _reinitiate_from_conflicts(self):
+        """Re-initialize iterator from recorded requirement conflicts.
+
+        After exhausting all graph combinations, the requirement conflicts
+        previously recorded are using to create another graph with different
+        node versions.
+
+        For instance, if a conflict has been recording for the following nodes::
+
+            * foo==3.2.1
+            * bar==1.1.1
+
+        A new graph will be created with other versions for these two node if
+        possible.
+
+        """
+        while True:
+            try:
+                graph, identifiers = self._conflicts.popleft()
+            except IndexError:
+                return False
 
             # To prevent mutating any copy of the instance.
             _graph = copy.deepcopy(graph)
 
-            # Reset the distance mapping for new graph.
-            self._distance_mapping = None
+            # Iterator can be initialized only if all identifiers can be
+            # replaced with lower version.
+            if not self._replace_versions_in_graph(_graph, identifiers):
+                continue
 
-            return _graph, nodes_to_remove
+            # Reset the iterator.
+            self._iterator = iter([])
 
-        except StopIteration:
-            return None, []
+            # Initialize combinations or simply add graph to iterator.
+            if not self._extract_combinations(_graph):
+                self._iterator = iter([(_graph, [])])
+
+            return True
+
+    def _replace_versions_in_graph(self, graph, identifiers):
+        """Replace all node *identifiers* in *graph* with different versions.
+
+        Return True if all node *identifiers* were replaced with different
+        versions. Return False if at least one node cannot be replaced.
+
+        *graph* must be an instance of :class:`Graph`.
+
+        *identifiers* should be valid node identifiers.
+
+        """
+        for identifier in identifiers:
+            node = graph.node(identifier)
+
+            # If the node does not have a version, it is impossible to replace
+            # it with another version.
+            if node.package.version == wiz.symbol.UNKNOWN_VALUE:
+                return False
+
+            # Extract combined requirement to node and modify it to exclude
+            # current package version.
+            requirement = combined_requirements(graph, [node])
+            exclusion_requirement = wiz.utility.get_requirement(
+                "{} != {}".format(requirement.name, node.package.version)
+            )
+            requirement.specifier &= exclusion_requirement.specifier
+
+            try:
+                packages = wiz.package.extract(
+                    requirement, self._definition_mapping
+                )
+            except wiz.exception.RequestNotFound:
+                return False
+
+            # Remove conflicting node from graph.
+            graph.remove_node(identifier)
+
+            # Add new node version to graph.
+            for package in packages:
+                graph.update_from_package(package, requirement)
+
+            # Relink nodes.
+            relink_parents(graph, node)
+
+        return True
 
     def _compute_graph_combination(self, graph, nodes_to_remove):
         """Compute and return processed *graph* from combination.
