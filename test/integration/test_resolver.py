@@ -404,7 +404,7 @@ def test_scenario_2(
         assert spied_trim_invalid_from_graph.call_count == 0
         assert spied_updated_by_distance.call_count == 1
         assert spied_extract_conflicting_nodes.call_count == 1
-        assert spied_combined_requirements.call_count == 1
+        assert spied_combined_requirements.call_count == 3
         assert spied_extract_conflicting_requirements.call_count == 1
         assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 0
