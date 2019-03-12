@@ -319,17 +319,15 @@ class Resolver(object):
         None and the node removal list will be empty.
 
         """
+        # Reset the distance mapping for new graph.
+        self._distance_mapping = None
+
         while True:
             try:
                 graph, nodes_to_remove = next(self._iterator)
 
                 # To prevent mutating any copy of the instance.
-                _graph = copy.deepcopy(graph)
-
-                # Reset the distance mapping for new graph.
-                self._distance_mapping = None
-
-                return _graph, nodes_to_remove
+                return copy.deepcopy(graph), nodes_to_remove
 
             except StopIteration:
                 # If iterator is empty, check the requirement conflicts to find
