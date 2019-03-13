@@ -3623,3 +3623,167 @@ def test_scenario_32(
         assert spied_extract_conflicting_requirements.call_count == 1
         assert spied_relink_parents.call_count == 2
         assert spied_extract_ordered_packages.call_count == 0
+
+
+def test_scenario_33(
+    spied_fetch_next_combination,
+    spied_compute_combination,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_conflicting_requirements,
+    spied_relink_parents,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    Like scenario 2, the graph resolution will fail with the all node versions
+    fetched in the graph. However, it can drop down the version of package 'C'
+    to a version which does not conflict.
+
+    Root
+     |
+     |--(A): A==0.2.0
+     |   |
+     |   `--(C >=0.3.0, <1): C==0.3.2
+     |       |
+     |       `--(D==0.1.0): D==0.1.0
+     |
+     `--(G): G==2.0.2
+         |
+         `--(B<0.2.0): B==0.1.0
+             |
+             |--(D>0.1.0): D==0.1.4
+             |   |
+             |   `--(E>=2): E==2.3.0
+             |       |
+             |       `--(F>=0.2): F==1.0.0
+             |
+             `--(F>=1): F==1.0.0
+
+    Expected: F==1.0.0, E==2.3.0, D==0.1.4, B==0.1.0, G==2.0.2, C==0.3.0
+    A==0.2.0
+
+    The position of 'C==0.3.0' / 'G==2.0.2' and 'F==1.0.0' / 'E==2.3.0' can
+    vary as they have similar priority numbers.
+
+    """
+    definition_mapping = {
+        "A": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+                "requirements": ["C>=0.3.0, <1"]
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0"
+            })
+        },
+        "B": {
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.2.0"
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "requirements": ["D>0.1.0", "F>=1"]
+            })
+        },
+        "C": {
+            "0.3.2": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.3.2",
+                "requirements": ["D==0.1.0"]
+            }),
+            "0.3.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.3.0"
+            })
+        },
+        "D": {
+            "0.1.4": wiz.definition.Definition({
+                "identifier": "D",
+                "version": "0.1.4",
+                "requirements": ["E>=2"]
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "D",
+                "version": "0.1.0"
+            })
+        },
+        "E": {
+            "2.3.0": wiz.definition.Definition({
+                "identifier": "E",
+                "version": "2.3.0",
+                "requirements": ["F>=0.2"]
+            })
+        },
+        "F": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "F",
+                "version": "1.0.0"
+            }),
+            "0.9.0": wiz.definition.Definition({
+                "identifier": "F",
+                "version": "0.9.0"
+            })
+        },
+        "G": {
+            "2.0.2": wiz.definition.Definition({
+                "identifier": "G",
+                "version": "2.0.2",
+                "requirements": ["B<0.2.0"]
+            }),
+            "2.0.1": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.1"
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([Requirement("A"), Requirement("G")])
+
+    assert len(packages) == 7
+
+    # Order can vary cause both have priority of 5
+    assert packages[0].identifier in ["F==1.0.0", "E==2.3.0"]
+    assert packages[1].identifier in ["F==1.0.0", "E==2.3.0"]
+    assert packages[0] != packages[1]
+
+    assert packages[2].identifier == "D==0.1.4"
+
+    # Order can vary cause both have priority of 2
+    assert packages[3].identifier in ["G==2.0.2", "B==0.1.0"]
+    assert packages[4].identifier in ["G==2.0.2", "B==0.1.0"]
+    assert packages[3] != packages[4]
+
+    assert packages[5].identifier == "C==0.3.0"
+    assert packages[6].identifier == "A==0.2.0"
+
+    # Check spied functions / methods
+    if _CHECK_SPIED_CALL:
+        assert spied_fetch_next_combination.call_count == 2
+        assert spied_compute_combination.call_count == 2
+        assert spied_fetch_distance_mapping.call_count == 4
+        assert spied_extract_combinations.call_count == 2
+        assert spied_resolve_conflicts.call_count == 2
+        assert spied_compute_distance_mapping.call_count == 2
+        assert spied_generate_variant_combinations.call_count == 0
+        assert spied_trim_unreachable_from_graph.call_count == 0
+        assert spied_trim_invalid_from_graph.call_count == 0
+        assert spied_updated_by_distance.call_count == 2
+        assert spied_extract_conflicting_nodes.call_count == 2
+        assert spied_combined_requirements.call_count == 4
+        assert spied_extract_conflicting_requirements.call_count == 1
+        assert spied_relink_parents.call_count == 1
+        assert spied_extract_ordered_packages.call_count == 1
