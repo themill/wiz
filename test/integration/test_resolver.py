@@ -18,9 +18,9 @@ def spied_fetch_next_combination(mocker):
 
 
 @pytest.fixture()
-def spied_compute_graph_combination(mocker):
-    """Return spy mocker on 'wiz.graph.Resolver._compute_graph_combination'."""
-    return mocker.spy(wiz.graph.Resolver, "_compute_graph_combination")
+def spied_compute_combination(mocker):
+    """Return spy mocker on 'wiz.graph.Resolver._compute_combination'."""
+    return mocker.spy(wiz.graph.Resolver, "_compute_combination")
 
 
 @pytest.fixture()
@@ -106,7 +106,7 @@ def spied_extract_ordered_packages(mocker):
 
 def test_scenario_1(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -245,7 +245,7 @@ def test_scenario_1(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 6
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -263,7 +263,7 @@ def test_scenario_1(
 
 def test_scenario_2(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -385,7 +385,7 @@ def test_scenario_2(
         resolver.compute_packages([Requirement("A"), Requirement("G")])
 
     assert (
-        "The resolution graph could not be resolved due to the "
+        "The dependency graph could not be resolved due to the "
         "following requirement conflicts:\n"
         "  * D >0.1.0 \t[B==0.1.0]\n"
         "  * D ==0.1.0 \t[C==0.3.2]"
@@ -394,7 +394,7 @@ def test_scenario_2(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 2
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -412,7 +412,7 @@ def test_scenario_2(
 
 def test_scenario_3(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -480,7 +480,7 @@ def test_scenario_3(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 10
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -498,7 +498,7 @@ def test_scenario_3(
 
 def test_scenario_4(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -596,7 +596,7 @@ def test_scenario_4(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 5
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -614,7 +614,7 @@ def test_scenario_4(
 
 def test_scenario_5(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -698,7 +698,7 @@ def test_scenario_5(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -716,7 +716,7 @@ def test_scenario_5(
 
 def test_scenario_6(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -817,7 +817,7 @@ def test_scenario_6(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 3
-        assert spied_compute_graph_combination.call_count == 3
+        assert spied_compute_combination.call_count == 3
         assert spied_fetch_distance_mapping.call_count == 13
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 3
@@ -835,7 +835,7 @@ def test_scenario_6(
 
 def test_scenario_7(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -918,7 +918,7 @@ def test_scenario_7(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 12
         assert spied_extract_combinations.call_count == 2
         assert spied_resolve_conflicts.call_count == 1
@@ -936,7 +936,7 @@ def test_scenario_7(
 
 def test_scenario_8(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -1023,7 +1023,7 @@ def test_scenario_8(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 9
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -1041,7 +1041,7 @@ def test_scenario_8(
 
 def test_scenario_9(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -1121,7 +1121,7 @@ def test_scenario_9(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 8
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -1139,7 +1139,7 @@ def test_scenario_9(
 
 def test_scenario_10(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -1226,7 +1226,7 @@ def test_scenario_10(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 2
-        assert spied_compute_graph_combination.call_count == 2
+        assert spied_compute_combination.call_count == 2
         assert spied_fetch_distance_mapping.call_count == 10
         assert spied_extract_combinations.call_count == 2
         assert spied_resolve_conflicts.call_count == 2
@@ -1244,7 +1244,7 @@ def test_scenario_10(
 
 def test_scenario_11(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -1343,7 +1343,7 @@ def test_scenario_11(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 5
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -1361,7 +1361,7 @@ def test_scenario_11(
 
 def test_scenario_12(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -1487,7 +1487,7 @@ def test_scenario_12(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 9
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -1505,7 +1505,7 @@ def test_scenario_12(
 
 def test_scenario_13(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -1621,7 +1621,7 @@ def test_scenario_13(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 3
-        assert spied_compute_graph_combination.call_count == 3
+        assert spied_compute_combination.call_count == 3
         assert spied_fetch_distance_mapping.call_count == 10
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -1639,7 +1639,7 @@ def test_scenario_13(
 
 def test_scenario_14(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -1747,7 +1747,7 @@ def test_scenario_14(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 4
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -1765,7 +1765,7 @@ def test_scenario_14(
 
 def test_scenario_15(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -1876,7 +1876,7 @@ def test_scenario_15(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 9
-        assert spied_compute_graph_combination.call_count == 9
+        assert spied_compute_combination.call_count == 9
         assert spied_fetch_distance_mapping.call_count == 21
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 2
@@ -1894,7 +1894,7 @@ def test_scenario_15(
 
 def test_scenario_16(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -2018,7 +2018,7 @@ def test_scenario_16(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 9
-        assert spied_compute_graph_combination.call_count == 9
+        assert spied_compute_combination.call_count == 9
         assert spied_fetch_distance_mapping.call_count == 22
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 2
@@ -2036,7 +2036,7 @@ def test_scenario_16(
 
 def test_scenario_17(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -2105,7 +2105,7 @@ def test_scenario_17(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -2123,7 +2123,7 @@ def test_scenario_17(
 
 def test_scenario_18(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -2195,7 +2195,7 @@ def test_scenario_18(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -2213,7 +2213,7 @@ def test_scenario_18(
 
 def test_scenario_19(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -2316,7 +2316,7 @@ def test_scenario_19(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -2334,7 +2334,7 @@ def test_scenario_19(
 
 def test_scenario_20(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -2435,7 +2435,7 @@ def test_scenario_20(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -2453,7 +2453,7 @@ def test_scenario_20(
 
 def test_scenario_21(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -2586,7 +2586,7 @@ def test_scenario_21(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 8
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -2604,7 +2604,7 @@ def test_scenario_21(
 
 def test_scenario_22(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -2650,18 +2650,20 @@ def test_scenario_22(
 
     resolver = wiz.graph.Resolver(definition_mapping)
 
-    with pytest.raises(wiz.exception.RequestNotFound) as error:
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
         resolver.compute_packages([Requirement("A")])
 
     assert (
-        "Cannot guess default namespace for 'A' "
-        "[available: Namespace1, Namespace2]"
+        "The dependency graph could not be resolved due to the following "
+        "error(s):\n"
+        "  * root: Cannot guess default namespace for 'A' [available: "
+        "Namespace1, Namespace2]."
     ) in str(error.value)
 
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 2
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -2679,7 +2681,7 @@ def test_scenario_22(
 
 def test_scenario_23(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -2776,7 +2778,7 @@ def test_scenario_23(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -2794,7 +2796,7 @@ def test_scenario_23(
 
 def test_scenario_24(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -2850,7 +2852,7 @@ def test_scenario_24(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -2868,7 +2870,7 @@ def test_scenario_24(
 
 def test_scenario_25(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -2936,7 +2938,7 @@ def test_scenario_25(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -2954,7 +2956,7 @@ def test_scenario_25(
 
 def test_scenario_26(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -3021,7 +3023,7 @@ def test_scenario_26(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -3039,7 +3041,7 @@ def test_scenario_26(
 
 def test_scenario_27(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -3104,7 +3106,7 @@ def test_scenario_27(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 6
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -3122,7 +3124,7 @@ def test_scenario_27(
 
 def test_scenario_28(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -3180,7 +3182,7 @@ def test_scenario_28(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 1
-        assert spied_compute_graph_combination.call_count == 1
+        assert spied_compute_combination.call_count == 1
         assert spied_fetch_distance_mapping.call_count == 1
         assert spied_extract_combinations.call_count == 1
         assert spied_resolve_conflicts.call_count == 1
@@ -3198,7 +3200,7 @@ def test_scenario_28(
 
 def test_scenario_29(
     spied_fetch_next_combination,
-    spied_compute_graph_combination,
+    spied_compute_combination,
     spied_fetch_distance_mapping,
     spied_extract_combinations,
     spied_resolve_conflicts,
@@ -3311,7 +3313,7 @@ def test_scenario_29(
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
         assert spied_fetch_next_combination.call_count == 3
-        assert spied_compute_graph_combination.call_count == 3
+        assert spied_compute_combination.call_count == 3
         assert spied_fetch_distance_mapping.call_count == 10
         assert spied_extract_combinations.call_count == 2
         assert spied_resolve_conflicts.call_count == 2
@@ -3325,3 +3327,299 @@ def test_scenario_29(
         assert spied_extract_conflicting_requirements.call_count == 0
         assert spied_relink_parents.call_count == 7
         assert spied_extract_ordered_packages.call_count == 1
+
+
+def test_scenario_30(
+    spied_fetch_next_combination,
+    spied_compute_combination,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_conflicting_requirements,
+    spied_relink_parents,
+    spied_extract_ordered_packages
+):
+    """Fail to compute packages for the following graph.
+
+    If a definition contains an error, it will lead to the failure of the graph
+    when no other possible combinations are available.
+
+    Root
+     |
+     |--(A): A==0.1.0
+     |   |
+     |   `--(incorrect): ERROR!
+     |
+     `--(B): B==0.1.0
+
+    Expected: The requirement 'incorrect' could not be resolved.
+
+    """
+    definition_mapping = {
+        "A": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0",
+                "requirements": ["incorrect"]
+            }),
+        },
+        "B": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+            })
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        resolver.compute_packages([Requirement("A"), Requirement("B")])
+
+    assert (
+        "The dependency graph could not be resolved due to the following "
+        "error(s):\n"
+        "  * A==0.1.0: The requirement 'incorrect' could not be resolved."
+    ) in str(error.value)
+
+    # Check spied functions / methods
+    if _CHECK_SPIED_CALL:
+        assert spied_fetch_next_combination.call_count == 2
+        assert spied_compute_combination.call_count == 1
+        assert spied_fetch_distance_mapping.call_count == 1
+        assert spied_extract_combinations.call_count == 1
+        assert spied_resolve_conflicts.call_count == 1
+        assert spied_compute_distance_mapping.call_count == 1
+        assert spied_generate_variant_combinations.call_count == 0
+        assert spied_trim_unreachable_from_graph.call_count == 0
+        assert spied_trim_invalid_from_graph.call_count == 0
+        assert spied_updated_by_distance.call_count == 1
+        assert spied_extract_conflicting_nodes.call_count == 0
+        assert spied_combined_requirements.call_count == 0
+        assert spied_extract_conflicting_requirements.call_count == 0
+        assert spied_relink_parents.call_count == 0
+        assert spied_extract_ordered_packages.call_count == 0
+
+
+def test_scenario_31(
+    spied_fetch_next_combination,
+    spied_compute_combination,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_conflicting_requirements,
+    spied_relink_parents,
+    spied_extract_ordered_packages
+):
+    """Fail to compute packages for the following graph.
+
+    Like scenario 15, when a definition variant contains an error, the next
+    combination will try to detect and raise when this erroneous node is
+    encountered again. However, when there are no combination that can be
+    resolved, it will still fail.
+
+    Root
+     |
+     |--(A): A[V1]==0.1.0
+     |   |
+     |   `--(C): C==0.1.0
+     |       |
+     |       `--(incorrect): ERROR!
+     |
+     |--(A): A[V2]==0.1.0
+     |   |
+     |   `--(C): C==0.1.0
+     |       |
+     |       `--(incorrect): ERROR!
+     |
+     `--(B): B==0.1.0
+
+    Expected: The requirement 'incorrect' could not be resolved.
+
+    """
+    definition_mapping = {
+        "A": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                        "requirements": ["C"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["C"]
+
+                    },
+                ]
+            }),
+        },
+        "B": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+            })
+        },
+        "C": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.1.0",
+                "requirements": ["incorrect"]
+            })
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        resolver.compute_packages([Requirement("A"), Requirement("B")])
+
+    assert (
+        "The dependency graph could not be resolved due to the following "
+        "error(s):\n"
+        "  * C==0.1.0: The requirement 'incorrect' could not be resolved."
+    ) in str(error.value)
+
+    # Check spied functions / methods
+    if _CHECK_SPIED_CALL:
+        assert spied_fetch_next_combination.call_count == 3
+        assert spied_compute_combination.call_count == 2
+        assert spied_fetch_distance_mapping.call_count == 6
+        assert spied_extract_combinations.call_count == 1
+        assert spied_resolve_conflicts.call_count == 1
+        assert spied_compute_distance_mapping.call_count == 3
+        assert spied_generate_variant_combinations.call_count == 1
+        assert spied_trim_unreachable_from_graph.call_count == 2
+        assert spied_trim_invalid_from_graph.call_count == 0
+        assert spied_updated_by_distance.call_count == 1
+        assert spied_extract_conflicting_nodes.call_count == 0
+        assert spied_combined_requirements.call_count == 0
+        assert spied_extract_conflicting_requirements.call_count == 0
+        assert spied_relink_parents.call_count == 2
+        assert spied_extract_ordered_packages.call_count == 0
+
+
+def test_scenario_32(
+    spied_fetch_next_combination,
+    spied_compute_combination,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_conflicting_requirements,
+    spied_relink_parents,
+    spied_extract_ordered_packages
+):
+    """Fail to compute packages for the following graph.
+
+    When a conflict is detected, it is being stored to prevent resolving a
+    combination graph which involve the same conflict. However, when there are
+    no combination that can be resolved, it will still fail.
+
+    Root
+     |
+     |--(A): A[V1]==0.1.0
+     |   |
+     |   `--(C): C==0.1.0
+     |       |
+     |       `--(B<1): B==0.1.0
+     |
+     |--(A): A[V2]==0.1.0
+     |   |
+     |   `--(C): C==0.1.0
+     |       |
+     |       `--(B<1): B==0.1.0
+     |
+     `--(B>1): B==1.1.0
+
+    Expected: Unable to compute due to requirement compatibility between
+    'B<1' and 'B>1'.
+
+    """
+    definition_mapping = {
+        "A": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                        "requirements": ["C"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["C"]
+
+                    },
+                ]
+            }),
+        },
+        "B": {
+            "1.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.1.0",
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+            })
+        },
+        "C": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.1.0",
+                "requirements": ["B<1"]
+            })
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        resolver.compute_packages([Requirement("A"), Requirement("B>1")])
+
+    assert (
+        "The dependency graph could not be resolved due to the "
+        "following requirement conflicts:\n"
+        "  * B >1 \t[root]\n"
+        "  * B <1 \t[C==0.1.0]"
+    ) in str(error.value)
+
+    # Check spied functions / methods
+    if _CHECK_SPIED_CALL:
+        assert spied_fetch_next_combination.call_count == 3
+        assert spied_compute_combination.call_count == 2
+        assert spied_fetch_distance_mapping.call_count == 6
+        assert spied_extract_combinations.call_count == 1
+        assert spied_resolve_conflicts.call_count == 1
+        assert spied_compute_distance_mapping.call_count == 3
+        assert spied_generate_variant_combinations.call_count == 1
+        assert spied_trim_unreachable_from_graph.call_count == 2
+        assert spied_trim_invalid_from_graph.call_count == 0
+        assert spied_updated_by_distance.call_count == 0
+        assert spied_extract_conflicting_nodes.call_count == 1
+        assert spied_combined_requirements.call_count == 2
+        assert spied_extract_conflicting_requirements.call_count == 1
+        assert spied_relink_parents.call_count == 2
+        assert spied_extract_ordered_packages.call_count == 0

@@ -177,7 +177,7 @@ class Resolver(object):
 
             try:
                 # Compute new graph.
-                graph = self._compute_graph_combination(graph, nodes_to_remove)
+                graph = self._compute_combination(graph, nodes_to_remove)
 
                 # Raise error if a conflict in graph cannot be solved.
                 self._resolve_conflicts(graph)
@@ -225,8 +225,9 @@ class Resolver(object):
             self._conflicts.append((graph, identifiers))
 
             for identifier in identifiers:
-                self._conflicts_mapping.setdefault(identifier, set())
-                self._conflicts_mapping[identifier].update(conflicts)
+                for conflict in conflicts:
+                    self._conflicts_mapping.setdefault(identifier, {})
+                    self._conflicts_mapping[identifier][conflict] = mapping
 
     def _initiate_iterator(self, graph):
         """Initialize iterator with a *graph*.
@@ -401,9 +402,9 @@ class Resolver(object):
             )
             node = graph.node(identifier)
 
-            # If the node does not have a version, it is impossible to replace
-            # it with another version.
-            if node.package.version == wiz.symbol.UNKNOWN_VALUE:
+            # If the node cannot be fetched or does not have a version, it is
+            # impossible to replace it with another version.
+            if node is None or node.package.version == wiz.symbol.UNKNOWN_VALUE:
                 self._logger.debug(
                     "Impossible to fetch another version for conflicting "
                     "package '{}'".format(identifier)
@@ -455,7 +456,7 @@ class Resolver(object):
 
         return True
 
-    def _compute_graph_combination(self, graph, nodes_to_remove):
+    def _compute_combination(self, graph, nodes_to_remove):
         """Compute and return processed *graph* from combination.
 
         *graph* must be an instance of :class:`Graph`.
@@ -490,34 +491,84 @@ class Resolver(object):
 
         # Prune unreachable and invalid nodes if necessary.
         if len(removed_nodes) > 0:
-            self._prune_resolution_graph(graph)
+            self._prune_graph(graph)
 
-        # Raise an error if the graph combination cannot be resolved.
+        # Raise if combination contains known error or conflicts.
+        self._check_errors_in_combination(graph)
+        self._check_conflicts_in_combination(graph)
+
+        return graph
+
+    def _check_errors_in_combination(self, graph):
+        """Check whether known errors are found in *graph* combination.
+
+        If so, a :exc:`wiz.exception.GraphResolutionError` is raised and the
+        combination is skipped.
+
+        """
         all_identifiers = [graph.ROOT] + graph.identifiers()
+
         remaining_errors = self._node_errors.intersection(all_identifiers)
 
         if len(self._node_errors.intersection(all_identifiers)) > 0:
             raise wiz.exception.GraphResolutionError(
-                "The resolution graph could not be resolved due to the "
-                "remaining node(s) with error:\n{}".format(
-                    "\n".join(["  * " + i for i in remaining_errors])
+                "The dependency graph could not be resolved due to the "
+                "following error(s):\n"
+                "{}\n".format(
+                    "\n".join([
+                        "  * {}: {}".format(identifier, exception)
+                        for identifier in remaining_errors
+                        for exception in graph.errors(identifier)
+                    ])
                 )
             )
 
+    def _check_conflicts_in_combination(self, graph):
+        """Check whether known conflicts are found in *graph* combination.
+
+        If so, a :exc:`wiz.exception.GraphResolutionError` is raised and the
+        combination is skipped.
+
+        """
+        all_identifiers = [graph.ROOT] + graph.identifiers()
+
+        def _display_conflicts(_mapping):
+            """Display conflicting *mapping*."""
+            identifiers = list(_mapping.get("identifiers", []))[:3]
+            if len(_mapping["identifiers"]) > 3:
+                others = len(_mapping["identifiers"]) - 3
+                identifiers += ["+{} packages...".format(others)]
+
+            return "  * {requirement} \t[{identifiers}]".format(
+                requirement=_mapping.get("requirement"),
+                identifiers=", ".join(identifiers)
+            )
+
         for identifier in all_identifiers:
-            conflicts = set(self._conflicts_mapping.get(identifier, []))
+            mapping = self._conflicts_mapping.get(identifier, {})
+            conflicts = set(mapping.keys())
+
             remaining_conflicts = conflicts.intersection(all_identifiers)
 
             if len(remaining_conflicts) > 0:
-                raise wiz.exception.GraphResolutionError(
-                    "The resolution graph could not be resolved due to the "
-                    "remaining node(s) conflicting with '{}':\n{}".format(
-                        identifier,
-                        "\n".join(["  * " + i for i in remaining_conflicts])
+                conflict_mappings = (
+                    (
+                        self._conflicts_mapping[identifier][_id],
+                        self._conflicts_mapping.get(_id, {}).get(identifier, {})
                     )
+                    for _id in remaining_conflicts
                 )
 
-        return graph
+                raise wiz.exception.GraphResolutionError(
+                    "The dependency graph could not be resolved due to the "
+                    "following requirement conflicts:\n"
+                    "{}\n".format(
+                        "\n".join([
+                            _display_conflicts(m)
+                            for m in itertools.chain(*conflict_mappings)]
+                        )
+                    )
+                )
 
     def _resolve_conflicts(self, graph):
         """Attempt to resolve all conflicts in *graph*.
@@ -623,7 +674,7 @@ class Resolver(object):
                             "The current graph has conflicting variants."
                         )
 
-            self._prune_resolution_graph(graph)
+            self._prune_graph(graph)
 
     def _extract_packages(
         self, requirement, graph, nodes, conflicting_identifiers
@@ -675,7 +726,7 @@ class Resolver(object):
                 )
 
             raise wiz.exception.GraphResolutionError(
-                "The resolution graph could not be resolved due to the "
+                "The dependency graph could not be resolved due to the "
                 "following requirement conflicts:\n{}".format(
                     "\n".join([_display_conflicts(m) for m in conflicts])
                 ),
@@ -732,7 +783,7 @@ class Resolver(object):
 
         return False
 
-    def _prune_resolution_graph(self, graph):
+    def _prune_graph(self, graph):
         """Remove unreachable and invalid nodes from *graph*.
 
         The pruning process is done as follow:
@@ -1255,8 +1306,8 @@ def validate(graph, distance_mapping):
     of each node identifier from the :attr:`root <Graph.ROOT>` level of the
     graph with its corresponding parent node identifier.
 
-    An :exc:`wiz.exception.WizError` is raised if an error attached to the
-    :attr:`root <Graph.ROOT>` level or any reachable node is found.
+    A :exc:`wiz.exception.GraphResolutionError` is raised if an error attached
+    to the :attr:`root <Graph.ROOT>` level or any reachable node is found.
 
     """
     logger = wiz.logging.Logger(__name__ + ".validate")
@@ -1278,19 +1329,22 @@ def validate(graph, distance_mapping):
     identifiers = updated_by_distance(errors, distance_mapping)
     if len(identifiers) == 0:
         raise wiz.exception.GraphResolutionError(
-            "The resolution graph does not contain any valid packages."
+            "The dependency graph does not contain any valid packages."
         )
 
     # Pick up nearest node identifier which contains an error.
     identifier = identifiers[0]
 
-    exceptions = graph.errors(identifier)
-    logger.debug(
-        "{} exception(s) raised under {}".format(len(exceptions), identifier)
+    raise wiz.exception.GraphResolutionError(
+        "The dependency graph could not be resolved due to the following "
+        "error(s):\n"
+        "{}\n".format(
+            "\n".join([
+                "  * {}: {}".format(identifier, exception)
+                for exception in graph.errors(identifier)
+            ])
+        )
     )
-
-    # Raise first exception found when updating graph if necessary.
-    raise exceptions[0]
 
 
 def extract_ordered_packages(graph, distance_mapping):
@@ -2221,5 +2275,5 @@ class Timeout(object):
 
     def _raises_exception(self, signum, frame):
         raise wiz.exception.GraphResolutionError(
-            "Timeout reached. Graph resolution took too long."
+            "Timeout reached. Graph dependency resolution took too long."
         )

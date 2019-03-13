@@ -873,14 +873,19 @@ def test_validate_error(mocked_graph, mocked_updated_by_distance):
     mocked_graph.errors = lambda _id: error_mapping[_id]
     mocked_updated_by_distance.return_value = ["A", "B"]
 
-    with pytest.raises(Exception) as error:
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
         wiz.graph.validate(mocked_graph, "__DISTANCE_MAPPING__")
 
     mocked_updated_by_distance.assert_called_once_with(
         ["__ERRORS__"], "__DISTANCE_MAPPING__"
     )
 
-    assert "Error1" in str(error)
+    assert (
+       "The dependency graph could not be resolved due to the following "
+       "error(s):\n"
+       "  * A: Error1\n"
+       "  * A: Error2\n"
+    ) in str(error.value)
 
 
 def test_validate_empty(mocked_graph, mocked_updated_by_distance):
@@ -897,7 +902,7 @@ def test_validate_empty(mocked_graph, mocked_updated_by_distance):
     mocked_graph.errors.assert_not_called()
 
     assert (
-        "The resolution graph does not contain any valid packages."
+        "The dependency graph does not contain any valid packages."
         in str(error)
     )
 
