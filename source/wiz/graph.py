@@ -444,7 +444,7 @@ class Resolver(object):
             # Record resulting replacement
             replacement[identifier] = [p.qualified_identifier for p in packages]
 
-        self._logger.info(
+        self._logger.debug(
             "Create new graph with new nodes:\n"
             "{}".format(
                 "\n".join([
@@ -452,6 +452,11 @@ class Resolver(object):
                     for identifier, identifiers in replacement.items()
                 ])
             )
+        )
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_NODES_REPLACEMENT_ACTION,
+            graph=graph, mapping=replacement
         )
 
         return True
