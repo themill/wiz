@@ -3645,8 +3645,8 @@ def test_scenario_33(
     """Compute packages for the following graph.
 
     Like scenario 2, the graph resolution will fail with the all node versions
-    fetched in the graph. However, it can drop down the version of package 'C'
-    to a version which does not conflict.
+    fetched in the graph. However, it can drop down the version of package
+    with conflicting requirement to a version which does not conflict.
 
     Root
      |
