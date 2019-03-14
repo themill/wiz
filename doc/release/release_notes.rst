@@ -9,7 +9,7 @@ Release Notes
     .. change:: new
         :tags: command-line
 
-        Added ``wiz doctor`` sub-command to check the validity of accessible
+        Added ``wiz analyze`` sub-command to check the validity of accessible
         definitions from all registries.
 
     .. change:: new
@@ -17,6 +17,21 @@ Release Notes
 
         Added :func:`wiz.utility.colored` to return a text with a specific
         terminal color.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.extract_version_ranges` to extract the minimum
+        and maximum version from a :class:`packaging.requirements.Requirement`
+        instance.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.is_overlapping` to indicate whether two
+        :class:`packaging.requirements.Requirement` instances are overlapping.
+        It will be used to identify the nodes with conflicting requirements
+        within during the graph resolution process.
 
     .. change:: new
         :tags: API
@@ -38,6 +53,7 @@ Release Notes
         input definition.
 
     .. change:: changed
+        :tags: API
 
         Renamed :func:`wiz.graph.remove_node_and_relink` to
         :func:`wiz.graph.relink_parents` as the node removal process is
@@ -55,11 +71,49 @@ Release Notes
         Finally, an error is raised when a node parent cannot be linked to any
         other nodes to ensure that their requirements are always fulfilled.
 
+    .. change:: changed
+        :tags: API
+
+        Renamed :func:`wiz.graph.extract_parents` to
+        :func:`wiz.graph.extract_conflicting_requirements` to return a list
+        of requirement conflict mappings from a list of nodes instead of simply
+        returning the list of parent identifiers.
+
+        It uses :func:`wiz.utility.is_overlapping` to identify the parent with
+        conflicting requirements.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :exc:`wiz.exception.GraphResolutionError` to record requirement
+        conflict mapping in a `conflicts` attribute if necessary. It will be
+        used to record requirement conflicts from failed combination in
+        :class:`wiz.graph.Resolver` instance.
+
+    .. change:: changed
+
+        Updated :class:`wiz.graph.Resolver` to better keep track of node errors
+        and requirement conflicts to prevent any graph combination to be
+        generated when at least one node error or conflict is detected.
+
+        It uses the `conflicts` attribute added to the
+        :exc:`wiz.exception.GraphResolutionError` exception.
+
+    .. change:: changed
+
+        Updated :class:`wiz.graph.Resolver` to add additional step once all
+        graph combinations from initial requirement have failed to resolve.
+        This step attempts to replace the nodes with conflicting requirements
+        by compatible versions which could lead to a resolution.
+
+        It uses the `conflicts` attribute added to the
+        :exc:`wiz.exception.GraphResolutionError` exception.
+
     .. change:: fixed
 
         Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
         ensure that packages added during the conflict resolution process are
-        correctly linked to the correct parents instead of
+        correctly linked to the parent nodes instead of
         :attr:`root <wiz.graph.Graph.ROOT>`.
 
     .. change:: fixed
@@ -70,6 +124,15 @@ Release Notes
         <wiz.graph.generate_variant_combinations>`. Previously, nodes removed
         during the graph combination process were not properly reconnected to
         other node(s) in the graph.
+
+    .. change:: fixed
+        :tags: API
+
+        Updated :func:`wiz.definition.query` to take variant identifier given
+        to input :class:`packaging.requirements.Requirement` instance (e.g.
+        "foo[Variant]") as a hint to query the definition version. Before, the
+        latest definition version matching the requirement specifier would be
+        returned even if it didn't contain the variant required.
 
 .. release:: 2.1.0
     :date: 2019-02-11
