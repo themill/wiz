@@ -156,7 +156,6 @@ def is_overlapping(requirement1, requirement2):
     )
 
 
-
 def extract_version_ranges(requirement):
     """Extract version ranges from *requirement*.
 
@@ -174,6 +173,23 @@ def extract_version_ranges(requirement):
       <https://www.python.org/dev/peps/pep-0440/#inclusive-ordered-comparison>`
     * `Exclusive ordered comparison
       <https://www.python.org/dev/peps/pep-0440/#exclusive-ordered-comparison>`
+
+    Example::
+
+        >>> extract_version_ranges(Requirement("foo"))
+        [(None, None)]
+
+        >>> extract_version_ranges(Requirement("foo==2.1.1"))
+        [((2, 1, 1), (2, 1, 1))]
+
+        >>> extract_version_ranges(Requirement("foo!=2.1.1"))
+        [(None, (2, 1, 0, 9999)), ((2, 1, 1, 1), None)]
+
+        >>> extract_version_ranges(Requirement("foo ==2.*"))
+        [((2,), (2, 9999))]
+
+        >>> extract_version_ranges(Requirement("foo >= 2, < 3"))
+        [((2,), (2, 9999))]
 
     *requirement* should be an instance of
     :class:`packaging.requirements.Requirement`.
