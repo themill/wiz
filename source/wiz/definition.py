@@ -182,6 +182,12 @@ def query(requirement, definition_mapping, namespace_counter=None):
     """
     identifier = requirement.name
 
+    variant_identifier = None
+
+    # Extract variant if necessary.
+    if len(requirement.extras) > 0:
+        variant_identifier = next(iter(requirement.extras))
+
     # Extend identifier with namespace if necessary.
     if wiz.symbol.NAMESPACE_SEPARATOR not in identifier:
         identifier = _guess_qualified_identifier(
@@ -214,6 +220,14 @@ def query(requirement, definition_mapping, namespace_counter=None):
     # Get the best matching definition.
     for version in versions:
         _definition = definition_mapping[identifier][str(version)]
+
+        # Skip if the variant identifier required is not found in definition.
+        if variant_identifier and not any(
+            variant_identifier == variant.identifier
+            for variant in _definition.variants
+        ):
+            continue
+
         if _definition.version in requirement.specifier:
             definition = _definition
             break

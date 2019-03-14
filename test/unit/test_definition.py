@@ -507,6 +507,45 @@ def test_query_definition_guess_default_namespace_counter():
     ) in str(error)
 
 
+def test_query_definition_with_variant_identifier():
+    """Query definition version from variant identifier."""
+    package_mapping = {
+        "foo": {
+            "0.1.1": wiz.definition.Definition({
+                "identifier": "foo",
+                "version": "0.1.1",
+                "variants": [
+                    {
+                        "identifier": "V2"
+                    }
+                ]
+
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "foo",
+                "version": "0.1.0",
+                "variants": [
+                    {
+                        "identifier": "V1"
+                    }
+                ]
+            }),
+        },
+    }
+
+    requirement = Requirement("foo[V1]")
+    assert (
+        wiz.definition.query(requirement, package_mapping) ==
+        package_mapping["foo"]["0.1.0"]
+    )
+
+    requirement = Requirement("foo[V2]")
+    assert (
+        wiz.definition.query(requirement, package_mapping) ==
+        package_mapping["foo"]["0.1.1"]
+    )
+
+
 def test_query_definition_name_error():
     """Fails to query the definition name."""
     package_mapping = {}
