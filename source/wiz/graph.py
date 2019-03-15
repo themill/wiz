@@ -753,7 +753,7 @@ class Resolver(object):
         The pruning process is done as follow:
 
         1. If the graph distance mapping has been updated, all unreachable nodes
-           will be removed. Otherwise the method will return now.
+           will be removed. Otherwise the method will return.
 
         2. If nodes have been removed, another pass through all nodes in the
            graph ensure that all invalid nodes are removed (e.g. when conditions
