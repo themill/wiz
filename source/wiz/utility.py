@@ -339,6 +339,8 @@ def _update_version_ranges(excluded, ranges):
 def _increment_version(version, delta=1, add_subversion=True):
     """Increment *version*.
 
+    This will attempt to increase to the nearest possible version tuple.
+
     *version* should be a version release tuple (e.g. (1, 2, 3)).
 
     *delta* should be the number to add to the minimal the *version*. Default
@@ -367,9 +369,17 @@ def _increment_version(version, delta=1, add_subversion=True):
 def _decrement_version(version):
     """Decrement *version*.
 
+    This will attempt to decrease to the nearest possible version tuple.
+
     *version* should be a version release tuple (e.g. (1, 2, 3)).
 
     Example::
+
+        >>> _decrement_version((1,))
+        (0, 9999)
+
+        >>> _decrement_version((1, 0, 0))
+        (1, 9999)
 
         >>> _decrement_version((1, 2, 0))
         (1, 1, 9999)
