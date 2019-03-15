@@ -54,8 +54,8 @@ Release Notes
     .. change:: changed
         :tags: API
 
-        Updated :func:`wiz.utility.compute_label` to use qualified identifier of
-        input definition.
+        Updated :func:`wiz.utility.compute_label` to retrieve qualified
+        identifier of input definition.
 
     .. change:: changed
         :tags: API
