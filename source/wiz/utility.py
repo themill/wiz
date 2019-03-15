@@ -206,7 +206,14 @@ def _update_maximum_version(version, ranges):
     *version* should be a version release tuple (e.g. (1,2,3)).
 
     *ranges* should be an ordered list of tuples containing two
-    ordered version release tuples (e.g [((1,2,3), (1,3,0)), (1,3,3), (1,4))).
+    ordered version release tuples (e.g [((1,2,3), (1,3,0)), (1,3,3), (1,4))]).
+
+    Example::
+
+        >>> ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
+        >>> _update_maximum_version((1, 2, 3), ranges)
+        >>> print(ranges)
+        [((1, 2, 3), (1, 2, 3))]
 
     """
     _ranges = []
@@ -221,7 +228,7 @@ def _update_maximum_version(version, ranges):
         )
 
     for start_version, end_version in ranges:
-        if not end_version or end_version > version:
+        if not end_version or end_version >= version:
             _ranges.append((start_version, version))
             break
         _ranges.append((start_version, end_version))
@@ -238,6 +245,13 @@ def _update_minimum_version(version, ranges):
     *ranges* should be an ordered list of tuples containing two
     ordered version release tuples (e.g [((1,2,3), (1,3,0)), (1,3,3), (1,4))).
 
+    Example::
+
+        >>> ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
+        >>> _update_minimum_version((1, 3, 3), ranges)
+        >>> print(ranges)
+        [((1, 3, 3), (1, 4))]
+
     """
     _ranges = []
 
@@ -251,7 +265,7 @@ def _update_minimum_version(version, ranges):
         )
 
     for start_version, end_version in reversed(ranges):
-        if not start_version or start_version < version:
+        if not start_version or start_version <= version:
             _ranges = [(version, end_version)] + _ranges
             break
         _ranges = [(start_version, end_version)] + _ranges
@@ -264,10 +278,18 @@ def _update_version_ranges(excluded, ranges):
     """Update version *ranges* from excluded *version_range*.
 
     *excluded* should be a tuple containing two ordered version release
-    tuples (e.g. ((1,2,3), (1,3,0))).
+    tuples (e.g. ((1,2,3), (1,3,0))). These two versions are included to the
+    *ranges*, but all versions in between should be excluded.
 
     *ranges* should be an ordered list of tuples containing two
     ordered version release tuples (e.g [((1,2,3), (1,3,0)), (1,3,3), (1,4))).
+
+    Example::
+
+        >>> ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
+        >>> _update_version_ranges(((1,2,3), (1,3,3)), ranges)
+        >>> print(ranges)
+        [((1, 2, 3), (1, 2, 3)), ((1, 3, 3), (1, 4))]
 
     """
     _ranges = []
