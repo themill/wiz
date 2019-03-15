@@ -10,7 +10,7 @@ Release Notes
         :tags: command-line
 
         Added ``wiz analyze`` sub-command to check the validity of accessible
-        definitions from all registries.
+        definitions from registries.
 
     .. change:: new
         :tags: API
