@@ -42,8 +42,8 @@ Release Notes
     .. change:: changed
         :tags: command-line, API
 
-        Removed ``mlog`` dependency and added :mod:`wiz.logging` using directly
-        :mod:`sawmill` to have more flexibility to configure the
+        Removed ``mlog`` dependency and added :mod:`wiz.logging` using
+        :mod:`sawmill` directly to have more flexibility to configure the
         :class:`wiz.logging.Logger` instance.
 
     .. change:: changed
@@ -61,15 +61,15 @@ Release Notes
 
         During the conflict resolution process, sometimes an extra step is
         needed that adds additional packages to the graph. This ensures that the
-        matching node(s) exist in the graph when the parent of the conflicting
-        node are relinked.
+        matching nodes exist in the graph when the parents of the conflicting
+        nodes are relinked.
 
         Furthermore, the matching nodes are now fetched via the
         :meth:`wiz.Graph.find` method instead of passing a list of package
         identifiers to the function to simplify the function's logic.
 
-        Finally, an error is raised when a node parent cannot be linked to any
-        other nodes to ensure that their requirements are always fulfilled.
+        Finally, an error is raised when a node's parent cannot be linked to any
+        other node to ensure that their requirements are always fulfilled.
 
     .. change:: changed
         :tags: API
@@ -79,16 +79,16 @@ Release Notes
         of requirement conflict mappings from a list of nodes instead of simply
         returning the list of parent identifiers.
 
-        It uses :func:`wiz.utility.is_overlapping` to identify the parent with
+        :func:`wiz.utility.is_overlapping` is used to identify the parent with
         conflicting requirements.
 
     .. change:: changed
         :tags: API
 
-        Updated :exc:`wiz.exception.GraphResolutionError` to record requirement
-        conflict mapping in a `conflicts` attribute if necessary. It will be
-        used to record requirement conflicts from failed combination in
-        :class:`wiz.graph.Resolver` instance.
+        Updated :exc:`wiz.exception.GraphResolutionError` to record a
+        requirement conflict mapping in a `conflicts` attribute if necessary. It
+        will be used to record requirement conflicts from failed combinations in
+        the :class:`wiz.graph.Resolver` instance.
 
     .. change:: changed
 
@@ -101,8 +101,8 @@ Release Notes
 
     .. change:: changed
 
-        Updated :class:`wiz.graph.Resolver` to add additional step once all
-        graph combinations from initial requirement have failed to resolve.
+        Updated :class:`wiz.graph.Resolver` to add an additional step once all
+        graph combinations from the initial requirements have failed to resolve.
         This step attempts to replace the nodes with conflicting requirements
         by compatible versions which could lead to a resolution.
 
@@ -119,7 +119,7 @@ Release Notes
     .. change:: fixed
 
         Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
-        ensure that node's requirements are always fulfilled when computing a
+        ensure that node requirements are always fulfilled when computing a
         graph with one particular :func:`combination
         <wiz.graph.generate_variant_combinations>`. Previously, nodes removed
         during the graph combination process were not properly reconnected to
@@ -128,7 +128,7 @@ Release Notes
     .. change:: fixed
         :tags: API
 
-        Updated :func:`wiz.definition.query` to take variant identifier given
+        Updated :func:`wiz.definition.query` to take a variant identifier given
         to input :class:`packaging.requirements.Requirement` instance (e.g.
         "foo[Variant]") as a hint to query the definition version. Before, the
         latest definition version matching the requirement specifier would be
