@@ -278,7 +278,7 @@ def _update_version_ranges(excluded, ranges):
     """Update version *ranges* from excluded *version_range*.
 
     *excluded* should be a tuple containing two ordered version release
-    tuples (e.g. ((1,2,3), (1,3,0))). These two versions are included to the
+    tuples (e.g. ((1,2,3), (1,3,0))). These two versions are included in the
     *ranges*, but all versions in between should be excluded.
 
     *ranges* should be an ordered list of tuples containing two
