@@ -15,7 +15,7 @@ Release Notes
     .. change:: new
         :tags: API
 
-        Added :func:`wiz.utility.colored` to return a text with a specific
+        Added :func:`wiz.utility.colored_text` to return a text with a specific
         terminal color.
 
     .. change:: new
