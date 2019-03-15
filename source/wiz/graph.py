@@ -1197,7 +1197,7 @@ def extract_conflicting_requirements(graph, nodes):
 
     A requirement is conflicting when it is not overlapping with at least one
     other requirement from existing parents of *nodes*. The conflict list
-    is sorted based on the number of time a requirement is conflicting.
+    is sorted based on the number of times a requirement is conflicting.
 
     *graph* must be an instance of :class:`Graph`.
 
