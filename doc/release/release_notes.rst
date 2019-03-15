@@ -46,6 +46,11 @@ Release Notes
         :mod:`sawmill` directly to have more flexibility to configure the
         :class:`wiz.logging.Logger` instance.
 
+        :func:`wiz.logging.configure_for_debug` has then be added in order to
+        record logs instead of displaying it directly to the user. It was
+        necessary to ensure a clear formatting for the ``wiz analyze``
+        sub-command.
+
     .. change:: changed
         :tags: API
 
