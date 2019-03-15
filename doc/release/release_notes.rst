@@ -133,11 +133,12 @@ Release Notes
     .. change:: fixed
         :tags: API
 
-        Updated :func:`wiz.definition.query` to take a variant identifier given
-        to input :class:`packaging.requirements.Requirement` instance (e.g.
-        "foo[Variant]") as a hint to query the definition version. Before, the
-        latest definition version matching the requirement specifier would be
-        returned even if it didn't contain the variant required.
+        Updated :func:`wiz.definition.query` to take an extra parameter from a
+        :class:`packaging.requirements.Requirement` instance into account when
+        querying a definition with a specific variant (e.g. "foo[Variant]"). If
+        the best matching definition version does not contain the required
+        variant, older versions would be fetched until one that contains the
+        required variant will be returned.
 
 .. release:: 2.1.0
     :date: 2019-02-11
