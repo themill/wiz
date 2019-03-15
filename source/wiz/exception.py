@@ -96,6 +96,40 @@ class GraphResolutionError(WizError):
 
     default_message = "The environment graph could not be resolved."
 
+    def __init__(self, message=None, details=None, conflicts=None):
+        """Initialise with *message* and optional *details*.
+
+        Use :attr:`default_message` if *message* not specified.
+
+        *details* should be a mapping of additional contextual information. Its
+        contents may be referenced in the message.
+
+        *conflicts* could be a list of conflicting requirement mapping with
+        corresponding parent identifiers which should be in the form of::
+
+            [
+                {
+                    "requirement": Requirement("foo >=0.1.0, <1"),
+                    "identifiers": {"bar", "bim"},
+                    "conflicts": {"baz"},
+                    "graph": Graph()
+                },
+                {
+                    "requirement": Requirement("foo >2"),
+                    "identifiers": {"baz"},
+                    "conflicts": {"bar", "bim"},
+                    "graph": Graph()
+                }
+            ]
+
+        """
+        super(GraphResolutionError, self).__init__(
+            message=message, details=details
+        )
+
+        # Record conflicting requirement mappings.
+        self.conflicts = conflicts or []
+
 
 class InvalidRequirement(WizError):
     """Raise when a requirement is incorrect."""

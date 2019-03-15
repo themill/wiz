@@ -9,14 +9,29 @@ Release Notes
     .. change:: new
         :tags: command-line
 
-        Added ``wiz doctor`` sub-command to check the validity of accessible
-        definitions from all registries.
+        Added ``wiz analyze`` sub-command to check the validity of accessible
+        definitions from registries.
 
     .. change:: new
         :tags: API
 
-        Added :func:`wiz.utility.colored` to return a text with a specific
+        Added :func:`wiz.utility.colored_text` to return a text with a specific
         terminal color.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.extract_version_ranges` to extract the minimum
+        and maximum version from a :class:`packaging.requirements.Requirement`
+        instance.
+
+    .. change:: new
+        :tags: API
+
+        Added :func:`wiz.utility.is_overlapping` to indicate whether two
+        :class:`packaging.requirements.Requirement` instances are overlapping.
+        It will be used to identify the nodes with conflicting requirements
+        within during the graph resolution process.
 
     .. change:: new
         :tags: API
@@ -27,17 +42,23 @@ Release Notes
     .. change:: changed
         :tags: command-line, API
 
-        Removed ``mlog`` dependency and added :mod:`wiz.logging` using directly
-        :mod:`sawmill` to have more flexibility to configure the
+        Removed ``mlog`` dependency and added :mod:`wiz.logging` using
+        :mod:`sawmill` directly to have more flexibility to configure the
         :class:`wiz.logging.Logger` instance.
+
+        :func:`wiz.logging.configure_for_debug` has then be added in order to
+        record logs instead of displaying it directly to the user. It was
+        necessary to ensure a clear formatting for the ``wiz analyze``
+        sub-command.
 
     .. change:: changed
         :tags: API
 
-        Updated :func:`wiz.utility.compute_label` to use qualified identifier of
-        input definition.
+        Updated :func:`wiz.utility.compute_label` to retrieve qualified
+        identifier of input definition.
 
     .. change:: changed
+        :tags: API
 
         Renamed :func:`wiz.graph.remove_node_and_relink` to
         :func:`wiz.graph.relink_parents` as the node removal process is
@@ -45,31 +66,79 @@ Release Notes
 
         During the conflict resolution process, sometimes an extra step is
         needed that adds additional packages to the graph. This ensures that the
-        matching node(s) exist in the graph when the parent of the conflicting
-        node are relinked.
+        matching nodes exist in the graph when the parents of the conflicting
+        nodes are relinked.
 
         Furthermore, the matching nodes are now fetched via the
         :meth:`wiz.Graph.find` method instead of passing a list of package
         identifiers to the function to simplify the function's logic.
 
-        Finally, an error is raised when a node parent cannot be linked to any
-        other nodes to ensure that their requirements are always fulfilled.
+        Finally, an error is raised when a node's parent cannot be linked to any
+        other node to ensure that their requirements are always fulfilled.
+
+    .. change:: changed
+        :tags: API
+
+        Renamed :func:`wiz.graph.extract_parents` to
+        :func:`wiz.graph.extract_conflicting_requirements` to return a list
+        of requirement conflict mappings from a list of nodes instead of simply
+        returning the list of parent identifiers.
+
+        :func:`wiz.utility.is_overlapping` is used to identify the parent with
+        conflicting requirements.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :exc:`wiz.exception.GraphResolutionError` to record a
+        requirement conflict mapping in a `conflicts` attribute if necessary. It
+        will be used to record requirement conflicts from failed combinations in
+        the :class:`wiz.graph.Resolver` instance.
+
+    .. change:: changed
+
+        Updated :class:`wiz.graph.Resolver` to better keep track of node errors
+        and requirement conflicts to prevent any graph combination to be
+        generated when at least one node error or conflict is detected.
+
+        It uses the `conflicts` attribute added to the
+        :exc:`wiz.exception.GraphResolutionError` exception.
+
+    .. change:: changed
+
+        Updated :class:`wiz.graph.Resolver` to add an additional step once all
+        graph combinations from the initial requirements have failed to resolve.
+        This step attempts to replace the nodes with conflicting requirements
+        by compatible versions which could lead to a resolution.
+
+        It uses the `conflicts` attribute added to the
+        :exc:`wiz.exception.GraphResolutionError` exception.
 
     .. change:: fixed
 
         Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
         ensure that packages added during the conflict resolution process are
-        correctly linked to the correct parents instead of
+        correctly linked to the parent nodes instead of
         :attr:`root <wiz.graph.Graph.ROOT>`.
 
     .. change:: fixed
 
         Updated :class:`wiz.graph.Resolver` and :class:`wiz.graph.Graph` to
-        ensure that node's requirements are always fulfilled when computing a
+        ensure that node requirements are always fulfilled when computing a
         graph with one particular :func:`combination
         <wiz.graph.generate_variant_combinations>`. Previously, nodes removed
         during the graph combination process were not properly reconnected to
         other node(s) in the graph.
+
+    .. change:: fixed
+        :tags: API
+
+        Updated :func:`wiz.definition.query` to take an extra parameter from a
+        :class:`packaging.requirements.Requirement` instance into account when
+        querying a definition with a specific variant (e.g. "foo[Variant]"). If
+        the best matching definition version does not contain the required
+        variant, older versions would be fetched until one that contains the
+        required variant will be returned.
 
 .. release:: 2.1.0
     :date: 2019-02-11

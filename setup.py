@@ -47,7 +47,8 @@ TEST_REQUIRES = [
     "pytest-xdist >= 1.1, < 2",
     "pytest-cov >= 2, < 3",
 
-    # Ensure that more-itertools is limited to v6 as later version don't work for python 2.7.
+    # Ensure that more-itertools is limited to v6 as later version don't work
+    # for python 2.7.
     "more-itertools >= 4, < 6"
 ]
 

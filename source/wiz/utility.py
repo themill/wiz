@@ -6,15 +6,11 @@ import json
 import zlib
 import base64
 import hashlib
+
 import colorama
 
-import packaging.requirements
-from packaging.requirements import (
-    L, Combine, Word, ZeroOrMore, ALPHANUM, Optional, EXTRAS,
-    URL_AND_MARKER, VERSION_AND_MARKER, stringStart, stringEnd
-)
-
-from packaging.requirements import Requirement, InvalidRequirement
+from _requirement import Requirement
+from packaging.requirements import InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
 import wiz.symbol
@@ -22,74 +18,8 @@ import wiz.mapping
 import wiz.exception
 
 
-# Extend requirement's expression to allow namespace separators as a valid
-# identifier (e.g. "foo::test", "::test").
-PUNCTUATION = Word("-_.")
-NAME = ALPHANUM + ZeroOrMore(ALPHANUM | (ZeroOrMore(PUNCTUATION) + ALPHANUM))
-NAME_SEPARATOR = L(wiz.symbol.NAMESPACE_SEPARATOR)
-IDENTIFIER = Combine(
-    Optional(Optional(NAME) + NAME_SEPARATOR) + NAME
-)
-
-packaging.requirements.REQUIREMENT = (
-    stringStart + IDENTIFIER("name") + Optional(EXTRAS)
-    + (URL_AND_MARKER | VERSION_AND_MARKER) + stringEnd
-)
-
-
-def _display_requirement(_requirement):
-    """Improve readability when displaying Requirement instance.
-
-    Before::
-
-        >>> Requirement("nuke>=10,<11")
-        <Requirement('nuke<11,>=10')>
-
-    After::
-
-        >>> Requirement("nuke>=10,<11")
-        <Requirement('nuke >=10, <11')>
-
-    """
-    content = _requirement.name
-
-    variant = ",".join(_requirement.extras)
-    if len(variant) > 0:
-        content += "[{}]".format(variant)
-
-    if len(_requirement.specifier) > 0:
-        content += " " + ", ".join(sorted([
-            str(specifier) for specifier in _requirement.specifier
-        ], reverse=True))
-
-    return content
-
-
-#: Monkeypatch magic method to improve readability of serialized item.
-Requirement.__str__ = _display_requirement
-
-
-def _compare_requirement(_requirement, other):
-    """Improve comparison between Requirement instances.
-
-    Before::
-
-        >>> Requirement("nuke>=10,<11") == Requirement("nuke>=10,<11")
-        False
-
-    After::
-
-        >>> Requirement("nuke>=10,<11") == Requirement("nuke>=10,<11")
-        True
-
-     """
-    if isinstance(other, Requirement):
-        return str(_requirement) == str(other)
-    return False
-
-
-#: Monkeypatch magic method to allow comparison between instances.
-Requirement.__eq__ = _compare_requirement
+# Arbitrary number which indicates a very high version number
+_INFINITY_VERSION = 9999
 
 
 def get_requirement(content):
@@ -130,6 +60,339 @@ def get_version(content):
         raise wiz.exception.InvalidVersion(
             "The version '{}' is incorrect".format(content)
         )
+
+
+def is_overlapping(requirement1, requirement2):
+    """Indicate whether requirements are overlapping.
+
+    A requirement is overlapping with another one if their intersection of
+    version ranges are not empty.
+
+    Example::
+
+        >>> is_overlapping(Requirement("foo >= 10"), Requirement("foo < 9"))
+        True
+
+        >>> is_overlapping(Requirement("foo >= 10"), Requirement("foo < 8"))
+        False
+
+    *requirement1* and *requirement2* should be instances of
+    :class:`packaging.requirements.Requirement`.
+
+    Raise :exc:`wiz.exception.GraphResolutionError` if requirements cannot
+    be compared.
+
+    """
+    if requirement1.name != requirement2.name:
+        raise wiz.exception.GraphResolutionError(
+            "Impossible to compare requirements with different names "
+            "['{}' and '{}'].".format(requirement1.name, requirement2.name)
+        )
+
+    r1 = extract_version_ranges(requirement1)
+    r2 = extract_version_ranges(requirement2)
+    return (
+        (r2[-1][1] is None or r2[-1][1] >= r1[0][0]) and
+        (r1[-1][1] is None or r1[-1][1] >= r2[0][0])
+    )
+
+
+def extract_version_ranges(requirement):
+    """Extract version ranges from *requirement*.
+
+    A list of version tuples is returned
+
+    Requirement could contain the following specifiers:
+
+    * `Compatible release
+      <https://www.python.org/dev/peps/pep-0440/#compatible-release>`
+    * `Version matching
+      <https://www.python.org/dev/peps/pep-0440/#version-matching>`
+    * `Version exclusion
+      <https://www.python.org/dev/peps/pep-0440/#version-exclusion>`
+    * `Inclusive ordered comparison
+      <https://www.python.org/dev/peps/pep-0440/#inclusive-ordered-comparison>`
+    * `Exclusive ordered comparison
+      <https://www.python.org/dev/peps/pep-0440/#exclusive-ordered-comparison>`
+
+    Example::
+
+        >>> extract_version_ranges(Requirement("foo"))
+        [(None, None)]
+
+        >>> extract_version_ranges(Requirement("foo==2.1.1"))
+        [((2, 1, 1), (2, 1, 1))]
+
+        >>> extract_version_ranges(Requirement("foo!=2.1.1"))
+        [(None, (2, 1, 0, 9999)), ((2, 1, 1, 1), None)]
+
+        >>> extract_version_ranges(Requirement("foo ==2.*"))
+        [((2,), (2, 9999))]
+
+        >>> extract_version_ranges(Requirement("foo >= 2, < 3"))
+        [((2,), (2, 9999))]
+
+    *requirement* should be an instance of
+    :class:`packaging.requirements.Requirement`.
+
+    :exc:`wiz.exception.InvalidVersion` is raised if the version extracted from
+    the specifier is incorrect.
+
+    :exc:`wiz.exception.InvalidRequirement` is raised if the specifier operator
+    is not accepted or if the requirement does not allow any versions to be
+    reached.
+
+    """
+    version_ranges = [(None, None)]
+
+    for specifier in requirement.specifier:
+        # Extract version number.
+        _version = wiz.utility.get_version(
+            re.sub(r"\.\*$", "", specifier.version)
+        ).release
+
+        # Update maximum according to operator.
+        if specifier.operator == ">=":
+            _update_minimum_version(_version, version_ranges)
+
+        elif specifier.operator == "<=":
+            _update_maximum_version(_version, version_ranges)
+
+        elif specifier.operator == ">":
+            _min_version = _increment_version(_version)
+            _update_minimum_version(_min_version, version_ranges)
+
+        elif specifier.operator == "<":
+            _max_version = _decrement_version(_version)
+            _update_maximum_version(_max_version, version_ranges)
+
+        elif specifier.operator == "~=":
+            _max_version = _increment_version(_version, delta=_INFINITY_VERSION)
+            _update_minimum_version(_version, version_ranges)
+            _update_maximum_version(_max_version, version_ranges)
+
+        elif specifier.operator == "==" and specifier.version.endswith(".*"):
+            _max_version = _increment_version(_version, delta=_INFINITY_VERSION)
+            _update_minimum_version(_version, version_ranges)
+            _update_maximum_version(_max_version, version_ranges)
+
+        elif specifier.operator == "==":
+            _update_minimum_version(_version, version_ranges)
+            _update_maximum_version(_version, version_ranges)
+
+        elif specifier.operator == "!=" and specifier.version.endswith(".*"):
+            _min_version = _decrement_version(_version)
+            _max_version = _increment_version(_version, add_subversion=False)
+            _update_version_ranges((_min_version, _max_version), version_ranges)
+
+        elif specifier.operator == "!=":
+            _min_version = _decrement_version(_version)
+            _max_version = _increment_version(_version)
+            _update_version_ranges((_min_version, _max_version), version_ranges)
+
+        else:
+            raise wiz.exception.InvalidRequirement(
+                "Operator '{}' is not accepted for requirement '{}'".format(
+                    specifier.operator, requirement
+                )
+            )
+
+    return version_ranges
+
+
+def _update_maximum_version(version, ranges):
+    """Update version *ranges* with maximum *version*.
+
+    *version* should be a version release tuple (e.g. (1,2,3)).
+
+    *ranges* should be an ordered list of tuples containing two
+    ordered version release tuples (e.g [((1,2,3), (1,3,0)), (1,3,3), (1,4))]).
+
+    Example::
+
+        >>> ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
+        >>> _update_maximum_version((1, 2, 3), ranges)
+        >>> print(ranges)
+        [((1, 2, 3), (1, 2, 3))]
+
+    """
+    _ranges = []
+
+    if ranges[0][0] is not None and version < ranges[0][0]:
+        raise wiz.exception.InvalidRequirement(
+            "The requirement is incorrect as maximum value '{}' cannot be set"
+            "when minimum value is '{}'.".format(
+                ".".join(str(v) for v in version),
+                ".".join(str(v) for v in ranges[-1][1])
+            )
+        )
+
+    for start_version, end_version in ranges:
+        if not end_version or end_version >= version:
+            _ranges.append((start_version, version))
+            break
+        _ranges.append((start_version, end_version))
+
+    # Mutated input ranges
+    ranges[:] = _ranges
+
+
+def _update_minimum_version(version, ranges):
+    """Update version *ranges* with minimum *version*.
+
+    *version* should be a version release tuple (e.g. (1,2,3)).
+
+    *ranges* should be an ordered list of tuples containing two
+    ordered version release tuples (e.g [((1,2,3), (1,3,0)), (1,3,3), (1,4))).
+
+    Example::
+
+        >>> ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
+        >>> _update_minimum_version((1, 3, 3), ranges)
+        >>> print(ranges)
+        [((1, 3, 3), (1, 4))]
+
+    """
+    _ranges = []
+
+    if ranges[-1][1] is not None and version > ranges[-1][1]:
+        raise wiz.exception.InvalidRequirement(
+            "The requirement is incorrect as minimum value '{}' cannot be set"
+            "when maximum value is '{}'.".format(
+                ".".join(str(v) for v in version),
+                ".".join(str(v) for v in ranges[-1][1])
+            )
+        )
+
+    for start_version, end_version in reversed(ranges):
+        if not start_version or start_version <= version:
+            _ranges = [(version, end_version)] + _ranges
+            break
+        _ranges = [(start_version, end_version)] + _ranges
+
+    # Mutated input ranges
+    ranges[:] = _ranges
+
+
+def _update_version_ranges(excluded, ranges):
+    """Update version *ranges* from excluded *version_range*.
+
+    *excluded* should be a tuple containing two ordered version release
+    tuples (e.g. ((1,2,3), (1,3,0))). These two versions are included in the
+    *ranges*, but all versions in between should be excluded.
+
+    *ranges* should be an ordered list of tuples containing two
+    ordered version release tuples (e.g [((1,2,3), (1,3,0)), (1,3,3), (1,4))).
+
+    Example::
+
+        >>> ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
+        >>> _update_version_ranges(((1,2,3), (1,3,3)), ranges)
+        >>> print(ranges)
+        [((1, 2, 3), (1, 2, 3)), ((1, 3, 3), (1, 4))]
+
+    """
+    _ranges = []
+
+    for r in ranges:
+        out_before = r[0] is not None and r[0] > excluded[1]
+        out_after = r[1] is not None and r[1] < excluded[0]
+
+        # Exclusion zone is outside of range.
+        if out_before or out_after:
+            _ranges.append(r)
+            continue
+
+        r0_excluded = r[0] is not None and r[0] > excluded[0]
+        r1_excluded = r[1] is not None and r[1] < excluded[1]
+
+        # Exclusion zone covers all range.
+        if r0_excluded and r1_excluded:
+            continue
+
+        # Exclusion zone cover start of range only.
+        elif r0_excluded and not r1_excluded:
+            _ranges.append((excluded[1], r[1]))
+
+        # Exclusion zone cover end of range only.
+        elif not r0_excluded and r1_excluded:
+            _ranges.append((r[0], excluded[0]))
+
+        # Exclusion zone cover middle of range.
+        elif not r0_excluded and not r1_excluded:
+            _ranges.append((r[0], excluded[0]))
+            _ranges.append((excluded[1], r[1]))
+
+    if len(_ranges) == 0:
+        raise wiz.exception.InvalidRequirement(
+            "The requirement is incorrect as excluded version range '{}-{}' "
+            "makes all other versions unreachable.".format(
+                ".".join(str(v) for v in excluded[0]),
+                ".".join(str(v) for v in excluded[1]),
+            )
+        )
+
+    # Mutated input ranges
+    ranges[:] = _ranges
+
+
+def _increment_version(version, delta=1, add_subversion=True):
+    """Increment *version*.
+
+    This will attempt to increase to the nearest possible version tuple.
+
+    *version* should be a version release tuple (e.g. (1, 2, 3)).
+
+    *delta* should be the number to add to the minimal the *version*. Default
+    is 1.
+
+    *add_subversion* indicates whether a sub-version should be used instead
+    of only increasing the minimal release version. Default is True.
+
+    Example::
+
+        >>> _increment_version((1, 2, 0))
+        (1, 2, 0, 1)
+
+        >>> _increment_version((1, 2, 0), add_subversion=False)
+        (1, 2, 1)
+
+        >>> _increment_version((1, 1, 1), delta=3)
+        (1, 1, 1, 3)
+
+    """
+    if not add_subversion:
+        return version[:-1] + (version[-1] + delta,)
+    return version + (delta,)
+
+
+def _decrement_version(version):
+    """Decrement *version*.
+
+    This will attempt to decrease to the nearest possible version tuple.
+
+    *version* should be a version release tuple (e.g. (1, 2, 3)).
+
+    Example::
+
+        >>> _decrement_version((1,))
+        (0, 9999)
+
+        >>> _decrement_version((1, 0, 0))
+        (1, 9999)
+
+        >>> _decrement_version((1, 2, 0))
+        (1, 1, 9999)
+
+        >>> _decrement_version((1, 1, 1))
+        (1, 1, 0, 9999)
+
+    """
+    index = -1
+    while version[index] == 0:
+        index -= 1
+
+    return version[:index] + (version[index] - 1, _INFINITY_VERSION)
 
 
 def encode(element):
@@ -242,7 +505,7 @@ def combine_command(elements):
     return " ".join([pipes.quote(element) for element in elements])
 
 
-def colored(message, color):
+def colored_text(message, color):
     """Return colored *message* according to color *name*.
 
     Available color names are: "black", "red", "green", "yellow", "blue",

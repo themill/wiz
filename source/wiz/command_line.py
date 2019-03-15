@@ -1173,7 +1173,7 @@ def wiz_analyze(click_context, **kwargs):
     ):
         if latest_registry != definition.get("registry"):
             info = "\nRegistry: {}\n".format(definition.get("registry"))
-            print(wiz.utility.colored(info, color="cyan"))
+            print(wiz.utility.colored_text(info, color="cyan"))
             latest_registry = definition.get("registry")
 
         identifier = definition.qualified_version_identifier
@@ -1196,16 +1196,20 @@ def wiz_analyze(click_context, **kwargs):
             print(":")
 
             if len(errors) > 0:
-                print(wiz.utility.colored("\n".join(errors), color="red"))
+                print(wiz.utility.colored_text("\n".join(errors), color="red"))
 
             if len(warnings) > 0:
-                print(wiz.utility.colored("\n".join(warnings), color="yellow"))
+                print(
+                    wiz.utility.colored_text(
+                        "\n".join(warnings), color="yellow"
+                    )
+                )
 
         else:
-            print(wiz.utility.colored(" ✔", color="green"))
+            print(wiz.utility.colored_text(" ✔", color="green"))
 
     if latest_registry is None:
-        print(wiz.utility.colored("No definitions found.", color="red"))
+        print(wiz.utility.colored_text("No definitions found.", color="red"))
 
     print()
 

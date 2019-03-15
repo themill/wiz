@@ -326,51 +326,6 @@ def test_generate_variant_combinations(
         assert combination[1] == _expected
 
 
-def test_generate_variant_combinations_with_error(mocker, mocked_graph):
-    """Return trimming combinations from variants when error is found."""
-    variant_groups = [
-        ["foo[V3]", "foo[V2]", "foo[V1]"],
-        ["bar[V4]", "bar[V3]", "bar[V2]", "bar[V1]"],
-        ["bim[V2]", "bim[V1]"]
-    ]
-
-    # Suppose that variants are always between square brackets in identifier.
-    mocked_graph.node = lambda _id: mocker.Mock(
-        identifier=_id, variant_name=re.search("(?<=\[).+(?=\])", _id).group(0)
-    )
-
-    mocked_graph.error_identifiers.return_value = ["foo[V3]"]
-
-    results = wiz.graph.generate_variant_combinations(
-        mocked_graph, variant_groups
-    )
-    assert isinstance(results, types.GeneratorType) is True
-
-    expected = [
-        ("foo[V2]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V1]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V1]"),
-        ("foo[V3]", "foo[V1]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V2]"),
-        ("foo[V3]", "foo[V2]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V2]", "bar[V3]", "bar[V2]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V2]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V1]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V1]", "bim[V2]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V1]"),
-        ("foo[V3]", "foo[V2]", "bar[V4]", "bar[V3]", "bar[V2]", "bim[V2]")
-    ]
-
-    for combination, _expected in itertools.izip_longest(results, expected):
-        assert combination[0] == mocked_graph
-        assert combination[1] == _expected
-
-
 def test_trim_unreachable_from_graph(
     mocker, mocked_graph, mocked_graph_remove_node
 ):
@@ -633,38 +588,107 @@ def test_sanitize_requirement(requirement, namespace, expected):
     assert requirement == expected
 
 
-def test_extract_parents(mocker, mocked_graph):
-    """Extract parent identifiers from nodes."""
+def test_extract_conflicting_requirements(mocker, mocked_graph):
+    """Extract conflicting requirements from nodes."""
     nodes = [
         mocker.Mock(
-            identifier="A",
+            definition=mocker.Mock(qualified_identifier="foo"),
+            identifier="foo==3.2.1",
             parent_identifiers=["E", "F"]
         ),
         mocker.Mock(
-            identifier="B",
-            parent_identifiers=["F", "G"]
+            definition=mocker.Mock(qualified_identifier="foo"),
+            identifier="foo==4.0.0",
+            parent_identifiers=["G", "H", "I"]
         ),
         mocker.Mock(
-            identifier="C",
+            definition=mocker.Mock(qualified_identifier="foo"),
+            identifier="foo==3.0.0",
             parent_identifiers=["root"]
-        ),
-        mocker.Mock(
-            identifier="D",
-            parent_identifiers=["H"]
         )
     ]
 
-    mocked_graph.node.side_effect = [
-        mocker.Mock(identifier="E"),
-        mocker.Mock(identifier="F"),
-        mocker.Mock(identifier="F"),
-        mocker.Mock(identifier="G"),
-        None
+    # calls for: E, F, G, H, I
+    mocked_graph.exists.side_effect = [False, True, True, True, True]
+
+    # calls for: F, G, H, I, root
+    mocked_graph.link_requirement.side_effect = [
+        Requirement("foo ==3.*"),
+        Requirement("foo >=4, <5"),
+        Requirement("foo >=4, <5"),
+        Requirement("foo"),
+        Requirement("foo==3.0.0"),
     ]
 
-    parents = wiz.graph.extract_parents(mocked_graph, nodes)
-    assert isinstance(parents, set) is True
-    assert sorted(parents) == ["E", "F", "G"]
+    conflicts = wiz.graph.extract_conflicting_requirements(mocked_graph, nodes)
+
+    assert mocked_graph.exists.call_count == 5
+    mocked_graph.exists.assert_any_call("E")
+    mocked_graph.exists.assert_any_call("F")
+    mocked_graph.exists.assert_any_call("G")
+    mocked_graph.exists.assert_any_call("H")
+    mocked_graph.exists.assert_any_call("I")
+
+    assert mocked_graph.link_requirement.call_count == 5
+    mocked_graph.link_requirement.assert_any_call("foo==3.2.1", "F")
+    mocked_graph.link_requirement.assert_any_call("foo==4.0.0", "G")
+    mocked_graph.link_requirement.assert_any_call("foo==4.0.0", "H")
+    mocked_graph.link_requirement.assert_any_call("foo==4.0.0", "I")
+    mocked_graph.link_requirement.assert_any_call("foo==3.0.0", "root")
+
+    assert conflicts == [
+        {
+            "graph": mocked_graph,
+            "requirement": Requirement("foo >=4, <5"),
+            "identifiers": {"G", "H"},
+            "conflicts": {"F", "root"}
+        },
+        {
+            "graph": mocked_graph,
+            "requirement": Requirement("foo ==3.0.0"),
+            "identifiers": {"root"},
+            "conflicts": {"G", "H"}
+        },
+        {
+            "graph": mocked_graph,
+            "requirement": Requirement("foo ==3.*"),
+            "identifiers": {"F"},
+            "conflicts": {"G", "H"}
+        }
+    ]
+
+
+def test_extract_conflicting_requirements_error(mocker, mocked_graph):
+    """Fail to extract conflicting requirements from nodes."""
+    nodes = [
+        mocker.Mock(
+            definition=mocker.Mock(qualified_identifier="bar"),
+            identifier="bar==3.2.1",
+            parent_identifiers=["E", "F"]
+        ),
+        mocker.Mock(
+            definition=mocker.Mock(qualified_identifier="foo"),
+            identifier="foo==4.0.0",
+            parent_identifiers=["G", "H", "I"]
+        ),
+        mocker.Mock(
+            definition=mocker.Mock(qualified_identifier="foo"),
+            identifier="foo==3.0.0",
+            parent_identifiers=["root"]
+        )
+    ]
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        wiz.graph.extract_conflicting_requirements(mocked_graph, nodes)
+
+    assert (
+        "All nodes should have the same definition identifier when "
+        "attempting to extract conflicting requirements from parent "
+        "nodes [bar, foo]"
+    ) in str(error.value)
+
+    mocked_graph.exists.assert_not_called()
+    mocked_graph.link_requirement.assert_not_called()
 
 
 def test_relink_parents(mocker, mocked_graph):
@@ -849,14 +873,19 @@ def test_validate_error(mocked_graph, mocked_updated_by_distance):
     mocked_graph.errors = lambda _id: error_mapping[_id]
     mocked_updated_by_distance.return_value = ["A", "B"]
 
-    with pytest.raises(Exception) as error:
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
         wiz.graph.validate(mocked_graph, "__DISTANCE_MAPPING__")
 
     mocked_updated_by_distance.assert_called_once_with(
         ["__ERRORS__"], "__DISTANCE_MAPPING__"
     )
 
-    assert "Error1" in str(error)
+    assert (
+       "The dependency graph could not be resolved due to the following "
+       "error(s):\n"
+       "  * A: Error1\n"
+       "  * A: Error2\n"
+    ) in str(error.value)
 
 
 def test_validate_empty(mocked_graph, mocked_updated_by_distance):
@@ -873,7 +902,7 @@ def test_validate_empty(mocked_graph, mocked_updated_by_distance):
     mocked_graph.errors.assert_not_called()
 
     assert (
-        "The resolution graph does not contain any valid packages."
+        "The dependency graph does not contain any valid packages."
         in str(error)
     )
 
