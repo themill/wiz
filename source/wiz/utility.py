@@ -473,7 +473,7 @@ def combine_command(elements):
     return " ".join([pipes.quote(element) for element in elements])
 
 
-def colored(message, color):
+def colored_text(message, color):
     """Return colored *message* according to color *name*.
 
     Available color names are: "black", "red", "green", "yellow", "blue",
