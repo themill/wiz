@@ -59,4 +59,3 @@ def test_execute_fail(
     logger.error.assert_called_once_with(
         "Executable can not be found within resolved environment [app_exe]"
     )
-    logger.debug.assert_called_once_with(exception, traceback=mocker.ANY)
