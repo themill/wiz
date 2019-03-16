@@ -1692,7 +1692,7 @@ def test_use_with_resolution_error(
         "RAISE_EXCEPTION", error=exception
     )
 
-    logger.error.assert_called_once_with("Oh Shit!", traceback=True)
+    logger.error.assert_called_once_with("Oh Shit!")
 
 
 @pytest.mark.parametrize("options", [
@@ -2016,7 +2016,7 @@ def test_run_with_resolution_error(
         "RAISE_EXCEPTION", error=exception
     )
 
-    logger.error.assert_called_once_with("Oh Shit!", traceback=True)
+    logger.error.assert_called_once_with("Oh Shit!")
 
 
 def test_run_initial_environment(
@@ -2369,7 +2369,7 @@ def test_freeze_with_resolution_error(
         "RAISE_EXCEPTION", error=exception
     )
 
-    logger.error.assert_called_once_with("Oh Shit!", traceback=True)
+    logger.error.assert_called_once_with("Oh Shit!")
     logger.warning.assert_not_called()
 
 
@@ -2799,7 +2799,7 @@ def test_install_local_error(
         overwrite=False
     )
 
-    logger.error.assert_called_once_with(exception, traceback=True)
+    logger.error.assert_called_once_with(exception)
 
     mocked_history_record_action.assert_called_once_with(
         "RAISE_EXCEPTION", error=exception
@@ -2834,7 +2834,7 @@ def test_install_vcs_error(
         overwrite=False
     )
 
-    logger.error.assert_called_once_with(exception, traceback=True)
+    logger.error.assert_called_once_with(exception)
 
     mocked_history_record_action.assert_called_once_with(
         "RAISE_EXCEPTION", error=exception
@@ -3658,7 +3658,7 @@ def test_edit_error_raised(
     logger.info.assert_not_called()
     logger.warning.assert_not_called()
 
-    logger.error.assert_called_once_with("Oh Shit!", traceback=True)
+    logger.error.assert_called_once_with("Oh Shit!")
 
     mocked_history_record_action.assert_called_once_with(
         "RAISE_EXCEPTION", error=exception

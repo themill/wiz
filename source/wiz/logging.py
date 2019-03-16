@@ -181,3 +181,7 @@ class Logger(sawmill.logger.classic.Classic):
             log["date"] = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
 
         return log
+
+    def debug_traceback(self):
+        """Log a traceback as debug level message."""
+        self.debug("Traceback for latest error", traceback=True)
