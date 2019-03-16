@@ -6,6 +6,7 @@ import json
 import itertools
 import collections
 import datetime
+import time
 
 import click
 
@@ -1134,19 +1135,21 @@ def wiz_edit(click_context, **kwargs):
     "analyze",
     help=(
         """
-        Analyze all reachable definitions and display corresponding errors and
-        warnings.
+        Analyze reachable definitions and display corresponding errors and
+        warnings. A filter can be set to target specific definitions.
 
         Example::
 
             \b
             wiz analyze
+            wiz analyze --verbose
+            wiz analyze -f "foo"
             wiz -r /path/to/registry analyze
             wiz -add /path/to/additional/registry analyze
 
         """
     ),
-    short_help="Analyze all reachable definitions.",
+    short_help="Analyze reachable definitions.",
     context_settings=CONTEXT_SETTINGS
 )
 @click.option(
@@ -1155,9 +1158,24 @@ def wiz_edit(click_context, **kwargs):
     is_flag=True,
     default=False
 )
+@click.option(
+    "--verbose",
+    help="Increase verbosity of analysis.",
+    is_flag=True,
+    default=False
+)
+@click.option(
+    "-f", "--filter",
+    help="Target specific definition matching this filter.",
+    multiple=True,
+)
 @click.pass_context
 def wiz_analyze(click_context, **kwargs):
     """Display warning and error for each registry."""
+    logger = wiz.logging.Logger(__name__ + ".wiz_analyze")
+    if click_context.obj["recording_path"] is not None:
+        logger.error("Impossible to record history during analysis.")
+        return
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     system_mapping = (
@@ -1178,40 +1196,134 @@ def wiz_analyze(click_context, **kwargs):
 
         identifier = definition.qualified_version_identifier
 
+        # Skip definition if not matching filters.
+        if any(
+            _filter.lower() not in identifier.lower()
+            for _filter in kwargs["filter"]
+        ):
+            continue
+
         print("  - {}".format(identifier), end="")
         if kwargs["no_arch"]:
             system_label = wiz.utility.compute_system_label(definition)
             print(" [{}]".format(system_label), end="")
 
-        mapping = wiz.validate_definition(
-            definition,
-            definition_mapping=definition_mapping,
-            timeout=click_context.obj["timeout"]
+        display_definition_analysis(
+            definition, definition_mapping,
+            click_context.obj["timeout"],
+            kwargs["verbose"]
         )
-
-        errors = mapping.get("errors", [])
-        warnings = mapping.get("warnings", [])
-
-        if len(errors) > 0 or len(warnings) > 0:
-            print(":")
-
-            if len(errors) > 0:
-                print(wiz.utility.colored_text("\n".join(errors), color="red"))
-
-            if len(warnings) > 0:
-                print(
-                    wiz.utility.colored_text(
-                        "\n".join(warnings), color="yellow"
-                    )
-                )
-
-        else:
-            print(wiz.utility.colored_text(" ✔", color="green"))
 
     if latest_registry is None:
         print(wiz.utility.colored_text("No definitions found.", color="red"))
 
     print()
+
+
+def display_definition_analysis(
+    definition, definition_mapping=None, timeout=None, verbose=False
+):
+    """Analyze *definition* and display results.
+
+    *definition* should be a :class:`wiz.definition.Definition` instance.
+
+    *definition_mapping* is a mapping regrouping all available definitions
+    available. It could be fetched with :func:`fetch_definition_mapping`.
+    If no definition mapping is provided, a sensible one will be fetched from
+    :func:`default registries <wiz.registry.get_defaults>`.
+
+    *timeout* is the max time to expire before the resolve process is being
+    cancelled (in seconds). Default is 5 minutes.
+
+    *verbose* indicate whether time duration and history information should be
+    added to analysis.
+
+    Example::
+
+        >>> display_definition_analysis(definition)
+
+          - foo==10.0 ✘
+        critical: Failed to resolve graph at combination #10:
+
+        The dependency graph could not be resolved due to the following
+        requirement conflicts:
+          * foo ==1.5 	    [bar[1.5]==2.0.3]
+          * foo >=1, <1.5 	[bim==3.0.0]
+
+        >>> display_definition_analysis(definition, verbose=True)
+
+          - foo==10.0 ✘
+        critical: Failed to resolve graph at combination #10:
+
+        The dependency graph could not be resolved due to the following
+        requirement conflicts:
+          * foo ==1.5 	    [bar[1.5]==2.0.3]
+          * foo >=1, <1.5 	[bim==3.0.0]
+
+        * TIME DURATION: 0.276069879532
+        * CREATE_GRAPH: 1
+        * UPDATE_GRAPH: 6
+        * CREATE_NODE: 37
+        * CREATE_LINK: 98
+        * CREATE_DISTANCE_MAPPING: 15
+        * IDENTIFY_VARIANT_CONFLICTS: 3
+        * EXTRACT_GRAPH_COMBINATION: 10
+        * REMOVE_NODE: 25
+        * IDENTIFY_VERSION_CONFLICTS: 1
+        * RESOLUTION_ERROR: 10
+        * REPLACE_NODES: 3
+
+    """
+    if definition_mapping is None:
+        definition_mapping = wiz.fetch_definition_mapping(
+            wiz.registry.get_defaults()
+        )
+
+    if verbose:
+        wiz.history.start_recording()
+
+    time_start = time.time()
+
+    mapping = wiz.validate_definition(
+        definition,
+        definition_mapping=definition_mapping,
+        timeout=timeout
+    )
+
+    time_duration = time.time() - time_start
+
+    errors = mapping.get("errors", [])
+    warnings = mapping.get("warnings", [])
+
+    if len(errors) > 0 or len(warnings) > 0:
+        print(wiz.utility.colored_text(" ✘", color="red"))
+
+        if len(errors) > 0:
+            _errors = "\n".join(errors)
+            print(wiz.utility.colored_text(_errors, color="red"))
+
+        if len(warnings) > 0:
+            _warnings = "\n".join(warnings)
+            print(wiz.utility.colored_text(_warnings, color="yellow"))
+
+    else:
+        print(wiz.utility.colored_text(" ✔", color="green"))
+
+    if verbose:
+        _mapping = collections.OrderedDict({"TIME DURATION": time_duration})
+        history = wiz.history.get()
+
+        for action in history.get("actions", []):
+            identifier = action.get("identifier")
+            _mapping.setdefault(identifier, 0)
+            _mapping[identifier] += 1
+
+        message = "\n".join([
+            "    * {}: {}".format(key, value)
+            for key, value in _mapping.items()
+        ])
+
+        print(wiz.utility.colored_text(message + "\n", color="green"))
 
 
 def display_registries(paths):
