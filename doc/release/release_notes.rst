@@ -4,6 +4,35 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+        :tags: command-line
+
+        Added :option:`wiz analyze --verbose` to print out information about
+        history and execution time for each definition.
+
+    .. change:: new
+        :tags: command-line
+
+        Added :option:`wiz analyze --filter` to only display targeted
+        definitions. The :attr:`qualified version identifier
+        <wiz.definition.Definition.qualified_version_identifier>` should match
+        all filters for each definition displayed.
+
+    .. change:: changed
+        :tags: debug
+
+        Updated :func:`wiz.history.start_recording` to reset global history.
+        Previously, part of the global history mapping would be kept when the
+        recording was started several time.
+
+    .. change:: changed
+        :tags: debug
+
+        Updated :func:`wiz.history.record_action` to prevent serializing all
+        actions as it affects tremendously the execution time.
+
 .. release:: 2.2.0
     :date: 2019-03-14
 

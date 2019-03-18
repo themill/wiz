@@ -1166,7 +1166,7 @@ def wiz_edit(click_context, **kwargs):
 )
 @click.option(
     "-f", "--filter",
-    help="Target specific definition matching this filter.",
+    help="Target specific definitions matching this filter.",
     multiple=True,
 )
 @click.pass_context
