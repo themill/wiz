@@ -52,10 +52,15 @@ def start_recording(command=None):
     _IS_HISTORY_RECORDED = True
 
     global _HISTORY
-    _HISTORY["user"] = os.environ.get("USER")
-    _HISTORY["hostname"] = platform.node()
-    _HISTORY["timestamp"] = datetime.datetime.now().isoformat()
-    _HISTORY["timezone"] = time.tzname[1]
+    _HISTORY = {
+        "version": __version__,
+        "user": os.environ.get("USER"),
+        "hostname": platform.node(),
+        "timestamp": datetime.datetime.now().isoformat(),
+        "timezone": time.tzname[1],
+        "command": None,
+        "actions": []
+    }
 
     if command is not None:
         _HISTORY["command"] = command
@@ -92,9 +97,7 @@ def record_action(identifier, **kwargs):
         action["traceback"] = traceback.format_exc().splitlines()
 
     global _HISTORY
-    _HISTORY["actions"].append(
-        json.dumps(action, default=_json_default)
-    )
+    _HISTORY["actions"].append(action)
 
 
 def _json_default(_object):
