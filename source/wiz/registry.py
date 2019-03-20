@@ -234,7 +234,7 @@ def install_to_vcs(definitions, registry_uri, overwrite=False):
         )
 
     # Sanitize and encode definitions.
-    _definitions = [
+    encoded_definitions = [
         definition.sanitized().encode() for definition in definitions
     ]
 
@@ -245,7 +245,7 @@ def install_to_vcs(definitions, registry_uri, overwrite=False):
         ),
         params={"overwrite": json.dumps(overwrite)},
         data={
-            "contents": json.dumps(_definitions),
+            "contents": json.dumps(encoded_definitions),
             "author": wiz.filesystem.get_name()
         }
     )
