@@ -20,6 +20,12 @@ Release Notes
         <wiz.definition.Definition.qualified_version_identifier>` should match
         all filters for each definition displayed.
 
+    .. change:: new
+        :tags: API
+
+        Added :meth:`wiz.logging.Logger.debug_traceback` to log traceback from
+        latest error raised as a debug message.
+
     .. change:: changed
         :tags: debug
 
@@ -33,17 +39,17 @@ Release Notes
         Updated :func:`wiz.history.record_action` to prevent it from serializing
         all actions as it affects the execution time tremendously.
 
-    .. change:: new
-        :tags: API
-
-        Added :meth:`wiz.logging.Logger.debug_traceback` to log traceback from
-        latest error raised as a debug message.
-
     .. change:: changed
         :tags: command-line
 
         Updated to always log tracebacks as debug messages in order to reduce
         verbosity for command line usage in non-debug verbosity level.
+
+    .. change:: fixed
+
+        Updated :func:`wiz.registry.install_to_vcs` to
+        :meth:`sanitize <wiz.definition.Definition.sanitized>` definitions before
+        installation.
 
 .. release:: 2.2.0
     :date: 2019-03-14

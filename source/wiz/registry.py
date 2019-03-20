@@ -233,6 +233,11 @@ def install_to_vcs(definitions, registry_uri, overwrite=False):
             "{!r} is not a valid registry.".format(registry_identifier)
         )
 
+    # Sanitize and encode definitions.
+    encoded_definitions = [
+        definition.sanitized().encode() for definition in definitions
+    ]
+
     response = requests.post(
         "{server}/api/registry/{name}/release".format(
             server=wiz.symbol.WIZ_SERVER,
@@ -240,9 +245,7 @@ def install_to_vcs(definitions, registry_uri, overwrite=False):
         ),
         params={"overwrite": json.dumps(overwrite)},
         data={
-            "contents": json.dumps([
-                definition.encode() for definition in definitions
-            ]),
+            "contents": json.dumps(encoded_definitions),
             "author": wiz.filesystem.get_name()
         }
     )
