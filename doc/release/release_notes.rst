@@ -25,13 +25,13 @@ Release Notes
 
         Updated :func:`wiz.history.start_recording` to reset global history.
         Previously, part of the global history mapping would be kept when the
-        recording was started several time.
+        recording was started several times.
 
     .. change:: changed
         :tags: debug
 
-        Updated :func:`wiz.history.record_action` to prevent serializing all
-        actions as it affects tremendously the execution time.
+        Updated :func:`wiz.history.record_action` to prevent it from serializing
+        all actions as it affects the execution time tremendously.
 
 .. release:: 2.2.0
     :date: 2019-03-14
