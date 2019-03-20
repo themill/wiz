@@ -48,7 +48,7 @@ Release Notes
     .. change:: fixed
 
         Updated :func:`wiz.registry.install_to_vcs` to
-        :meth`sanitize <wiz.definition.Definition.sanitized>` definitions before
+        :meth:`sanitize <wiz.definition.Definition.sanitized>` definitions before
         installation.
 
 .. release:: 2.2.0
