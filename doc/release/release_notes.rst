@@ -15,8 +15,8 @@ Release Notes
     .. change:: changed
         :tags: command-line
 
-        Updated :mod:`wiz` to always log tracebacks as debug messages in order
-        to reduce verbosity for command line usage in non-debug verbosity level.
+        Updated to always log tracebacks as debug messages in order to reduce
+        verbosity for command line usage in non-debug verbosity level.
 
 .. release:: 2.2.0
     :date: 2019-03-14
