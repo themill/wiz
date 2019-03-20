@@ -422,8 +422,8 @@ def discover(paths, system_mapping=None, max_depth=None):
                     logger.warning(
                         "Error occurred trying to load definition from {!r}"
                         .format(_path),
-                        traceback=True
                     )
+                    logger.debug_traceback()
                     continue
 
                 # Skip definition if an incompatible system if set.

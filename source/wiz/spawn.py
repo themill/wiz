@@ -104,12 +104,12 @@ def execute(elements, environment):
 
     try:
         subprocess.call(elements, env=environment)
-    except OSError as error:
+    except OSError:
         logger.error(
             "Executable can not be found within resolved "
             "environment [{}]".format(elements[0])
         )
-        logger.debug(error, traceback=True)
+        logger.debug_traceback()
 
 
 def _cleanup(signum, frame):

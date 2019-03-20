@@ -665,7 +665,8 @@ def wiz_use(click_context, **kwargs):
             wiz.spawn.execute(command_elements, wiz_context["environ"])
 
     except wiz.exception.WizError as error:
-        logger.error(str(error), traceback=True)
+        logger.error(str(error))
+        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -748,7 +749,8 @@ def wiz_run(click_context, **kwargs):
             wiz.spawn.execute(command_elements, wiz_context["environ"])
 
     except wiz.exception.WizError as error:
-        logger.error(str(error), traceback=True)
+        logger.error(str(error))
+        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -856,7 +858,8 @@ def wiz_freeze(click_context, **kwargs):
             )
 
     except wiz.exception.WizError as error:
-        logger.error(str(error), traceback=True)
+        logger.error(str(error))
+        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -944,7 +947,8 @@ def wiz_install(click_context, **kwargs):
             break
 
         except Exception as error:
-            logger.error(error, traceback=True)
+            logger.error(error)
+            logger.debug_traceback()
 
             wiz.history.record_action(
                 wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -1122,7 +1126,8 @@ def wiz_edit(click_context, **kwargs):
                     overwrite = True
 
     except Exception as error:
-        logger.error(str(error), traceback=True)
+        logger.error(str(error))
+        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
