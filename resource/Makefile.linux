@@ -1,0 +1,65 @@
+# Build Python 2.7.12 and install Wiz from the Mill DEVPI index.
+
+current_dir = $(shell pwd)
+src_dir = $(current_dir)/src
+tools_dir = $(current_dir)/builder-tools
+
+SHELL := /bin/bash
+
+export PATH = $(current_dir)/bin:$(tools_dir)/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
+
+export LD_LIBRARY_PATH = $(current_dir)/lib:$(current_dir)/lib64
+export PKG_CONFIG_PATH = $(current_dir)/lib/pkgconfig:$(current_dir)/lib64/pkgconfig
+export PYTHONPATH = $(current_dir)/lib/python2.7/site-packages
+export CXXFLAGS = -fPIC
+export CFLAGS = -fPIC
+
+all: builder-tools python pip wiz finish
+
+builder-tools: builder-tools
+python: src/Python-2.7.12
+pip: src/get-pip.py
+wiz: bin/wiz
+
+builder-tools:
+	mkdir -p $(tools_dir)
+	wget http://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 --directory-prefix=$(tools_dir)/src
+	tar xjf $(tools_dir)/src/patchelf-0.9.tar.bz2 -C $(tools_dir)/src
+	cd $(tools_dir)/src/patchelf-0.9 \
+	&& ./configure --prefix=$(tools_dir) && make && make install
+
+src/Python-2.7.12:
+	wget https://www.python.org/ftp/python/2.7.12/Python-2.7.12.tar.xz --directory-prefix=$(src_dir)
+	tar xf $(src_dir)/Python-2.7.12.tar.xz -C $(src_dir)
+	cd $(src_dir)/Python-2.7.12 \
+	&& ./configure --prefix=$(current_dir) --enable-shared --with-system-expat \
+	   --with-system-ffi --enable-unicode=ucs4 \
+	&& make && make install
+	patchelf --set-rpath $(current_dir)/lib $(current_dir)/bin/python2.7
+	for lib in `find $(current_dir)/lib/python2.7/lib-dynload/ -type f -name "*.so"`; do \
+		patchelf --set-rpath $(current_dir)/lib $$lib; \
+	done
+
+src/get-pip.py:
+	wget https://bootstrap.pypa.io/get-pip.py --no-check-certificate --directory-prefix $(src_dir)
+	python $(src_dir)/get-pip.py --prefix $(current_dir)
+
+bin/wiz:
+	bin/pip install wiz \
+	--no-cache-dir \
+	--index http://devpi.themill.com/mill/noarch/+simple/ \
+	--trusted-host devpi.themill.com
+
+finish:
+	rm -rf $(tools_dir)
+	rm -rf $(src_dir)
+	rm -rf share
+
+clean:
+	rm -rf src || true
+	rm -rf bin || true
+	rm -rf lib || true
+	rm -rf include || true
+	rm -rf share || true
+	rm -rf $(tools_dir) || true
+
