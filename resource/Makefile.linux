@@ -54,6 +54,7 @@ finish:
 	rm -rf $(tools_dir)
 	rm -rf $(src_dir)
 	rm -rf share
+	rm -rf include
 
 clean:
 	rm -rf src || true
