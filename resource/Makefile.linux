@@ -35,9 +35,9 @@ src/Python-2.7.12:
 	&& ./configure --prefix=$(current_dir) --enable-shared \
 	   --with-system-ffi --enable-unicode=ucs4 \
 	&& make && make install
-	patchelf --set-rpath $$ORIGIN/lib $(current_dir)/bin/python2.7
+	patchelf --set-rpath \$$ORIGIN/lib $(current_dir)/bin/python2.7
 	for lib in `find $(current_dir)/lib/python2.7/lib-dynload/ -type f -name "*.so"`; do \
-		patchelf --set-rpath $$ORIGIN/lib $$lib; \
+		patchelf --set-rpath \$$ORIGIN/lib $$lib; \
 	done
 
 src/get-pip.py:
