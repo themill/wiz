@@ -32,7 +32,7 @@ src/Python-2.7.12:
 	wget https://www.python.org/ftp/python/2.7.12/Python-2.7.12.tar.xz --directory-prefix=$(src_dir)
 	tar xf $(src_dir)/Python-2.7.12.tar.xz -C $(src_dir)
 	cd $(src_dir)/Python-2.7.12 \
-	&& ./configure --prefix=$(current_dir) --enable-shared --with-system-expat \
+	&& ./configure --prefix=$(current_dir) --enable-shared \
 	   --with-system-ffi --enable-unicode=ucs4 \
 	&& make && make install
 	patchelf --set-rpath $$ORIGIN/lib $(current_dir)/bin/python2.7
