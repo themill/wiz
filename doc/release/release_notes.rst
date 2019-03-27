@@ -4,7 +4,8 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 2.5.0
+    :date: 2019-03-27
 
     .. change:: changed
         :tags: debug
