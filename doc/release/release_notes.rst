@@ -10,8 +10,8 @@ Release Notes
         :tags: debug
 
         Updated :func:`wiz.history.start_recording` to add a "minimal_actions"
-        option which only keep the 'identifier' keyword from action recorded
-        and discard all other elements passed to
+        option which only keeps the 'identifier' keyword from action recorded
+        and discards all other elements passed to
         :func:`wiz.history.record_action`.
 
         This option is used to preserve the accuracy of execution time in
