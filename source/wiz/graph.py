@@ -2264,7 +2264,6 @@ class _DistanceQueue(dict):
         Raise :exc:`IndexError` if the object is empty.
 
         """
-
         heap = self._heap
         distance, identifier = heappop(heap)
 
