@@ -4,7 +4,7 @@
 Release Notes
 *************
 
-.. release:: 2.4.0
+.. release:: Upcoming
 
     .. change:: changed
         :tags: debug
