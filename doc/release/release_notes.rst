@@ -4,6 +4,31 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+        :tags: resolver
+
+        Updated :class:`wiz.graph.Resolver` to add a maximum number of attempts
+        to resolve a graph from the initial package requirements. Default is set
+        to 150 and can be modified via the "maximum_attempts" keyword option in
+        the constructor.
+
+    .. change:: new
+        :tags: command-line
+
+        Added :option:`--max-attempts <wiz --max-attempts>` to modify the
+        maximum number of attempts to resolve a context from a list of package
+        requests.
+
+    .. change:: changed
+        :tags: API
+
+        Updated :class:`wiz.resolve_context` and
+        :class:`wiz.validate_definition` to add an optional "maximum_attempts"
+        argument in order to modify the maximum number of attempts to resolve a
+        context.
+
 .. release:: 2.5.0
     :date: 2019-03-27
 
