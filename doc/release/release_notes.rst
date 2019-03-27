@@ -4,6 +4,17 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: command-line
+
+        Explicitly set the name of the program to "wiz" instead of relying on
+        :data:`sys.argv` in order to prevent "__main__.py" to be displayed when
+        the command is being run as follows::
+
+            python -m wiz --help
+
 .. release:: 2.3.0
     :date: 2019-03-20
 
