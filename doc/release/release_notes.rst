@@ -5,6 +5,24 @@ Release Notes
 *************
 
 .. release:: 2.4.0
+
+    .. change:: changed
+        :tags: debug
+
+        Updated :func:`wiz.history.start_recording` to add a "minimal_actions"
+        option which only keep the 'identifier' keyword from action recorded
+        and discard all other elements passed to :func:`record_action`.
+
+        This option is used to preserve the accuracy of execution time in
+        the :option:`wiz analyze --verbose` command line option.
+
+    .. change:: fixed
+        :tags: debug
+
+        Updated :func:`wiz.history.record_action` to copy each action in order
+        to prevent mutating its content.
+
+.. release:: 2.4.0
     :date: 2019-03-26
 
     .. change:: changed
