@@ -1285,7 +1285,7 @@ def display_definition_analysis(
         )
 
     if verbose:
-        wiz.history.start_recording()
+        wiz.history.start_recording(minimal_actions=True)
 
     time_start = time.time()
 
