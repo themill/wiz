@@ -148,7 +148,7 @@ def fetch_package_request_from_command(command_request, definition_mapping):
 
 def resolve_context(
     requests, definition_mapping=None, ignore_implicit=False,
-    environ_mapping=None, maximum_iterations=150, timeout=300
+    environ_mapping=None, maximum_attempts=150, timeout=300
 ):
     """Return context mapping from *requests*.
 
@@ -192,8 +192,8 @@ def resolve_context(
     *environ_mapping* can be a mapping of environment variables which would
     be augmented by the resolved environment.
 
-    *maximum_iterations* is the maximum number of graph combination iterations
-    before the resolve process is being cancelled. Default is 150.
+    *maximum_attempts* is the maximum number of attempts to resolve the context.
+    Default is 150.
 
     *timeout* is the maximum time to expire before the resolve process is being
     cancelled (in seconds). Default is 5 minutes.
@@ -221,7 +221,7 @@ def resolve_context(
     registries = definition_mapping["registries"]
     resolver = wiz.graph.Resolver(
         definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
-        maximum_iterations=maximum_iterations,
+        maximum_attempts=maximum_attempts,
         timeout=timeout
     )
     packages = resolver.compute_packages(requirements)
@@ -503,7 +503,7 @@ def export_script(
 
 
 def validate_definition(
-    definition, definition_mapping=None, maximum_iterations=150, timeout=300
+    definition, definition_mapping=None, maximum_attempts=150, timeout=300
 ):
     """Return validation mapping for *definition*.
 
@@ -521,8 +521,8 @@ def validate_definition(
     If no definition mapping is provided, a sensible one will be fetched from
     :func:`default registries <wiz.registry.get_defaults>`.
 
-    *maximum_iterations* is the maximum number of graph combination iterations
-    before the resolve process is being cancelled. Default is 150.
+    *maximum_attempts* is the maximum number of attempts to resolve the context.
+    Default is 150.
 
     *timeout* is the maximum time to expire before the resolve process is being
     cancelled (in seconds). Default is 5 minutes.
@@ -542,7 +542,7 @@ def validate_definition(
 
     mapping = _fetch_validation_mapping(
         log_error, log_warning, definition, definition_mapping,
-        maximum_iterations, timeout
+        maximum_attempts, timeout
     )
 
     # Reset logging handlers.
@@ -552,7 +552,7 @@ def validate_definition(
 
 
 def _fetch_validation_mapping(
-    log_error, log_warning, definition, definition_mapping, maximum_iterations,
+    log_error, log_warning, definition, definition_mapping, maximum_attempts,
     timeout
 ):
     """Fetch errors and warnings from definition for *definition*.
@@ -570,8 +570,8 @@ def _fetch_validation_mapping(
 
     *definition* is an instance of :class:`wiz.definition.Definition`.
 
-    *maximum_iterations* is the maximum number of graph combination iterations
-    before the resolve process is being cancelled.
+    *maximum_attempts* is the maximum number of attempts to resolve the context.
+    Default is 150.
 
     *timeout* is the maximum time to expire before the resolve process is being
     cancelled (in seconds).
@@ -589,7 +589,7 @@ def _fetch_validation_mapping(
             [definition.qualified_version_identifier],
             definition_mapping,
             ignore_implicit=True,
-            maximum_iterations=maximum_iterations,
+            maximum_attempts=maximum_attempts,
             timeout=timeout
         )
 

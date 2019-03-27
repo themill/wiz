@@ -71,20 +71,19 @@ class Resolver(object):
 
     .. note::
 
-        A maximum number of combination iterations could be provided to prevent
-        unreasonable resolution time.
+        A maximum number of attempts to resolve the graph can be provided to
+        limit the number of combinations generated.
 
     """
 
-    def __init__(self, definition_mapping, maximum_iterations=150, timeout=300):
+    def __init__(self, definition_mapping, maximum_attempts=150, timeout=300):
         """Initialise Resolver with *requirements*.
 
         *definition_mapping* is a mapping regrouping all available definitions
         associated with their unique identifier.
 
-        *maximum_iterations* is the maximum number of graph combination
-        iterations before the resolve process is being cancelled. Default is
-        150.
+        *maximum_attempts* is the maximum number of attempts to resolve the
+        graph. Default is 150.
 
         *timeout* is the maximum time to expire before the resolve process is
         being cancelled (in seconds). Default is 5 minutes.
@@ -110,8 +109,8 @@ class Resolver(object):
         # Time limit for the resolution process.
         self._timeout = timeout
 
-        # Maximum combination iterations for the resolution process.
-        self._maximum_iterations = maximum_iterations
+        # Maximum resolution attempts.
+        self._maximum_attempts = maximum_attempts
 
         # Record node identifiers with error to prevent it being used in more
         # than one combination.
@@ -171,7 +170,7 @@ class Resolver(object):
 
         while True:
             graph, nodes_to_remove = self._fetch_next_combination()
-            if graph is None or nb_failures >= self._maximum_iterations:
+            if graph is None or nb_failures >= self._maximum_attempts:
                 latest_error.message = (
                     "Failed to resolve graph at combination #{}:\n\n"
                     "{}".format(nb_failures, latest_error.message)
