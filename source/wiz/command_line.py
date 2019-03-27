@@ -197,6 +197,14 @@ class _MainGroup(click.Group):
     default=300,
     type=int
 )
+@click.option(
+    "--max-iterations",
+    help="Maximum combination number for graph resolution.",
+    metavar="ITERATIONS",
+    default=150,
+    show_default=True,
+    type=int
+)
 @click.pass_context
 def main(click_context, **kwargs):
     """Main entry point for the command line interface."""
@@ -240,7 +248,8 @@ def main(click_context, **kwargs):
         "ignore_implicit_packages": kwargs["ignore_implicit"],
         "initial_environment": initial_environment,
         "recording_path": kwargs["record"],
-        "timeout": kwargs["timeout"]
+        "timeout": kwargs["timeout"],
+        "max_iterations": kwargs["max_iterations"]
     })
 
 
@@ -644,6 +653,7 @@ def wiz_use(click_context, **kwargs):
         wiz_context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
             ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
+            maximum_iterations=click_context.obj["max_iterations"],
             timeout=click_context.obj["timeout"]
         )
 
@@ -732,6 +742,7 @@ def wiz_run(click_context, **kwargs):
         wiz_context = wiz.resolve_context(
             [request], definition_mapping,
             ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
+            maximum_iterations=click_context.obj["max_iterations"],
             timeout=click_context.obj["timeout"]
         )
 
@@ -813,6 +824,7 @@ def wiz_freeze(click_context, **kwargs):
         _context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
             ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
+            maximum_iterations=click_context.obj["max_iterations"],
             timeout=click_context.obj["timeout"]
         )
         identifier = _query_identifier()
@@ -1214,9 +1226,11 @@ def wiz_analyze(click_context, **kwargs):
             print(" [{}]".format(system_label), end="")
 
         display_definition_analysis(
-            definition, definition_mapping,
-            click_context.obj["timeout"],
-            kwargs["verbose"]
+            definition,
+            definition_mapping=definition_mapping,
+            maximum_iterations=click_context.obj["max_iterations"],
+            timeout=click_context.obj["timeout"],
+            verbose=kwargs["verbose"]
         )
 
     if latest_registry is None:
@@ -1226,7 +1240,8 @@ def wiz_analyze(click_context, **kwargs):
 
 
 def display_definition_analysis(
-    definition, definition_mapping=None, timeout=None, verbose=False
+    definition, definition_mapping=None, maximum_iterations=150, timeout=300,
+    verbose=False
 ):
     """Analyze *definition* and display results.
 
@@ -1237,7 +1252,10 @@ def display_definition_analysis(
     If no definition mapping is provided, a sensible one will be fetched from
     :func:`default registries <wiz.registry.get_defaults>`.
 
-    *timeout* is the max time to expire before the resolve process is being
+    *maximum_iterations* is the maximum number of graph combination iterations
+    before the resolve process is being cancelled. Default is 150.
+
+    *timeout* is the maximum time to expire before the resolve process is being
     cancelled (in seconds). Default is 5 minutes.
 
     *verbose* indicate whether time duration and history information should be
@@ -1292,6 +1310,7 @@ def display_definition_analysis(
     mapping = wiz.validate_definition(
         definition,
         definition_mapping=definition_mapping,
+        maximum_iterations=maximum_iterations,
         timeout=timeout
     )
 
