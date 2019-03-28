@@ -34,6 +34,11 @@ All these packages can be used with ``wiz use``.
     maya::pod [2018]      2.3.3      0          POD plugin for Maya.
     ...
 
+.. hint::
+
+    Packages can be requested without explict
+    :ref:`namespace <definition/namespace>`.
+
 .. seealso:: :ref:`definition`
 
 Running ``wiz list command`` will output a long list of commands found in the
@@ -227,6 +232,13 @@ For convenience, commands can be automatically run once the environment got
 resolved using ``--``, i.e::
 
     >>> wiz use maya maya::xmlf maya::pod mtoa -- maya
+
+.. hint::
+
+    Packages can be requested without explict
+    :ref:`namespace <definition/namespace>`, i.e.::
+
+            >>> wiz use maya xmlf pod mtoa -- maya
 
 .. note::
 
