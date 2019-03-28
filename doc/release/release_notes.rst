@@ -7,6 +7,11 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: changed
+        :tags: documentation
+
+        Updated :ref:`tutorial`.
+
+    .. change:: changed
         :tags: command-line
 
         Updated ``wiz list command`` to display the corresponding system
