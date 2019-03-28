@@ -63,4 +63,3 @@ clean:
 	rm -rf include || true
 	rm -rf share || true
 	rm -rf $(tools_dir) || true
-
