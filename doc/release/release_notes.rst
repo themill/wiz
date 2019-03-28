@@ -4,6 +4,66 @@
 Release Notes
 *************
 
+.. release:: 2.6.0
+    :date: 2019-03-28
+
+    .. change:: changed
+        :tags: documentation
+
+        Updated :ref:`tutorial`.
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated ``wiz list command`` to display the corresponding system
+        requirement only if :option:`wiz list command --no-arch` is used.
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated ``wiz list package`` to display the corresponding system
+        requirement only if :option:`wiz list package --no-arch` is used.
+
+    .. change:: fixed
+        :tags: command-line, API
+
+        Updated :func:`wiz.definition.fetch` and ``wiz list command`` to use
+        the qualified definition identifier when registering the commands.
+        Otherwise, it wouldn't find the definition corresponding to a particular
+        command.
+
+.. release:: 2.5.0
+    :date: 2019-03-27
+
+    .. change:: changed
+        :tags: debug
+
+        Updated :func:`wiz.history.start_recording` to add a "minimal_actions"
+        option which only keeps the 'identifier' keyword from each action
+        recorded and discards all other elements passed to
+        :func:`wiz.history.record_action`.
+
+        This option is used to preserve the accuracy of execution time in
+        the :option:`wiz analyze --verbose` command line option.
+
+    .. change:: fixed
+        :tags: debug
+
+        Updated :func:`wiz.history.record_action` to copy each action in order
+        to prevent mutating its content.
+
+.. release:: 2.4.0
+    :date: 2019-03-26
+
+    .. change:: changed
+        :tags: command-line
+
+        Explicitly set the name of the program to "wiz" instead of relying on
+        :data:`sys.argv` in order to prevent "__main__.py" to be displayed when
+        the command is being run as follows::
+
+            python -m wiz --help
+
 .. release:: 2.3.0
     :date: 2019-03-20
 

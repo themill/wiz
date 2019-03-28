@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import os
+import copy
 import platform
 import datetime
 import json
@@ -13,6 +14,9 @@ from wiz.utility import Requirement, Version
 
 #: Indicate whether the history should be recorded.
 _IS_HISTORY_RECORDED = False
+
+#: Indicate whether actions should only include 'identifier' keyword.
+_MINIMAL_ACTIONS_REQUIRED = False
 
 #: Mapping containing the entire context resolution history report.
 _HISTORY = {
@@ -38,18 +42,26 @@ def get(serialized=False):
     return _HISTORY
 
 
-def start_recording(command=None):
+def start_recording(command=None, minimal_actions=False):
     """Start recording the execution history.
 
     This command will add information about the execution context to the history
     mapping (username, hostname, time, timezone) and activate the recording
-    of actions via the :func:`record_action` function.
+    of actions via :func:`record_action`.
 
     *command* can indicate the command line which is being executed.
+
+    *minimal_actions* indicate whether actions should only include the
+    'identifier' keyword and discard all other elements passed to
+    :func:`record_action`. If False, the execution time will be longer when
+    history is being recorded. Default is False.
 
     """
     global _IS_HISTORY_RECORDED
     _IS_HISTORY_RECORDED = True
+
+    global _MINIMAL_ACTIONS_REQUIRED
+    _MINIMAL_ACTIONS_REQUIRED = minimal_actions
 
     global _HISTORY
     _HISTORY = {
@@ -91,13 +103,15 @@ def record_action(identifier, **kwargs):
         return
 
     action = {"identifier": identifier}
-    action.update(**kwargs)
 
-    if isinstance(action.get("error"), Exception):
-        action["traceback"] = traceback.format_exc().splitlines()
+    if not _MINIMAL_ACTIONS_REQUIRED:
+        action.update(**kwargs)
+
+        if isinstance(action.get("error"), Exception):
+            action["traceback"] = traceback.format_exc().splitlines()
 
     global _HISTORY
-    _HISTORY["actions"].append(action)
+    _HISTORY["actions"].append(copy.deepcopy(action))
 
 
 def _json_default(_object):

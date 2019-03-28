@@ -24,15 +24,20 @@ All these packages can be used with ``wiz use``.
     ----------------------------------------------
     [0] /mill3d/server/apps/WIZ/registry/primary/default
     [1] /mill3d/server/apps/WIZ/registry/secondary/default
-    [2] /usr/people/claudiaz/.wiz/registry
+    [2] /usr/people/{username}/.wiz/registry
 
 
     Package               Version    Registry   Description
     -------------------   --------   --------   --------------------
-    maya                  2018       0          Maya Application.
-    nuke                  11.1.1     0          Nuke Application.
-    pod-maya [2018]       2.3.3      0          POD plugin for Maya.
+    maya::maya            2018       0          Maya Application.
+    nuke::nuke            11.1.1     0          Nuke Application.
+    maya::pod [2018]      2.3.3      0          POD plugin for Maya.
     ...
+
+.. hint::
+
+    Packages can be requested without explict
+    :ref:`namespace <definition/namespace>`.
 
 .. seealso:: :ref:`definition`
 
@@ -63,12 +68,15 @@ This is what the :term:`Maya` package definition for example looks like:
 .. code-block:: console
 
     >>> wiz view maya
-    info: View definition: maya (2018)
+    info: Command found in definition: mill-maya==2018
+    info: View definition: maya::maya==2018.4.7
     identifier: maya
-    version: 2018
-    description: Maya Application.
+    version: 2018.4.7
+    namespace: maya
+    description: Autodesk Maya Application.
     registry: /mill3d/server/apps/WIZ/registry/primary/default
-    origin: /mill3d/server/apps/WIZ/registry/primary/default/maya/maya-2018.json
+    definition-location: /mill3d/server/apps/WIZ/registry/primary/default/maya/maya-2018.4.7.json
+    install-location: /mill3d/server/apps/MAYA/linux-x86-64/maya2018-UPD4P07
     system:
         arch: x86_64
         os: el >= 6, < 8
@@ -77,15 +85,18 @@ This is what the :term:`Maya` package definition for example looks like:
         mayapy: mayapy
     environ:
         MAYA_MMSET_DEFAULT_XCURSOR: 1
-        MAYA_LICENSE_METHOD: network
-        MAYA_OFFSCREEN_HRB: 1
-        MAYA_PLUGINS: ${MAYA_ROOT}/plugins/2018
+        MAYA_LOCATION: ${INSTALL_LOCATION}
+        PYTHONPATH: ${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}
+        MAYA_APP_DIR: /mill3d/work/${LOGNAME}/maya2018-UPD4P07:${MAYA_APP_DIR}
+        MAYA_PLUGINS: /mill3d/server/apps/MAYA/plugins/2018
         QT_COMPRESS_TABLET_EVENTS: 1
-        LM_LICENSE_FILE: 27000@licence3.themill.com:27000@licence7.themill.com:27000@permit.la.themill.com:27000@licence6.themill.com:27000@master.mill.co.uk
-        PATH: ${MAYA_LOCATION}/maya2018/bin:${PATH}
+        MAYA_VERSION: 2018
+        PATH: ${INSTALL_LOCATION}/bin:${PATH}
+        MAYA_OFFSCREEN_HRB: 1
+        LD_LIBRARY_PATH: ${INSTALL_LOCATION}/lib:${LD_LIBRARY_PATH}
         AUTODESK_ADLM_THINCLIENT_ENV: /mill3d/server/system/LICENCE/AUTODESK/ADLM/maya2018/adlm.xml
     requirements:
-            base-maya
+        maya::licence
 
 Creating environments
 ---------------------
@@ -107,6 +118,7 @@ additional environment variables are being set by Wiz itself, namely:
 * HOME
 * DISPLAY
 * PATH (with only executable folders from the workstation)
+* XAUTHORITY
 
 To check this, print the environment:
 
@@ -114,25 +126,31 @@ To check this, print the environment:
 
     bash-4.2$ env
     MAYA_PLUGINS=/mill3d/server/apps/MAYA/plugins/2018
+    HOSTNAME=la3d15.mill-la.com
+    MAYA_VERSION=2018
     QT_COMPRESS_TABLET_EVENTS=1
     MAYA_MMSET_DEFAULT_XCURSOR=1
-    WIZ_VERSION=0.7.0
+    WIZ_VERSION=2.5.0
+    MAYA_APP_DIR=/mill3d/work/claudiaz/maya2018-UPD4P07
     USER=claudiaz
-    PATH=/mill3d/server/apps/MAYA/linux-x86-64/maya2018/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    MAYA_ROOT=/mill3d/server/apps/MAYA
-    PWD=/home/claudiaz/dev/wiz
+    LD_LIBRARY_PATH=/mill3d/server/apps/MAYA/linux-x86-64/maya2018-UPD4P07/lib
+    WIZ_CONTEXT=eJyFizsOwjAQBa8SuY68/CRocgBOgBTLxWIvaJGdWF4blJweUvFpqJ40b8YYFdjR4Ei1jYo4YddtVuuD3un9QoQLKds2RkHkELYehPKdMmBKAqdjD5muLCVPkDJHfK2nC9ZQlvpvI+TGwf9Wt/EsoB88v8XPu0qGRGMKBC5g9Yzzt62sfQJq+Uqf
+    PATH=/mill3d/server/apps/MAYA/linux-x86-64/maya2018-UPD4P07/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    PWD=/mill3d/server/apps/PYTHON/packages
     AUTODESK_ADLM_THINCLIENT_ENV=/mill3d/server/system/LICENCE/AUTODESK/ADLM/maya2018/adlm.xml
-    LM_LICENSE_FILE=27000@licence3.themill.com:27000@licence7.themill.com:27000@permit.la.themill.com:27000@licence6.themill.com:27000@master.mill.co.uk
-    MAYA_LOCATION=/mill3d/server/apps/MAYA/linux-x86-64
+    MILL_JOB_LOCATION=LA
+    LM_LICENSE_FILE=27000@licence6.themill.com
+    MAYA_LOCATION=/mill3d/server/apps/MAYA/linux-x86-64/maya2018-UPD4P07
+    MILL_SITE=la
     SHLVL=1
     HOME=/usr/people/claudiaz
     LOGNAME=claudiaz
+    PYTHONPATH=/mill3d/server/apps/MAYA/linux-x86-64/maya2018-UPD4P07/lib/python2.7/site-packages
     MAYA_LICENSE_METHOD=network
-    WIZ_PACKAGES=WyJiYXNlLW1heWEiLCAibWF5YT09MjAxOCJd
     DISPLAY=:0
     MAYA_OFFSCREEN_HRB=1
+    XAUTHORITY=/run/gdm/auth-for-claudiaz-RPzH9x/database
     _=/usr/bin/env
-
 
 .. note::
 
@@ -154,64 +172,73 @@ To check this, print the environment:
         ----------------------------------------------
         [0] /mill3d/server/apps/WIZ/registry/primary/default
         [1] /mill3d/server/apps/WIZ/registry/secondary/default
-        [2] /usr/people/claudiaz/.wiz/registry
+        [2] /jobs/.wiz/registry/default
+        [3] /usr/people/{username}/.wiz/registry
 
-
-        Package     Version   Registry   Description
-        ---------   -------   --------   ------------------------------------------------
-        base-maya   unknown   0          Base environment variables for Maya Application.
-        maya        2018      0          Maya Application.
-
+        Package         Version    Registry   Description
+        -------------   --------   --------   ---------------------------------------
+        maya::licence   unknown    0          Licence for Autodesk Maya Applications.
+        maya::maya      2018.4.7   0          Autodesk Maya Application.
+        site            unknown    2          Current Mill site.
 
         Command   Value
         -------   --------
         maya      maya2018
         mayapy    mayapy
 
-
         Environment Variable           Environment Value
-        ----------------------------   -------------------------------------------------------------
+        ----------------------------   ----------------------------------------------------------------------------------
         AUTODESK_ADLM_THINCLIENT_ENV   /mill3d/server/system/LICENCE/AUTODESK/ADLM/maya2018/adlm.xml
         DISPLAY                        :0
         HOME                           /usr/people/claudiaz
-        LM_LICENSE_FILE                27000@licence3.themill.com
-                                       27000@licence7.themill.com
-                                       27000@permit.la.themill.com
-                                       27000@licence6.themill.com
-                                       27000@master.mill.co.uk
+        HOSTNAME                       la3d15.mill-la.com
+        LD_LIBRARY_PATH                /mill3d/server/apps/MAYA/linux-x86-64/maya2018-UPD4P07/lib
+        LM_LICENSE_FILE                27000@licence6.themill.com
         LOGNAME                        claudiaz
+        MAYA_APP_DIR                   /mill3d/work/claudiaz/maya2018-UPD4P07
         MAYA_LICENSE_METHOD            network
-        MAYA_LOCATION                  /mill3d/server/apps/MAYA/linux-x86-64
+        MAYA_LOCATION                  /mill3d/server/apps/MAYA/linux-x86-64/maya2018-UPD4P07
         MAYA_MMSET_DEFAULT_XCURSOR     1
         MAYA_OFFSCREEN_HRB             1
         MAYA_PLUGINS                   /mill3d/server/apps/MAYA/plugins/2018
-        MAYA_ROOT                      /mill3d/server/apps/MAYA
-        PATH                           /mill3d/server/apps/MAYA/linux-x86-64/maya2018/bin
+        MAYA_VERSION                   2018
+        MILL_JOB_LOCATION              LA
+        MILL_SITE                      la
+        PATH                           /mill3d/server/apps/MAYA/linux-x86-64/maya2018-UPD4P07/bin
                                        /usr/local/sbin
                                        /usr/local/bin
                                        /usr/sbin
                                        /usr/bin
                                        /sbin
                                        /bin
+        PYTHONPATH                     /mill3d/server/apps/MAYA/linux-x86-64/maya2018-UPD4P07/lib/python2.7/site-packages
         QT_COMPRESS_TABLET_EVENTS      1
         USER                           claudiaz
-        WIZ_PACKAGES                   WyJiYXNlLW1heWEiLCAibWF5YT09MjAxOCJd...
-        WIZ_VERSION                    0.7.0
+        WIZ_CONTEXT                    eJyFizsOwjAQBa8SuY68/CRocgBOgBTLxWIvaJGdWF4blJweUv...
+        WIZ_VERSION                    2.5.0
+        XAUTHORITY                     /run/gdm/auth-for-claudiaz-RPzH9x/database
 
 Now more plugins can be added to create a custom :term:`Maya` environment, i.e::
 
-    >>> wiz use maya xmlf-maya pod-maya mtoa bonustools-maya
+    >>> wiz use maya maya::xmlf maya::pod mtoa maya::bonustools
     bash-4.2$
 
 To run the ``maya`` command, just run it in the subshell::
 
-    >>> wiz use maya xmlf-maya pod-maya mtoa bonustools-maya
+    >>> wiz use maya maya::xmlf maya::pod mtoa maya::bonustools
     bash-4.2$ maya
 
 For convenience, commands can be automatically run once the environment got
 resolved using ``--``, i.e::
 
-    >>> wiz use maya xmlf-maya pod-maya mtoa -- maya
+    >>> wiz use maya maya::xmlf maya::pod mtoa -- maya
+
+.. hint::
+
+    Packages can be requested without explict
+    :ref:`namespace <definition/namespace>`, i.e.::
+
+            >>> wiz use maya xmlf pod mtoa -- maya
 
 .. note::
 
@@ -256,23 +283,19 @@ This is the ``mill-maya`` package definition for 2018 (latest):
     :emphasize-lines: 4, 15
 
     >>> wiz view mill-maya
-    info: View definition: mill-maya (2018)
+    info: View definition: mill-maya==2018
     identifier: mill-maya
     version: 2018
     description: Maya Application with Mill Plugins.
     registry: /mill3d/server/apps/WIZ/registry/secondary/default
-    origin: /mill3d/server/apps/WIZ/registry/secondary/default/maya/maya-2018.json
-    system:
-        arch: x86_64
-        os: el >= 6, < 8
+    definition-location: /mill3d/server/apps/WIZ/registry/secondary/default/maya/mill-maya-2018.json
     command:
         maya: maya2018
         mayapy: mayapy
     requirements:
-        maya ==2018
-        mill-maya-start
-        mtoa
-        miasma-maya
+        maya::maya >=2018, <2019
+        maya::mill-start
+        maya::mtoa
         ...
 
 To launch :term:`Maya` with this configuration, run::
@@ -290,7 +313,6 @@ with ``wiz view mill-maya``), :term:`Maya` could also be launched with the
 ``mill-maya`` configuration as follows::
 
     >>> wiz run maya
-
 
 A version specifier as those described in the :term:`PEP 440` specification can
 be used::
@@ -342,6 +364,14 @@ can be used:
         DISPLAY: None
         AUTODESK_ADLM_THINCLIENT_ENV: /mill3d/server/system/LICENCE/AUTODESK/ADLM/maya2018/adlm.xml
         LM_LICENSE_FILE: 27000@licence3.themill.com:27000@licence7.themill.com:27000@permit.la.themill.com:27000@licence6.themill.com:27000@master.mill.co.uk
+
+After viewing and maybe testing the definition, it should be removed from the
+personal registry, as keeping it will overwrite the "maya2018" and "mayapy"
+commands from the secondary registry, which is undesirable.
+
+.. code-block:: console
+
+    >>> rm ~/.wiz/registry/my-maya-0.1.0.json
 
 It is also possible to lock down an environment and write it out as a
 :term:`C-Shell` or :term:`Bash` wrapper:

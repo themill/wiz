@@ -69,7 +69,7 @@ def fetch(paths, system_mapping=None, max_depth=None):
         # Record commands from definition.
         for command in definition.command.keys():
             mapping[wiz.symbol.COMMAND_REQUEST_TYPE][command] = (
-                definition.identifier
+                definition.qualified_identifier
             )
 
         # Record package identifiers which should be used implicitly in context.

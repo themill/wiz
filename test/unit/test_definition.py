@@ -236,7 +236,7 @@ def test_fetch(mocked_discover, definitions, options):
             }
         },
         "command": {
-            "foo": "foo",
+            "foo": "test::foo",
             "bar": "bar",
             "baz": "baz",
             "bim-test": "bim",
@@ -303,7 +303,7 @@ def test_fetch_with_implicit_packages(mocked_discover, definitions, options):
             }
         },
         "command": {
-            "foo": "foo",
+            "foo": "test::foo",
             "bar": "bar",
             "baz": "baz",
             "bim-test": "bim",

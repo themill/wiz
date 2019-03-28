@@ -321,6 +321,7 @@ def wiz_list_package(click_context, **kwargs):
         package_mapping,
         click_context.obj["registry_paths"],
         all_versions=kwargs["all"],
+        with_system=kwargs["no_arch"]
     )
 
     _export_history_if_requested(click_context)
@@ -374,7 +375,7 @@ def wiz_list_command(click_context, **kwargs):
 
         for command in definition.command.keys():
             command_mapping.setdefault(command, [])
-            command_mapping[command] = definition.identifier
+            command_mapping[command] = definition.qualified_identifier
 
     display_registries(click_context.obj["registry_paths"])
 
@@ -383,6 +384,7 @@ def wiz_list_command(click_context, **kwargs):
         package_mapping,
         click_context.obj["registry_paths"],
         all_versions=kwargs["all"],
+        with_system=kwargs["no_arch"]
     )
 
     _export_history_if_requested(click_context)
@@ -485,6 +487,7 @@ def wiz_search(click_context, **kwargs):
             package_mapping,
             click_context.obj["registry_paths"],
             all_versions=kwargs["all"],
+            with_system=kwargs["no_arch"]
         )
 
     if kwargs["type"] in ["package", "all"] and len(package_mapping) > 0:
@@ -494,6 +497,7 @@ def wiz_search(click_context, **kwargs):
             package_mapping,
             click_context.obj["registry_paths"],
             all_versions=kwargs["all"],
+            with_system=kwargs["no_arch"]
         )
 
     if not results_found:
@@ -1285,7 +1289,7 @@ def display_definition_analysis(
         )
 
     if verbose:
-        wiz.history.start_recording()
+        wiz.history.start_recording(minimal_actions=True)
 
     time_start = time.time()
 
@@ -1408,7 +1412,8 @@ def display_definition(definition):
 
 
 def display_command_mapping(
-    command_mapping, package_mapping, registries, all_versions=False
+    command_mapping, package_mapping, registries, all_versions=False,
+    with_system=False
 ):
     """Display command mapping.
 
@@ -1443,6 +1448,9 @@ def display_command_mapping(
     displayed. Default is False, which means that only the latest version will
     be displayed.
 
+    *with_system* indicate whether the package system should be displayed.
+    Default is False.
+
     Example::
 
         >>> display_command_mapping(
@@ -1457,9 +1465,11 @@ def display_command_mapping(
         python    2.7.4     linux : el >= 6, <7   1          Python interpreter
 
     """
-    columns = _create_columns([
-        "Command", "Version", "System", "Registry", "Description"
-    ])
+    headers = ["Command", "Version", "Registry", "Description"]
+    if with_system:
+        headers.insert(2, "System")
+
+    columns = _create_columns(headers)
 
     success = False
 
@@ -1485,10 +1495,12 @@ def display_command_mapping(
                     rows = [
                         _identifier,
                         definition.version,
-                        system_label,
                         registries.index(definition.get("registry")),
                         definition.description
                     ]
+
+                    if with_system:
+                        rows.insert(2, system_label)
 
                     for index, row in enumerate(rows):
                         _create_row(row, columns[index])
@@ -1502,7 +1514,9 @@ def display_command_mapping(
     _display_table(columns)
 
 
-def display_package_mapping(package_mapping, registries, all_versions=False):
+def display_package_mapping(
+    package_mapping, registries, all_versions=False, with_system=False
+):
     """Display package mapping
 
     *package_mapping* should be a mapping which associates each package
@@ -1528,6 +1542,9 @@ def display_package_mapping(package_mapping, registries, all_versions=False):
     displayed. Default is False, which means that only the latest version will
     be displayed.
 
+    *with_system* indicate whether the package system should be displayed.
+    Default is False.
+
     Example::
 
         >>> display_command_mapping(
@@ -1545,9 +1562,11 @@ def display_package_mapping(package_mapping, registries, all_versions=False):
         python     2.7.4     linux : el >= 6, <7   0          Python interpreter
 
     """
-    columns = _create_columns([
-        "Package", "Version", "System", "Registry", "Description"
-    ])
+    headers = ["Package", "Version", "Registry", "Description"]
+    if with_system:
+        headers.insert(2, "System")
+
+    columns = _create_columns(headers)
 
     success = False
 
@@ -1573,10 +1592,12 @@ def display_package_mapping(package_mapping, registries, all_versions=False):
                     rows = [
                         _identifier,
                         definition.version,
-                        system_label,
                         registries.index(definition.get("registry")),
                         definition.description
                     ]
+
+                    if with_system:
+                        rows.insert(2, system_label)
 
                     for index, row in enumerate(rows):
                         _create_row(row, columns[index])
@@ -1768,7 +1789,7 @@ def _query_description():
     logger = wiz.logging.Logger(__name__ + "._query_description")
 
     while True:
-        value = click.prompt("Please enter a description:")
+        value = click.prompt("Please enter a description")
         description = value.strip()
 
         if len(description) > 5:
