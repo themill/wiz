@@ -4,7 +4,8 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 2.6.0
+    :date: 2019-03-28
 
     .. change:: changed
         :tags: documentation
