@@ -1768,7 +1768,7 @@ def _query_description():
     logger = wiz.logging.Logger(__name__ + "._query_description")
 
     while True:
-        value = click.prompt("Please enter a description:")
+        value = click.prompt("Please enter a description")
         description = value.strip()
 
         if len(description) > 5:
