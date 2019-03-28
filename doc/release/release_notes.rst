@@ -4,6 +4,13 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: documentation
+
+        Fixed error in :ref:`tutorial`.
+
 .. release:: 2.6.0
     :date: 2019-03-28
 
