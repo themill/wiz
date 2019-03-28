@@ -556,8 +556,8 @@ def test_list_packages_empty(
         "No registries to display.\n"
         "\n"
         "\n"
-        "Package   Version   System   Registry   Description\n"
-        "-------   -------   ------   --------   -----------\n"
+        "Package   Version   Registry   Description\n"
+        "-------   -------   --------   -----------\n"
         "No packages to display.\n"
         "\n"
     )
@@ -577,7 +577,9 @@ def test_list_packages(
     mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["list", "package"])
+    result = runner.invoke(
+        wiz.command_line.main, ["list", "package", "--no-arch"]
+    )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == (
@@ -600,7 +602,7 @@ def test_list_packages(
 
     mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        system_mapping="__SYSTEM__", max_depth=None
+        system_mapping=None, max_depth=None
     )
 
 
@@ -614,7 +616,9 @@ def test_list_packages_with_versions(
     mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["list", "package", "--all"])
+    result = runner.invoke(
+        wiz.command_line.main, ["list", "package", "--no-arch", "--all"]
+    )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == (
@@ -639,7 +643,7 @@ def test_list_packages_with_versions(
 
     mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        system_mapping="__SYSTEM__", max_depth=None
+        system_mapping=None, max_depth=None
     )
 
 
@@ -719,8 +723,8 @@ def test_list_commands_empty(
         "No registries to display.\n"
         "\n"
         "\n"
-        "Command   Version   System   Registry   Description\n"
-        "-------   -------   ------   --------   -----------\n"
+        "Command   Version   Registry   Description\n"
+        "-------   -------   --------   -----------\n"
         "No commands to display.\n"
         "\n"
     )
@@ -741,7 +745,9 @@ def test_list_commands(
     mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["list", "command"])
+    result = runner.invoke(
+        wiz.command_line.main, ["list", "command", "--no-arch"]
+    )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == (
@@ -762,7 +768,7 @@ def test_list_commands(
 
     mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        system_mapping="__SYSTEM__", max_depth=None
+        system_mapping=None, max_depth=None
     )
 
 
@@ -776,7 +782,9 @@ def test_list_commands_with_versions(
     mocked_definition_discover.return_value = definitions
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["list", "command", "--all"])
+    result = runner.invoke(
+        wiz.command_line.main, ["list", "command", "--all", "--no-arch"]
+    )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == (
@@ -799,7 +807,7 @@ def test_list_commands_with_versions(
 
     mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        system_mapping="__SYSTEM__", max_depth=None
+        system_mapping=None, max_depth=None
     )
 
 
@@ -916,14 +924,14 @@ def test_search(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Command             Version   System   Registry   Description       \n"
-        "-----------------   -------   ------   --------   ------------------\n"
-        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "Command             Version   Registry   Description       \n"
+        "-----------------   -------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
         "\n"
         "\n"
-        "Package          Version   System   Registry   Description       \n"
-        "--------------   -------   ------   --------   ------------------\n"
-        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "Package          Version   Registry   Description       \n"
+        "--------------   -------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
         "\n"
     )
 
@@ -953,7 +961,7 @@ def test_search_filtered_command(
 
     runner = CliRunner()
     result = runner.invoke(
-        wiz.command_line.main, ["search", "Exe"] + options
+        wiz.command_line.main, ["search", "Exe", "--no-arch"] + options
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -984,7 +992,7 @@ def test_search_filtered_command(
 
     mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        system_mapping="__SYSTEM__",
+        system_mapping=None,
         max_depth=None
     )
 
@@ -1000,7 +1008,7 @@ def test_search_with_versions(
 
     runner = CliRunner()
     result = runner.invoke(
-        wiz.command_line.main, ["search", "bim", "--all"]
+        wiz.command_line.main, ["search", "bim", "--all", "--no-arch"]
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -1029,7 +1037,7 @@ def test_search_with_versions(
 
     mocked_definition_discover.assert_called_once_with(
         ["/registry1", "/registry2"],
-        system_mapping="__SYSTEM__",
+        system_mapping=None,
         max_depth=None
     )
 
@@ -1057,9 +1065,9 @@ def test_search_packages(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Package          Version   System   Registry   Description       \n"
-        "--------------   -------   ------   --------   ------------------\n"
-        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "Package          Version   Registry   Description       \n"
+        "--------------   -------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
         "\n"
     )
 
@@ -1094,10 +1102,10 @@ def test_search_packages_with_versions(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Package          Version   System   Registry   Description       \n"
-        "--------------   -------   ------   --------   ------------------\n"
-        "bim [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
-        "bim              0.1.0     noarch   1          This is Bim 0.1.0.\n"
+        "Package          Version   Registry   Description       \n"
+        "--------------   -------   --------   ------------------\n"
+        "bim [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
+        "bim              0.1.0     1          This is Bim 0.1.0.\n"
         "\n"
     )
 
@@ -1131,9 +1139,9 @@ def test_search_commands(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Command             Version   System   Registry   Description       \n"
-        "-----------------   -------   ------   --------   ------------------\n"
-        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
+        "Command             Version   Registry   Description       \n"
+        "-----------------   -------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
         "\n"
     )
 
@@ -1168,10 +1176,10 @@ def test_search_commands_with_versions(
         "[1] /registry2\n"
         "\n"
         "\n"
-        "Command             Version   System   Registry   Description       \n"
-        "-----------------   -------   ------   --------   ------------------\n"
-        "bimExe [Variant1]   0.1.1     noarch   1          This is Bim 0.1.1.\n"
-        "bimExe              0.1.0     noarch   1          This is Bim 0.1.0.\n"
+        "Command             Version   Registry   Description       \n"
+        "-----------------   -------   --------   ------------------\n"
+        "bimExe [Variant1]   0.1.1     1          This is Bim 0.1.1.\n"
+        "bimExe              0.1.0     1          This is Bim 0.1.0.\n"
         "\n"
     )
 

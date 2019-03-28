@@ -4,6 +4,28 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated ``wiz list command`` to display the corresponding system
+        requirement only if :option:`wiz list command --no-arch` is used.
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated ``wiz list package`` to display the corresponding system
+        requirement only if :option:`wiz list package --no-arch` is used.
+
+    .. change:: fixed
+        :tags: command-line, API
+
+        Updated :func:`wiz.definition.fetch` and ``wiz list command`` to use
+        the qualified definition identifier when registering the commands.
+        Otherwise, it wouldn't find the definition corresponding to a particular
+        command.
+
 .. release:: 2.5.0
     :date: 2019-03-27
 
