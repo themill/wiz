@@ -29,6 +29,20 @@ Release Notes
         argument in order to modify the maximum number of attempts to resolve a
         context.
 
+    .. change:: changed
+        :tags: API, backwards-incompatible
+
+        Updated :class:`wiz.package.Package` to only store the definition
+        qualified identifier instead of storing the full
+        :class:`~wiz.definition.Definition` instance. Previously, it doubled the
+        serialization time when :func:`exporting the history <wiz.history.get>`.
+
+        The following methods has been renamed as part of this update:
+
+        * :meth:`wiz.package.Package.definition` → :meth:`wiz.package.Package.definition_identifier`
+        * :meth:`wiz.graph.Node.definition` → :meth:`wiz.graph.Node.definition_identifier`
+
+
 .. release:: 2.5.0
     :date: 2019-03-27
 
