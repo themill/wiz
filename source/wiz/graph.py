@@ -1106,11 +1106,11 @@ def extract_conflicting_nodes(graph, node):
     nodes = (graph.node(_id) for _id in graph.conflicting_identifiers())
 
     # Extract definition identifier
-    definition_identifier = node.definition.qualified_identifier
+    definition_identifier = node.definition_identifier
 
     return [
         _node for _node in nodes
-        if _node.definition.qualified_identifier == definition_identifier
+        if _node.definition_identifier == definition_identifier
         and _node.identifier != node.identifier
     ]
 
@@ -1208,7 +1208,7 @@ def extract_conflicting_requirements(graph, nodes):
 
     """
     # Ensure that definition requirement is the same for all nodes.
-    definitions = set(node.definition.qualified_identifier for node in nodes)
+    definitions = set(node.definition_identifier for node in nodes)
     if len(definitions) > 1:
         raise wiz.exception.GraphResolutionError(
             "All nodes should have the same definition identifier when "
@@ -1532,7 +1532,7 @@ class Graph(object):
         identifiers = []
 
         for node in self.nodes():
-            qualified_name = node.definition.qualified_identifier
+            qualified_name = node.definition_identifier
             name = qualified_name.split(wiz.symbol.NAMESPACE_SEPARATOR, 1)[-1]
             if requirement.name not in [qualified_name, name]:
                 continue
@@ -1947,7 +1947,7 @@ class Graph(object):
         self._node_mapping[identifier] = Node(package)
 
         # Record node identifiers per package to identify conflicts.
-        _definition_id = package.definition.qualified_identifier
+        _definition_id = package.definition_identifier
         self._identifiers_per_definition.setdefault(_definition_id, set())
         self._identifiers_per_definition[_definition_id].add(identifier)
 
@@ -1967,7 +1967,7 @@ class Graph(object):
 
         # This is not a set because the number of occurrences of each identifier
         # is used to determine its priority within the variant group.
-        _definition_id = node.definition.qualified_identifier
+        _definition_id = node.definition_identifier
         self._variants_per_definition.setdefault(_definition_id, [])
         self._variants_per_definition[_definition_id].append(identifier)
 
@@ -2096,9 +2096,9 @@ class Node(object):
         return self._package.qualified_identifier
 
     @property
-    def definition(self):
-        """Return corresponding :class:`wiz.definition.Definition` instance."""
-        return self._package.definition
+    def definition_identifier(self):
+        """Return corresponding definition identifier."""
+        return self._package.definition_identifier
 
     @property
     def package(self):
