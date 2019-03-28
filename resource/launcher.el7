@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/tcsh -f
 # Run Wiz within the Mill environment for CentOS 7.
-unset PYTHONPATH
-/mill3d/server/apps/WIZ/el7-x86-64/default/bin/python -m wiz $@
+unsetenv PYTHONPATH
+/mill3d/server/apps/PYTHON/el7-x86-64/mill_python/bin/wiz $argv:q
