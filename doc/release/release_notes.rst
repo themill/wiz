@@ -4,6 +4,13 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+        :tags: resource
+
+        Added Mill specific launchers and Makefile as a resource.
+
 .. release:: 2.6.0
     :date: 2019-03-28
 
