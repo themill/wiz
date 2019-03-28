@@ -1,0 +1,3 @@
+#!/bin/tcsh -f
+unsetenv PYTHONPATH
+/mill3d/server/apps/PYTHON/el6-x86-64/mill_python/bin/wiz $argv:q

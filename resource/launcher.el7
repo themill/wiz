@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+unset PYTHONPATH
+/mill3d/server/apps/WIZ/el7-x86-64/default/bin/python -m wiz $@
