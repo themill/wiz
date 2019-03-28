@@ -52,7 +52,7 @@ def test_extract_without_variant(
 
     mocked_package.assert_called_once_with({
         "identifier": "test==0.3.4",
-        "definition": definition,
+        "definition-identifier": "test",
         "version": Version("0.3.4"),
         "environ": {
             "KEY1": "VALUE1",
@@ -103,7 +103,7 @@ def test_extract_with_all_variants(
     assert mocked_package.call_count == 3
     mocked_package.assert_any_call({
         "identifier": "test[Variant1]==0.3.4",
-        "definition": definition,
+        "definition-identifier": "test",
         "version": Version("0.3.4"),
         "variant-name": "Variant1",
         "environ": {"KEY1": "VALUE1"}
@@ -111,7 +111,7 @@ def test_extract_with_all_variants(
 
     mocked_package.assert_any_call({
         "identifier": "test[Variant2]==0.3.4",
-        "definition": definition,
+        "definition-identifier": "test",
         "version": Version("0.3.4"),
         "variant-name": "Variant2",
         "environ": {"KEY2": "VALUE2"}
@@ -119,7 +119,7 @@ def test_extract_with_all_variants(
 
     mocked_package.assert_any_call({
         "identifier": "test[Variant3]==0.3.4",
-        "definition": definition,
+        "definition-identifier": "test",
         "version": Version("0.3.4"),
         "variant-name": "Variant3",
         "environ": {"KEY3": "VALUE3"}
@@ -168,7 +168,7 @@ def test_extract_with_one_requested_variant(
 
     mocked_package.assert_called_once_with({
         "identifier": "test[Variant2]==0.3.4",
-        "definition": definition,
+        "definition-identifier": "test",
         "version": Version("0.3.4"),
         "variant-name": "Variant2",
         "environ": {"KEY2": "VALUE2"}
@@ -503,36 +503,10 @@ def test_combine_command_mapping(mapping1, mapping2, expected):
 
 def test_package_mapping():
     """Create package and return mapping and serialized mapping."""
-    definition = wiz.definition.Definition({
-        "identifier": "test",
-        "version": "0.1.0",
-        "description": "This is a definition",
-        "registry": "/registry",
-        "definition-location": "/registry/test-0.1.0.json",
-        "auto-use": True,
-        "system": {
-            "platform": "linux",
-            "os": "el >= 6, < 7",
-            "arch": "x86_64"
-        },
-        "variants": [
-            {
-                "identifier": "V1",
-                "command": {
-                    "app": "AppX"
-                },
-                "environ": {
-                    "KEY1": "VALUE1"
-                },
-                "requirements": ["foo"]
-            }
-        ]
-    })
-
     data = {
         "identifier": "test[V1]==0.1.0",
         "version": "0.1.0",
-        "definition": definition,
+        "definition-identifier": "test",
         "variant-name": "V1",
         "description": "This is a definition",
         "registry": "/registry",
@@ -557,7 +531,7 @@ def test_package_mapping():
     assert environment.to_dict() == {
         "identifier": "test[V1]==0.1.0",
         "version": Version("0.1.0"),
-        "definition": definition,
+        "definition-identifier": "test",
         "variant-name": "V1",
         "description": "This is a definition",
         "registry": "/registry",
@@ -580,33 +554,7 @@ def test_package_mapping():
     assert environment.encode() == (
         "{\n"
         "    \"identifier\": \"test[V1]==0.1.0\",\n"
-        "    \"definition\": {\n"
-        "        \"identifier\": \"test\",\n"
-        "        \"version\": \"0.1.0\",\n"
-        "        \"description\": \"This is a definition\",\n"
-        "        \"registry\": \"/registry\",\n"
-        "        \"definition-location\": \"/registry/test-0.1.0.json\",\n"
-        "        \"auto-use\": true,\n"
-        "        \"system\": {\n"
-        "            \"platform\": \"linux\",\n"
-        "            \"os\": \"el >= 6, < 7\",\n"
-        "            \"arch\": \"x86_64\"\n"
-        "        },\n"
-        "        \"variants\": [\n"
-        "            {\n"
-        "                \"identifier\": \"V1\",\n"
-        "                \"command\": {\n"
-        "                    \"app\": \"AppX\"\n"
-        "                },\n"
-        "                \"environ\": {\n"
-        "                    \"KEY1\": \"VALUE1\"\n"
-        "                },\n"
-        "                \"requirements\": [\n"
-        "                    \"foo\"\n"
-        "                ]\n"
-        "            }\n"
-        "        ]\n"
-        "    },\n"
+        "    \"definition-identifier\": \"test\",\n"
         "    \"variant-name\": \"V1\",\n"
         "    \"version\": \"0.1.0\",\n"
         "    \"description\": \"This is a definition\",\n"
@@ -641,7 +589,7 @@ def test_minimal_package_without_variant():
     package = wiz.package.create(definition)
     assert package.identifier == "test"
     assert package.qualified_identifier == "test"
-    assert package.definition == definition
+    assert package.definition_identifier == "test"
     assert package.version == "unknown"
     assert package.variant_name is None
     assert package.description == "unknown"
@@ -650,7 +598,7 @@ def test_minimal_package_without_variant():
     assert package.requirements == []
 
     assert len(package) == 2
-    assert sorted(package) == ["definition", "identifier"]
+    assert sorted(package) == ["definition-identifier", "identifier"]
 
 
 def test_full_package_without_variant():
@@ -676,7 +624,7 @@ def test_full_package_without_variant():
     package = wiz.package.create(definition)
     assert package.identifier == "test==0.3.4"
     assert package.qualified_identifier == "test==0.3.4"
-    assert package.definition == definition
+    assert package.definition_identifier == "test"
     assert package.version == Version("0.3.4")
     assert package.variant_name is None
     assert package.description == "Test definition"
@@ -724,7 +672,7 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
     assert package.identifier == "test[Variant1]==0.1.0"
     assert package.get("install-location") == "/tmp"
     assert package.qualified_identifier == "test[Variant1]==0.1.0"
-    assert package.definition == definition
+    assert package.definition_identifier == "test"
     assert package.version == Version("0.1.0")
     assert package.variant_name == "Variant1"
     assert package.description == "This is a definition"
@@ -761,7 +709,7 @@ def test_package_with_namespace():
 
     assert package.identifier == "test==0.1.0"
     assert package.qualified_identifier == "Foo::test==0.1.0"
-    assert package.definition == definition
+    assert package.definition_identifier == "Foo::test"
     assert package.version == Version("0.1.0")
 
 
