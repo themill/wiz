@@ -204,7 +204,7 @@ class _MainGroup(click.Group):
          "package requests."
     ),
     metavar="NUMBER",
-    default=150,
+    default=10,
     show_default=True,
     type=int
 )

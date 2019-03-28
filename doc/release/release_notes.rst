@@ -11,7 +11,7 @@ Release Notes
 
         Updated :class:`wiz.graph.Resolver` to add a maximum number of attempts
         to resolve a graph from the initial package requirements. Default is set
-        to 150 and can be modified via the "maximum_attempts" keyword option in
+        to 10 and can be modified via the "maximum_attempts" keyword option in
         the constructor.
 
     .. change:: new

@@ -148,7 +148,7 @@ def fetch_package_request_from_command(command_request, definition_mapping):
 
 def resolve_context(
     requests, definition_mapping=None, ignore_implicit=False,
-    environ_mapping=None, maximum_attempts=150, timeout=300
+    environ_mapping=None, maximum_attempts=10, timeout=300
 ):
     """Return context mapping from *requests*.
 
@@ -193,7 +193,7 @@ def resolve_context(
     be augmented by the resolved environment.
 
     *maximum_attempts* is the maximum number of attempts to resolve the context.
-    Default is 150.
+    Default is 10.
 
     *timeout* is the maximum time to expire before the resolve process is being
     cancelled (in seconds). Default is 5 minutes.
@@ -503,7 +503,7 @@ def export_script(
 
 
 def validate_definition(
-    definition, definition_mapping=None, maximum_attempts=150, timeout=300
+    definition, definition_mapping=None, maximum_attempts=10, timeout=300
 ):
     """Return validation mapping for *definition*.
 
@@ -522,7 +522,7 @@ def validate_definition(
     :func:`default registries <wiz.registry.get_defaults>`.
 
     *maximum_attempts* is the maximum number of attempts to resolve the context.
-    Default is 150.
+    Default is 10.
 
     *timeout* is the maximum time to expire before the resolve process is being
     cancelled (in seconds). Default is 5 minutes.

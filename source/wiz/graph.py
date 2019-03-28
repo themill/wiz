@@ -76,14 +76,14 @@ class Resolver(object):
 
     """
 
-    def __init__(self, definition_mapping, maximum_attempts=150, timeout=300):
+    def __init__(self, definition_mapping, maximum_attempts=10, timeout=300):
         """Initialise Resolver with *requirements*.
 
         *definition_mapping* is a mapping regrouping all available definitions
         associated with their unique identifier.
 
         *maximum_attempts* is the maximum number of attempts to resolve the
-        graph. Default is 150.
+        graph. Default is 10.
 
         *timeout* is the maximum time to expire before the resolve process is
         being cancelled (in seconds). Default is 5 minutes.
