@@ -43,8 +43,8 @@ You can now use all the typical wiz commands to view and use that package::
 
     For example. With the following command a definition is created in the
     personal registry with the ``install-location`` set to data linking back
-    to the source code for development:
+    to the source code for development::
 
-        >>> qip install . -e --definition-path ~
+        >>> qip install . -e --definition-path ~/.wiz/registry
 
     There is no further install necessary for development.
