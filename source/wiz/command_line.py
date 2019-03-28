@@ -374,7 +374,7 @@ def wiz_list_command(click_context, **kwargs):
 
         for command in definition.command.keys():
             command_mapping.setdefault(command, [])
-            command_mapping[command] = definition.identifier
+            command_mapping[command] = definition.qualified_identifier
 
     display_registries(click_context.obj["registry_paths"])
 
