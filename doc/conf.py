@@ -95,7 +95,8 @@ intersphinx_mapping = {
     "infinite-monkey": (
         "http://rtd.themill.com/docs/infinite-monkey/en/stable/", None
     ),
-    "wiz-vault": ("http://rtd.themill.com/docs/wiz-vault/en/stable/", None)
+    "wiz-vault": ("http://rtd.themill.com/docs/wiz-vault/en/stable/", None),
+    "qip": ("http://rtd.themill.com/docs/qip/en/stable/", None)
 }
 
 

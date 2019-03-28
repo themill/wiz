@@ -33,6 +33,7 @@ location of the :term:`TD SVN` root folder within the project:
     >>> cat /jobs/ads/my_project/.wiz/registry/tdsvn.json
     {
         "identifier": "tdsvn",
+        "namespace": "maya",
         "description": "Environment for TD SVN.",
         "environ": {
             "PYTHONPATH": "${INSTALL_LOCATION}/library/python:${PYTHONPATH}",
@@ -61,8 +62,8 @@ desired :term:`Maya` version and :term:`TD SVN` requirement.
             "maya"
         ],
         "requirements": [
-            "maya == 2016.*",
-            "td-svn"
+            "maya::maya == 2016.*",
+            "maya::tdsvn"
         ]
     }
 
@@ -106,15 +107,20 @@ include all :term:`TD SVN` scripts and modules.
         [2] /jobs/.wiz/registry/default
         [3] /jobs/ads/my_project/.wiz/registry
 
-
         Package         Version   Registry   Description
-        -------------   -------   --------   ------------------------------------------------
-        base-maya       unknown   0          Base environment variables for Maya Application.
+        -------------   -------   --------   ---------------------------------------
         site            unknown   2          Current Mill site.
-        maya            2016      0          Maya Application.
+        maya::tdsvn     unknown   4          Environment for TD SVN.
+        maya::licence   unknown   0          Licence for Autodesk Maya Applications.
         job             unknown   3          Project Job setup.
-        tdsvn           unknown   3          Environment for TD SVN.
-        maya::project   unknown   3          Project Setup for Maya.
+        maya::maya      2016      0          Maya Application.
+        maya::project   unknown   4          Maya setup for project my_project.
+        identity        unknown   4          Project Identity Setup.
+
+        Command   Value
+        -------   --------
+        maya      maya2016
+        mayapy    mayapy
 
     In addition to the environment variables set, ``--view`` displays all
     definitions resolved and which registries they were found in.
