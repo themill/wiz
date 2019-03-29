@@ -4,7 +4,8 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 2.6.2
+    :date: 2019-03-29
 
     .. change:: fixed
         :tags: API
