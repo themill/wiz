@@ -14,7 +14,7 @@ Release Notes
         :class:`wiz.graph.Resolver` to remove the "timeout" keyword argument.
 
         The timeout logic uses :mod:`signal` which can only be used in the main
-        thread, so it prevented to resolve any contexts Wiz within threads.
+        thread, therefore it was impossible to use Wiz within threads.
 
 .. release:: 2.6.1
     :date: 2019-03-28
