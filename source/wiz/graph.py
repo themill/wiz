@@ -23,20 +23,33 @@ class Resolver(object):
     Compute a ordered list of packages from an initial list of
     :class:`packaging.requirements.Requirement` instances::
 
-        >>> from packaging.requirements import Requirement
+        >>> from wiz.utility import Requirement
         >>> resolver = Resolver()
         >>> resolver.compute_packages(Requirement("foo"), Requirement("bar"))
 
         [Package("foo"), Package("bar"), Package("bim"), Package("baz")]
 
     A :class:`Graph` is instantiated with dependent requirements from initial
-    requirements (e.g. "foo" requires "bim" and "bim" requires "bar").
+    requirements (e.g. "foo" requires "bim" and "bim" requires "baz").
+
+    The resolution process of the graph ensure that only one version of each
+    package definition is kept. If several versions of one package definition
+    are in a graph, their corresponding requirement will be analyzed to ensure
+    that they are compatible.::
+
+        - 'foo==0.5.0' is required by 'foo<1';
+        - 'foo==1.0.0' is required by 'foo';
+        - The version '0.5.0' is matching both requirements;
+        - Requirements 'foo<1' and 'foo' are seen as compatible.
+
+    A graph cannot be resolved if two requirements are incompatibles.
 
     If several variants of one package definition are in the graph, the graph
-    must be divided in as many graphs as there are variants. If several
-    conflicting variant groups are in the graph, the number of graph division
-    is equal to the multiplication of each variant group size. For instance, 24
-    graph divisions would be necessary for the following example (3 x 2 x 4)::
+    must be divided in as many graph combinations as there are variants. If
+    several conflicting variant groups are in the graph, the number of graph
+    division is equal to the multiplication of each variant group size. For
+    instance, 24 graph divisions would be necessary for the following example
+    (3 x 2 x 4)::
 
         >>> graph = Graph(resolver)
         >>> graph.update_from_requirements(
@@ -50,32 +63,10 @@ class Resolver(object):
             ["baz[V4]", "baz[V3]", "baz[V2]", "baz[V1]"],
         ]
 
-    Instead of directly dividing the graph 24 times, a list of trimming
-    combination is generated to figure out the order of the graph division and
-    the node identifiers which should be remove during each division. For
-    the example above, the first graph will be computed with "foo[V3]",
-    "bar[V2]" and "baz[V4]" so all other variant conflicts should be removed.
-    The second graph is generated with "foo[V3]", "bar[V2]" and "baz[V3]" only
-    if the first graph cannot be resolved.
-
-    The resolution process of the graph ensure that only one version of each
-    package definition is kept. If several versions of one package definition
-    are in a graph, their corresponding requirement will be analyzed to ensure
-    that they are compatible.
-
-    .. code-block:: none
-
-        - 'foo==0.5.0' is required by 'foo<1';
-        - 'foo==1.0.0' is required by 'foo';
-        - The version '0.5.0' is matching both requirements;
-        - Requirements 'foo<1' and 'foo' are seen as compatible.
-
-    The graph cannot be resolved if two requirements are incompatibles.
-
-    If the requirements are compatibles, they will be combined to figure out
-    which nodes should be removed from the graph. The requirement combination
-    can lead to the addition of new nodes to the graph which can lead to further
-    graph divisions.
+    Each combination will be generated only if the previous one failed to return
+    a solution. If all graph combinations are exhausted and no solutions are
+    found, other versions of the conflicting packages will be fetched to attempt
+    to resolve the graph.
 
     """
 
