@@ -7,6 +7,7 @@ import itertools
 import collections
 import datetime
 import time
+import signal
 
 import click
 
@@ -190,6 +191,13 @@ class _MainGroup(click.Group):
     help="Record resolution context process for debugging.",
     type=click.Path(exists=True)
 )
+@click.option(
+    "--timeout",
+    help="Timeout (in seconds) for the graph resolution. (Default: 1 Minute)",
+    metavar="TIMEOUT",
+    default=60,
+    type=int
+)
 @click.pass_context
 def main(click_context, **kwargs):
     """Main entry point for the command line interface."""
@@ -233,6 +241,7 @@ def main(click_context, **kwargs):
         "ignore_implicit_packages": kwargs["ignore_implicit"],
         "initial_environment": initial_environment,
         "recording_path": kwargs["record"],
+        "timeout": kwargs["timeout"]
     })
 
 
@@ -637,28 +646,30 @@ def wiz_use(click_context, **kwargs):
     extra_arguments = _fetch_extra_arguments(click_context)
 
     try:
-        wiz_context = wiz.resolve_context(
-            list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit,
-            environ_mapping=environ_mapping,
-        )
-
-        # Only view the resolved context without spawning a shell nor
-        # running any commands.
-        if kwargs["view"]:
-            display_registries(wiz_context["registries"])
-            display_resolved_context(wiz_context)
-
-        # If no commands are indicated, spawn a shell.
-        elif len(extra_arguments) == 0:
-            wiz.spawn.shell(wiz_context["environ"], wiz_context["command"])
-
-        # Otherwise, resolve the command and run it within the resolved context.
-        else:
-            command_elements = wiz.resolve_command(
-                extra_arguments, wiz_context.get("command", {})
+        with Timeout(click_context.obj["timeout"]):
+            wiz_context = wiz.resolve_context(
+                list(kwargs["requests"]), definition_mapping,
+                ignore_implicit=ignore_implicit,
+                environ_mapping=environ_mapping,
             )
-            wiz.spawn.execute(command_elements, wiz_context["environ"])
+
+            # Only view the resolved context without spawning a shell nor
+            # running any commands.
+            if kwargs["view"]:
+                display_registries(wiz_context["registries"])
+                display_resolved_context(wiz_context)
+
+            # If no commands are indicated, spawn a shell.
+            elif len(extra_arguments) == 0:
+                wiz.spawn.shell(wiz_context["environ"], wiz_context["command"])
+
+            # Otherwise, resolve the command and run it within the resolved
+            # context.
+            else:
+                command_elements = wiz.resolve_command(
+                    extra_arguments, wiz_context.get("command", {})
+                )
+                wiz.spawn.execute(command_elements, wiz_context["environ"])
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
@@ -719,30 +730,30 @@ def wiz_run(click_context, **kwargs):
     extra_arguments = _fetch_extra_arguments(click_context)
 
     try:
-
-        requirement = wiz.utility.get_requirement(kwargs["request"])
-        request = wiz.fetch_package_request_from_command(
-            kwargs["request"], definition_mapping
-        )
-
-        wiz_context = wiz.resolve_context(
-            [request], definition_mapping,
-            ignore_implicit=ignore_implicit,
-            environ_mapping=environ_mapping,
-        )
-
-        # Only view the resolved context without spawning a shell nor
-        # running any commands.
-        if kwargs["view"]:
-            display_registries(wiz_context["registries"])
-            display_resolved_context(wiz_context)
-
-        else:
-            command_elements = wiz.resolve_command(
-                [requirement.name] + extra_arguments,
-                wiz_context.get("command", {})
+        with Timeout(click_context.obj["timeout"]):
+            requirement = wiz.utility.get_requirement(kwargs["request"])
+            request = wiz.fetch_package_request_from_command(
+                kwargs["request"], definition_mapping
             )
-            wiz.spawn.execute(command_elements, wiz_context["environ"])
+
+            wiz_context = wiz.resolve_context(
+                [request], definition_mapping,
+                ignore_implicit=ignore_implicit,
+                environ_mapping=environ_mapping,
+            )
+
+            # Only view the resolved context without spawning a shell nor
+            # running any commands.
+            if kwargs["view"]:
+                display_registries(wiz_context["registries"])
+                display_resolved_context(wiz_context)
+
+            else:
+                command_elements = wiz.resolve_command(
+                    [requirement.name] + extra_arguments,
+                    wiz_context.get("command", {})
+                )
+                wiz.spawn.execute(command_elements, wiz_context["environ"])
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
@@ -806,52 +817,53 @@ def wiz_freeze(click_context, **kwargs):
     environ_mapping = click_context.obj["initial_environment"]
 
     try:
-        _context = wiz.resolve_context(
-            list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit,
-            environ_mapping=environ_mapping,
-        )
-        identifier = _query_identifier()
-
-        if kwargs["format"] == "wiz":
-            description = _query_description()
-            version = _query_version()
-
-            definition_data = {
-                "identifier": identifier,
-                "description": description,
-                "version": str(version)
-            }
-
-            command_mapping = _context.get("command")
-            if command_mapping is not None:
-                definition_data["command"] = command_mapping
-
-            environ_mapping = _context.get("environ")
-            if environ_mapping is not None:
-                definition_data["environ"] = environ_mapping
-
-            wiz.export_definition(kwargs["output"], definition_data)
-
-        elif kwargs["format"] == "bash":
-            command = _query_command(_context.get("command", {}).values())
-            wiz.export_script(
-                kwargs["output"], "bash",
-                identifier,
-                environ=_context.get("environ", {}),
-                command=command,
-                packages=_context.get("packages")
+        with Timeout(click_context.obj["timeout"]):
+            _context = wiz.resolve_context(
+                list(kwargs["requests"]), definition_mapping,
+                ignore_implicit=ignore_implicit,
+                environ_mapping=environ_mapping,
             )
+            identifier = _query_identifier()
 
-        elif kwargs["format"] == "tcsh":
-            command = _query_command(_context.get("command", {}).values())
-            wiz.export_script(
-                kwargs["output"], "tcsh",
-                identifier,
-                environ=_context.get("environ", {}),
-                command=command,
-                packages=_context.get("packages")
-            )
+            if kwargs["format"] == "wiz":
+                description = _query_description()
+                version = _query_version()
+
+                definition_data = {
+                    "identifier": identifier,
+                    "description": description,
+                    "version": str(version)
+                }
+
+                command_mapping = _context.get("command")
+                if command_mapping is not None:
+                    definition_data["command"] = command_mapping
+
+                environ_mapping = _context.get("environ")
+                if environ_mapping is not None:
+                    definition_data["environ"] = environ_mapping
+
+                wiz.export_definition(kwargs["output"], definition_data)
+
+            elif kwargs["format"] == "bash":
+                command = _query_command(_context.get("command", {}).values())
+                wiz.export_script(
+                    kwargs["output"], "bash",
+                    identifier,
+                    environ=_context.get("environ", {}),
+                    command=command,
+                    packages=_context.get("packages")
+                )
+
+            elif kwargs["format"] == "tcsh":
+                command = _query_command(_context.get("command", {}).values())
+                wiz.export_script(
+                    kwargs["output"], "tcsh",
+                    identifier,
+                    environ=_context.get("environ", {}),
+                    command=command,
+                    packages=_context.get("packages")
+                )
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
@@ -1212,7 +1224,8 @@ def wiz_analyze(click_context, **kwargs):
         display_definition_analysis(
             definition,
             definition_mapping=definition_mapping,
-            verbose=kwargs["verbose"]
+            verbose=kwargs["verbose"],
+            timeout=click_context.obj["timeout"]
         )
 
     if latest_registry is None:
@@ -1222,7 +1235,7 @@ def wiz_analyze(click_context, **kwargs):
 
 
 def display_definition_analysis(
-    definition, definition_mapping=None, verbose=False
+    definition, definition_mapping=None, verbose=False, timeout=60
 ):
     """Analyze *definition* and display results.
 
@@ -1235,6 +1248,9 @@ def display_definition_analysis(
 
     *verbose* indicate whether time duration and history information should be
     added to analysis.
+
+    *timeout* is the max time to expire before the resolve process is being
+    cancelled (in seconds). Default is 1 minute.
 
     Example::
 
@@ -1282,10 +1298,17 @@ def display_definition_analysis(
 
     time_start = time.time()
 
-    mapping = wiz.validate_definition(
-        definition,
-        definition_mapping=definition_mapping,
-    )
+    # Initialize log mapping
+    mapping = {"errors": [], "warnings": []}
+
+    try:
+        with Timeout(timeout):
+            mapping = wiz.validate_definition(
+                definition, definition_mapping=definition_mapping,
+            )
+
+    except wiz.exception.WizError as error:
+        mapping["error"] = str(error)
 
     time_duration = time.time() - time_start
 
@@ -1946,3 +1969,31 @@ def _export_history_if_requested(click_context):
     )
     wiz.filesystem.export(path, history, compressed=True)
     logger.info("History recorded and exported in '{}'".format(path))
+
+
+class Timeout(object):
+    """Handle a time out for the context resolution.
+
+    Raise :exc:`wiz.exception.GraphResolutionError` when the time limit is
+    reached.
+
+    .. warning::
+
+        It does not work on Windows operating system as it uses
+        :func:`signal.alarm` to raise the exception.
+
+    """
+    def __init__(self, seconds):
+        self._time_limit = seconds
+
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self._raises_exception)
+        signal.setitimer(signal.ITIMER_REAL, self._time_limit)
+
+    def __exit__(self, _type, value, traceback):
+        signal.alarm(0)
+
+    def _raises_exception(self, signum, frame):
+        raise wiz.exception.GraphResolutionError(
+            "Timeout reached. Graph dependency resolution took too long."
+        )
