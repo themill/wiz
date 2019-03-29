@@ -1974,7 +1974,7 @@ def _export_history_if_requested(click_context):
 class Timeout(object):
     """Handle a time out for the context resolution.
 
-    Raise :exc:`wiz.exception.GraphResolutionError` when the time limit is
+    Raise :exc:`wiz.exception.TimeoutError` when the time limit is
     reached.
 
     .. warning::
@@ -1994,6 +1994,4 @@ class Timeout(object):
         signal.alarm(0)
 
     def _raises_exception(self, signum, frame):
-        raise wiz.exception.GraphResolutionError(
-            "Timeout reached. Graph dependency resolution took too long."
-        )
+        raise wiz.exception.TimeoutError(self._time_limit)

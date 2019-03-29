@@ -186,3 +186,21 @@ class InstallError(WizError):
     """Raise when the installation of a definition failed."""
 
     default_message = "The definition cannot be installed."
+
+
+class TimeoutError(WizError):
+    """Raise when the command line timeout is reached."""
+
+    default_message = (
+        "Timeout reached. Context resolution took too long [maximum: "
+        "{limit} seconds]."
+    )
+
+    def __init__(self, time_limit):
+        """Initialise with list of existing *definitions*.
+
+        *time_limit* should be the maximum time to expire before the resolve
+        process is being cancelled (in seconds).
+
+        """
+        super(TimeoutError, self).__init__(details={"limit": time_limit})
