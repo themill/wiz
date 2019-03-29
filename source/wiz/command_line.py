@@ -190,13 +190,6 @@ class _MainGroup(click.Group):
     help="Record resolution context process for debugging.",
     type=click.Path(exists=True)
 )
-@click.option(
-    "--timeout",
-    help="Timeout (in seconds) for the graph resolution. (Default: 5 Minutes)",
-    metavar="TIMEOUT",
-    default=300,
-    type=int
-)
 @click.pass_context
 def main(click_context, **kwargs):
     """Main entry point for the command line interface."""
@@ -240,7 +233,6 @@ def main(click_context, **kwargs):
         "ignore_implicit_packages": kwargs["ignore_implicit"],
         "initial_environment": initial_environment,
         "recording_path": kwargs["record"],
-        "timeout": kwargs["timeout"]
     })
 
 
@@ -647,8 +639,8 @@ def wiz_use(click_context, **kwargs):
     try:
         wiz_context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
-            timeout=click_context.obj["timeout"]
+            ignore_implicit=ignore_implicit,
+            environ_mapping=environ_mapping,
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -735,8 +727,8 @@ def wiz_run(click_context, **kwargs):
 
         wiz_context = wiz.resolve_context(
             [request], definition_mapping,
-            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
-            timeout=click_context.obj["timeout"]
+            ignore_implicit=ignore_implicit,
+            environ_mapping=environ_mapping,
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -816,8 +808,8 @@ def wiz_freeze(click_context, **kwargs):
     try:
         _context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
-            ignore_implicit=ignore_implicit, environ_mapping=environ_mapping,
-            timeout=click_context.obj["timeout"]
+            ignore_implicit=ignore_implicit,
+            environ_mapping=environ_mapping,
         )
         identifier = _query_identifier()
 
@@ -1218,9 +1210,9 @@ def wiz_analyze(click_context, **kwargs):
             print(" [{}]".format(system_label), end="")
 
         display_definition_analysis(
-            definition, definition_mapping,
-            click_context.obj["timeout"],
-            kwargs["verbose"]
+            definition,
+            definition_mapping=definition_mapping,
+            verbose=kwargs["verbose"]
         )
 
     if latest_registry is None:
@@ -1230,7 +1222,7 @@ def wiz_analyze(click_context, **kwargs):
 
 
 def display_definition_analysis(
-    definition, definition_mapping=None, timeout=None, verbose=False
+    definition, definition_mapping=None, verbose=False
 ):
     """Analyze *definition* and display results.
 
@@ -1240,9 +1232,6 @@ def display_definition_analysis(
     available. It could be fetched with :func:`fetch_definition_mapping`.
     If no definition mapping is provided, a sensible one will be fetched from
     :func:`default registries <wiz.registry.get_defaults>`.
-
-    *timeout* is the max time to expire before the resolve process is being
-    cancelled (in seconds). Default is 5 minutes.
 
     *verbose* indicate whether time duration and history information should be
     added to analysis.
@@ -1296,7 +1285,6 @@ def display_definition_analysis(
     mapping = wiz.validate_definition(
         definition,
         definition_mapping=definition_mapping,
-        timeout=timeout
     )
 
     time_duration = time.time() - time_start

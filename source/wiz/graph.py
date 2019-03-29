@@ -3,7 +3,6 @@
 import copy
 import itertools
 import uuid
-import signal
 import collections
 from heapq import heapify, heappush, heappop
 try:
@@ -80,14 +79,11 @@ class Resolver(object):
 
     """
 
-    def __init__(self, definition_mapping, timeout=300):
+    def __init__(self, definition_mapping):
         """Initialise Resolver with *requirements*.
 
         *definition_mapping* is a mapping regrouping all available definitions
         associated with their unique identifier.
-
-        *timeout* is the max time to expire before the resolve process is being
-        cancelled (in seconds). Default is 5 minutes.
 
         """
         self._logger = wiz.logging.Logger(__name__ + ".Resolver")
@@ -106,9 +102,6 @@ class Resolver(object):
         # Iterator which yield the next graph to resolve with a list of
         # conflicting variant node identifiers to remove before instantiation.
         self._iterator = iter([])
-
-        # Time limit for the resolution process.
-        self._timeout = timeout
 
         # Record node identifiers with error to prevent it being used in more
         # than one combination.
@@ -136,16 +129,6 @@ class Resolver(object):
 
         Raise :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
         resolved in time.
-
-        """
-        with Timeout(self._timeout):
-            return self._compute_packages(requirements)
-
-    def _compute_packages(self, requirements):
-        """Resolve requirements graphs and return list of packages.
-
-        *requirements* should be a list of
-        :class:`packaging.requirements.Requirement` instances.
 
         """
         graph = Graph(self)
@@ -2272,31 +2255,3 @@ class _DistanceQueue(dict):
 
         del self[identifier]
         return identifier
-
-
-class Timeout(object):
-    """Handle a time out on :class:`Graph` methods.
-
-    Raise :exc:`wiz.exception.GraphResolutionError` when the time limit is
-    reached.
-
-    .. warning::
-
-        It does not work on Windows operating system as it uses
-        :func:`signal.alarm` to raise the exception.
-
-    """
-    def __init__(self, seconds):
-        self._time_limit = seconds
-
-    def __enter__(self):
-        signal.signal(signal.SIGALRM, self._raises_exception)
-        signal.setitimer(signal.ITIMER_REAL, self._time_limit)
-
-    def __exit__(self, _type, value, traceback):
-        signal.alarm(0)
-
-    def _raises_exception(self, signum, frame):
-        raise wiz.exception.GraphResolutionError(
-            "Timeout reached. Graph dependency resolution took too long."
-        )
