@@ -6,17 +6,11 @@ Release Notes
 
 .. release:: Upcoming
 
-    .. change:: changed
-        :tags: API
-
-        Move :class:`wiz.graph.Timeout` to :class:`wiz.command_line.Timeout`
-        as the timeout logic is removed from the API and used exclusively for
-        the command line.
-
     .. change:: fixed
         :tags: API
 
-        Updated :func:`wiz.resolve_context`, :func:`wiz.validate_definition` and
+        Removed :class:`wiz.graph.Timeout` and updated
+        :func:`wiz.resolve_context`, :func:`wiz.validate_definition` and
         :class:`wiz.graph.Resolver` to remove the "timeout" keyword argument.
 
         The timeout logic uses :mod:`signal` which can only be used in the main
