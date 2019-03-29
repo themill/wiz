@@ -6,6 +6,13 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: changed
+        :tags: API
+
+        Move :class:`wiz.graph.Timeout` to :class:`wiz.command_line.Timeout`
+        as the timeout logic is removed from the API and used exclusively for
+        the command line.
+
     .. change:: fixed
         :tags: API
 
