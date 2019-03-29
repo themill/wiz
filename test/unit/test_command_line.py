@@ -1475,7 +1475,6 @@ def test_use_spawn_shell(
 
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
-        timeout=300
     )
 
     mocked_spawn_shell.assert_called_once_with({
@@ -1541,7 +1540,6 @@ def test_use_spawn_shell_view(
 
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
-        timeout=300
     )
 
     mocked_spawn_shell.assert_not_called()
@@ -1602,7 +1600,6 @@ def test_use_spawn_shell_view_empty(
 
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
-        timeout=300
     )
 
     mocked_spawn_shell.assert_not_called()
@@ -1640,7 +1637,6 @@ def test_use_execute_command(
 
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
-        timeout=300
     )
 
     mocked_resolve_command.assert_called_once_with(
@@ -1688,8 +1684,9 @@ def test_use_with_resolution_error(
     )
 
     mocked_resolve_context.assert_called_once_with(
-        ["foo", "bim==0.1.*"], "__MAPPING__", ignore_implicit=False,
-        environ_mapping={}, timeout=300
+        ["foo", "bim==0.1.*"], "__MAPPING__",
+        ignore_implicit=False,
+        environ_mapping={},
     )
 
     mocked_spawn_shell.assert_not_called()
@@ -1750,7 +1747,6 @@ def test_use_initial_environment(
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False,
         environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"},
-        timeout=300
     )
 
 
@@ -1827,8 +1823,9 @@ def test_run(
     )
 
     mocked_resolve_context.assert_called_once_with(
-        ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
-        environ_mapping={}, timeout=300
+        ["__PACKAGE__"], "__MAPPING__",
+        ignore_implicit=False,
+        environ_mapping={}
     )
 
     mocked_resolve_command.assert_called_once_with(
@@ -1906,8 +1903,9 @@ def test_run_view(
     )
 
     mocked_resolve_context.assert_called_once_with(
-        ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
-        environ_mapping={}, timeout=300
+        ["__PACKAGE__"], "__MAPPING__",
+        ignore_implicit=False,
+        environ_mapping={}
     )
 
     mocked_resolve_command.assert_not_called()
@@ -1973,8 +1971,9 @@ def test_run_view_empty(
     )
 
     mocked_resolve_context.assert_called_once_with(
-        ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
-        environ_mapping={}, timeout=300
+        ["__PACKAGE__"], "__MAPPING__",
+        ignore_implicit=False,
+        environ_mapping={}
     )
 
     mocked_resolve_command.assert_not_called()
@@ -2009,8 +2008,9 @@ def test_run_with_resolution_error(
     )
 
     mocked_resolve_context.assert_called_once_with(
-        ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
-        environ_mapping={}, timeout=300
+        ["__PACKAGE__"], "__MAPPING__",
+        ignore_implicit=False,
+        environ_mapping={}
     )
 
     mocked_fetch_package_request_from_command.assert_called_once_with(
@@ -2053,7 +2053,6 @@ def test_run_initial_environment(
     mocked_resolve_context.assert_called_once_with(
         ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
         environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"},
-        timeout=300
     )
 
 
@@ -2142,7 +2141,6 @@ def test_freeze(
 
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
-        timeout=300
     )
 
     mocked_export_definition.assert_called_once_with(
@@ -2202,7 +2200,6 @@ def test_freeze_empty(
 
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
-        timeout=300
     )
 
     mocked_export_definition.assert_called_once_with(
@@ -2264,7 +2261,6 @@ def test_freeze_as_script(
 
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
-        timeout=300
     )
 
     mocked_export_script.assert_called_once_with(
@@ -2322,7 +2318,6 @@ def test_freeze_as_script_without_commands(
 
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
-        timeout=300
     )
 
     mocked_export_script.assert_called_once_with(
@@ -2366,7 +2361,6 @@ def test_freeze_with_resolution_error(
 
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
-        timeout=300
     )
 
     mocked_click_prompt.assert_not_called()
@@ -2429,7 +2423,6 @@ def test_freeze_initial_environment(
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False,
         environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"},
-        timeout=300
     )
 
 

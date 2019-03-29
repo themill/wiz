@@ -4,6 +4,18 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: API
+
+        Removed :class:`wiz.graph.Timeout` and updated
+        :func:`wiz.resolve_context`, :func:`wiz.validate_definition` and
+        :class:`wiz.graph.Resolver` to remove the "timeout" keyword argument.
+
+        The timeout logic uses :mod:`signal` which can only be used in the main
+        thread, therefore it was impossible to use Wiz within threads.
+
 .. release:: 2.6.1
     :date: 2019-03-28
 

@@ -3,7 +3,6 @@
 import copy
 import itertools
 import uuid
-import signal
 import collections
 from heapq import heapify, heappush, heappop
 try:
@@ -24,20 +23,33 @@ class Resolver(object):
     Compute a ordered list of packages from an initial list of
     :class:`packaging.requirements.Requirement` instances::
 
-        >>> from packaging.requirements import Requirement
+        >>> from wiz.utility import Requirement
         >>> resolver = Resolver()
         >>> resolver.compute_packages(Requirement("foo"), Requirement("bar"))
 
         [Package("foo"), Package("bar"), Package("bim"), Package("baz")]
 
     A :class:`Graph` is instantiated with dependent requirements from initial
-    requirements (e.g. "foo" requires "bim" and "bim" requires "bar").
+    requirements (e.g. "foo" requires "bim" and "bim" requires "baz").
+
+    The resolution process of the graph ensure that only one version of each
+    package definition is kept. If several versions of one package definition
+    are in a graph, their corresponding requirement will be analyzed to ensure
+    that they are compatible.::
+
+        - 'foo==0.5.0' is required by 'foo<1';
+        - 'foo==1.0.0' is required by 'foo';
+        - The version '0.5.0' is matching both requirements;
+        - Requirements 'foo<1' and 'foo' are seen as compatible.
+
+    A graph cannot be resolved if two requirements are incompatibles.
 
     If several variants of one package definition are in the graph, the graph
-    must be divided in as many graphs as there are variants. If several
-    conflicting variant groups are in the graph, the number of graph division
-    is equal to the multiplication of each variant group size. For instance, 24
-    graph divisions would be necessary for the following example (3 x 2 x 4)::
+    must be divided in as many graph combinations as there are variants. If
+    several conflicting variant groups are in the graph, the number of graph
+    division is equal to the multiplication of each variant group size. For
+    instance, 24 graph divisions would be necessary for the following example
+    (3 x 2 x 4)::
 
         >>> graph = Graph(resolver)
         >>> graph.update_from_requirements(
@@ -51,43 +63,18 @@ class Resolver(object):
             ["baz[V4]", "baz[V3]", "baz[V2]", "baz[V1]"],
         ]
 
-    Instead of directly dividing the graph 24 times, a list of trimming
-    combination is generated to figure out the order of the graph division and
-    the node identifiers which should be remove during each division. For
-    the example above, the first graph will be computed with "foo[V3]",
-    "bar[V2]" and "baz[V4]" so all other variant conflicts should be removed.
-    The second graph is generated with "foo[V3]", "bar[V2]" and "baz[V3]" only
-    if the first graph cannot be resolved.
-
-    The resolution process of the graph ensure that only one version of each
-    package definition is kept. If several versions of one package definition
-    are in a graph, their corresponding requirement will be analyzed to ensure
-    that they are compatible.
-
-    .. code-block:: none
-
-        - 'foo==0.5.0' is required by 'foo<1';
-        - 'foo==1.0.0' is required by 'foo';
-        - The version '0.5.0' is matching both requirements;
-        - Requirements 'foo<1' and 'foo' are seen as compatible.
-
-    The graph cannot be resolved if two requirements are incompatibles.
-
-    If the requirements are compatibles, they will be combined to figure out
-    which nodes should be removed from the graph. The requirement combination
-    can lead to the addition of new nodes to the graph which can lead to further
-    graph divisions.
+    Each combination will be generated only if the previous one failed to return
+    a solution. If all graph combinations are exhausted and no solutions are
+    found, other versions of the conflicting packages will be fetched to attempt
+    to resolve the graph.
 
     """
 
-    def __init__(self, definition_mapping, timeout=300):
+    def __init__(self, definition_mapping):
         """Initialise Resolver with *requirements*.
 
         *definition_mapping* is a mapping regrouping all available definitions
         associated with their unique identifier.
-
-        *timeout* is the max time to expire before the resolve process is being
-        cancelled (in seconds). Default is 5 minutes.
 
         """
         self._logger = wiz.logging.Logger(__name__ + ".Resolver")
@@ -106,9 +93,6 @@ class Resolver(object):
         # Iterator which yield the next graph to resolve with a list of
         # conflicting variant node identifiers to remove before instantiation.
         self._iterator = iter([])
-
-        # Time limit for the resolution process.
-        self._timeout = timeout
 
         # Record node identifiers with error to prevent it being used in more
         # than one combination.
@@ -136,16 +120,6 @@ class Resolver(object):
 
         Raise :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
         resolved in time.
-
-        """
-        with Timeout(self._timeout):
-            return self._compute_packages(requirements)
-
-    def _compute_packages(self, requirements):
-        """Resolve requirements graphs and return list of packages.
-
-        *requirements* should be a list of
-        :class:`packaging.requirements.Requirement` instances.
 
         """
         graph = Graph(self)
@@ -2272,31 +2246,3 @@ class _DistanceQueue(dict):
 
         del self[identifier]
         return identifier
-
-
-class Timeout(object):
-    """Handle a time out on :class:`Graph` methods.
-
-    Raise :exc:`wiz.exception.GraphResolutionError` when the time limit is
-    reached.
-
-    .. warning::
-
-        It does not work on Windows operating system as it uses
-        :func:`signal.alarm` to raise the exception.
-
-    """
-    def __init__(self, seconds):
-        self._time_limit = seconds
-
-    def __enter__(self):
-        signal.signal(signal.SIGALRM, self._raises_exception)
-        signal.setitimer(signal.ITIMER_REAL, self._time_limit)
-
-    def __exit__(self, _type, value, traceback):
-        signal.alarm(0)
-
-    def _raises_exception(self, signum, frame):
-        raise wiz.exception.GraphResolutionError(
-            "Timeout reached. Graph dependency resolution took too long."
-        )
