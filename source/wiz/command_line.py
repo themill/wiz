@@ -7,7 +7,6 @@ import itertools
 import collections
 import datetime
 import time
-import signal
 
 import click
 
