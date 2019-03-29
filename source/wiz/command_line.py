@@ -1212,7 +1212,6 @@ def wiz_analyze(click_context, **kwargs):
             definition,
             definition_mapping=definition_mapping,
             verbose=kwargs["verbose"],
-            timeout=click_context.obj["timeout"]
         )
 
     if latest_registry is None:
@@ -1222,7 +1221,7 @@ def wiz_analyze(click_context, **kwargs):
 
 
 def display_definition_analysis(
-    definition, definition_mapping=None, verbose=False, timeout=60
+    definition, definition_mapping=None, verbose=False
 ):
     """Analyze *definition* and display results.
 
@@ -1235,9 +1234,6 @@ def display_definition_analysis(
 
     *verbose* indicate whether time duration and history information should be
     added to analysis.
-
-    *timeout* is the max time to expire before the resolve process is being
-    cancelled (in seconds). Default is 1 minute.
 
     Example::
 
@@ -1285,17 +1281,9 @@ def display_definition_analysis(
 
     time_start = time.time()
 
-    # Initialize log mapping
-    mapping = {"errors": [], "warnings": []}
-
-    try:
-        with Timeout(timeout):
-            mapping = wiz.validate_definition(
-                definition, definition_mapping=definition_mapping,
-            )
-
-    except wiz.exception.WizError as error:
-        mapping["error"] = str(error)
+    mapping = wiz.validate_definition(
+        definition, definition_mapping=definition_mapping
+    )
 
     time_duration = time.time() - time_start
 
