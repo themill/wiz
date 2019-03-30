@@ -230,7 +230,8 @@ def resolve_context(
     context["environ"].update({
         "WIZ_VERSION": __version__,
         "WIZ_CONTEXT": wiz.utility.encode([
-            [_package.identifier for _package in packages], registries
+            [_package.qualified_identifier for _package in packages],
+            registries
         ])
     })
     return context

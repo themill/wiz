@@ -4,6 +4,18 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: API
+
+        Updated :func:`wiz.resolve_context` to use qualified identifiers when
+        creating the :envvar:`WIZ_CONTEXT` environment variable which contains
+        the :func:`encoded <wiz.utility.encode>` list of package identifiers.
+        Previously, it would sometimes be impossible to retrieve a package from
+        identifier in this list when the :ref:`namespace <definition/namespace>`
+        is not specified.
+
 .. release:: 2.6.2
     :date: 2019-03-29
 
@@ -299,7 +311,7 @@ Release Notes
     .. change:: new
         :tags: command-line
 
-        Added :option:`--timeout <wiz --timeout>` to specify a time limit after
+        Added ``--timeout`` to specify a time limit after
         which a graph resolve should be aborted to avoid the process hanging.
 
     .. change:: new
