@@ -73,7 +73,7 @@ This registry is accessable through :term:`Wiz Vault`.
 
 .. seealso::
 
-    http://gitlab/rnd/wiz-registry/primary-registry
+    http://gitlab.mill.co.uk/rnd/wiz-registry/primary-registry
 
 .. _registry/global/secondary:
 
@@ -88,7 +88,7 @@ This registry is accessable through :term:`Wiz Vault`.
 
 .. seealso::
 
-    http://gitlab/rnd/wiz-registry/secondary-registry
+    http://gitlab.mill.co.uk/rnd/wiz-registry/secondary-registry
 
 
 .. _registry/site:
@@ -106,11 +106,11 @@ This registry is accessable through :term:`Wiz Vault`.
 
 .. seealso::
 
-    | http://gitlab/rnd/wiz-registry/london-registry
-    | http://gitlab/rnd/wiz-registry/new-york-registry
-    | http://gitlab/rnd/wiz-registry/chicago-registry
-    | http://gitlab/rnd/wiz-registry/los-angeles-registry
-    | http://gitlab/rnd/wiz-registry/bangalore-registry
+    | http://gitlab.mill.co.uk/rnd/wiz-registry/london-registry
+    | http://gitlab.mill.co.uk/rnd/wiz-registry/new-york-registry
+    | http://gitlab.mill.co.uk/rnd/wiz-registry/chicago-registry
+    | http://gitlab.mill.co.uk/rnd/wiz-registry/los-angeles-registry
+    | http://gitlab.mill.co.uk/rnd/wiz-registry/bangalore-registry
 
 .. _registry/project:
 

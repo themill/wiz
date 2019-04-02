@@ -19,10 +19,10 @@ Installing from source
 
 You can also install manually from the source for more control. First obtain a
 copy of the source by either downloading the
-`zipball <http://gitlab/rnd/wiz/repository/archive.zip?ref=master>`_ or
+`zipball <http://gitlab.mill.co.uk/rnd/wiz/repository/archive.zip?ref=master>`_ or
 cloning the public repository::
 
-    git clone git@gitlab:rnd/wiz.git
+    git clone git@gitlab.mill.co.uk:rnd/wiz.git
 
 Then you can build and install the package into your current Python
 environment::
