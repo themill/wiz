@@ -467,7 +467,7 @@ def wiz_search(click_context, **kwargs):
         for command in definition.command.keys():
             if any(_filter in command for _filter in kwargs["filters"]):
                 command_mapping.setdefault(command, [])
-                command_mapping[command] = definition.identifier
+                command_mapping[command] = definition.qualified_identifier
 
     results_found = False
 
