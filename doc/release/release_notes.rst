@@ -6,7 +6,7 @@ Release Notes
 
 .. release:: Upcoming
 
-    .. change:: changed
+    .. change:: fixed
 
         Updated the :term:`Gitlab` links to their fully qualified domain name,
         as the `resolv.conf <https://en.wikipedia.org/wiki/Resolv.conf>`_ setup
