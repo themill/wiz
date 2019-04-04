@@ -1529,7 +1529,7 @@ class Graph(object):
         following two criteria:
 
         1. By the number of occurrences of each node identifier in the graph
-        2. By the version and the variant value defined in the package.
+        2. By the original variant order within the definition.
 
         The mapping should be in the form of::
 
@@ -1555,10 +1555,7 @@ class Graph(object):
             count = collections.Counter([node.identifier for node in nodes])
             nodes = sorted(
                 set(nodes),
-                key=lambda n: (
-                    count[n.identifier],
-                    (n.package.version, n.package.variant_name)
-                ),
+                key=lambda n: (count[n.identifier], -nodes.index(n)),
                 reverse=True
             )
             groups.append([node.identifier for node in nodes])
