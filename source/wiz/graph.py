@@ -1526,16 +1526,18 @@ class Graph(object):
         identifier which belongs at least to two different variant names.
 
         The variant group list contains unique identifiers and is sorted
-        following two criteria:
+        following three criteria:
 
-        1. By the number of occurrences of each node identifier in the graph
-        2. By the version and the variant value defined in the package.
+        1. By number of occurrences of each node identifier in the graph in
+           descending order
+        2. By the package version in descending order
+        3. By the original variant order within the definition.
 
         The mapping should be in the form of::
 
             [
                 ["foo[V2]==0.1.0", "foo[V1]==0.1.0"],
-                ["bar[V2]==2.1.5", "bar[V2]==2.2.0", "bar[V1]==2.1.0"]
+                ["bar[V2]==2.2.0", "bar[V2]==2.1.5", "bar[V1]==2.1.0"]
             ]
 
         """
@@ -1556,8 +1558,7 @@ class Graph(object):
             nodes = sorted(
                 set(nodes),
                 key=lambda n: (
-                    count[n.identifier],
-                    (n.package.version, n.package.variant_name)
+                    count[n.identifier], n.package.version, -nodes.index(n)
                 ),
                 reverse=True
             )

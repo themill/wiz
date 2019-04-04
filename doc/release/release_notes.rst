@@ -4,6 +4,15 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+        :tags: resolver
+
+        Updated :meth:`wiz.graph.Graph.variant_groups` to preserve the order
+        of variants defined in the definition. Previously it would sort the
+        variant by version and by name.
+
 .. release:: 2.6.4
     :date: 2019-04-02
 
