@@ -58,7 +58,7 @@ setup(
     version=VERSION,
     description="Package management system.",
     long_description=open(README_PATH).read(),
-    url="http://gitlab.mill.co.uk/rnd/wiz",
+    url="http://gitlab.ldn.themill.com/rnd/wiz",
     keywords="",
     author="The Mill",
     packages=find_packages(SOURCE_PATH),
