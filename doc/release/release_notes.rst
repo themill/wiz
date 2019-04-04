@@ -9,8 +9,16 @@ Release Notes
     .. change:: changed
 
         Updated the :term:`Gitlab` links to their fully qualified domain name,
-        as the resolv.conf setup is not consistent globally, which leads to it
-        currently not resolving in all Mill sites.
+        as the `resolv.conf <https://en.wikipedia.org/wiki/Resolv.conf>`_ setup
+        is not consistent globally, which leads to it currently not resolving in
+        all Mill sites.
+
+    .. change:: fixed
+        :tags: resolver
+
+        Updated :meth:`wiz.graph.Graph.variant_groups` to preserve the order
+        of variants defined in the definition. Previously it would sort the
+        variant by version and by name.
 
 .. release:: 2.6.4
     :date: 2019-04-02
