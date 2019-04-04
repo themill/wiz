@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+
+        Updated the :term:`Gitlab` links to their fully qualified domain name,
+        as the resolv.conf setup is not consistent globally, which leads to it
+        currently not resolving in all Mill sites.
+
 .. release:: 2.6.4
     :date: 2019-04-02
 
