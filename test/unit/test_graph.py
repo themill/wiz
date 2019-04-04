@@ -1092,68 +1092,60 @@ def test_graph_variant_groups(mocker):
             identifier="A[V1]==0.1.0",
             package=mocker.Mock(
                 variant_name="V1",
-                version=Version("0.1.0")
             )
         ),
         "A[V2]==0.1.0": mocker.Mock(
             identifier="A[V2]==0.1.0",
             package=mocker.Mock(
                 variant_name="V2",
-                version=Version("0.1.0")
             )
         ),
         "B[V1]==0.1.0": mocker.Mock(
             identifier="B[V1]==0.1.0",
             package=mocker.Mock(
                 variant_name="V1",
-                version=Version("0.1.0")
             )
         ),
         "B[V1]==0.2.0": mocker.Mock(
             identifier="B[V1]==0.2.0",
             package=mocker.Mock(
                 variant_name="V1",
-                version=Version("0.2.0")
             )
         ),
         "B[V2]==0.1.0": mocker.Mock(
             identifier="B[V2]==0.1.0",
             package=mocker.Mock(
                 variant_name="V2",
-                version=Version("0.1.0")
             )
         ),
         "C[V1]==0.1.0": mocker.Mock(
             identifier="C[V1]==0.1.0",
             package=mocker.Mock(
                 variant_name="V1",
-                version=Version("0.1.0")
             )
         ),
         "D[V1]==0.1.0": mocker.Mock(
             identifier="D[V1]==0.1.0",
             package=mocker.Mock(
                 variant_name="V1",
-                version=Version("0.1.0")
             )
         ),
         "D[V1]==0.2.0": mocker.Mock(
             identifier="D[V1]==0.2.0",
             package=mocker.Mock(
                 variant_name="V1",
-                version=Version("0.2.0")
             )
         )
     }
     graph._variants_per_definition = {
-        "A": ["A[V1]==0.1.0", "A[V2]==0.1.0"],
+        "A": ["A[V1]==0.1.0", "A[V2]==0.1.0", "A[V2]==0.1.0"],
         "B": ["B[V1]==0.1.0", "B[V2]==0.1.0", "B[V1]==0.2.0"],
         "C": ["C[V1]==0.1.0"],
         "D": ["D[V1]==0.1.0", "D[V1]==0.2.0"]
     }
     assert graph.variant_groups() == [
         ["A[V2]==0.1.0", "A[V1]==0.1.0"],
-        ["B[V1]==0.2.0", "B[V2]==0.1.0", "B[V1]==0.1.0"]
+        ["B[V1]==0.1.0", "B[V2]==0.1.0", "B[V1]==0.2.0"]
     ]
 
 
