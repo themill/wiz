@@ -4,7 +4,8 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 2.6.5
+    :date: 2019-04-04
 
     .. change:: fixed
 
