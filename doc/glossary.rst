@@ -69,7 +69,7 @@ Glossary
 
         .. seealso::
 
-            * `Local Gitlab server <http://gitlab/>`__
+            * `Local Gitlab server <http://gitlab.ldn.themill.com/>`__
             * https://about.gitlab.com/
 
     Local Registry

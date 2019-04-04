@@ -105,15 +105,15 @@ def extract_version_ranges(requirement):
     Requirement could contain the following specifiers:
 
     * `Compatible release
-      <https://www.python.org/dev/peps/pep-0440/#compatible-release>`
+      <https://www.python.org/dev/peps/pep-0440/#compatible-release>`_
     * `Version matching
-      <https://www.python.org/dev/peps/pep-0440/#version-matching>`
+      <https://www.python.org/dev/peps/pep-0440/#version-matching>`_
     * `Version exclusion
-      <https://www.python.org/dev/peps/pep-0440/#version-exclusion>`
+      <https://www.python.org/dev/peps/pep-0440/#version-exclusion>`_
     * `Inclusive ordered comparison
-      <https://www.python.org/dev/peps/pep-0440/#inclusive-ordered-comparison>`
+      <https://www.python.org/dev/peps/pep-0440/#inclusive-ordered-comparison>`_
     * `Exclusive ordered comparison
-      <https://www.python.org/dev/peps/pep-0440/#exclusive-ordered-comparison>`
+      <https://www.python.org/dev/peps/pep-0440/#exclusive-ordered-comparison>`_
 
     Example::
 

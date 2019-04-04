@@ -6,6 +6,13 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: changed
+
+        Updated the :term:`Gitlab` links to their fully qualified domain name,
+        as the `resolv.conf <https://en.wikipedia.org/wiki/Resolv.conf>`_ setup
+        is not consistent globally, which leads to it currently not resolving in
+        all Mill sites.
+
     .. change:: fixed
         :tags: resolver
 
