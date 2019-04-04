@@ -4,6 +4,16 @@
 Release Notes
 *************
 
+.. release:: 2.6.4
+    :date: 2019-04-02
+
+    .. change:: fixed
+        :tags: command-line
+
+        Updated ``wiz search`` to use the qualified definition identifier when
+        registering the commands. Otherwise, it wouldn't find the definition
+        corresponding to a particular command.
+
 .. release:: 2.6.3
     :date: 2019-03-29
 
