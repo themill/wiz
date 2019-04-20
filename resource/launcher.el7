@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
+
 # Run Wiz within the Mill environment for CentOS 7.
+ROOT=/mill3d/server/apps/WIZ
+PYTHON_EXE=$ROOT/el7-x86-64/default/bin/python
+
+# Unset global variables that could cause issues when running the tool.
 unset PYTHONPATH
 unset PYTHONHOME
-/mill3d/server/apps/WIZ/el7-x86-64/default/bin/python -m wiz $@
+
+# Record command line usage.
+$PYTHON_EXE $ROOT/scripts/record_usage.py $@
+
+# Run Wiz
+$PYTHON_EXE -m wiz $@
