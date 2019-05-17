@@ -7,9 +7,9 @@ import sys
 import select
 import subprocess
 import tempfile
-import termios
-import tty
-import pty
+# import termios
+# import tty
+# import pty
 import signal
 
 import wiz.logging
@@ -36,11 +36,11 @@ def shell(environment, command=None):
     logger.info("Spawn shell: {}".format(executable))
 
     # save original tty setting then set it to raw mode
-    old_tty = termios.tcgetattr(sys.stdin)
-    tty.setraw(sys.stdin.fileno())
+    # old_tty = termios.tcgetattr(sys.stdin)
+    # tty.setraw(sys.stdin.fileno())
 
     # open pseudo-terminal to interact with subprocess
-    master_fd, slave_fd = pty.openpty()
+    # master_fd, slave_fd = pty.openpty()
 
     # Create temporary rc file for shell aliases for commands
     rcfile = tempfile.NamedTemporaryFile()
@@ -56,9 +56,9 @@ def shell(environment, command=None):
     process = subprocess.Popen(
         executable,
         preexec_fn=os.setsid,
-        stdin=slave_fd,
-        stdout=slave_fd,
-        stderr=slave_fd,
+        # stdin=slave_fd,
+        # stdout=slave_fd,
+        # stderr=slave_fd,
         universal_newlines=True,
         env=environment
     )
@@ -68,19 +68,20 @@ def shell(environment, command=None):
     signal.signal(signal.SIGTERM, _cleanup)
 
     while process.poll() is None:
-        read_list, write_list, _ = select.select([sys.stdin, master_fd], [], [])
-
-        if sys.stdin in read_list:
-            message = os.read(sys.stdin.fileno(), 10240)
-            os.write(master_fd, message)
-
-        elif master_fd in read_list:
-            message = os.read(master_fd, 10240)
-            if message:
-                os.write(sys.stdout.fileno(), message)
+        pass
+        # read_list, write_list, _ = select.select([sys.stdin, master_fd], [], [])
+        #
+        # if sys.stdin in read_list:
+        #     message = os.read(sys.stdin.fileno(), 10240)
+        #     os.write(master_fd, message)
+        #
+        # elif master_fd in read_list:
+        #     message = os.read(master_fd, 10240)
+        #     if message:
+        #         os.write(sys.stdout.fileno(), message)
 
     # Restore tty settings back
-    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
+    # termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
 
     # Remove temporary rc file for shell aliases
     rcfile.close()
