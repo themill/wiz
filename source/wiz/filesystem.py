@@ -6,8 +6,13 @@ import io
 import unicodedata
 import re
 import gzip
-import pwd
 import getpass
+
+try:
+    import pwd
+except ImportError:
+    # TODO: find workaround for windows
+    pass
 
 import wiz.exception
 
@@ -24,6 +29,7 @@ def get_name():
 
     """
     try:
+        # TODO: find workaround for windows
         return pwd.getpwnam(getpass.getuser()).pw_gecos
     except KeyError:
         return
