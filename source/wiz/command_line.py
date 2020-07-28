@@ -1,26 +1,27 @@
 # :coding: utf-8
 
 from __future__ import print_function
-import os
-import json
-import itertools
+
 import collections
 import datetime
+import itertools
+import json
+import os
 import time
 
 import click
 
-import wiz.logging
-import wiz.registry
-import wiz.symbol
+import wiz
 import wiz.definition
-import wiz.spawn
 import wiz.exception
 import wiz.filesystem
 import wiz.history
+import wiz.logging
+import wiz.registry
+import wiz.spawn
+import wiz.symbol
 import wiz.utility
 from wiz import __version__
-
 
 #: Click default context for all commands.
 CONTEXT_SETTINGS = dict(
@@ -63,9 +64,9 @@ class _MainGroup(click.Group):
     cls=_MainGroup,
     help=(
         """
-        Wiz is a package manager which can resolve a context or execute a 
+        Wiz is a package manager which can resolve a context or execute a
         command from one or several package requests. The resolved context
-        contains the environment mapping and a list of accessible command 
+        contains the environment mapping and a list of accessible command
         aliases.
 
         Example::
@@ -83,7 +84,7 @@ class _MainGroup(click.Group):
             \b
             wiz run nuke
             wiz run nuke -- /path/to/script.nk
-            wiz run python 
+            wiz run python
 
 
         All available packages and command can be listed as follow::
@@ -132,7 +133,7 @@ class _MainGroup(click.Group):
 @click.option(
     "-r", "--registry",
     help="Set registry path for package definitions.",
-    default=wiz.registry.get_defaults(),
+    default=wiz.CONFIG.get("registry", {}).get("paths", []),
     multiple=True,
     metavar="PATH",
     type=click.Path(),
@@ -241,15 +242,15 @@ def main(click_context, **kwargs):
     help=(
         """
         Display all available commands or package definitions.
-        
+
         Example::
-        
+
             \b
             wiz list command
             wiz list package
             wiz list command --all
             wiz list package --all
-        
+
         """
     ),
     short_help="List commands or package definitions.",
@@ -504,7 +505,7 @@ def wiz_search(click_context, **kwargs):
         """
         Display content of a package definition from definition identifier or
         command.
-        
+
         Example::
 
             \b
@@ -597,7 +598,7 @@ def wiz_view(click_context, **kwargs):
         """
         Spawn shell with resolved context from requested packages, or run
         a command within the resolved context.
-        
+
         Example::
 
             \b
@@ -685,7 +686,7 @@ def wiz_use(click_context, **kwargs):
             \b
             wiz run command
             wiz run command -- --option value /path/to/output
-        
+
         """
     ),
     short_help="Run command from package definition.",
@@ -762,7 +763,7 @@ def wiz_run(click_context, **kwargs):
     help=(
         """
         Export resolved context into a package definition or a script.
-        
+
         Example::
 
             \b
@@ -872,7 +873,7 @@ def wiz_freeze(click_context, **kwargs):
         """
         Install a package definition to a registry. A registry can be a
         local path to the file system or a VCS registry.
-        
+
         Example::
 
             \b
@@ -1273,7 +1274,7 @@ def display_definition_analysis(
     """
     if definition_mapping is None:
         definition_mapping = wiz.fetch_definition_mapping(
-            wiz.registry.get_defaults()
+            wiz.CONFIG.get("registry", {}).get("paths", [])
         )
 
     if verbose:

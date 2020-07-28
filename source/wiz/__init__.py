@@ -1,21 +1,25 @@
 # :coding: utf-8
 
-import shlex
 import os
+import shlex
 
-from _version import __version__
-import wiz.registry
+import wiz.config
 import wiz.definition
-import wiz.package
 import wiz.environ
-import wiz.graph
-import wiz.symbol
-import wiz.spawn
-import wiz.system
-import wiz.filesystem
 import wiz.exception
-import wiz.utility
+import wiz.filesystem
+import wiz.graph
 import wiz.logging
+import wiz.package
+import wiz.registry
+import wiz.spawn
+import wiz.symbol
+import wiz.system
+import wiz.utility
+from _version import __version__
+
+#: Wiz configuration used to define default settings.
+CONFIG = wiz.config.fetch()
 
 
 def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
@@ -201,7 +205,7 @@ def resolve_context(
 
     if definition_mapping is None:
         definition_mapping = wiz.fetch_definition_mapping(
-            wiz.registry.get_defaults()
+            CONFIG.get("registry", {}).get("paths", [])
         )
 
     if not ignore_implicit:
@@ -515,7 +519,7 @@ def validate_definition(definition, definition_mapping=None):
     """
     if definition_mapping is None:
         definition_mapping = wiz.fetch_definition_mapping(
-            wiz.registry.get_defaults()
+            CONFIG.get("registry", {}).get("paths", [])
         )
 
     # Record current logging handlers to set it back once validation is done.
