@@ -916,9 +916,14 @@ def wiz_install(click_context, **kwargs):
 
     overwrite = kwargs["overwrite"]
 
+    callback = wiz.CONFIG.get("callback", {}).get("install")
+    if callback is None:
+        logger.error("There are no available callback to install definitions.")
+        return
+
     while True:
         try:
-            wiz.install_definitions(
+            callback(
                 kwargs["definitions"], kwargs["registry"],
                 overwrite=overwrite
             )
