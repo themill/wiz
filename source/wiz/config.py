@@ -37,7 +37,7 @@ def fetch():
                 .format(plugin.__file__)
             )
 
-    return toml.load(path)
+    return config
 
 
 def discover_plugins():
