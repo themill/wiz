@@ -1,0 +1,7 @@
+name = "Default"
+
+[registry]
+# Define paths to default registry paths.
+paths=[]
+# Indicate a prefix to limit the discovery of registries (e.g. /jobs/).
+discovery_prefix=""
