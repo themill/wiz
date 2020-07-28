@@ -388,44 +388,6 @@ def export_definition(path, data, overwrite=False):
     return wiz.definition.export(path, data, overwrite=overwrite)
 
 
-def install_definitions(paths, registry_target, overwrite=False):
-    """Install a definition file to a registry.
-
-    *paths* is the path list to all definition files.
-
-    *registry_target* should be a valid :term:`VCS` registry URI or a path to a
-    local registry.
-
-    If *overwrite* is True, any existing definitions in the target registry
-    will be overwritten.
-
-    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *paths* cannot
-    create a valid instance of :class:`wiz.definition.Definition`.
-
-    Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
-    the target registry and *overwrite* is False.
-
-    Raises :exc:`OSError` if the definition can not be exported in a registry
-    local *path*.
-
-    """
-    definitions = []
-
-    for path in paths:
-        _definition = wiz.load_definition(path)
-        definitions.append(_definition)
-
-    if registry_target.startswith(wiz.registry.SCHEME):
-        wiz.registry.install_to_vcs(
-            definitions, registry_target, overwrite=overwrite
-        )
-
-    else:
-        wiz.registry.install_to_path(
-            definitions, registry_target, overwrite=overwrite
-        )
-
-
 def export_script(
     path, script_type, identifier, environ, command=None, packages=None,
 ):
