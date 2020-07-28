@@ -1,10 +1,9 @@
 # :coding: utf-8
 
-import re
 import os
+import re
 
 from setuptools import setup, find_packages
-
 
 ROOT_PATH = os.path.dirname(os.path.realpath(__file__))
 RESOURCE_PATH = os.path.join(ROOT_PATH, "resource")
@@ -46,10 +45,6 @@ TEST_REQUIRES = [
     "pytest-mock >= 0.11, < 1",
     "pytest-xdist >= 1.1, < 2",
     "pytest-cov >= 2, < 3",
-
-    # Ensure that more-itertools is limited to v6 as later version don't work
-    # for python 2.7.
-    "more-itertools >= 4, < 6"
 ]
 
 
