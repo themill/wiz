@@ -1,20 +1,11 @@
 # :coding: utf-8
 
-import json
 import os
-
-import requests
 
 import wiz.exception
 import wiz.filesystem
-import wiz.history
 import wiz.logging
-import wiz.package
-import wiz.symbol
 import wiz.utility
-
-#: Schema to reach :term:`VCS registries <VCS Registry>`.
-SCHEME = "wiz://"
 
 
 def get_local():
@@ -22,18 +13,6 @@ def get_local():
     registry_path = os.path.join(os.path.expanduser("~"), ".wiz", "registry")
     if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
         return registry_path
-
-
-def get_defaults():
-    """Return the default registries."""
-    # TODO: Get default registry via a configuration file.
-    server_root = os.path.join(os.sep, "mill3d", "server", "apps", "WIZ")
-
-    return [
-        os.path.join(server_root, "registry", "primary", "default"),
-        os.path.join(server_root, "registry", "secondary", "default"),
-        os.path.join(os.sep, "jobs", ".wiz", "registry", "default")
-    ]
 
 
 def fetch(paths, include_local=True, include_working_directory=True):
@@ -193,89 +172,3 @@ def install_to_path(definitions, registry_path, overwrite=False):
             registry=registry_path
         )
     )
-
-
-def install_to_vcs(definitions, registry_uri, overwrite=False):
-    """Install a list of definitions to a :term:`VCS` registry.
-
-    *definitions* must be a list of valid :class:`~wiz.definition.Definition`
-    instances.
-
-    *registry_uri* must be the valid URI of the :term:`VCS` registry to install
-    to.
-
-    If *overwrite* is True, any existing definitions in the target registry
-    will be overwritten.
-
-    Raises :exc:`wiz.exception.DefinitionExists` if definitions already exists
-    in the target registry and overwrite is False.
-
-    Raises :exc:`wiz.exception.InstallNoChanges` if definitions already exists
-    in the target registry and no changes is detected.
-
-    Raises :exc:`wiz.exception.InstallError` if the registry could not be found,
-    or definition could not be installed into it.
-
-    """
-    logger = wiz.logging.Logger(__name__ + ".install_to_vcs")
-
-    registry_identifier = registry_uri.strip(SCHEME)
-
-    response = requests.get("{}/api/registry/all".format(wiz.symbol.WIZ_SERVER))
-    if not response.ok:
-        raise wiz.exception.InstallError(
-            "VCS registries could not be retrieved: {}".format(
-                response.json().get("error", {}).get("message", "unknown")
-            )
-        )
-
-    registry_identifiers = response.json().get("data", {}).get("content", {})
-    if registry_identifier not in registry_identifiers:
-        raise wiz.exception.InstallError(
-            "{!r} is not a valid registry.".format(registry_identifier)
-        )
-
-    # Sanitize and encode definitions.
-    encoded_definitions = [
-        definition.sanitized().encode() for definition in definitions
-    ]
-
-    response = requests.post(
-        "{server}/api/registry/{name}/release".format(
-            server=wiz.symbol.WIZ_SERVER,
-            name=registry_identifier
-        ),
-        params={"overwrite": json.dumps(overwrite)},
-        data={
-            "contents": json.dumps(encoded_definitions),
-            "author": wiz.filesystem.get_name()
-        }
-    )
-
-    # Return if all good.
-    if response.ok:
-        logger.info(
-            "Successfully installed {number} definition(s) to "
-            "registry {registry!r}.".format(
-                number=len(definitions),
-                registry=registry_identifier
-            )
-        )
-        return
-
-    # If no content was released.
-    if response.status_code == 417:
-        raise wiz.exception.InstallNoChanges()
-
-    if response.status_code == 409:
-        _definitions = response.json().get("error", {}).get("definitions", [])
-        raise wiz.exception.DefinitionsExist(_definitions)
-
-    else:
-        raise wiz.exception.InstallError(
-            "Definitions could not be installed to registry {registry!r} "
-            "[{error}]".format(
-                registry=registry_identifier,
-                error=response.json().get("error", {}).get("message", "unknown")
-            )
-        )
