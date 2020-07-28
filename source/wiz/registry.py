@@ -1,17 +1,17 @@
 # :coding: utf-8
 
-import os
 import json
+import os
+
 import requests
 
-import wiz.logging
-import wiz.history
-import wiz.package
 import wiz.exception
-import wiz.utility
-import wiz.symbol
 import wiz.filesystem
-
+import wiz.history
+import wiz.logging
+import wiz.package
+import wiz.symbol
+import wiz.utility
 
 #: Schema to reach :term:`VCS registries <VCS Registry>`.
 SCHEME = "wiz://"
@@ -26,6 +26,7 @@ def get_local():
 
 def get_defaults():
     """Return the default registries."""
+    # TODO: Get default registry via a configuration file.
     server_root = os.path.join(os.sep, "mill3d", "server", "apps", "WIZ")
 
     return [
