@@ -85,8 +85,7 @@ def discover(path):
         Registry folders can be discovered only under :file:`/jobs/ads`.
 
     """
-    # TODO: This feature should potentially be set as a callback define in a
-    #  plugin.
+    # TODO: The prefix should be set as an option in configuration file
     path = os.path.abspath(path)
 
     # Only discover the registry if the top level hierarchy is /jobs/ads.
