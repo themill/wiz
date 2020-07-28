@@ -35,7 +35,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"Wiz"
-copyright = u"2018, The Mill"
+copyright = u"2020, The Mill"
 
 # Version
 with open(
