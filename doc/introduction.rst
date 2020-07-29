@@ -4,9 +4,9 @@
 Introduction
 ************
 
-Wiz is a package manager which can resolve a context or execute a command from
-one or several package requests. The resolved context contains the environment
-mapping and a list of accessible command aliases.
+Wiz is a environment manager which can resolve a context or execute a command
+from one or several package requests. The resolved context contains the
+environment mapping and a list of accessible command aliases.
 
 The packages are defined in :ref:`package definitions <definition>` which are
 stored in one or several :ref:`registries <registry>`.
@@ -37,5 +37,3 @@ It is also possible to search a specific package or command as follow::
     wiz search python
 
 Use ``wiz --help`` to see all the options.
-
-It is developed in :term:`Python`.
