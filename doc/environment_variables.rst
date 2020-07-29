@@ -6,10 +6,17 @@ Environment variables
 
 Environment variables directly defined or referenced by this package.
 
-.. envvar:: WIZ_SERVER
+.. envvar:: WIZ_CONFIG_PATH
 
-    Indicate the :term:`Wiz Vault` host server. By default the host is
-    `http://wiz.themill.com <http://wiz.themill.com>`_.
+    Path to to :term:`TOML` configuration file to use to initialize default
+    values and callback. A reasonable default will be provided if this
+    environment variable is not set.
+
+.. envvar:: WIZ_PLUGIN_PATHS
+
+    Paths to search for plugins to load and use to define the global
+    configuration mapping. Multiple paths can be specified by separating with
+    the value of :attr:`os.pathsep` (e.g. ':' or ';').
 
 .. envvar:: INSTALL_LOCATION
 
