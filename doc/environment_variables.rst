@@ -8,7 +8,7 @@ Environment variables directly defined or referenced by this package.
 
 .. envvar:: WIZ_CONFIG_PATH
 
-    Path to to :term:`TOML` configuration file to use to initialize default
+    Path to a :term:`TOML` configuration file to initialize default
     values and callback. A reasonable default will be provided if this
     environment variable is not set.
 
