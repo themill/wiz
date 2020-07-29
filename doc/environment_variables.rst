@@ -14,9 +14,8 @@ Environment variables directly defined or referenced by this package.
 
 .. envvar:: WIZ_PLUGIN_PATHS
 
-    Paths to search for plugins to load and use to define the global
-    configuration mapping. Multiple paths can be specified by separating with
-    the value of :attr:`os.pathsep` (e.g. ':' or ';').
+    Search paths for plugins to define the global configuration. 
+    Multiple paths should be separated by :attr:`os.pathsep` (e.g. ':' or ';').
 
 .. envvar:: INSTALL_LOCATION
 
