@@ -5,11 +5,9 @@ from packaging.requirements import (
     L, Combine, Word, ZeroOrMore, ALPHANUM, Optional, EXTRAS,
     URL_AND_MARKER, VERSION_AND_MARKER, stringStart, stringEnd
 )
-
 from packaging.requirements import Requirement
 
 import wiz.symbol
-
 
 # Extend requirement's expression to allow namespace separators as a valid
 # identifier (e.g. "foo::test", "::test").
@@ -56,7 +54,6 @@ def _display_requirement(_requirement):
 
 #: Monkeypatch magic method to improve readability of serialized item.
 Requirement.__str__ = _display_requirement
-
 
 #: Monkeypatch magic methods to allow comparison between instances.
 Requirement.__eq__ = lambda self, other: (

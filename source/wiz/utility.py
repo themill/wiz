@@ -1,22 +1,20 @@
 # :coding: utf-8
 
-import re
-import pipes
-import json
-import zlib
 import base64
 import hashlib
+import json
+import pipes
+import re
+import zlib
 
 import colorama
-
-from _requirement import Requirement
 from packaging.requirements import InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
-import wiz.symbol
-import wiz.mapping
 import wiz.exception
-
+import wiz.mapping
+import wiz.symbol
+from _requirement import Requirement
 
 # Arbitrary number which indicates a very high version number
 _INFINITY_VERSION = 9999

@@ -1,16 +1,16 @@
 # :coding: utf-8
 
-import os
 import json
+import os
 
+import wiz.exception
+import wiz.filesystem
+import wiz.history
 import wiz.logging
-import wiz.symbol
 import wiz.mapping
 import wiz.package
-import wiz.filesystem
-import wiz.exception
+import wiz.symbol
 import wiz.system
-import wiz.history
 import wiz.utility
 import wiz.validator
 
@@ -421,7 +421,7 @@ def discover(paths, system_mapping=None, max_depth=None):
                 ):
                     logger.warning(
                         "Error occurred trying to load definition from {!r}"
-                        .format(_path),
+                            .format(_path),
                     )
                     logger.debug_traceback()
                     continue

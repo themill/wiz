@@ -1,14 +1,13 @@
 # :coding: utf-8
 
-import re
-import os
-import socket
 import getpass
 import itertools
-
+import os
+import re
+import socket
 
 #: Compiled regular expression to identify environment variables in string.
-ENV_PATTERN = re.compile("\${(\w+)}|\$(\w+)")
+ENV_PATTERN = re.compile(r"\${(\w+)}|\$(\w+)")
 
 
 def initiate(mapping=None):
@@ -67,10 +66,10 @@ def sanitise(mapping):
     Resolve all key references within *mapping* values and remove all
     self-references::
 
-        >>> sanitise(
+        >>> sanitise({
         ...     "PLUGIN": "${HOME}/.app:/path/to/somewhere:${PLUGIN}",
         ...     "HOME": "/usr/people/me"
-        ... )
+        ... })
 
         {
             "HOME": "/usr/people/me",
@@ -128,6 +127,7 @@ def substitute(text, environment):
         /usr/people/john-doe/path/to/data
 
     """
+
     def _substitute(match):
         origin = match.group(0)
         name = next(item for item in match.groups() if item is not None)

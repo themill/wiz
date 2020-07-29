@@ -1375,9 +1375,10 @@ def display_definition(definition):
             LD_LIBRARY_PATH: ${INSTALL_LOCATION}/lib:${LD_LIBRARY_PATH}
 
     """
+
     def _display(item, level=0):
         """Display *item*"""
-        indent = " "*level
+        indent = " " * level
 
         if isinstance(item, collections.OrderedDict) or isinstance(item, dict):
             for key, value in item.items():
