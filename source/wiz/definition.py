@@ -210,7 +210,7 @@ def query(requirement, definition_mapping, namespace_counter=None):
         reverse=True
     )
 
-    if wiz.symbol.UNKNOWN_VALUE in versions and len(versions) > 1:
+    if wiz.symbol.UNSET_VALUE in versions and len(versions) > 1:
         raise wiz.exception.RequestNotFound(
             "Impossible to retrieve the best matching definition for "
             "'{}' as non-versioned and versioned definitions have "
@@ -510,7 +510,7 @@ class Definition(wiz.mapping.Mapping):
     @property
     def version_identifier(self):
         """Return version identifier."""
-        if self.version != wiz.symbol.UNKNOWN_VALUE:
+        if self.version != wiz.symbol.UNSET_VALUE:
             return "{}=={}".format(self.identifier, self.version)
         return self.identifier
 

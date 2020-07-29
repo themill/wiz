@@ -15,7 +15,7 @@ COMMAND_SEPARATOR = "--"
 NAMESPACE_SEPARATOR = "::"
 
 #: Default value when a definition value is unknown.
-UNKNOWN_VALUE = "unknown"
+UNSET_VALUE = "-"
 
 #: Package request type.
 PACKAGE_REQUEST_TYPE = "package"

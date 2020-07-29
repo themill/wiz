@@ -1,10 +1,11 @@
 # :coding: utf-8
 
+import collections
 import copy
 import itertools
 import uuid
-import collections
 from heapq import heapify, heappush, heappop
+
 try:
     import queue as _queue
 except ImportError:
@@ -378,7 +379,7 @@ class Resolver(object):
 
             # If the node cannot be fetched or does not have a version, it is
             # impossible to replace it with another version.
-            if node is None or node.package.version == wiz.symbol.UNKNOWN_VALUE:
+            if node is None or node.package.version == wiz.symbol.UNSET_VALUE:
                 self._logger.debug(
                     "Impossible to fetch another version for conflicting "
                     "package '{}'".format(identifier)

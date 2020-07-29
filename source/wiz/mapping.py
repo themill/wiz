@@ -1,13 +1,13 @@
 # :coding: utf-8
 
-import json
+import abc
 import collections
 import copy
-import abc
+import json
 
-import wiz.utility
-import wiz.symbol
 import wiz.exception
+import wiz.symbol
+import wiz.utility
 
 
 class Mapping(collections.Mapping):
@@ -103,12 +103,12 @@ class Mapping(collections.Mapping):
     @property
     def version(self):
         """Return version."""
-        return self.get("version", wiz.symbol.UNKNOWN_VALUE)
+        return self.get("version", wiz.symbol.UNSET_VALUE)
 
     @property
     def description(self):
         """Return description."""
-        return self.get("description", wiz.symbol.UNKNOWN_VALUE)
+        return self.get("description", wiz.symbol.UNSET_VALUE)
 
     @property
     def namespace(self):
