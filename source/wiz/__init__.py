@@ -18,7 +18,7 @@ import wiz.system
 import wiz.utility
 from _version import __version__
 
-#: Wiz configuration used to define default settings.
+#: Configuration mapping used to define default settings and callbacks.
 CONFIG = wiz.config.fetch()
 
 
