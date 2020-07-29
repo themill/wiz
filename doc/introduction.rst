@@ -39,8 +39,3 @@ It is also possible to search a specific package or command as follow::
 Use ``wiz --help`` to see all the options.
 
 It is developed in :term:`Python`.
-
-.. seealso::
-
-    Any design decisions can be followed up on in this
-    :ref:`Research document <infinite-monkey:document/package_manager_evaluation>`.
