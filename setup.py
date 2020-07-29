@@ -32,10 +32,10 @@ INSTALL_REQUIRES = [
 ]
 
 DOC_REQUIRES = [
-    "sphinx >= 1.6, < 1.7",
+    "sphinx >= 1.8, < 2",
     "sphinx_rtd_theme >= 0.1.6, < 1",
     "lowdown >= 0.1.0, < 2",
-    "sphinx-click>=1.2.0"
+    "sphinx-click >= 1.2.0"
 ]
 
 TEST_REQUIRES = [
