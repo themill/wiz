@@ -8,27 +8,48 @@ import toml
 
 import wiz.logging
 
-#: Path to default configuration file.
-DEFAULT_CONFIG_PATH = os.path.join(
-    os.path.dirname(__file__), "package_data", "config.toml"
-)
-
-#: Path to default plugin path.
-DEFAULT_PLUGIN_PATH = os.path.join(
-    os.path.dirname(__file__), "package_data", "plugins"
-)
+#: Global configuration mapping.
+_CONFIG = None
 
 
-def fetch():
+def fetch(refresh=False):
     """Fetch configuration mapping.
+
+    The configuration created is cached for future usage so that configuration
+    previously fetched will be returned.
+
+    If *refresh* is set to True, the configuration will be re-created.
+
     """
     logger = wiz.logging.Logger(__name__ + ".fetch")
 
-    path = os.environ.get("WIZ_CONFIG_PATH", DEFAULT_CONFIG_PATH)
-    config = toml.load(path)
+    global _CONFIG
+
+    if _CONFIG is not None and not refresh:
+        return _CONFIG
+
+    config = {}
+
+    # Fetch all configurations paths.
+    root = os.path.dirname(__file__)
+    paths = [os.path.join(root, "package_data", "config.toml")]
+    paths += os.environ.get("WIZ_CONFIG_PATHS", "").split(os.pathsep)
+    paths += [os.path.join(os.path.expanduser("~"), ".wiz", "config.toml")]
+
+    for file_path in paths:
+        if not os.path.isfile(file_path) or not len(file_path):
+            continue
+
+        try:
+            config.update(toml.load(file_path))
+        except Exception as error:
+            logger.warning(
+                "Failed to load configuration: {} [{}]"
+                .format(file_path, error)
+            )
 
     # Extend configuration mapping with plugins
-    for plugin in discover_plugins():
+    for plugin in _discover_plugins():
         try:
             plugin.register(config)
         except AttributeError:
@@ -37,26 +58,25 @@ def fetch():
                 .format(plugin.__file__)
             )
 
-    return config
+    _CONFIG = config
+    return _CONFIG
 
 
-def discover_plugins():
+def _discover_plugins():
     """Discover and yield plugins.
     """
     logger = wiz.logging.Logger(__name__ + ".discover_plugins")
 
-    paths = []
+    # Fetch all plugin paths.
+    root = os.path.dirname(__file__)
+    paths = [os.path.join(root, "package_data", "plugins")]
+    paths += os.environ.get("WIZ_PLUGIN_PATHS", "").split(os.pathsep)
+    paths += [os.path.join(os.path.expanduser("~"), ".wiz", "plugins")]
 
-    environ_value = os.environ.get("WIZ_PLUGIN_PATHS")
-    if environ_value:
-        paths += environ_value.split(os.pathsep)
+    for dir_path in paths:
+        if not os.path.isdir(dir_path) or not len(dir_path):
+            continue
 
-    # Add default plugin path.
-    paths.append(DEFAULT_PLUGIN_PATH)
-
-    # Process plugins in reversed to give priority to those defined first within
-    # the environment variable value.
-    for dir_path in reversed(paths):
         for file_path in os.listdir(dir_path):
             name, extension = os.path.splitext(file_path)
             if extension != ".py":

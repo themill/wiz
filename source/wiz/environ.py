@@ -1,10 +1,10 @@
 # :coding: utf-8
 
-import getpass
 import itertools
 import os
 import re
-import socket
+
+import wiz.config
 
 #: Compiled regular expression to identify environment variables in string.
 ENV_PATTERN = re.compile(r"\${(\w+)}|\$(\w+)")
@@ -37,22 +37,14 @@ def initiate(mapping=None):
     .. _xauth: https://www.x.org/releases/X11R6.8.2/doc/xauth.1.html
 
     """
-    environ = {
-        "USER": getpass.getuser(),
-        "HOME": os.path.expanduser("~"),
-        "HOSTNAME": socket.gethostname(),
-        "LOGNAME": os.environ.get("LOGNAME", ""),
-        "DISPLAY": os.environ.get("DISPLAY", ""),
-        "XAUTHORITY": os.environ.get("XAUTHORITY", ""),
-        "PATH": os.pathsep.join([
-            "/usr/local/sbin",
-            "/usr/local/bin",
-            "/usr/sbin",
-            "/usr/bin",
-            "/sbin",
-            "/bin",
-        ])
-    }
+    config = wiz.config.fetch()
+    environ = config.get("environ", {}).get("initial", {})
+
+    for key in config.get("environ", {}).get("passthrough", []):
+        value = os.environ.get(key)
+
+        if value:
+            environ[key] = value
 
     if mapping is not None:
         environ.update(**mapping)

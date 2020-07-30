@@ -3,7 +3,6 @@
 import os
 import shlex
 
-import wiz.config
 import wiz.definition
 import wiz.environ
 import wiz.exception
@@ -17,9 +16,6 @@ import wiz.symbol
 import wiz.system
 import wiz.utility
 from _version import __version__
-
-#: Configuration mapping used to define default settings and callbacks.
-CONFIG = wiz.config.fetch()
 
 
 def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
@@ -205,7 +201,7 @@ def resolve_context(
 
     if definition_mapping is None:
         definition_mapping = wiz.fetch_definition_mapping(
-            CONFIG.get("registry", {}).get("paths", [])
+            wiz.registry.get_defaults()
         )
 
     if not ignore_implicit:
@@ -481,7 +477,7 @@ def validate_definition(definition, definition_mapping=None):
     """
     if definition_mapping is None:
         definition_mapping = wiz.fetch_definition_mapping(
-            CONFIG.get("registry", {}).get("paths", [])
+            wiz.registry.get_defaults()
         )
 
     # Record current logging handlers to set it back once validation is done.

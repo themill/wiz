@@ -11,6 +11,7 @@ import time
 
 import click
 
+import wiz.config
 import wiz.definition
 import wiz.exception
 import wiz.filesystem
@@ -20,12 +21,17 @@ import wiz.registry
 import wiz.spawn
 import wiz.symbol
 import wiz.utility
-from wiz import CONFIG
 from wiz import __version__
+
+# Initiate logging handler to display potential warning when fetching config.
+wiz.logging.configure()
+
+#: Retrieve configuration mapping to initialize default values.
+_CONFIG = wiz.config.fetch()
 
 #: Click default context for all commands.
 CONTEXT_SETTINGS = dict(
-    max_content_width=CONFIG.get("command", {}).get("max_content_width", 80),
+    max_content_width=_CONFIG.get("command", {}).get("max_content_width", 80),
     help_option_names=["-h", "--help"],
 )
 
@@ -106,14 +112,14 @@ class _MainGroup(click.Group):
     "-v", "--verbosity",
     help="Set the logging output verbosity.",
     type=click.Choice(wiz.logging.levels),
-    default=CONFIG.get("command", {}).get("verbosity", "info"),
+    default=_CONFIG.get("command", {}).get("verbosity", "info"),
     show_default=True
 )
 @click.option(
     "--no-local",
     help="Skip local registry.",
     is_flag=True,
-    default=CONFIG.get("command", {}).get("no_local", False),
+    default=_CONFIG.get("command", {}).get("no_local", False),
 )
 @click.option(
     "--no-cwd",
@@ -122,19 +128,19 @@ class _MainGroup(click.Group):
         "working directory within project."
     ),
     is_flag=True,
-    default=CONFIG.get("command", {}).get("no_cwd", False),
+    default=_CONFIG.get("command", {}).get("no_cwd", False),
 )
 @click.option(
     "-rd", "--registry-depth",
     help="Maximum depth to recursively search for definitions.",
-    default=CONFIG.get("command", {}).get("depth"),
+    default=_CONFIG.get("command", {}).get("depth"),
     type=int,
     metavar="NUMBER",
 )
 @click.option(
     "-r", "--registry",
     help="Set registry path for package definitions.",
-    default=CONFIG.get("registry", {}).get("paths", []),
+    default=wiz.registry.get_defaults(),
     multiple=True,
     metavar="PATH",
     type=click.Path(),
@@ -154,7 +160,7 @@ class _MainGroup(click.Group):
         "in resolved context."
     ),
     is_flag=True,
-    default=CONFIG.get("command", {}).get("ignore_implicit", False),
+    default=_CONFIG.get("command", {}).get("ignore_implicit", False),
 )
 @click.option(
     "--init",
@@ -164,32 +170,32 @@ class _MainGroup(click.Group):
     ),
     type=lambda x: tuple(x.split("=", 1)),
     metavar="VARIABLE=VALUE",
-    default=CONFIG.get("command", {}).get("init", []),
+    default=[],
     multiple=True,
 )
 @click.option(
     "--platform",
     metavar="PLATFORM",
     help="Override detected platform.",
-    default=CONFIG.get("command", {}).get("platform"),
+    default=_CONFIG.get("command", {}).get("platform"),
 )
 @click.option(
     "--architecture",
     metavar="ARCHITECTURE",
     help="Override detected architecture.",
-    default=CONFIG.get("command", {}).get("architecture"),
+    default=_CONFIG.get("command", {}).get("architecture"),
 )
 @click.option(
     "--os-name",
     metavar="NAME",
     help="Override detected operating system name.",
-    default=CONFIG.get("command", {}).get("os_name"),
+    default=_CONFIG.get("command", {}).get("os_name"),
 )
 @click.option(
     "--os-version",
     metavar="VERSION",
     help="Override detected operating system version.",
-    default=CONFIG.get("command", {}).get("os_version"),
+    default=_CONFIG.get("command", {}).get("os_version"),
 )
 @click.option(
     "--record",
@@ -290,7 +296,7 @@ def wiz_list_group(click_context):
     help="Display all package versions, not just the latest one.",
     is_flag=True,
     default=(
-        CONFIG.get("command", {}).get("list", {}).get("package", {})
+        _CONFIG.get("command", {}).get("list", {}).get("package", {})
         .get("all", False)
     )
 )
@@ -299,7 +305,7 @@ def wiz_list_group(click_context):
     help="Display packages for all platforms.",
     is_flag=True,
     default=(
-        CONFIG.get("command", {}).get("list", {}).get("package", {})
+        _CONFIG.get("command", {}).get("list", {}).get("package", {})
         .get("no_arch", False)
     )
 )
@@ -353,7 +359,7 @@ def wiz_list_package(click_context, **kwargs):
     help="Display all command versions, not just the latest one.",
     is_flag=True,
     default=(
-        CONFIG.get("command", {}).get("list", {}).get("command", {})
+        _CONFIG.get("command", {}).get("list", {}).get("command", {})
         .get("all", False)
     )
 )
@@ -362,7 +368,7 @@ def wiz_list_package(click_context, **kwargs):
     help="Display commands for all platforms.",
     is_flag=True,
     default=(
-        CONFIG.get("command", {}).get("list", {}).get("command", {})
+        _CONFIG.get("command", {}).get("list", {}).get("command", {})
         .get("no_arch", False)
     )
 )
@@ -423,13 +429,13 @@ def wiz_list_command(click_context, **kwargs):
     "-a", "--all",
     help="Display all package versions, not just the latest one.",
     is_flag=True,
-    default=CONFIG.get("command", {}).get("search", {}).get("all", False)
+    default=_CONFIG.get("command", {}).get("search", {}).get("all", False)
 )
 @click.option(
     "--no-arch",
     help="Display results for all platforms.",
     is_flag=True,
-    default=CONFIG.get("command", {}).get("search", {}).get("no_arch", False)
+    default=_CONFIG.get("command", {}).get("search", {}).get("no_arch", False)
 )
 @click.option(
     "-t", "--type",
@@ -439,7 +445,7 @@ def wiz_list_command(click_context, **kwargs):
         wiz.symbol.PACKAGE_REQUEST_TYPE,
         wiz.symbol.COMMAND_REQUEST_TYPE
     ]),
-    default=CONFIG.get("command", {}).get("search", {}).get("type", "all"),
+    default=_CONFIG.get("command", {}).get("search", {}).get("type", "all"),
     show_default=True
 )
 @click.argument(
@@ -538,7 +544,7 @@ def wiz_search(click_context, **kwargs):
     "--json",
     help="Display definition in JSON.",
     is_flag=True,
-    default=CONFIG.get("command", {}).get("view", {}).get("json_view", False),
+    default=_CONFIG.get("command", {}).get("view", {}).get("json_view", False),
 )
 @click.argument(
     "request",
@@ -802,7 +808,7 @@ def wiz_run(click_context, **kwargs):
     "-f", "--format",
     help="Indicate the output format.",
     type=click.Choice(["wiz", "tcsh", "bash"]),
-    default=CONFIG.get("command", {}).get("freeze", {}).get("format", "wiz"),
+    default=_CONFIG.get("command", {}).get("freeze", {}).get("format", "wiz"),
     show_default=True
 )
 @click.argument(
@@ -916,7 +922,9 @@ def wiz_freeze(click_context, **kwargs):
     "--overwrite",
     help="Always overwrite existing definitions.",
     is_flag=True,
-    default=CONFIG.get("command", {}).get("install", {}).get("overwrite", False)
+    default=(
+        _CONFIG.get("command", {}).get("install", {}).get("overwrite", False)
+    )
 )
 @click.argument(
     "definitions",
@@ -933,7 +941,7 @@ def wiz_install(click_context, **kwargs):
 
     overwrite = kwargs["overwrite"]
 
-    callback = wiz.CONFIG.get("callback", {}).get("install")
+    callback = _CONFIG.get("callback", {}).get("install")
     if callback is None:
         logger.error("There are no available callback to install definitions.")
         return
@@ -1063,7 +1071,7 @@ def wiz_install(click_context, **kwargs):
     "--overwrite",
     help="Always overwrite existing definitions.",
     is_flag=True,
-    default=CONFIG.get("command", {}).get("edit", {}).get("overwrite", False)
+    default=_CONFIG.get("command", {}).get("edit", {}).get("overwrite", False)
 )
 @click.option(
     "-o", "--output",
@@ -1179,13 +1187,13 @@ def wiz_edit(click_context, **kwargs):
     "--no-arch",
     help="Analyze definition for all platforms.",
     is_flag=True,
-    default=CONFIG.get("command", {}).get("analyze", {}).get("no_arch", False)
+    default=_CONFIG.get("command", {}).get("analyze", {}).get("no_arch", False)
 )
 @click.option(
     "--verbose",
     help="Increase verbosity of analysis.",
     is_flag=True,
-    default=CONFIG.get("command", {}).get("analyze", {}).get("verbose", False)
+    default=_CONFIG.get("command", {}).get("analyze", {}).get("verbose", False)
 )
 @click.option(
     "-f", "--filter",
@@ -1296,7 +1304,7 @@ def display_definition_analysis(
     """
     if definition_mapping is None:
         definition_mapping = wiz.fetch_definition_mapping(
-            wiz.CONFIG.get("registry", {}).get("paths", [])
+            wiz.registry.get_defaults()
         )
 
     if verbose:

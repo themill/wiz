@@ -2,6 +2,7 @@
 
 import os
 
+import wiz.config
 import wiz.exception
 import wiz.filesystem
 import wiz.logging
@@ -13,6 +14,12 @@ def get_local():
     registry_path = os.path.join(os.path.expanduser("~"), ".wiz", "registry")
     if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
         return registry_path
+
+
+def get_defaults():
+    """Return the default registries."""
+    config = wiz.config.fetch()
+    return config.get("registry", {}).get("paths", [])
 
 
 def fetch(paths, include_local=True, include_working_directory=True):
