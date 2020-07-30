@@ -118,8 +118,6 @@ def install_to_path(definitions, registry_path, overwrite=False):
         )
 
     registry_path = os.path.abspath(registry_path)
-    if not registry_path.endswith(".wiz/registry"):
-        registry_path = os.path.join(registry_path, ".wiz", "registry")
 
     # Record definitions to install.
     _definitions = []
