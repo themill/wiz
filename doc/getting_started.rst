@@ -4,6 +4,8 @@
 Getting started
 ***************
 
+.. highlight:: shell
+
 Once :ref:`installed <installing>`, the command line tool can be used in a shell
 as follows::
 
@@ -40,7 +42,7 @@ You can now discover the package using the command line tool::
 
     We are using the :option:`wiz -r` option throughout this page to indicate
     which registry to parse. Later we will see how to set up default registries
-    with a :ref:`configuration file <configuration>`.
+    with a :ref:`configuration file <configuration/registry_paths>`.
 
 Python is defined with a version, so we can add it to the definition along with
 a short description::

@@ -6,15 +6,15 @@ Environment variables
 
 Environment variables directly defined or referenced by this package.
 
-.. envvar:: WIZ_CONFIG_PATH
+.. envvar:: WIZ_CONFIG_PATHS
 
-    Path to a :term:`TOML` configuration file to initialize default
-    values and callback. A reasonable default will be provided if this
-    environment variable is not set.
+    Path to :term:`TOML` configuration files to customize default
+    values and callback. Multiple paths should be separated by
+    :attr:`os.pathsep` (e.g. ':' or ';').
 
 .. envvar:: WIZ_PLUGIN_PATHS
 
-    Search paths for plugins to define the global configuration. 
+    Search paths for plugins to define the global configuration.
     Multiple paths should be separated by :attr:`os.pathsep` (e.g. ':' or ';').
 
 .. envvar:: INSTALL_LOCATION
