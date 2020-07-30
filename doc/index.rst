@@ -4,13 +4,12 @@
 Wiz
 ###
 
-Package management system.
-
 .. toctree::
     :maxdepth: 1
 
     introduction
     installing
+    getting_started
     registry
     definition
     installing_definitions
