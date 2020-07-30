@@ -13,7 +13,6 @@ Wiz
     registry
     definition
     installing_definitions
-    tutorial/index
     guidelines
     tools
     command_line
