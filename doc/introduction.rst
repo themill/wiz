@@ -26,3 +26,4 @@ Equivalent commands can be executed using the Python API::
     # Run command within environment.
     command = context["command"]["AppExe"]
     subprocess.call(command, environ=context["environ"])
+
