@@ -4,6 +4,9 @@ import getpass
 import os
 import socket
 
+#: Unique identifier of the plugin.
+IDENTIFIER = "environ"
+
 
 def register(config):
     """Register initial environment variables."""

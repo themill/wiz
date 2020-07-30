@@ -1,5 +1,6 @@
 # :coding: utf-8
 
+import collections
 import imp
 import os
 import uuid
@@ -45,7 +46,7 @@ def fetch(refresh=False):
             wiz.utility.deep_update(config, toml.load(file_path))
         except Exception as error:
             logger.warning(
-                "Failed to load configuration: {} [{}]"
+                "Failed to load configuration from \"{0}\" [{1}]"
                 .format(file_path, error)
             )
 
@@ -53,10 +54,10 @@ def fetch(refresh=False):
     for plugin in _discover_plugins():
         try:
             plugin.register(config)
-        except AttributeError:
+        except Exception as error:
             logger.warning(
-                "Failed to register plugin from module: {0}"
-                .format(plugin.__file__)
+                "Failed to register plugin from \"{0}\" [{1}]"
+                .format(plugin.__file__, error)
             )
 
     _CONFIG = config
@@ -64,7 +65,7 @@ def fetch(refresh=False):
 
 
 def _discover_plugins():
-    """Discover and yield plugins.
+    """Discover and return plugins.
     """
     logger = wiz.logging.Logger(__name__ + ".discover_plugins")
 
@@ -73,6 +74,8 @@ def _discover_plugins():
     paths = [os.path.join(root, "package_data", "plugins")]
     paths += reversed(os.environ.get("WIZ_PLUGIN_PATHS", "").split(os.pathsep))
     paths += [os.path.join(os.path.expanduser("~"), ".wiz", "plugins")]
+
+    plugins = collections.OrderedDict()
 
     for dir_path in paths:
         if not os.path.isdir(dir_path) or not len(dir_path):
@@ -88,6 +91,8 @@ def _discover_plugins():
 
             try:
                 module = imp.load_source(unique_name, module_path)
+                plugins[module.IDENTIFIER] = module
+
             except Exception as error:
                 logger.warning(
                     "Failed to load plugin from \"{0}\": {1}"
@@ -95,4 +100,4 @@ def _discover_plugins():
                 )
                 continue
 
-            yield module
+    return plugins.values()

@@ -2,6 +2,9 @@
 
 import wiz.registry
 
+#: Unique identifier of the plugin.
+IDENTIFIER = "installer"
+
 
 def install_definitions(paths, registry_target, overwrite=False):
     """Install a definition file to a registry.
