@@ -8,12 +8,11 @@ initial={}
 passthrough=["DISPLAY", "XAUTHORITY"]
 
 [command]
-max_content_width=100
+max_content_width=90
 verbosity="info"
 no_local=false
 no_cwd=false
 ignore_implicit=false
-init=[]
 
 [command.list.package]
 all=false
