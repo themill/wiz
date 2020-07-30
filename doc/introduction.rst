@@ -4,36 +4,21 @@
 Introduction
 ************
 
-Wiz is a environment manager which can resolve a context or execute a command
-from one or several package requests. The resolved context contains the
-environment mapping and a list of accessible command aliases.
+Wiz is an environment management framework which consists of a :term:`Python`
+API and a command line tool. It can be used to run a command within a specific
+environment mapping resolved from one or several package requests (e.g.
+["nuke==12.2.*", "ldpk-nuke"]).
 
 The packages are defined in :ref:`package definitions <definition>` which are
 stored in one or several :ref:`registries <registry>`.
 
-Example::
+The command line tool can be used as follows::
 
     wiz use python
     wiz use nuke ldpk-nuke
     wiz use nuke -- /path/to/script.nk
 
-A command can also be executed from a resolved context via a command alias which
-is extracted from its corresponding package.
+Equivalent commands can be executed using the Python API::
 
-Example::
-
-    wiz run nuke
-    wiz run nuke -- /path/to/script.nk
-    wiz run python
-
-
-All available packages and command can be listed as follow::
-
-    wiz list package
-    wiz list command
-
-It is also possible to search a specific package or command as follow::
-
-    wiz search python
-
-Use ``wiz --help`` to see all the options.
+    >>> context = wiz.resolve_context(["nuke", "ldpk-nuke"])
+    >>> subprocess.call(context["command"]["nuke"], environ=context["environ"])
