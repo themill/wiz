@@ -51,7 +51,7 @@ TEST_REQUIRES = [
 setup(
     name="wiz",
     version=VERSION,
-    description="Package management system.",
+    description="Environment management framework.",
     long_description=open(README_PATH).read(),
     url="https://github.com/themill/wiz",
     keywords="",
