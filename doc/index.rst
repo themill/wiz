@@ -11,6 +11,7 @@ Wiz
     installing
     getting_started
     configuration
+    plugins
     registry
     definition
     installing_definitions
