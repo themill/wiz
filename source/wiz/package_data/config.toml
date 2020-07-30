@@ -3,6 +3,10 @@ name = "Default"
 [registry]
 paths=[]
 
+[environ]
+initial={}
+passthrough=["DISPLAY", "XAUTHORITY"]
+
 [command]
 max_content_width=100
 verbosity="info"
