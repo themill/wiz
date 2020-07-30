@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import base64
+import collections
 import hashlib
 import json
 import pipes
@@ -514,3 +515,39 @@ def colored_text(message, color):
         getattr(colorama.Fore, color.upper()) + message +
         colorama.Style.RESET_ALL
     )
+
+
+def deep_update(mapping1, mapping2):
+    """Recursively update *mapping1* from *mapping2*.
+
+    Contrary to :meth:`dict.update`, this function will attempt to update
+    sub-dictionaries defined in both mappings instead of overwriting the value
+    defined in *mapping1*::
+
+        >>> deep_update({"A": {"B": 2}}, {"A": {"C": 3}})
+        {"A": {"B": 2, "C": 3}}
+
+    Lists will also get extended if necessary::
+
+        >>> deep_update({"A": [1, 2]}, {"A": [3]})
+        {"A": [1, 2, 3]]}
+
+    :param mapping1: Mapping to update
+
+    :param mapping2: Mapping to update *mapping1* from
+
+    :return: *mapping1* mutated.
+
+    .. note::
+
+        *mapping1* will be mutated, but *mapping2* will not.
+
+    """
+    for key, value in mapping2.items():
+        if isinstance(value, collections.Mapping):
+            mapping1[key] = deep_update(mapping1.get(key, {}), value)
+        elif isinstance(value, list):
+            mapping1[key] = mapping1.get(key, []) + value
+        else:
+            mapping1[key] = value
+    return mapping1
