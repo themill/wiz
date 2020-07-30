@@ -33,7 +33,7 @@ def fetch(refresh=False):
     # Fetch all configurations paths.
     root = os.path.dirname(__file__)
     paths = [os.path.join(root, "package_data", "config.toml")]
-    paths += os.environ.get("WIZ_CONFIG_PATHS", "").split(os.pathsep)
+    paths += reversed(os.environ.get("WIZ_CONFIG_PATHS", "").split(os.pathsep))
     paths += [os.path.join(os.path.expanduser("~"), ".wiz", "config.toml")]
 
     for file_path in paths:
@@ -70,7 +70,7 @@ def _discover_plugins():
     # Fetch all plugin paths.
     root = os.path.dirname(__file__)
     paths = [os.path.join(root, "package_data", "plugins")]
-    paths += os.environ.get("WIZ_PLUGIN_PATHS", "").split(os.pathsep)
+    paths += reversed(os.environ.get("WIZ_PLUGIN_PATHS", "").split(os.pathsep))
     paths += [os.path.join(os.path.expanduser("~"), ".wiz", "plugins")]
 
     for dir_path in paths:

@@ -15,9 +15,9 @@ the :term:`Python` interpreter.
 
 But first, create our first registry directory to store this definition::
 
-    >>> mkdir ./registry
+    >>> mkdir /tmp/registry
 
-Create the following definition in :file:`./registry/python.json`::
+Create the following definition in :file:`/tmp/registry/python.json`::
 
     {
         "identifier": "python"
@@ -25,7 +25,7 @@ Create the following definition in :file:`./registry/python.json`::
 
 You can now discover the package using the command line tool::
 
-    >>> wiz -r ./registry list package
+    >>> wiz -r /tmp/registry list package
 
     Registries
     -----------------
@@ -53,7 +53,7 @@ a short description::
 
 This change is reflected when listing the package::
 
-    >>> wiz -r ./registry list package
+    >>> wiz -r /tmp/registry list package
 
     Registries
     -----------------
@@ -114,12 +114,12 @@ The Python interpreter is compiled for a specific architecture, so add the
 
 You can now run python within this environment::
 
-    >>> wiz -r ./registry use python -- python
+    >>> wiz -r /tmp/registry use python -- python
     info: Start command: python2.7
     Python 2.7.16 (default, Jun 19 2019, 07:41:28)
 
-Now let's add another definition in :file:`./registry/python3.json` to create an
-environment for Python 3::
+Now let's add another definition in :file:`/tmp/registry/python3.json` to create
+an environment for Python 3::
 
     {
         "identifier": "python",
@@ -148,14 +148,14 @@ environment for Python 3::
 Running the same command as before will now launch the Python 3.7 interpreter as
 it has a higher version number::
 
-    >>> wiz -r ./registry use python -- python
+    >>> wiz -r /tmp/registry use python -- python
     info: Start command: python3.7
     Python 3.7.8 (v3.7.8, Feb 24 2020, 17:52:18)
 
 You can still explicitly require the Python 2.7 interpreter by adjusting the
 package request::
 
-    >>> wiz -r ./registry use "python==2.*" -- python
+    >>> wiz -r /tmp/registry use "python==2.*" -- python
     info: Start command: python2.7
     Python 2.7.16 (default, Jun 19 2019, 07:41:28)
 
@@ -169,8 +169,8 @@ versions::
 
 So far we always had one package extracted per definition, but as the two Python
 libraries have the same version, we will use the :ref:`definition/variants`
-keyword to define both libraries within a single :file:`./registry/numpy.json`
-definition::
+keyword to define both libraries within a single
+:file:`/tmp/registry/numpy.json` definition::
 
     {
         "identifier": "numpy",
@@ -204,7 +204,7 @@ definition::
 Let's list all available packages to ensure that the two Numpy packages are
 properly extracted::
 
-    >>> wiz -r ./registry list package -a
+    >>> wiz -r /tmp/registry list package -a
 
     Registries
     -----------------
@@ -223,7 +223,7 @@ that the correct Python environment will be resolved.
 
 Run the following command::
 
-    >>> wiz -r ./registry use numpy -- python
+    >>> wiz -r /tmp/registry use numpy -- python
     info: Start command: python3.7
     Python 3.7.8 (v3.7.8, Feb 24 2020, 17:52:18)
     >>> import numpy
@@ -234,7 +234,7 @@ By simply requesting the package by its identifier, it will pick up the first
 compatible variant by default and resolve the library for Python 3.7. You can
 explicitly request another variant::
 
-    >>> wiz -r ./registry use "numpy[2.7]" -- python
+    >>> wiz -r /tmp/registry use "numpy[2.7]" -- python
     info: Start command: python2.7
     Python 2.7.16 (default, Jun 19 2019, 07:41:28)
     >>> import numpy
@@ -245,7 +245,7 @@ You can also explicitly request Python 2.7 and the default version of Numpy.
 The first variant will then be incompatible and the expected environment will be
 returned::
 
-    >>> wiz -r ./registry use numpy "python==2.7.*" -- python
+    >>> wiz -r /tmp/registry use numpy "python==2.7.*" -- python
     info: Start command: python2.7
     Python 2.7.16 (default, Jun 19 2019, 07:41:28)
     >>> import numpy
@@ -254,7 +254,7 @@ returned::
 
 Incompatible package requests will return an error::
 
-    >>> wiz -r ./registry use "numpy[2.7]" "python==3.*" -- python
+    >>> wiz -r /tmp/registry use "numpy[2.7]" "python==3.*" -- python
     error: Failed to resolve graph at combination #1:
 
     The dependency graph could not be resolved due to the following requirement conflicts:
