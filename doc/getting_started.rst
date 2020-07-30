@@ -36,6 +36,12 @@ You can now discover the package using the command line tool::
     -------   -------   --------   -----------
     python    -         0          -
 
+.. note::
+
+    We are using the :option:`wiz -r` option throughout this page to indicate
+    which registry to parse. Later we will see how to set up default registries
+    with a :ref:`configuration file <configuration>`.
+
 Python is defined with a version, so we can add it to the definition along with
 a short description::
 

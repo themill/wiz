@@ -10,6 +10,7 @@ Wiz
     introduction
     installing
     getting_started
+    configuration
     registry
     definition
     installing_definitions
