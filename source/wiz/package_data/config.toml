@@ -1,7 +1,41 @@
 name = "Default"
 
 [registry]
-# Define paths to default registry paths.
 paths=[]
-# Indicate a prefix to limit the discovery of registries (e.g. /jobs/).
-discovery_prefix=""
+
+[command]
+max_content_width=100
+verbosity="info"
+no_local=false
+no_cwd=false
+ignore_implicit=false
+init=[]
+
+[command.list.package]
+all=false
+no_arch=false
+
+[command.list.command]
+all=false
+no_arch=false
+
+[command.search]
+all=false
+no_arch=false
+type="all"
+
+[command.view]
+json_view=false
+
+[command.freeze]
+format="wiz"
+
+[command.install]
+overwrite=false
+
+[command.edit]
+overwrite=false
+
+[command.analyze]
+no_arch=false
+verbose=false
