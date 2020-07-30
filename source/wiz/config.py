@@ -7,6 +7,7 @@ import uuid
 import toml
 
 import wiz.logging
+import wiz.utility
 
 #: Global configuration mapping.
 _CONFIG = None
@@ -41,7 +42,7 @@ def fetch(refresh=False):
             continue
 
         try:
-            config.update(toml.load(file_path))
+            wiz.utility.deep_update(config, toml.load(file_path))
         except Exception as error:
             logger.warning(
                 "Failed to load configuration: {} [{}]"
