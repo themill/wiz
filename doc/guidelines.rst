@@ -22,8 +22,8 @@ used in.
 
     {
         "environ": {
-            "SIDEFX_ROOT": "/mill3d/server/apps/SIDEFX",
-            "HFS_LOCATION": "/mill3d/server/apps/SIDEFX/linux-x86-64"
+            "SIDEFX_ROOT": "/apps/SIDEFX",
+            "HFS_LOCATION": "/apps/SIDEFX/linux-x86-64"
         }
     }
 
@@ -32,7 +32,7 @@ used in.
 
     {
         "environ": {
-            "SIDEFX_ROOT": "/mill3d/server/apps/SIDEFX",
+            "SIDEFX_ROOT": "/apps/SIDEFX",
             "HFS_LOCATION": "{SIDEFX_ROOT}/linux-x86-64"
         }
     }
@@ -53,7 +53,7 @@ definition.
 
     {
         "environ": {
-            "LICENSE": "42000@licence.themill.com"
+            "LICENSE": "42000@licence.com"
         },
         "variants": [
             {
@@ -70,7 +70,7 @@ definition.
 
     {
         "environ": {
-            "LICENSE": "42000@licence.themill.com",
+            "LICENSE": "42000@licence.com",
             "PATH": "${APP_PATH}/bin:${PATH}"
         },
         "variants": [
