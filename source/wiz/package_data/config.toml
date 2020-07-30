@@ -5,7 +5,7 @@ paths=[]
 
 [environ]
 initial={}
-passthrough=["DISPLAY", "XAUTHORITY"]
+passthrough=[]
 
 [command]
 max_content_width=90
