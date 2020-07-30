@@ -4,21 +4,26 @@ Wiz
 
 Wiz is an environment management framework which consists of a Python API and a
 command line tool. It can be used to run a command within a deterministic
-environment resolved from one or several package requests (e.g.
-["python==2.7.*", "app==12.*"]).
+environment resolved from one or several package requests.
 
 The packages are defined in package definitions which are stored in one or
 several registries.
 
 The command line tool can be used as follows::
 
-    wiz use app my-plugin -- AppExe /path/to/script
+    wiz use "app==2.*" my-plugin -- AppExe /path/to/script
 
 Equivalent commands can be executed using the Python API::
 
-    >>> context = wiz.resolve_context(["app", "my-plugin"])
-    >>> command = context["command"]["AppExe"]
-    >>> subprocess.call(command, environ=context["environ"])
+    import subprocess
+    import wiz
+
+    # Resolve context.
+    context = wiz.resolve_context(["app==2.*", "my-plugin"])
+
+    # Run command within environment.
+    command = context["command"]["AppExe"]
+    subprocess.call(command, environ=context["environ"])
 
 *************
 Documentation
