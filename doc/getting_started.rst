@@ -255,9 +255,9 @@ Incompatible package requests will return an error::
       * python >=2.7, <2.8 	[numpy[2.7]==1.16.6]
       * python ==3.* 	[root]
 
-The same logic can be applied for any DCCs with any plugins as long at its
-configuration can be defined with environment variables (e.g. Nuke, Maya,
-Houdini, etc.).
+The same logic can be applied for creating quick environments combining
+applications, plugins, libraries, etc.. Definitions could also be created to
+store a set of environment variables useful for a specific context.
 
 .. seealso:: :ref:`definition`
 
