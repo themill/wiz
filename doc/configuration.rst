@@ -7,7 +7,7 @@ Using Configuration
 .. highlight:: shell
 
 Wiz configuration is fully customizable via :term:`TOML` configuration files
-and plugins.
+and :ref:`plugins <plugins>`.
 
 The following configuration file is used by default:
 
@@ -184,7 +184,8 @@ Ensure that it is properly propagated to the resolved environment::
         ENVIRON_TEST3=VALUE3
         ENVIRON_TEST4=VALUE4
 
-We will see later how to initialize environment variable using plugins.
+We will see later how to initialize environment variable using :ref:`plugins
+<plugins>`.
 
 .. warning::
 
