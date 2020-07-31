@@ -14,7 +14,6 @@ Wiz
     plugins
     registry
     definition
-    installing_definitions
     guidelines
     tools
     command_line
