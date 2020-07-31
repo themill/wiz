@@ -2,9 +2,9 @@
 
 """Wiz documentation build configuration file."""
 
-import sys
 import os
 import re
+import sys
 
 # -- General ------------------------------------------------------------------
 # Inject source onto path so that autodoc can find it by default, but in such a
@@ -91,12 +91,7 @@ intersphinx_mapping = {
     "python": ("http://docs.python.org/", None),
     "packaging": ("https://packaging.pypa.io/en/stable/", None),
     "click": ("https://click.palletsprojects.com/en/7.x/", None),
-    "sawmill": ("https://sawmill.readthedocs.io/en/stable/", None),
-    "infinite-monkey": (
-        "http://rtd.themill.com/docs/infinite-monkey/en/stable/", None
-    ),
-    "wiz-vault": ("http://rtd.themill.com/docs/wiz-vault/en/stable/", None),
-    "qip": ("http://rtd.themill.com/docs/qip/en/stable/", None)
+    "sawmill": ("https://sawmill.readthedocs.io/en/stable/", None)
 }
 
 

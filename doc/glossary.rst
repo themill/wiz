@@ -18,14 +18,6 @@ Glossary
 
         .. seealso:: https://en.wikipedia.org/wiki/C_shell
 
-    Chore
-
-        Chore is a tool to create a :term:`Wiz` registry directory structure in
-        a job and add definitions describing the level of the hierarchy with
-        environment variables.
-
-        .. seealso:: http://rtd.themill.com/docs/chore/en/stable/
-
     C-Shell
         :term:`Unix Shell` created in the late 1970s. It is available on most
         Linux distributions and Apple macOS, though it is usually considered as
@@ -54,43 +46,10 @@ Glossary
 
         .. seealso:: http://json-schema.org/
 
-    Git
-        Git is a free and open source distributed version control system
-        designed to handle everything from small to very large projects with
-        speed and efficiency.
-
-        .. seealso::
-
-            https://git-scm.com/
-
-    Gitlab
-        Centralised server for :term:`Git` that provides additional
-        collaborative features.
-
-        .. seealso::
-
-            * `Local Gitlab server <http://gitlab.ldn.themill.com/>`__
-            * https://about.gitlab.com/
-
-    Local Registry
-        Registry stored on the file system.
-
-        .. seealso:: :ref:`registry/local`
-
     Maya
         A digital content creator provided by Autodesk.
 
         .. seealso:: https://www.autodesk.co.uk/products/maya/overview
-
-    mill_cd
-        A script that defines environment variables when cd'ing into a
-        directory.
-
-        .. seealso::
-
-            .. code-block:: bash
-
-                >>> cat /jobs/.common/bin/mill_cd
 
     Mustache
         Simple web template system with implementations available for multiple
@@ -125,11 +84,10 @@ Glossary
 
         .. seealso:: http://rtd.themill.com/docs/qip/en/stable/
 
-    TD SVN
+    TOML
+        TOML is a file format for configuration files.
 
-        TD script and python tool collection using Subversion management.
-
-        .. seealso:: http://svn3d/rnd/trunk
+        .. seealso:: https://en.wikipedia.org/wiki/TOML
 
     Unix Shell
         Command line interpreter providing a user interaction to use traditional
@@ -147,13 +105,3 @@ Glossary
         software team manage changes to source code over time.
 
         .. seealso:: https://en.wikipedia.org/wiki/Version_control
-
-    VCS Registry
-        Registry stored as a :term:`VCS` (e.g. :term:`Gitlab`) repository.
-
-        .. seealso:: :ref:`registry/vcs`
-
-    Wiz Vault
-        Registry Server for Wiz.
-
-        .. seealso:: :ref:`wiz-vault:main`
