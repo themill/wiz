@@ -66,20 +66,18 @@ def discover(path):
             "/jobs/ads/project/identity/shot/.wiz/registry"
         ]
 
-    .. important::
-
-        Registry folders can be discovered only under :file:`/jobs/ads`.
-
     """
-    # TODO: The prefix should be set as an option in configuration file
     path = os.path.abspath(path)
 
-    # Only discover the registry if the top level hierarchy is /jobs/ads.
-    prefix = os.path.join(os.sep, "jobs", "ads")
+    config = wiz.config.fetch()
+
+    # Only discover the registry if the top level hierarchy is defined in the
+    # config as 'discovery_prefix'.
+    prefix = config.get("registry", {}).get("discovery_prefix", "")
     if not path.startswith(prefix):
         return
 
-    for folder in path.split(os.sep)[3:]:
+    for folder in path[len(prefix):].split(os.sep):
         prefix = os.path.join(prefix, folder)
         registry_path = os.path.join(prefix, ".wiz", "registry")
 

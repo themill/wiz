@@ -2,6 +2,7 @@ name = "Default"
 
 [registry]
 paths=[]
+discovery_prefix=""
 
 [environ]
 initial={}
