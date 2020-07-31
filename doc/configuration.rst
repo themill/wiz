@@ -48,9 +48,7 @@ Let's first define a custom configuration file in the temporary folder using
 
     >>> export WIZ_CONFIG_PATHS="/tmp/config.toml"
 
-Now add the following configuration in :file:`/tmp/config.toml`::
-
-    name = "Custom"
+Now add an empty configuration in :file:`/tmp/config.toml`.
 
 .. _configuration/registry_paths:
 
@@ -74,8 +72,6 @@ to initialize this value:
 
 .. code-block:: toml
 
-    name = "Custom"
-
     [registry]
     paths=["/tmp/registry"]
 
@@ -94,8 +90,6 @@ Let's now define another registry within a personal configuration file in
 :file:`~/.wiz/config.toml`:
 
 .. code-block:: toml
-
-    name = "Personal"
 
     [registry]
     paths=["/tmp/another_registry"]
@@ -131,8 +125,6 @@ transferred to a resolved environment by using the configuration file
 
 .. code-block:: toml
 
-    name = "Custom"
-
     [environ]
     passthrough=["ENVIRON_TEST1"]
 
@@ -154,8 +146,6 @@ configuration file as follows:
 
 .. code-block:: toml
 
-    name = "Custom"
-
     [environ]
     initial={ENVIRON_TEST3 = "VALUE"}
     passthrough=["ENVIRON_TEST1"]
@@ -175,8 +165,6 @@ Ensure that it is properly propagated to the resolved environment::
     you will probably prefer this notation:
 
     .. code-block:: toml
-
-        name = "Custom"
 
         [environ.initial]
         ENVIRON_TEST1=VALUE1

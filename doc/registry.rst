@@ -55,8 +55,6 @@ specifying a ``discovery_prefix`` in a :ref:`configuration file
 
 .. code-block:: toml
 
-    name = "Custom"
-
     [registry]
     discovery_prefix="/jobs/ads"
 
@@ -69,8 +67,6 @@ or by setting this option as a default within a :ref:`configuration file
 <configuration>`:
 
 .. code-block:: toml
-
-    name = "Custom"
 
     [command]
     no_cwd=true
