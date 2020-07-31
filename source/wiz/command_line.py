@@ -894,13 +894,11 @@ def wiz_freeze(click_context, **kwargs):
     "install",
     help=(
         """
-        Install a package definition to a registry. A registry can be a
-        local path to the file system or a VCS registry.
+        Install a package definition to a registry.
 
         Example::
 
             \b
-            wiz install foo.json bar.json --registry wiz://primary-registry
             wiz install /path/to/foo.json --registry /path/to/registry
             wiz install /all/definitions/* --registry /path/to/registry
 
@@ -911,10 +909,7 @@ def wiz_freeze(click_context, **kwargs):
 )
 @click.option(
     "-r", "--registry",
-    help=(
-        "URI to VCS registry or path to local registry to install the "
-        "package to."
-    ),
+    help="Registry target to install the package to.",
     type=click.Path(),
     required=True
 )
