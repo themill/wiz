@@ -5,15 +5,15 @@ import os
 import pytest
 from packaging.requirements import Requirement
 
-from wiz._version import __version__
 import wiz
 import wiz.definition
-import wiz.package
 import wiz.environ
-import wiz.system
-import wiz.graph
-import wiz.utility
 import wiz.exception
+import wiz.graph
+import wiz.package
+import wiz.system
+import wiz.utility
+from wiz._version import __version__
 
 
 @pytest.fixture()
@@ -585,132 +585,6 @@ def test_export_definition(mocked_definition_export):
     wiz.export_definition("/path/to/output", definition_data)
     mocked_definition_export.assert_called_once_with(
         "/path/to/output", definition_data, overwrite=False
-    )
-
-
-@pytest.mark.parametrize("options, install_options", [
-    (
-        {},
-        {"overwrite": False}
-    ),
-    (
-        {"overwrite": True},
-        {"overwrite": True}
-    ),
-], ids=[
-    "no-options",
-    "with-overwrite",
-])
-def test_install_definitions_to_path(
-    mocked_load_definition, mocked_registry_install_to_path,
-    options, install_options
-):
-    """Install definitions to a path registry."""
-    definitions = [
-        wiz.definition.Definition({"identifier": "foo"}),
-        wiz.definition.Definition({"identifier": "bar"})
-    ]
-    mocked_load_definition.side_effect = definitions
-
-    wiz.install_definitions(
-        ["/path/to/foo.json", "/path/to/bar.json"],
-        "/path/to/registry", **options
-    )
-
-    mocked_registry_install_to_path.assert_called_once_with(
-        definitions, "/path/to/registry", **install_options
-    )
-
-
-def test_install_definitions_to_path_with_install_location(
-    mocked_load_definition, mocked_registry_install_to_path,
-):
-    """Install definitions to a path registry with install location."""
-    definitions = [
-        wiz.definition.Definition({"identifier": "foo"}),
-        wiz.definition.Definition({"identifier": "bar"})
-    ]
-    mocked_load_definition.side_effect = definitions
-
-    wiz.install_definitions(
-        ["/path/to/foo.json", "/path/to/bar.json"],
-        "/path/to/registry",
-    )
-
-    _definitions = [
-        wiz.definition.Definition({
-            "identifier": "foo"
-        }),
-        wiz.definition.Definition({
-            "identifier": "bar"
-        })
-    ]
-
-    mocked_registry_install_to_path.assert_called_once_with(
-        _definitions, "/path/to/registry", overwrite=False
-    )
-
-
-@pytest.mark.parametrize("options, install_options", [
-    (
-        {},
-        {"overwrite": False}
-    ),
-    (
-        {"overwrite": True},
-        {"overwrite": True}
-    ),
-], ids=[
-    "no-options",
-    "with-overwrite",
-])
-def test_install_definitions_to_vcs(
-    mocked_load_definition, mocked_registry_install_to_vcs,
-    options, install_options
-):
-    """Install definitions to a vcs registry."""
-    definitions = [
-        wiz.definition.Definition({"identifier": "foo"}),
-        wiz.definition.Definition({"identifier": "bar"})
-    ]
-    mocked_load_definition.side_effect = definitions
-
-    wiz.install_definitions(
-        ["/path/to/foo.json", "/path/to/bar.json"],
-        "wiz://registry-id", **options
-    )
-
-    mocked_registry_install_to_vcs.assert_called_once_with(
-        definitions, "wiz://registry-id", **install_options
-    )
-
-
-def test_install_definitions_to_vcs_with_install_location(
-    mocked_load_definition, mocked_registry_install_to_vcs,
-):
-    """Install definitions to a vcs registry with install location."""
-    definitions = [
-        wiz.definition.Definition({"identifier": "foo"}),
-        wiz.definition.Definition({"identifier": "bar"})
-    ]
-    mocked_load_definition.side_effect = definitions
-
-    wiz.install_definitions(
-        ["/path/to/foo.json", "/path/to/bar.json"],
-        "wiz://registry-id",
-    )
-
-    _definitions = [
-        wiz.definition.Definition({
-            "identifier": "foo"
-        }),
-        wiz.definition.Definition({
-            "identifier": "bar"
-        })
-    ]
-
-    mocked_registry_install_to_vcs.assert_called_once_with(
-        _definitions, "wiz://registry-id", overwrite=False
     )
 
 

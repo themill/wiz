@@ -1,13 +1,14 @@
 # :coding: utf-8
 
-import pytest
 import copy
 
-from wiz.utility import Requirement, Version
-import wiz.package
-import wiz.environ
+import pytest
+
 import wiz.definition
+import wiz.environ
 import wiz.exception
+import wiz.package
+from wiz.utility import Requirement, Version
 
 
 @pytest.fixture()
@@ -642,9 +643,9 @@ def test_minimal_package_without_variant():
     assert package.identifier == "test"
     assert package.qualified_identifier == "test"
     assert package.definition == definition
-    assert package.version == "unknown"
+    assert package.version == "-"
     assert package.variant_name is None
-    assert package.description == "unknown"
+    assert package.description == "-"
     assert package.command == {}
     assert package.environ == {}
     assert package.requirements == []

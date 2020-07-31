@@ -1,35 +1,36 @@
 # :coding: utf-8
 
+import getpass
 import os
 import socket
 
 import pytest
 
+import wiz.config
 import wiz.environ
 
 
 @pytest.fixture()
-def mocked_socket_gethostname(mocker):
-    """Return mocked 'socket.gethostname' getter."""
-    return mocker.patch.object(socket, "gethostname")
+def initial_environment(mocker, monkeypatch):
+    """Set mocked initial environment."""
+    monkeypatch.delenv("WIZ_CONFIG_PATHS", raising=False)
+    monkeypatch.delenv("WIZ_PLUGIN_PATHS", raising=False)
+
+    mocker.patch.object(socket, "gethostname", return_value="__HOSTNAME__")
+    mocker.patch.object(getpass, "getuser", return_value="someone")
+    mocker.patch.object(os.path, "expanduser", return_value="/home")
+
+    # Reset configuration.
+    wiz.config.fetch(refresh=True)
 
 
-def test_initiate(monkeypatch, mocked_socket_gethostname):
+@pytest.mark.usefixtures("initial_environment")
+def test_initiate():
     """Return initial data mapping."""
-    monkeypatch.setenv("USER", "someone")
-    monkeypatch.setenv("LOGNAME", "someone")
-    monkeypatch.setenv("HOME", "/path/to/somewhere")
-    monkeypatch.setenv("DISPLAY", "localhost:0.0")
-    monkeypatch.setenv("XAUTHORITY", "/run/gdm/auth/database")
-    mocked_socket_gethostname.return_value = "__HOSTNAME__"
-
     assert wiz.environ.initiate() == {
         "USER": "someone",
-        "LOGNAME": "someone",
-        "HOME": "/path/to/somewhere",
+        "HOME": "/home",
         "HOSTNAME": "__HOSTNAME__",
-        "DISPLAY": "localhost:0.0",
-        "XAUTHORITY": "/run/gdm/auth/database",
         "PATH": os.pathsep.join([
             "/usr/local/sbin",
             "/usr/local/bin",
@@ -41,29 +42,18 @@ def test_initiate(monkeypatch, mocked_socket_gethostname):
     }
 
 
-def test_initiate_with_mapping(
-    monkeypatch, mocked_socket_gethostname
-):
+@pytest.mark.usefixtures("initial_environment")
+def test_initiate_with_mapping():
     """Return mapping with initial data mapping."""
-    monkeypatch.setenv("USER", "someone")
-    monkeypatch.setenv("LOGNAME", "someone")
-    monkeypatch.setenv("HOME", "/path/to/somewhere")
-    monkeypatch.setenv("DISPLAY", "localhost:0.0")
-    monkeypatch.setenv("XAUTHORITY", "/run/gdm/auth/database")
-    mocked_socket_gethostname.return_value = "__HOSTNAME__"
-
     assert wiz.environ.initiate(
         mapping={
-            "LOGNAME": "someone-else",
+            "HOSTNAME": "__OTHER_HOSTNAME__",
             "KEY": "VALUE"
         }
     ) == {
         "USER": "someone",
-        "LOGNAME": "someone-else",
-        "HOME": "/path/to/somewhere",
-        "HOSTNAME": "__HOSTNAME__",
-        "DISPLAY": "localhost:0.0",
-        "XAUTHORITY": "/run/gdm/auth/database",
+        "HOME": "/home",
+        "HOSTNAME": "__OTHER_HOSTNAME__",
         "PATH": os.pathsep.join([
             "/usr/local/sbin",
             "/usr/local/bin",
