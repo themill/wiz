@@ -46,7 +46,39 @@ When using the command line tool from a particular location, registries are
 being searched from the folder hierarchy under each :file:`.wiz/registry`
 sub-folder.
 
-Discovered registries are ordered from the closest to the furthest.
+Discovered registries will be added to the list of default registries and will
+be ordered from the closest to the furthest.
+
+It is possible to limit the discovery to a specific folder structure by
+specifying a ``discovery_prefix`` in a :ref:`configuration file
+<configuration>`:
+
+.. code-block:: toml
+
+    name = "Custom"
+
+    [registry]
+    discovery_prefix="/jobs/ads"
+
+In this example, the registry discovery will be inactive unless the current
+directory is under :file:`/jobs/ads`, and no registries will be used under this
+prefix.
+
+The registry discovery feature can be turned off using :option:`wiz --no-cwd`
+or by setting this option as a default within a :ref:`configuration file
+<configuration>`:
+
+.. code-block:: toml
+
+    name = "Custom"
+
+    [command]
+    no_cwd=true
+
+.. note::
+
+    Registries can be discovered via the :term:`Python` API using
+    :func:`wiz.registry.discover`.
 
 .. _registry/personal:
 
@@ -55,3 +87,6 @@ Personal registry
 
 The personal registry contains personal package definitions for development
 purposes. It should be located in :file:`~/.wiz/registry`.
+
+The definitions located in the personal registry have priority over all other
+definitions.
