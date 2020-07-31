@@ -43,6 +43,42 @@ def test_initiate():
 
 
 @pytest.mark.usefixtures("initial_environment")
+def test_initiate_with_config_passthrough(monkeypatch):
+    """Return initial data mapping with passthrough environment variables."""
+    monkeypatch.setenv("ENVIRON_TEST1", "VALUE")
+    monkeypatch.delenv("ENVIRON_TEST2", raising=False)
+
+    # Add passthrough list in config.
+    config = wiz.config.fetch()
+    config["environ"]["passthrough"] = ["ENVIRON_TEST1", "ENVIRON_TEST2"]
+
+    assert wiz.environ.initiate() == {
+        "ENVIRON_TEST1": "VALUE",
+        "USER": "someone",
+        "HOME": "/home",
+        "HOSTNAME": "__HOSTNAME__",
+        "PATH": os.pathsep.join([
+            "/usr/local/sbin",
+            "/usr/local/bin",
+            "/usr/sbin",
+            "/usr/bin",
+            "/sbin",
+            "/bin",
+        ])
+    }
+
+
+@pytest.mark.usefixtures("initial_environment")
+def test_initiate_with_config_initial():
+    """Return initial data mapping with passthrough environment variables."""
+    # Add initial mapping in config.
+    config = wiz.config.fetch()
+    config["environ"]["initial"] = {"ENVIRON_TEST1": "VALUE"}
+
+    assert wiz.environ.initiate() == {"ENVIRON_TEST1": "VALUE"}
+
+
+@pytest.mark.usefixtures("initial_environment")
 def test_initiate_with_mapping():
     """Return mapping with initial data mapping."""
     assert wiz.environ.initiate(
