@@ -13,28 +13,10 @@ ENV_PATTERN = re.compile(r"\${(\w+)}|\$(\w+)")
 def initiate(mapping=None):
     """Return the minimal environment mapping to augment.
 
-    The initial environment mapping contains basic variables from the external
-    environment that can be used by the resolved environment, such as
-    the *USER*, the *HOSTNAME* or the *HOME* variables.
-
-    The other variable added are:
-
-    * DISPLAY:
-        This variable is necessary to open user interface within the current
-        X display name.
-
-    * XAUTHORITY:
-        This variable is necessary to indicate the file used to store
-        credentials in cookies used by xauth_ for authentication of X sessions.
-
-    * PATH:
-        This variable is initialised with default values to have access to the
-        basic UNIX commands.
-
     *mapping* can be a custom environment mapping which will be added to the
     initial environment.
 
-    .. _xauth: https://www.x.org/releases/X11R6.8.2/doc/xauth.1.html
+    .. seealso:: :ref:`configuration/initial_environment`
 
     """
     config = wiz.config.fetch()
