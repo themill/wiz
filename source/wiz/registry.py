@@ -66,6 +66,8 @@ def discover(path):
             "/jobs/ads/project/identity/shot/.wiz/registry"
         ]
 
+    .. seealso:: :ref:`registry/discover`
+
     """
     path = os.path.abspath(path)
 
@@ -73,7 +75,7 @@ def discover(path):
 
     # Only discover the registry if the top level hierarchy is defined in the
     # config as 'discovery_prefix'.
-    prefix = config.get("registry", {}).get("discovery_prefix", "")
+    prefix = config.get("registry", {}).get("discovery_prefix", os.sep)
     if not path.startswith(prefix):
         return
 
