@@ -79,7 +79,8 @@ def discover(path):
     if not path.startswith(prefix):
         return
 
-    for folder in path[len(prefix):].split(os.sep):
+    _path = [p for p in path[len(prefix):].split(os.sep) if len(p)]
+    for folder in _path:
         prefix = os.path.join(prefix, folder)
         registry_path = os.path.join(prefix, ".wiz", "registry")
 
