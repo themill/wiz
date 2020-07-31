@@ -4,7 +4,7 @@
 Using Plugins
 *************
 
-We can use a :ref:`configuration file <configuration>` to customize Wiz, but we
+We can use :ref:`configuration files <configuration>` to customize Wiz, but we
 can also extend the configuration mapping with dynamic values using
 :term:`Python` plugins.
 
@@ -34,7 +34,7 @@ installer
 ~~~~~~~~~
 
 This plugin adds an installer callback to the configuration mapping to
-indicate how a definition can be installed using :option:`wiz install`.
+indicate how a definition can be installed using ``wiz install``.
 
 .. literalinclude:: ../source/wiz/package_data/plugins/installer.py
    :language: python
