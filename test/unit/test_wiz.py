@@ -29,12 +29,6 @@ def mocked_registry_install_to_path(mocker):
 
 
 @pytest.fixture()
-def mocked_registry_install_to_vcs(mocker):
-    """Return mocked 'wiz.registry.install_to_vcs' function."""
-    return mocker.patch.object(wiz.registry, "install_to_vcs")
-
-
-@pytest.fixture()
 def mocked_fetch_definition_mapping(mocker):
     """Return mocked 'wiz.fetch_definition_mapping' function."""
     return mocker.patch.object(wiz, "fetch_definition_mapping")
