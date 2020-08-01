@@ -4,6 +4,71 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+
+        Added :mod:`wiz.config` to handle :term:`TOML` configuration and
+        plugins to customize Wiz default values and callbacks.
+
+        .. seealso::
+
+            * :ref:`configuration`
+            * :ref:`plugins`
+
+    .. change:: new
+
+        Added default plugin to register installation callback to deploy
+        package definitions to a registry path.
+
+        .. seealso:: :ref:`plugins/default/installer`
+
+    .. change:: new
+
+        Added default plugin to initialize environment variables.
+
+        .. seealso:: :ref:`plugins/default/environ`
+
+    .. change:: changed
+
+        Removed :func:`wiz.install_definitions` and
+        :func:`wiz.registry.install_to_vcs` as the concept of Local and VCS
+        registry has been removed.
+
+        Default plugin only install package definition to a registry path.
+
+        .. seealso:: :ref:`plugins/default/installer`
+
+        Custom plugin can be used to extend the installation logic.
+
+    .. change:: changed
+
+        Updated :ref:`command_line` to use configuration mapping to initialize
+        default values.
+
+    .. change:: changed
+
+        Updated :func:`wiz.registry.get_defaults` to return registry paths from
+        the configuration mapping instead of using a hardcoded list of paths.
+
+        .. seealso:: :ref:`configuration/registry_paths`
+
+    .. change:: changed
+
+        Updated :func:`wiz.environ.initiate` to set initial environment
+        variables from configuration mapping instead of using a hardcoded
+        mapping.
+
+        .. seealso:: :ref:`configuration/initial_environment`
+
+    .. change:: new
+
+        Added :func:`wiz.utility.deep_update` to merge two mappings recursively.
+
+    .. change:: changed
+
+        Updated documentation to remove Mill Specific examples.
+
 .. release:: 2.6.5
     :date: 2019-04-04
 
