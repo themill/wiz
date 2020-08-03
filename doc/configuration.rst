@@ -128,7 +128,7 @@ transferred to a resolved environment by using the configuration file
     [environ]
     passthrough=["ENVIRON_TEST1"]
 
-Using a definition created in a :ref:`previous example <getting_started>`, we
+Using the "python" definition created in a :ref:`previous example <getting_started>`, we
 can ensure that this variable is properly transferred to the resolved
 environment::
 
