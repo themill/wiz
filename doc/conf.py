@@ -25,7 +25,7 @@ extensions = [
 
 # Add local extensions.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '_extension'))
-extensions.append('code_block')
+extensions.append("code_block")
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -59,7 +59,6 @@ exclude_patterns = ["_template"]
 modindex_common_prefix = [
     "wiz."
 ]
-
 
 # -- HTML output --------------------------------------------------------------
 
@@ -99,6 +98,8 @@ intersphinx_mapping = {
 
 def setup(app):
     """Setup *app*."""
+    app.connect("autodoc-skip-member", autodoc_skip)
+
     # Ensure custom stylesheet added, even when on Read The Docs server where
     # html_style setting is ignored.
     app.add_stylesheet("style.css")
