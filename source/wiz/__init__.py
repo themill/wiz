@@ -387,7 +387,7 @@ def export_definition(path, data, overwrite=False):
 def export_script(
     path, script_type, identifier, environ, command=None, packages=None,
 ):
-    """Export context as :term:`Bash` wrapper in *path*.
+    """Export context as :term:`Bash` or :term:`C-Shell` wrapper in *path*.
 
     Return the path to the bash wrapper created.
 
