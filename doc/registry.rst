@@ -42,9 +42,9 @@ Other registries can be used when using the command line tool.
 Discovering registries
 ----------------------
 
-When using the command line tool from a particular location, registries are
-being searched from the folder hierarchy under each :file:`.wiz/registry`
-sub-folder.
+When using the command line tool from a particular location, registries from 
+the folder hierarchy under each :file:`.wiz/registry` sub-folder are being automatically
+discovered by default.
 
 Discovered registries will be added to the list of default registries and will
 be ordered from the closest to the furthest.
