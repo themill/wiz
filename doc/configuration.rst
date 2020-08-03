@@ -172,8 +172,7 @@ Ensure that it is properly propagated to the resolved environment::
         ENVIRON_TEST3=VALUE3
         ENVIRON_TEST4=VALUE4
 
-We will see later how to initialize environment variable using :ref:`plugins
-<plugins>`.
+See :ref:`here <plugins>` how to initialize environment variables using plugins.
 
 .. warning::
 
