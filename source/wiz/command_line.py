@@ -71,7 +71,7 @@ class _MainGroup(click.Group):
     help=(
         """
         Wiz is an environment management framework which resolves an environment
-        context or execute a command from one or several package requests.
+        context or executes a command from one or several package requests.
 
         Example::
 
