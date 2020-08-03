@@ -70,17 +70,13 @@ class _MainGroup(click.Group):
     cls=_MainGroup,
     help=(
         """
-        Wiz is a package manager which can resolve a context or execute a
-        command from one or several package requests. The resolved context
-        contains the environment mapping and a list of accessible command
-        aliases.
+        Wiz is an environment management framework which resolves an environment
+        context or execute a command from one or several package requests.
 
         Example::
 
             \b
-            wiz use python
-            wiz use nuke ldpk-nuke
-            wiz use nuke -- /path/to/script.nk
+            wiz use "app==2.*" my-plugin -- AppExe /path/to/script
 
         A command can also be executed from a resolved context via a command
         alias which is extracted from its corresponding package.
@@ -88,10 +84,7 @@ class _MainGroup(click.Group):
         Example::
 
             \b
-            wiz run nuke
-            wiz run nuke -- /path/to/script.nk
             wiz run python
-
 
         All available packages and command can be listed as follow::
 
