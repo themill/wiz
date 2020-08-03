@@ -6,7 +6,7 @@ Using Configuration
 
 .. highlight:: shell
 
-Wiz configuration is fully customizable via :term:`TOML` configuration files
+The Wiz configuration is fully customizable via :term:`TOML` configuration files
 and :ref:`plugins <plugins>`.
 
 The following configuration file is used by default:
