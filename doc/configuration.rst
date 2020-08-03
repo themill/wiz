@@ -24,7 +24,7 @@ personal configuration is always loaded last.
 
 .. important::
 
-    If a non-mutable keyword values is defined in two configuration files, the
+    If a non-mutable keyword value is defined in two configuration files, the
     configuration loaded last will overwrite the keyword. For mutable keyword
     values (dictionaries and lists), the configuration loaded last will extend
     the previous value.
