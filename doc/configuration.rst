@@ -36,7 +36,7 @@ You can fetch the configuration via the :term:`Python` API with
 
     >>> wiz.config.fetch()
 
-Let's go through a few examples of usage.
+Let's go through a few usage examples.
 
 .. _configuration/setup:
 
