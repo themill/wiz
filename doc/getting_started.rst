@@ -19,7 +19,8 @@ First, create our first registry directory to store this definition::
 
     >>> mkdir /tmp/registry
 
-Create the following definition in :file:`/tmp/registry/python.json`::
+A definition is a json file, so create :file:`/tmp/registry/python.json` with this 
+content::
 
     {
         "identifier": "python"
