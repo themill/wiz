@@ -141,7 +141,7 @@ environment::
     1
     >>> echo $ENVIRON_TEST2 // Empty
 
-It is also possible to define initial environment variable by modifying the
+It is also possible to define initial environment variables by modifying the
 configuration file as follows:
 
 .. code-block:: toml
