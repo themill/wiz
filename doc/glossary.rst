@@ -48,6 +48,11 @@ Glossary
 
         .. seealso:: https://www.python.org/dev/peps/pep-0440/
 
+    Pip
+        A recommended tool for installing :term:`Python` packages.
+
+        .. seealso:: https://pip.pypa.io
+
     Python
         A programming language that lets you work quickly and integrate systems
         more effectively.

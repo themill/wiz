@@ -10,7 +10,7 @@ Installing
 
     Using :term:`Virtualenv` is recommended when evaluating or running locally.
 
-Installation is simple with `pip <http://www.pip-installer.org/>`_::
+Installation is simple with :term:`Pip`::
 
     pip install wiz
 
@@ -19,7 +19,7 @@ Installing from source
 
 You can also install manually from the source for more control. First obtain a
 copy of the source by either downloading the
-`zipball <https://github.com/themill/wiz/repository/archive/master.zip>`_ or
+`zipball <https://github.com/themill/wiz/archive/master.zip>`_ or
 cloning the public repository::
 
     git clone git@github.com:themill/wiz.git
