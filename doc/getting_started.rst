@@ -15,7 +15,7 @@ At this point, there are no packages available yet as no registries are defined.
 Let's get started by creating a :ref:`package definition <definition>` to run
 the :term:`Python` interpreter.
 
-But first, create our first registry directory to store this definition::
+First, create our first registry directory to store this definition::
 
     >>> mkdir /tmp/registry
 
