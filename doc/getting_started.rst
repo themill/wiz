@@ -221,7 +221,7 @@ properly extracted::
     python        3.7.8     0          Python interpreter environment.
     python        2.7.16    0          Python interpreter environment.
 
-The :ref:`definition/requirements` keywords are set for each variants to ensure
+The :ref:`definition/requirements` keyword is set for each variant to ensure
 that the correct Python environment will be resolved.
 
 Run the following command::
