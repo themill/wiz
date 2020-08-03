@@ -24,7 +24,7 @@ The registry paths can now be set as follow::
     wiz -r /path/to/registry1 -r /path/to/registry2 use foo
 
 The :option:`--add-registry <wiz --add-registry>` command has been added in
-order to prepend registry in front of discovered registries.
+order to prepend a registry in front of discovered registries.
 
 .. rubric:: installation
 
