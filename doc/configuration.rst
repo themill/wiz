@@ -55,7 +55,7 @@ Now add an empty configuration in :file:`/tmp/config.toml`.
 Registry paths
 --------------
 
-In the :ref:`previous page <getting_started>`, we used the :option:`wiz -r`
+In :ref:`Getting Started <getting_started>`, we used the :option:`wiz -r`
 option to indicate the registry path to use::
 
     >>> wiz -r /tmp/registry list package
