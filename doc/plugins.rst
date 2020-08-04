@@ -8,15 +8,21 @@ We can use :ref:`configuration files <configuration>` to customize Wiz, but we
 can also extend the configuration mapping with dynamic values using
 :term:`Python` plugins.
 
-Plugins are being discovered and loaded just after configuration mapping has
-been created from :ref:`configuration files <configuration>`.
+.. hint::
+
+    Plugins are being discovered and loaded just after configuration mapping has
+    been created from :ref:`configuration files <configuration>`. So any
+    modification to the configuration mapping done in the plugins will always
+    overwrite the content of the :ref:`configuration files <configuration>`.
 
 .. _plugins/default:
 
 Default plugins
 ---------------
 
-The following plugins are used by default.
+The following plugins are located in :file:`wiz/package_data/plugins`. They are
+used by default, unless modified during the :ref:`installation process
+<installing/source/options>`.
 
 .. _plugins/default/environ:
 
