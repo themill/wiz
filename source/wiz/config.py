@@ -34,9 +34,10 @@ def fetch(refresh=False):
 
     # Fetch all configurations paths.
     root = os.path.dirname(__file__)
-    paths = [os.path.join(root, "package_data", "config.toml")]
-    paths += reversed(os.environ.get("WIZ_CONFIG_PATHS", "").split(os.pathsep))
-    paths += [os.path.join(os.path.expanduser("~"), ".wiz", "config.toml")]
+    paths = [
+        os.path.join(root, "package_data", "config.toml"),
+        os.path.join(os.path.expanduser("~"), ".wiz", "config.toml")
+    ]
 
     for file_path in paths:
         if not os.path.isfile(file_path) or not len(file_path):
@@ -67,13 +68,14 @@ def fetch(refresh=False):
 def _discover_plugins():
     """Discover and return plugins.
     """
-    logger = wiz.logging.Logger(__name__ + ".discover_plugins")
+    logger = wiz.logging.Logger(__name__ + "._discover_plugins")
 
     # Fetch all plugin paths.
     root = os.path.dirname(__file__)
-    paths = [os.path.join(root, "package_data", "plugins")]
-    paths += reversed(os.environ.get("WIZ_PLUGIN_PATHS", "").split(os.pathsep))
-    paths += [os.path.join(os.path.expanduser("~"), ".wiz", "plugins")]
+    paths = [
+        os.path.join(root, "package_data", "plugins"),
+        os.path.join(os.path.expanduser("~"), ".wiz", "plugins")
+    ]
 
     plugins = collections.OrderedDict()
 
