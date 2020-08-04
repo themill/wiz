@@ -37,20 +37,30 @@ default registries.
 
 Other registries can be used when using the command line tool.
 
-.. _registry/discover:
+.. _registry/discover-implicit:
 
 Discovering implicit registries
-----------------------
+-------------------------------
 
-When using the command line tool from a particular location, registries from 
-the folder hierarchy under each :file:`.wiz/registry` sub-folder are being automatically
-discovered by default.
+When using the command line tool from a particular location, Wiz will attempt
+to discover registries from the current hierarchy structure. It will assume
+registries to be in a :file:`.wiz/registry` sub-folder::
 
-Discovered registries will be added to the list of default registries and will
-be ordered from the closest to the furthest.
+    >>> cd /project/shot/animation/
+    >>> wiz list package
+
+    Registries
+    -----------------
+    [0] /project/.wiz/registry
+    [1] /project/shot/.wiz/registry
+    [2] /project/shot/animation/.wiz/registry
+
+Discovered registries will be added to the list of default registries, if
+available. Definitions in the nearest registry will have priority over
+definitions deeper down the hierarchy.
 
 It is possible to limit the discovery to a specific folder structure by
-specifying a ``discovery_prefix`` in a :ref:`configuration file
+specifying a ``discovery_prefix`` in the :ref:`configuration file
 <configuration>`:
 
 .. code-block:: toml
@@ -58,13 +68,13 @@ specifying a ``discovery_prefix`` in a :ref:`configuration file
     [registry]
     discovery_prefix="/jobs/ads"
 
-In this example, the registry discovery will be inactive unless the current
-directory is under :file:`/jobs/ads`, and no registries will be used under this
-prefix.
+Adding a ``discovery_prefix`` will limit the scope of the discovery. In this
+example, the registry discovery will be inactive unless the current directory is
+under :file:`/jobs/ads` (excluding :file:`/jobs/ads/.wiz/registry`).
 
-The registry discovery feature can be turned off using :option:`wiz --no-cwd`
-or by setting this option as a default within a :ref:`configuration file
-<configuration>`:
+The implicit registry discovery feature can be turned off using
+:option:`wiz --no-cwd` or by setting this option as a default within a
+:ref:`configuration file <configuration>`:
 
 .. code-block:: toml
 

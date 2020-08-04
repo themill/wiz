@@ -67,6 +67,12 @@ released into a `custom index
     python setup.py bdist
     python setup.py bdist_wheel
 
+.. warning::
+
+    If your plugin contains additional requirements, the :file:`setup.py` file
+    will have to be patched accordingly, to ensure that the plugin works as
+    expected.
+
 .. _installing/source/doc:
 
 Building documentation from source

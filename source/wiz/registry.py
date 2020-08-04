@@ -66,7 +66,7 @@ def discover(path):
             "/jobs/ads/project/identity/shot/.wiz/registry"
         ]
 
-    .. seealso:: :ref:`registry/discover`
+    .. seealso:: :ref:`registry/discover-implicit`
 
     """
     path = os.path.abspath(path)
