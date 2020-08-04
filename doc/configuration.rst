@@ -15,19 +15,14 @@ The following configuration file is used by default:
    :language: toml
 
 It is possible to overwrite, extend or add keywords to this configuration by
-defining other configuration files using :envvar:`WIZ_CONFIG_PATHS`, or adding a
-personal configuration file in :file:`~/.wiz/config.toml`.
-
-The default configuration will always be loaded first, followed by the
-configurations defined by :envvar:`WIZ_CONFIG_PATHS` in reversed order. The
-personal configuration is always loaded last.
+adding a personal configuration file in :file:`~/.wiz/config.toml`. The default
+configuration will always be loaded first, followed by the personal
+configuration.
 
 .. important::
 
-    If a non-mutable keyword value is defined in two configuration files, the
-    configuration loaded last will overwrite the keyword. For mutable keyword
-    values (dictionaries and lists), the configuration loaded last will extend
-    the previous value.
+    The default configuration will be recursively updated by the personal
+    configuration.
 
 You can fetch the configuration via the :term:`Python` API with
 :func:`wiz.config.fetch`:
@@ -37,18 +32,6 @@ You can fetch the configuration via the :term:`Python` API with
     >>> wiz.config.fetch()
 
 Let's go through a few usage examples.
-
-.. _configuration/setup:
-
-Setup
------
-
-Let's first define a custom configuration file in the temporary folder using
-:envvar:`WIZ_CONFIG_PATHS`::
-
-    >>> export WIZ_CONFIG_PATHS="/tmp/config.toml"
-
-Now add an empty configuration in :file:`/tmp/config.toml`.
 
 .. _configuration/registry_paths:
 
@@ -67,8 +50,7 @@ option to indicate the registry path to use::
     ...
 
 Instead of having to constantly set the registry path in the command line, we
-will use the configuration file :ref:`previously created <configuration/setup>`
-to initialize this value:
+will add the following configuration in :file:`~/.wiz/config.toml`:
 
 .. code-block:: toml
 
@@ -86,28 +68,11 @@ path::
 
     ...
 
-Let's now define another registry within a personal configuration file in
-:file:`~/.wiz/config.toml`:
+.. hint::
 
-.. code-block:: toml
-
-    [registry]
-    paths=["/tmp/another_registry"]
-
-Let's create the registry to ensure that it can be used::
-
-    >>> mkdir /tmp/another_registry
-
-Now the new registry is added to the registry list::
-
-    >>> wiz list package
-
-    Registries
-    -----------------
-    [0] /tmp/registry
-    [1] /tmp/another_registry
-
-    ...
+    It is highly recommended to define custom registry paths when
+    :ref:`installing <installing/source/options>` the package instead of
+    defining it for each user as it can be error prone.
 
 .. _configuration/initial_environment:
 
@@ -120,17 +85,17 @@ sometimes required to access external environment variables for an application
 to execute properly.
 
 We can define a list of environment variables which should always get
-transferred to a resolved environment by using the configuration file
-:ref:`previously created <configuration/setup>`:
+transferred to a resolved environment by adding the following configuration in
+:file:`~/.wiz/config.toml`:
 
 .. code-block:: toml
 
     [environ]
     passthrough=["ENVIRON_TEST1"]
 
-Using the "python" definition created in a :ref:`previous example <getting_started>`, we
-can ensure that this variable is properly transferred to the resolved
-environment::
+Using the "python" definition created in a :ref:`previous example
+<getting_started>`, we can ensure that this variable is properly transferred to
+the resolved environment::
 
     >>> export ENVIRON_TEST1=1
     >>> export ENVIRON_TEST2=1
@@ -179,3 +144,9 @@ See :ref:`here <plugins>` how to initialize environment variables using plugins.
     Initial variables will get overwritten or extended by the resolved
     environment if a :ref:`package definition <definition>` is defining the same
     environment variables.
+
+.. hint::
+
+    It is highly recommended to define initial environment variables when
+    :ref:`installing <installing/source/options>` the package instead of
+    defining it for each user as it can be error prone.

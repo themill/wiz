@@ -44,12 +44,14 @@ indicate how a definition can be installed using ``wiz install``.
 Adding new plugins
 ------------------
 
-More plugins paths can be added using :envvar:`WIZ_PLUGIN_PATHS`. It is also
-possible to define personal plugins in :file:`~/.wiz/plugins`.
-
-The default plugins will always be loaded first, followed by the plugins defined
-by :envvar:`WIZ_PLUGIN_PATHS` in reversed order. The personal plugins are always
-loaded last.
+More plugins can be added in :file:`~/.wiz/plugins` for development purpose. The
+default plugins will always be loaded first, followed by the personal plugins.
 
 A plugin is uniquely identified by the :attr:`IDENTIFIER` data string.
 Therefore, you can overwrite a plugin by re-using the same identifier.
+
+.. hint::
+
+    It is highly recommended to deploy custom plugins when :ref:`installing
+    <installing/source/options>` the package instead of using it from the
+    personal plugin path as it can be error prone.
