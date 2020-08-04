@@ -12,7 +12,7 @@ Installing
 
 Installation is simple with :term:`Pip`::
 
-    pip install wiz
+    pip install wiz-env
 
 .. _installing/source:
 
