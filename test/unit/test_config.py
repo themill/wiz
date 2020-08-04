@@ -225,7 +225,7 @@ def test_discover_plugins(mocker):
     plugins = wiz.config._discover_plugins()
 
     assert len(plugins) == 2
-    assert [p.IDENTIFIER for p in plugins] == ["installer", "environ"]
+    assert sorted([p.IDENTIFIER for p in plugins]) == ["environ", "installer"]
 
     config = {}
     for plugin in plugins:
@@ -255,8 +255,8 @@ def test_discover_plugins_with_personal(mocker):
     plugins = wiz.config._discover_plugins()
 
     assert len(plugins) == 3
-    assert [p.IDENTIFIER for p in plugins] == [
-        "installer", "environ", "plugin1"
+    assert sorted([p.IDENTIFIER for p in plugins]) == [
+        "environ", "installer", "plugin1"
     ]
 
     config = {}
