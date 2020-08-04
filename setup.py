@@ -50,7 +50,7 @@ TEST_REQUIRES = [
 ]
 
 
-class InstallExtended(build_py):
+class BuildExtended(build_py):
     """Custom command to build package with custom configuration and plugins."""
 
     # Extended options
@@ -73,6 +73,8 @@ class InstallExtended(build_py):
 
     def run(self):
         """Run installation command."""
+        build_py.run(self)
+
         build_path = os.path.join(self.build_lib, PACKAGE_NAME)
         config_path = os.path.join(build_path, "package_data", "config.toml")
         plugin_path = os.path.join(build_path, "package_data", "plugins")
@@ -84,8 +86,6 @@ class InstallExtended(build_py):
             for path in os.listdir(self.wiz_plugin_path):
                 _path = os.path.join(self.wiz_plugin_path, path)
                 shutil.copy(_path, plugin_path)
-
-        build_py.run(self)
 
 
 setup(
@@ -115,6 +115,6 @@ setup(
         ]
     },
     cmdclass={
-        "build_py": InstallExtended,
+        "build_py": BuildExtended,
     },
 )
