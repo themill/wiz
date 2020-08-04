@@ -12,14 +12,10 @@ import wiz.filesystem
 import wiz.registry
 
 
-@pytest.fixture()
-def reset_configuration(mocker, monkeypatch):
-    """Set mocked initial environment."""
-    monkeypatch.delenv("WIZ_CONFIG_PATHS", raising=False)
-    monkeypatch.delenv("WIZ_PLUGIN_PATHS", raising=False)
-
-    # Prevent personal config to be picked.
-    mocker.patch.object(os.path, "expanduser", return_value="/incorrect")
+@pytest.fixture(autouse=True)
+def reset_configuration(mocker):
+    """Ensure that no personal configuration is fetched during tests."""
+    mocker.patch.object(os.path, "expanduser", return_value="__HOME__")
 
     # Reset configuration.
     wiz.config.fetch(refresh=True)

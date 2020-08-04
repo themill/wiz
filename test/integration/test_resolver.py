@@ -1,13 +1,25 @@
 # :coding: utf-8
 
+import os
+
 import pytest
 
+import wiz.config
 import wiz.definition
 import wiz.graph
 from wiz.utility import Requirement
 
 #: Indicate whether spied call should be tested.
 _CHECK_SPIED_CALL = True
+
+
+@pytest.fixture(autouse=True)
+def reset_configuration(mocker):
+    """Ensure that no personal configuration is fetched during tests."""
+    mocker.patch.object(os.path, "expanduser", return_value="__HOME__")
+
+    # Reset configuration.
+    wiz.config.fetch(refresh=True)
 
 
 @pytest.fixture()

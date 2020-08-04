@@ -40,7 +40,7 @@ def fetch(refresh=False):
     ]
 
     for file_path in paths:
-        if not os.path.isfile(file_path) or not len(file_path):
+        if not os.path.isfile(file_path):
             continue
 
         try:
@@ -80,7 +80,7 @@ def _discover_plugins():
     plugins = collections.OrderedDict()
 
     for dir_path in paths:
-        if not os.path.isdir(dir_path) or not len(dir_path):
+        if not os.path.isdir(dir_path):
             continue
 
         for file_path in os.listdir(dir_path):
@@ -97,7 +97,7 @@ def _discover_plugins():
 
             except Exception as error:
                 logger.warning(
-                    "Failed to load plugin from \"{0}\": {1}"
+                    "Failed to load plugin from \"{0}\" [{1}]"
                     .format(module_path, error)
                 )
                 continue

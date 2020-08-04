@@ -22,15 +22,11 @@ import wiz.utility
 
 
 @pytest.fixture(autouse=True)
-def reset_configuration(mocker, monkeypatch):
-    """Ensure that no external configuration is fetched."""
-    monkeypatch.delenv("WIZ_CONFIG_PATHS", raising=False)
-    monkeypatch.delenv("WIZ_PLUGIN_PATHS", raising=False)
+def reset_configuration(mocker):
+    """Ensure that no personal configuration is fetched during tests."""
+    mocker.patch.object(os.path, "expanduser", return_value="__HOME__")
 
-    # Prevent personal config to be picked.
-    mocker.patch.object(os.path, "expanduser", return_value="/incorrect")
-
-    # Reload module to reset configuration.
+    # Reset configuration.
     wiz.command_line._CONFIG = wiz.config.fetch(refresh=True)
     reload(wiz.command_line)
 

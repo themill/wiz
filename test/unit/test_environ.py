@@ -11,14 +11,11 @@ import wiz.environ
 
 
 @pytest.fixture()
-def initial_environment(mocker, monkeypatch):
-    """Set mocked initial environment."""
-    monkeypatch.delenv("WIZ_CONFIG_PATHS", raising=False)
-    monkeypatch.delenv("WIZ_PLUGIN_PATHS", raising=False)
-
+def initial_environment(mocker):
+    """Mock environment to use when fetching config."""
     mocker.patch.object(socket, "gethostname", return_value="__HOSTNAME__")
-    mocker.patch.object(getpass, "getuser", return_value="someone")
-    mocker.patch.object(os.path, "expanduser", return_value="/home")
+    mocker.patch.object(getpass, "getuser", return_value="__USER__")
+    mocker.patch.object(os.path, "expanduser", return_value="__HOME__")
 
     # Reset configuration.
     wiz.config.fetch(refresh=True)
@@ -28,8 +25,8 @@ def initial_environment(mocker, monkeypatch):
 def test_initiate():
     """Return initial data mapping."""
     assert wiz.environ.initiate() == {
-        "USER": "someone",
-        "HOME": "/home",
+        "USER": "__USER__",
+        "HOME": "__HOME__",
         "HOSTNAME": "__HOSTNAME__",
         "PATH": os.pathsep.join([
             "/usr/local/sbin",
@@ -54,8 +51,8 @@ def test_initiate_with_config_passthrough(monkeypatch):
 
     assert wiz.environ.initiate() == {
         "ENVIRON_TEST1": "VALUE",
-        "USER": "someone",
-        "HOME": "/home",
+        "USER": "__USER__",
+        "HOME": "__HOME__",
         "HOSTNAME": "__HOSTNAME__",
         "PATH": os.pathsep.join([
             "/usr/local/sbin",
@@ -87,8 +84,8 @@ def test_initiate_with_mapping():
             "KEY": "VALUE"
         }
     ) == {
-        "USER": "someone",
-        "HOME": "/home",
+        "USER": "__USER__",
+        "HOME": "__HOME__",
         "HOSTNAME": "__OTHER_HOSTNAME__",
         "PATH": os.pathsep.join([
             "/usr/local/sbin",

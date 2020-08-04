@@ -11,34 +11,34 @@ import wiz.config
 
 
 @pytest.fixture(autouse=True)
-def reset_configuration(mocker, monkeypatch):
-    """Ensure that no external configuration is fetched."""
-    monkeypatch.delenv("WIZ_CONFIG_PATHS", raising=False)
-    monkeypatch.delenv("WIZ_PLUGIN_PATHS", raising=False)
-
+def environment(mocker, monkeypatch):
+    """Mock environment to use when fetching config."""
     mocker.patch.object(socket, "gethostname", return_value="__HOSTNAME__")
-    mocker.patch.object(getpass, "getuser", return_value="someone")
-    mocker.patch.object(os.path, "expanduser", return_value="/home")
+    mocker.patch.object(getpass, "getuser", return_value="__USER__")
+    mocker.patch.object(os.path, "expanduser", return_value="__HOME__")
 
 
 @pytest.fixture()
-def mock_personal_plugin(mocker, temporary_directory):
-    """Mock personal plugin."""
+def personal_plugin(mocker, temporary_directory):
+    """Mock personal plugin path."""
     path = os.path.join(temporary_directory, ".wiz", "plugins")
     mocker.patch.object(os.path, "expanduser", return_value=temporary_directory)
     os.makedirs(path)
 
-    with open(os.path.join(path, "plugin.py"), "w") as stream:
+    plugin_path = os.path.join(path, "plugin.py")
+    with open(plugin_path, "w") as stream:
         stream.write(
             "IDENTIFIER = \"plugin1\"\n"
             "\n"
             "def register(config):\n"
-            "    config[\"KEY1\"] = \"VALUE\"\n"
+            "    config[\"KEY1\"] = \"VALUE1\"\n"
         )
+
+    return plugin_path
 
 
 @pytest.fixture()
-def mock_personal_configuration(mocker, temporary_directory):
+def personal_configuration(mocker, temporary_directory):
     """Mock personal configuration."""
     data = {
         "registry": {"paths": ["/registry1"]},
@@ -49,59 +49,11 @@ def mock_personal_configuration(mocker, temporary_directory):
     mocker.patch.object(os.path, "expanduser", return_value=temporary_directory)
     os.makedirs(path)
 
-    with open(os.path.join(path, "config.toml"), "w") as stream:
+    config_path = os.path.join(path, "config.toml")
+    with open(config_path, "w") as stream:
         toml.dump(data, stream)
 
-
-@pytest.fixture()
-def mock_configurations(monkeypatch, temporary_directory):
-    """Mock configurations set via environment variable."""
-    config1 = os.path.join(temporary_directory, "config1.toml")
-    data1 = {
-        "registry": {"paths": ["/registry2"]},
-        "environ": {"initial": {"ENVIRON_TEST1": "VALUE1"}}
-    }
-    with open(config1, "w") as stream:
-        toml.dump(data1, stream)
-
-    config2 = os.path.join(temporary_directory, "config2.toml")
-    data2 = {
-        "registry": {"paths": ["/registry3"]},
-        "environ": {"initial": {"ENVIRON_TEST2": "VALUE2"}}
-    }
-    with open(config2, "w") as stream:
-        toml.dump(data2, stream)
-
-    monkeypatch.setenv(
-        "WIZ_CONFIG_PATHS", "{}:{}::/dummy".format(config1, config2)
-    )
-
-
-@pytest.fixture()
-def mock_plugins(monkeypatch, temporary_directory):
-    """Mock plugins set via environment variable."""
-    path = os.path.join(temporary_directory, "plugins")
-    os.makedirs(path)
-
-    plugin1 = os.path.join(path, "plugin1.py")
-    with open(plugin1, "w") as stream:
-        stream.write(
-            "IDENTIFIER = \"plugin1\"\n"
-            "\n"
-            "def register(config):\n"
-            "    config[\"KEY1\"] = \"VALUE1\"\n"
-        )
-
-    plugin2 = os.path.join(path, "plugin2.py")
-    with open(plugin2, "w") as stream:
-        stream.write(
-            "IDENTIFIER = \"plugin2\"\n"
-            "\n"
-            "def register(config):\n"
-            "    config[\"KEY2\"] = \"VALUE2\"\n"
-        )
-
-    monkeypatch.setenv("WIZ_PLUGIN_PATHS", "{}::/dummy".format(path))
+    return config_path
 
 
 @pytest.fixture()
@@ -167,39 +119,78 @@ def test_fetch():
     assert wiz.config.fetch(refresh=True).get("command") is not None
 
 
-@pytest.mark.usefixtures("mock_personal_configuration")
-@pytest.mark.usefixtures("mock_configurations")
 @pytest.mark.usefixtures("mocked_discover_plugins")
-def test_fetch_multiples():
-    """Fetch multiple configurations."""
+@pytest.mark.usefixtures("personal_configuration")
+def test_fetch_with_personal():
+    """Fetch configuration with personal configuration."""
     config = wiz.config.fetch(refresh=True)
 
-    assert config["registry"] == {
-        "paths": ["/registry3", "/registry2", "/registry1"]
-    }
-    assert config["environ"] == {
-        "initial": {
-            "ENVIRON_TEST1": "VALUE",
-            "ENVIRON_TEST2": "VALUE2",
+    assert config == {
+        "registry":  {"paths": ["/registry1"]},
+        "environ": {
+            "initial": {
+                "ENVIRON_TEST1": "VALUE"
+            },
+            "passthrough": []
         },
-        "passthrough": []
+        "command": {
+            "max_content_width": 90,
+            "verbosity": "info",
+            "no_local": False,
+            "no_cwd": False,
+            "ignore_implicit": False,
+            "list": {
+                "package": {
+                    "all": False,
+                    "no_arch": False
+                },
+                "command": {
+                    "all": False,
+                    "no_arch": False
+                },
+            },
+            "search": {
+                "all": False,
+                "no_arch": False,
+                "type": "all"
+            },
+            "view": {
+                "json_view": False
+            },
+            "freeze": {
+                "format": "wiz"
+            },
+            "install": {
+                "overwrite": False
+            },
+            "edit": {
+                "overwrite": False
+            },
+            "analyze": {
+                "no_arch": False,
+                "verbose": False,
+            }
+        }
     }
+
+    # The previous config is returned without forcing a 'refreshed' config.
+    del config["command"]
+    assert wiz.config.fetch().get("command") is None
+    assert wiz.config.fetch(refresh=True).get("command") is not None
 
 
 @pytest.mark.usefixtures("mocked_discover_plugins")
-def test_fetch_error(logger, monkeypatch, temporary_file):
+def test_fetch_error(logger, personal_configuration):
     """Fail to fetch a configuration."""
-    with open(temporary_file, "w") as stream:
+    with open(personal_configuration, "w") as stream:
         stream.write("incorrect")
-
-    monkeypatch.setenv("WIZ_CONFIG_PATHS", temporary_file)
 
     wiz.config.fetch(refresh=True)
 
     logger.warning.assert_called_once_with(
         "Failed to load configuration from \"{0}\" [Key name found without "
         "value. Reached end of file. (line 1 column 10 char 9)]"
-        .format(temporary_file)
+        .format(personal_configuration)
     )
 
 
@@ -229,15 +220,43 @@ def test_fetch_with_plugin_error(logger, mocked_discover_plugins):
     )
 
 
-@pytest.mark.usefixtures("mock_personal_plugin")
-@pytest.mark.usefixtures("mock_plugins")
 def test_discover_plugins(mocker):
     """Discover and return plugins."""
     plugins = wiz.config._discover_plugins()
 
-    assert len(plugins) == 4
+    assert len(plugins) == 2
+    assert [p.IDENTIFIER for p in plugins] == ["installer", "environ"]
+
+    config = {}
+    for plugin in plugins:
+        plugin.register(config)
+
+    assert config == {
+        "callback": {
+            "install": mocker.ANY
+        },
+        "environ": {
+            "initial": {
+                "HOME": mocker.ANY,
+                "HOSTNAME": "__HOSTNAME__",
+                "USER": "__USER__",
+                "PATH": (
+                    "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:"
+                    "/sbin:/bin"
+                )
+            }
+        }
+    }
+
+
+@pytest.mark.usefixtures("personal_plugin")
+def test_discover_plugins_with_personal(mocker):
+    """Discover and return plugins with personal plugin path."""
+    plugins = wiz.config._discover_plugins()
+
+    assert len(plugins) == 3
     assert [p.IDENTIFIER for p in plugins] == [
-        "installer", "environ", "plugin2", "plugin1"
+        "installer", "environ", "plugin1"
     ]
 
     config = {}
@@ -252,13 +271,25 @@ def test_discover_plugins(mocker):
             "initial": {
                 "HOME": mocker.ANY,
                 "HOSTNAME": "__HOSTNAME__",
-                "USER": "someone",
+                "USER": "__USER__",
                 "PATH": (
                     "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:"
                     "/sbin:/bin"
                 )
             }
         },
-        "KEY1": "VALUE",
-        "KEY2": "VALUE2",
+        "KEY1": "VALUE1"
     }
+
+
+def test_discover_plugin_error(logger, personal_plugin):
+    """Fail to register a plugin."""
+    with open(personal_plugin, "w") as stream:
+        stream.write("incorrect")
+
+    wiz.config.fetch(refresh=True)
+
+    logger.warning.assert_called_once_with(
+        "Failed to load plugin from \"{0}\" [name 'incorrect' is not defined]"
+        .format(personal_plugin)
+    )
