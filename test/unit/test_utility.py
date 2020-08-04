@@ -286,15 +286,13 @@ def test_compute_label(definition, expected):
         {"A": 1, "B": {"C": {"D": {"E": {"F": {"G": 2, "H": 3}}}}}},
         {"B": {"C": {"D": {"E": {"F": {"H": 4, "I": 5}}}}}},
         {"A": 1, "B": {"C": {"D": {"E": {"F": {"G": 2, "H": 4, "I": 5}}}}}},
-    ),
-    ({"A": [1, 2]}, {"A": [3]}, {"A": [1, 2, 3]}),
+    )
 ], ids=[
     "empty",
     "simple",
     "one-level-deep",
     "two-level-deep",
-    "five-level-deep",
-    "list",
+    "five-level-deep"
 ])
 def test_deep_update(mapping1, mapping2, expected):
     """Recursively update mapping."""
