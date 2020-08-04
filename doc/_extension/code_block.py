@@ -2,17 +2,17 @@
 
 import os
 
-import sphinx.directives.code
 import docutils.nodes
 import docutils.parsers.rst.directives
+import sphinx.directives.code
 
 
-class CodeBlock(sphinx.directives.code.CodeBlock):
+class ExtendedCodeBlock(sphinx.directives.code.CodeBlock):
     """Code block directive with icon support.
 
     Example::
 
-        .. code-block::
+        .. extended-code-block::
             :icon: /image/prefer.png
 
             print "hello"
@@ -27,7 +27,7 @@ class CodeBlock(sphinx.directives.code.CodeBlock):
 
     def run(self):
         """Return nodes to represent directive."""
-        nodes = super(CodeBlock, self).run()
+        nodes = super(ExtendedCodeBlock, self).run()
 
         # Wrap nodes in a new container and add icon if required.
         icon = self.options.get("icon")
@@ -52,7 +52,7 @@ class CodeBlock(sphinx.directives.code.CodeBlock):
 def setup(app):
     """Setup plugin.
 
-    Extend ``code-block`` with icon support.
+    Create ``extended-code-block`` directive with icon support.
 
     """
-    app.add_directive("code-block", CodeBlock)
+    app.add_directive("extended-code-block", ExtendedCodeBlock)

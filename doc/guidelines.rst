@@ -17,7 +17,7 @@ Internal Environment Variables
 Avoid setting environment variables in the same package definition they are
 used in.
 
-.. code-block:: json
+.. extended-code-block:: json
     :icon: image/prefer.png
 
     {
@@ -27,7 +27,7 @@ used in.
         }
     }
 
-.. code-block:: json
+.. extended-code-block:: json
     :icon: image/avoid.png
 
     {
@@ -48,7 +48,7 @@ Order of Variant Resolve
 Avoid setting environment variables in a variant and using them in a the same
 definition.
 
-.. code-block:: json
+.. extended-code-block:: json
     :icon: image/prefer.png
 
     {
@@ -65,7 +65,7 @@ definition.
         ]
     }
 
-.. code-block:: json
+.. extended-code-block:: json
     :icon: image/avoid.png
 
     {
@@ -98,7 +98,7 @@ the ``version`` keyword should be used.
 Avoid using ``variants`` for versioning. Variants can be very expensive for the
 performance of the graph resolution process.
 
-.. code-block:: json
+.. extended-code-block:: json
     :icon: image/prefer.png
 
     {
@@ -106,14 +106,14 @@ performance of the graph resolution process.
         "version": "2018"
     }
 
-.. code-block:: json
+.. extended-code-block:: json
     :icon: image/avoid.png
 
     {
         "identifier": "maya-2018"
     }
 
-.. code-block:: json
+.. extended-code-block:: json
     :icon: image/avoid.png
 
     {
@@ -131,7 +131,7 @@ performance of the graph resolution process.
 Variants should be used only if a different requirement would have to change
 the environment set within a single package version.
 
-.. code-block:: json
+.. extended-code-block:: json
     :icon: image/prefer.png
 
     {
@@ -159,7 +159,7 @@ the environment set within a single package version.
         ]
     }
 
-.. code-block:: json
+.. extended-code-block:: json
     :icon: image/avoid.png
 
     {
