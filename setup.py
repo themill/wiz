@@ -5,7 +5,7 @@ import re
 import shutil
 
 from setuptools import setup, find_packages
-from setuptools.command.install import install
+from setuptools.command.build_py import build_py
 
 ROOT_PATH = os.path.dirname(os.path.realpath(__file__))
 RESOURCE_PATH = os.path.join(ROOT_PATH, "resource")
@@ -50,11 +50,11 @@ TEST_REQUIRES = [
 ]
 
 
-class InstallExtended(install):
-    """Custom install command to set Wiz config."""
+class InstallExtended(build_py):
+    """Custom command to build package with custom configuration and plugins."""
 
     # Extended options
-    user_options = install.user_options + [
+    user_options = build_py.user_options + [
         (
             "wiz-config-file=", None,
             "Path to TOML file to embed in installed location as the default "
@@ -85,7 +85,7 @@ class InstallExtended(install):
                 _path = os.path.join(self.wiz_plugin_path, path)
                 shutil.copy(_path, plugin_path)
 
-        install.run(self)
+        build_py.run(self)
 
 
 setup(
@@ -115,6 +115,6 @@ setup(
         ]
     },
     cmdclass={
-        "install": InstallExtended,
+        "build_py": InstallExtended,
     },
 )

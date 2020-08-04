@@ -14,6 +14,8 @@ Installation is simple with :term:`Pip`::
 
     pip install wiz
 
+.. _installing/source:
+
 Installing from source
 ======================
 
@@ -45,6 +47,28 @@ Alternatively, just build locally and manage yourself::
 
     python setup.py build
 
+.. _installing/source/options:
+
+Building with custom options
+----------------------------
+
+You can also embed custom :ref:`configuration file <configuration>` and
+:ref:`plugins <plugins>` with the package. This can be particularly useful
+when deploying Wiz with a common configuration for a group of users::
+
+    python setup.py build_py \
+    --wiz-config-file=/path/to/config.toml \
+    --wiz-plugin-path=/path/to/custom/plugins/
+
+The package built can then be bundled into a distribution that can be easily
+released into a `custom index
+<https://packaging.python.org/guides/hosting-your-own-index/>`_::
+
+    python setup.py bdist
+    python setup.py bdist_wheel
+
+.. _installing/source/doc:
+
 Building documentation from source
 ----------------------------------
 
@@ -60,6 +84,8 @@ Then you can build the documentation with the command::
 View the result in your browser at::
 
     file:///path/to/wiz/build/doc/html/index.html
+
+.. _installing/source/test:
 
 Running tests against the source
 --------------------------------
