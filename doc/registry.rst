@@ -39,7 +39,7 @@ Other registries can be used when using the command line tool.
 
 .. _registry/discover:
 
-Discovering registries
+Discovering implicit registries
 ----------------------
 
 When using the command line tool from a particular location, registries from 
