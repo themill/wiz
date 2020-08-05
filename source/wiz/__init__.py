@@ -15,7 +15,7 @@ import wiz.spawn
 import wiz.symbol
 import wiz.system
 import wiz.utility
-from _version import __version__
+from ._version import __version__
 
 
 def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):

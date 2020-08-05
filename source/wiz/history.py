@@ -8,8 +8,8 @@ import platform
 import time
 import traceback
 
-from _version import __version__
 from wiz.utility import Requirement, Version
+from ._version import __version__
 
 #: Indicate whether the history should be recorded.
 _IS_HISTORY_RECORDED = False

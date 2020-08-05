@@ -15,7 +15,7 @@ from packaging.version import Version, InvalidVersion
 import wiz.exception
 import wiz.mapping
 import wiz.symbol
-from _requirement import Requirement
+from ._requirement import Requirement
 
 # Arbitrary number which indicates a very high version number
 _INFINITY_VERSION = 9999
