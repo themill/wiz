@@ -1,10 +1,11 @@
 # :coding: utf-8
 
-import re
 import os
+import re
+import shutil
 
 from setuptools import setup, find_packages
-
+from setuptools.command.build_py import build_py
 
 ROOT_PATH = os.path.dirname(os.path.realpath(__file__))
 RESOURCE_PATH = os.path.join(ROOT_PATH, "resource")
@@ -28,15 +29,15 @@ INSTALL_REQUIRES = [
     "jsonschema >= 2.5, < 3",
     "packaging >= 17.1, < 18",
     "pystache >= 0.5.4, < 1",
-    "requests >= 2.19.1, < 3",
-    "sawmill >= 0.2.1, < 1"
+    "sawmill >= 0.2.1, < 1",
+    "toml >= 0.10.1, < 1"
 ]
 
 DOC_REQUIRES = [
-    "sphinx >= 1.6, < 1.7",
+    "sphinx >= 1.8, < 2",
     "sphinx_rtd_theme >= 0.1.6, < 1",
     "lowdown >= 0.1.0, < 2",
-    "sphinx-click>=1.2.0"
+    "sphinx-click >= 1.2.0"
 ]
 
 TEST_REQUIRES = [
@@ -46,19 +47,53 @@ TEST_REQUIRES = [
     "pytest-mock >= 0.11, < 1",
     "pytest-xdist >= 1.1, < 2",
     "pytest-cov >= 2, < 3",
-
-    # Ensure that more-itertools is limited to v6 as later version don't work
-    # for python 2.7.
-    "more-itertools >= 4, < 6"
 ]
+
+
+class BuildExtended(build_py):
+    """Custom command to build package with custom configuration and plugins."""
+
+    # Extended options
+    user_options = build_py.user_options + [
+        (
+            "wiz-config-file=", None,
+            "Path to TOML file to embed in installed location as the default "
+            "Wiz configuration."
+        ),
+        (
+            "wiz-plugin-path=", None,
+            "Path to directory containing Python Wiz plugins to embed in "
+            "installed location."
+        )
+    ]
+
+    # Initialize extended options.
+    wiz_config_file = None
+    wiz_plugin_path = None
+
+    def run(self):
+        """Run installation command."""
+        build_py.run(self)
+
+        build_path = os.path.join(self.build_lib, PACKAGE_NAME)
+        config_path = os.path.join(build_path, "package_data", "config.toml")
+        plugin_path = os.path.join(build_path, "package_data", "plugins")
+
+        if self.wiz_config_file is not None:
+            shutil.copy(self.wiz_config_file, config_path)
+
+        if self.wiz_plugin_path is not None:
+            for path in os.listdir(self.wiz_plugin_path):
+                _path = os.path.join(self.wiz_plugin_path, path)
+                shutil.copy(_path, plugin_path)
 
 
 setup(
     name="wiz",
     version=VERSION,
-    description="Package management system.",
+    description="Environment management framework.",
     long_description=open(README_PATH).read(),
-    url="http://gitlab.ldn.themill.com/rnd/wiz",
+    url="https://github.com/themill/wiz",
     keywords="",
     author="The Mill",
     packages=find_packages(SOURCE_PATH),
@@ -78,5 +113,8 @@ setup(
         "console_scripts": [
             "wiz = wiz.__main__:main"
         ]
+    },
+    cmdclass={
+        "build_py": BuildExtended,
     },
 )

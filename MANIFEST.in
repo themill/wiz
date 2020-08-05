@@ -1,6 +1,5 @@
 include README.rst
-recursive-include resource *
-recursive-include doc *.rst *.py *.png
+recursive-include doc *
 recursive-include test *
-recursive-include source *.py *.json
-
+recursive-include source *
+global-exclude *.py[cod] __pycache__

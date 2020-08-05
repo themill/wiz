@@ -1,16 +1,15 @@
 # :coding: utf-8
 
-import os
 import copy
-import platform
 import datetime
 import json
+import os
+import platform
 import time
 import traceback
 
-from wiz import __version__
+from _version import __version__
 from wiz.utility import Requirement, Version
-
 
 #: Indicate whether the history should be recorded.
 _IS_HISTORY_RECORDED = False

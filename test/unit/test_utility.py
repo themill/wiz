@@ -1,10 +1,13 @@
 # :coding: utf-8
 
+import copy
+
 import pytest
 
 import wiz.definition
 import wiz.utility
 from wiz.utility import Requirement
+
 
 @pytest.fixture()
 def mocked_extract_version_ranges(mocker):
@@ -264,3 +267,36 @@ def test_extract_version_ranges_error(requirement, expected):
 def test_compute_label(definition, expected):
     """Compute definition label."""
     assert wiz.utility.compute_label(definition) == expected
+
+
+@pytest.mark.parametrize("mapping1, mapping2, expected", [
+    ({}, {}, {}),
+    ({"A": 1, "B": 2}, {"B": 3}, {"A": 1, "B": 3}),
+    (
+        {"A": 1, "B": {"C": 3, "D": 4}},
+        {"B": {"C": 4}},
+        {"A": 1, "B": {"C": 4, "D": 4}},
+    ),
+    (
+        {"A": 1, "B": {"C": {"D": 4, "E": 5}}},
+        {"B": {"C": {"E": 6}}},
+        {"A": 1, "B": {"C": {"D": 4, "E": 6}}},
+    ),
+    (
+        {"A": 1, "B": {"C": {"D": {"E": {"F": {"G": 2, "H": 3}}}}}},
+        {"B": {"C": {"D": {"E": {"F": {"H": 4, "I": 5}}}}}},
+        {"A": 1, "B": {"C": {"D": {"E": {"F": {"G": 2, "H": 4, "I": 5}}}}}},
+    )
+], ids=[
+    "empty",
+    "simple",
+    "one-level-deep",
+    "two-level-deep",
+    "five-level-deep"
+])
+def test_deep_update(mapping1, mapping2, expected):
+    """Recursively update mapping."""
+    _mapping2 = copy.deepcopy(mapping2)
+    assert wiz.utility.deep_update(mapping1, mapping2) == expected
+    assert mapping1 == expected
+    assert mapping2 == _mapping2

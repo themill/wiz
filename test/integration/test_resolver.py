@@ -1,14 +1,25 @@
 # :coding: utf-8
 
+import os
+
 import pytest
 
-import wiz.graph
+import wiz.config
 import wiz.definition
+import wiz.graph
 from wiz.utility import Requirement
-
 
 #: Indicate whether spied call should be tested.
 _CHECK_SPIED_CALL = True
+
+
+@pytest.fixture(autouse=True)
+def reset_configuration(mocker):
+    """Ensure that no personal configuration is fetched during tests."""
+    mocker.patch.object(os.path, "expanduser", return_value="__HOME__")
+
+    # Reset configuration.
+    wiz.config.fetch(refresh=True)
 
 
 @pytest.fixture()
@@ -1323,7 +1334,7 @@ def test_scenario_11(
             }),
         },
         "C": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "C",
                 "requirements": ["A[V2]"]
             })
@@ -1467,7 +1478,7 @@ def test_scenario_12(
             }),
         },
         "C": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "C",
                 "requirements": ["A==0.5.0"]
             })
@@ -1601,7 +1612,7 @@ def test_scenario_13(
             }),
         },
         "C": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "C",
                 "requirements": ["A==0.5.0"]
             })
@@ -1685,7 +1696,7 @@ def test_scenario_14(
     """
     definition_mapping = {
         "A": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "A",
                 "variants": [
                     {
@@ -1701,7 +1712,7 @@ def test_scenario_14(
             })
         },
         "B": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "B",
                 "variants": [
                     {
@@ -1720,7 +1731,7 @@ def test_scenario_14(
             })
         },
         "C": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "C",
                 "variants": [
                     {
@@ -1813,7 +1824,7 @@ def test_scenario_15(
     """
     definition_mapping = {
         "A": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "A",
                 "variants": [
                     {
@@ -1830,7 +1841,7 @@ def test_scenario_15(
             })
         },
         "B": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "B",
                 "variants": [
                     {
@@ -1849,7 +1860,7 @@ def test_scenario_15(
             })
         },
         "C": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "C",
                 "variants": [
                     {
@@ -1944,7 +1955,7 @@ def test_scenario_16(
     """
     definition_mapping = {
         "A": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "A",
                 "variants": [
                     {
@@ -1961,7 +1972,7 @@ def test_scenario_16(
             })
         },
         "B": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "B",
                 "variants": [
                     {
@@ -1980,7 +1991,7 @@ def test_scenario_16(
             })
         },
         "C": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "C",
                 "variants": [
                     {
@@ -2723,7 +2734,7 @@ def test_scenario_23(
             "D": ["Namespace4"],
         },
         "Namespace1::A": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "A",
                 "namespace": "Namespace1"
             })
@@ -2757,7 +2768,7 @@ def test_scenario_23(
             })
         },
         "Namespace4::D": {
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "D",
                 "namespace": "Namespace4"
             })

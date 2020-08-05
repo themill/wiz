@@ -1,35 +1,33 @@
 # :coding: utf-8
 
+import getpass
 import os
 import socket
 
 import pytest
 
+import wiz.config
 import wiz.environ
 
 
 @pytest.fixture()
-def mocked_socket_gethostname(mocker):
-    """Return mocked 'socket.gethostname' getter."""
-    return mocker.patch.object(socket, "gethostname")
+def initial_environment(mocker):
+    """Mock environment to use when fetching config."""
+    mocker.patch.object(socket, "gethostname", return_value="__HOSTNAME__")
+    mocker.patch.object(getpass, "getuser", return_value="__USER__")
+    mocker.patch.object(os.path, "expanduser", return_value="__HOME__")
+
+    # Reset configuration.
+    wiz.config.fetch(refresh=True)
 
 
-def test_initiate(monkeypatch, mocked_socket_gethostname):
+@pytest.mark.usefixtures("initial_environment")
+def test_initiate():
     """Return initial data mapping."""
-    monkeypatch.setenv("USER", "someone")
-    monkeypatch.setenv("LOGNAME", "someone")
-    monkeypatch.setenv("HOME", "/path/to/somewhere")
-    monkeypatch.setenv("DISPLAY", "localhost:0.0")
-    monkeypatch.setenv("XAUTHORITY", "/run/gdm/auth/database")
-    mocked_socket_gethostname.return_value = "__HOSTNAME__"
-
     assert wiz.environ.initiate() == {
-        "USER": "someone",
-        "LOGNAME": "someone",
-        "HOME": "/path/to/somewhere",
+        "USER": "__USER__",
+        "HOME": "__HOME__",
         "HOSTNAME": "__HOSTNAME__",
-        "DISPLAY": "localhost:0.0",
-        "XAUTHORITY": "/run/gdm/auth/database",
         "PATH": os.pathsep.join([
             "/usr/local/sbin",
             "/usr/local/bin",
@@ -41,29 +39,54 @@ def test_initiate(monkeypatch, mocked_socket_gethostname):
     }
 
 
-def test_initiate_with_mapping(
-    monkeypatch, mocked_socket_gethostname
-):
-    """Return mapping with initial data mapping."""
-    monkeypatch.setenv("USER", "someone")
-    monkeypatch.setenv("LOGNAME", "someone")
-    monkeypatch.setenv("HOME", "/path/to/somewhere")
-    monkeypatch.setenv("DISPLAY", "localhost:0.0")
-    monkeypatch.setenv("XAUTHORITY", "/run/gdm/auth/database")
-    mocked_socket_gethostname.return_value = "__HOSTNAME__"
+@pytest.mark.usefixtures("initial_environment")
+def test_initiate_with_config_passthrough(monkeypatch):
+    """Return initial data mapping with passthrough environment variables."""
+    monkeypatch.setenv("ENVIRON_TEST1", "VALUE")
+    monkeypatch.delenv("ENVIRON_TEST2", raising=False)
 
+    # Add passthrough list in config.
+    config = wiz.config.fetch()
+    config["environ"]["passthrough"] = ["ENVIRON_TEST1", "ENVIRON_TEST2"]
+
+    assert wiz.environ.initiate() == {
+        "ENVIRON_TEST1": "VALUE",
+        "USER": "__USER__",
+        "HOME": "__HOME__",
+        "HOSTNAME": "__HOSTNAME__",
+        "PATH": os.pathsep.join([
+            "/usr/local/sbin",
+            "/usr/local/bin",
+            "/usr/sbin",
+            "/usr/bin",
+            "/sbin",
+            "/bin",
+        ])
+    }
+
+
+@pytest.mark.usefixtures("initial_environment")
+def test_initiate_with_config_initial():
+    """Return initial data mapping with passthrough environment variables."""
+    # Add initial mapping in config.
+    config = wiz.config.fetch()
+    config["environ"]["initial"] = {"ENVIRON_TEST1": "VALUE"}
+
+    assert wiz.environ.initiate() == {"ENVIRON_TEST1": "VALUE"}
+
+
+@pytest.mark.usefixtures("initial_environment")
+def test_initiate_with_mapping():
+    """Return mapping with initial data mapping."""
     assert wiz.environ.initiate(
         mapping={
-            "LOGNAME": "someone-else",
+            "HOSTNAME": "__OTHER_HOSTNAME__",
             "KEY": "VALUE"
         }
     ) == {
-        "USER": "someone",
-        "LOGNAME": "someone-else",
-        "HOME": "/path/to/somewhere",
-        "HOSTNAME": "__HOSTNAME__",
-        "DISPLAY": "localhost:0.0",
-        "XAUTHORITY": "/run/gdm/auth/database",
+        "USER": "__USER__",
+        "HOME": "__HOME__",
+        "HOSTNAME": "__OTHER_HOSTNAME__",
         "PATH": os.pathsep.join([
             "/usr/local/sbin",
             "/usr/local/bin",

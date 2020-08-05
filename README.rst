@@ -2,35 +2,30 @@
 Wiz
 ###
 
-Wiz is a package manager which can resolve a context or execute a command from
-one or several package requests. The resolved context contains the environment
-mapping and a list of accessible command aliases.
+Wiz is an environment management framework which consists of a Python API and a
+command line tool. It can be used to run a command within a deterministic
+environment resolved from one or several package requests.
 
-Example::
+The packages are defined in package definitions which are stored in one or
+several registries.
 
-    wiz use python
-    wiz use nuke ldpk-nuke
-    wiz use nuke -- /path/to/script.nk
+The command line tool can be used as follows::
 
-A command can also be executed from a resolved context via a command alias which
-is extracted from its corresponding package.
+    >>> wiz use "app==2.*" my-plugin -- AppExe /path/to/script
 
-Example::
+Equivalent commands can be executed using the Python API:
 
-    wiz run nuke
-    wiz run nuke -- /path/to/script.nk
-    wiz run python
+.. code-block:: python
 
+    import subprocess
+    import wiz
 
-All available packages and command can be listed as follow::
+    # Resolve context.
+    context = wiz.resolve_context(["app==2.*", "my-plugin"])
 
-    wiz list package
-    wiz list command
-
-It is also possible to search a specific package or command as follow::
-
-    wiz search python
-
+    # Run command within environment.
+    command = context["command"]["AppExe"]
+    subprocess.call(command, environ=context["environ"])
 
 *************
 Documentation
@@ -38,3 +33,22 @@ Documentation
 
 Full documentation, including installation and setup guides, can be found at
 http://rtd.themill.com/docs/wiz/en/stable/
+
+*********
+Copyright
+*********
+
+Copyright (C) 2018, The Mill
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
