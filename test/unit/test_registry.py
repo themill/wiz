@@ -1,15 +1,24 @@
 # :coding: utf-8
 
-import json
 import os
 import os.path
 import types
-import requests
+
 import pytest
 
-import wiz.registry
-import wiz.filesystem
+import wiz.config
 import wiz.exception
+import wiz.filesystem
+import wiz.registry
+
+
+@pytest.fixture(autouse=True)
+def reset_configuration(mocker):
+    """Ensure that no personal configuration is fetched during tests."""
+    mocker.patch.object(os.path, "expanduser", return_value="__HOME__")
+
+    # Reset configuration.
+    wiz.config.fetch(refresh=True)
 
 
 @pytest.fixture()
@@ -78,18 +87,6 @@ def mocked_discover(mocker):
 
 
 @pytest.fixture()
-def mocked_requests_get(mocker):
-    """Return mocked 'requests.get' function."""
-    return mocker.patch.object(requests, "get")
-
-
-@pytest.fixture()
-def mocked_requests_post(mocker):
-    """Return mocked 'requests.post' function."""
-    return mocker.patch.object(requests, "post")
-
-
-@pytest.fixture()
 def mocked_definitions():
     """Return mocked simple definition list."""
     return [
@@ -115,24 +112,48 @@ def test_get_local_unreachable():
 
 def test_get_defaults():
     """Return default registries."""
-    assert wiz.registry.get_defaults() == [
-        os.path.join(
-            os.sep, "mill3d", "server", "apps", "WIZ", "registry",
-            "primary", "default"
-        ),
-        os.path.join(
-            os.sep, "mill3d", "server", "apps", "WIZ", "registry",
-            "secondary", "default"
-        ),
-        os.path.join(os.sep, "jobs", ".wiz", "registry", "default")
-    ]
+    assert wiz.registry.get_defaults() == []
 
 
 def test_discover(mocked_filesystem_accessible):
     """Discover registries under paths."""
     mocked_filesystem_accessible.side_effect = [False, True, False, True]
 
+    path = os.path.join(os.sep, "project", "identity", "shot", "animation")
+    registries = wiz.registry.discover(path)
+
+    end = os.path.join(".wiz", "registry")
+
+    assert isinstance(registries, types.GeneratorType)
+    assert list(registries) == [
+        os.path.join(os.sep, "project", "identity", end),
+        os.path.join(os.sep, "project", "identity", "shot", "animation", end)
+    ]
+
+    assert mocked_filesystem_accessible.call_count == 4
+    mocked_filesystem_accessible.assert_any_call(
+        os.path.join(os.sep, "project", end),
+    )
+    mocked_filesystem_accessible.assert_any_call(
+        os.path.join(os.sep, "project", "identity", end),
+    )
+    mocked_filesystem_accessible.assert_any_call(
+        os.path.join(os.sep, "project", "identity", "shot", end),
+    )
+    mocked_filesystem_accessible.assert_any_call(
+        os.path.join(os.sep, "project", "identity", "shot", "animation", end),
+    )
+
+
+def test_discover_with_prefix(mocked_filesystem_accessible):
+    """Discover registries under prefix."""
+    mocked_filesystem_accessible.side_effect = [False, True, False, True]
+
+    # Add prefix in config.
     prefix = os.path.join(os.sep, "jobs", "ads")
+    config = wiz.config.fetch()
+    config["registry"]["discovery_prefix"] = prefix
+
     path = os.path.join(prefix, "project", "identity", "shot", "animation")
     registries = wiz.registry.discover(path)
 
@@ -159,12 +180,18 @@ def test_discover(mocked_filesystem_accessible):
     )
 
 
-def test_discover_fail(mocked_filesystem_accessible):
-    """Fail to discover registries under paths not in /jobs/ads."""
+def test_discover_with_prefix_fail(mocked_filesystem_accessible):
+    """Fail to discover registries under paths not in prefix"""
     mocked_filesystem_accessible.side_effect = [False, True, False, True]
 
-    prefix = os.path.join(os.sep, "somewhere", "else")
-    path = os.path.join(prefix, "project", "identity", "shot", "animation")
+    # Add prefix in config.
+    prefix = os.path.join(os.sep, "jobs", "ads")
+    config = wiz.config.fetch()
+    config["registry"]["discovery_prefix"] = prefix
+
+    path = os.path.join(
+        os.sep, "somewhere", "else", "project", "identity", "shot", "animation"
+    )
     registries = wiz.registry.discover(path)
 
     assert isinstance(registries, types.GeneratorType)
@@ -263,9 +290,9 @@ def test_install_to_path(
         mocked_definitions, temporary_directory
     )
 
-    registry_path = os.path.join(temporary_directory, ".wiz", "registry")
-
-    mocked_fetch_definition_mapping.assert_called_once_with([registry_path])
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        [temporary_directory]
+    )
 
     assert mocked_fetch_definition.call_count == 3
     mocked_fetch_definition.assert_any_call("foo==0.1.0", "__MAPPING__")
@@ -276,61 +303,18 @@ def test_install_to_path(
 
     assert mocked_export_definition.call_count == 3
     mocked_export_definition.assert_any_call(
-        registry_path, mocked_definitions[0], overwrite=True
+        temporary_directory, mocked_definitions[0], overwrite=True
     )
     mocked_export_definition.assert_any_call(
-        registry_path, mocked_definitions[1], overwrite=True
+        temporary_directory, mocked_definitions[1], overwrite=True
     )
     mocked_export_definition.assert_any_call(
-        registry_path, mocked_definitions[2], overwrite=True
+        temporary_directory, mocked_definitions[2], overwrite=True
     )
 
     logger.info.assert_called_once_with(
         "Successfully installed 3 definition(s) to registry '{}'."
-        .format(registry_path)
-    )
-
-
-def test_install_to_path_with_full_registry_path(
-    temporary_directory, mocked_definitions, mocked_fetch_definition_mapping,
-    mocked_fetch_definition, mocked_export_definition, mocked_remove, logger,
-):
-    """Install definitions to full registry path."""
-    registry_path = os.path.join(temporary_directory, ".wiz", "registry")
-    os.makedirs(registry_path)
-
-    mocked_fetch_definition_mapping.return_value = "__MAPPING__"
-    mocked_fetch_definition.side_effect = wiz.exception.RequestNotFound()
-
-    wiz.registry.install_to_path(
-        mocked_definitions, registry_path
-    )
-
-    registry_path = os.path.join(temporary_directory, ".wiz", "registry")
-
-    mocked_fetch_definition_mapping.assert_called_once_with([registry_path])
-
-    assert mocked_fetch_definition.call_count == 3
-    mocked_fetch_definition.assert_any_call("foo==0.1.0", "__MAPPING__")
-    mocked_fetch_definition.assert_any_call("bar", "__MAPPING__")
-    mocked_fetch_definition.assert_any_call("baz==2.5.1", "__MAPPING__")
-
-    mocked_remove.assert_not_called()
-
-    assert mocked_export_definition.call_count == 3
-    mocked_export_definition.assert_any_call(
-        registry_path, mocked_definitions[0], overwrite=True
-    )
-    mocked_export_definition.assert_any_call(
-        registry_path, mocked_definitions[1], overwrite=True
-    )
-    mocked_export_definition.assert_any_call(
-        registry_path, mocked_definitions[2], overwrite=True
-    )
-
-    logger.info.assert_called_once_with(
-        "Successfully installed 3 definition(s) to registry '{}'."
-        .format(registry_path)
+        .format(temporary_directory)
     )
 
 
@@ -349,9 +333,10 @@ def test_install_to_path_with_relative_path(
         mocked_definitions, path
     )
 
-    registry_path = os.path.join(temporary_directory, "foo", ".wiz", "registry")
-
-    mocked_fetch_definition_mapping.assert_called_once_with([registry_path])
+    registry_path = os.path.join(temporary_directory, "foo")
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        [registry_path]
+    )
 
     assert mocked_fetch_definition.call_count == 3
     mocked_fetch_definition.assert_any_call("foo==0.1.0", "__MAPPING__")
@@ -423,8 +408,9 @@ def test_install_to_path_error_definition_exists(
     with pytest.raises(wiz.exception.DefinitionsExist) as error:
         wiz.registry.install_to_path(mocked_definitions, temporary_directory)
 
-    registry_path = os.path.join(temporary_directory, ".wiz", "registry")
-    mocked_fetch_definition_mapping.assert_called_once_with([registry_path])
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        [temporary_directory]
+    )
 
     assert mocked_fetch_definition.call_count == 3
     mocked_fetch_definition.assert_any_call("foo==0.1.0", "__MAPPING__")
@@ -466,8 +452,9 @@ def test_install_to_path_overwrite(
         mocked_definitions, temporary_directory, overwrite=True
     )
 
-    registry_path = os.path.join(temporary_directory, ".wiz", "registry")
-    mocked_fetch_definition_mapping.assert_called_once_with([registry_path])
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        [temporary_directory]
+    )
 
     assert mocked_fetch_definition.call_count == 3
     mocked_fetch_definition.assert_any_call("foo==0.1.0", "__MAPPING__")
@@ -480,7 +467,7 @@ def test_install_to_path_overwrite(
 
     assert mocked_export_definition.call_count == 2
     mocked_export_definition.assert_any_call(
-        registry_path, mocked_definitions[0], overwrite=True
+        temporary_directory, mocked_definitions[0], overwrite=True
     )
     mocked_export_definition.assert_any_call(
         "/path/to/registry/baz", mocked_definitions[2], overwrite=True
@@ -488,7 +475,7 @@ def test_install_to_path_overwrite(
 
     logger.info.assert_called_once_with(
         "Successfully installed 2 definition(s) to registry '{}'."
-        .format(registry_path)
+        .format(temporary_directory)
     )
 
 
@@ -503,8 +490,9 @@ def test_install_to_path_no_content(
     with pytest.raises(wiz.exception.InstallNoChanges) as error:
         wiz.registry.install_to_path(mocked_definitions, temporary_directory)
 
-    registry_path = os.path.join(temporary_directory, ".wiz", "registry")
-    mocked_fetch_definition_mapping.assert_called_once_with([registry_path])
+    mocked_fetch_definition_mapping.assert_called_once_with(
+        [temporary_directory]
+    )
 
     assert mocked_fetch_definition.call_count == 3
     mocked_fetch_definition.assert_any_call("foo==0.1.0", "__MAPPING__")
@@ -513,309 +501,6 @@ def test_install_to_path_no_content(
 
     mocked_remove.assert_not_called()
     mocked_export_definition.assert_not_called()
-    logger.info.assert_not_called()
-
-    assert "InstallNoChanges: Nothing to install." in str(error)
-
-
-@pytest.mark.parametrize("options, overwrite", [
-    ({}, "false"),
-    ({"overwrite": True}, "true"),
-], ids=[
-    "no-options",
-    "with-overwrite",
-])
-def test_install_to_vcs(
-    mocked_requests_get, mocked_requests_post, mocked_definitions,
-    mocked_filesystem_get_name, logger, monkeypatch, mocker, options, overwrite
-):
-    """Install definitions to vault registry."""
-    monkeypatch.setenv("WIZ_SERVER", "https://wiz.themill.com")
-    reload(wiz.symbol)
-
-    mocked_requests_get.return_value = mocker.Mock(
-        ok=True, **{
-            "json.return_value": {
-                "data": {
-                    "content": {
-                        "registry-id": {
-                            "identifier": "registry-id",
-                            "description": "This is a registry",
-                            "avatar_url": "/project/registry-id/avatar",
-                        }
-                    }
-                }
-            }
-        }
-    )
-    mocked_requests_post.return_value = mocker.Mock(ok=True)
-    mocked_filesystem_get_name.return_value = "John Doe"
-
-    wiz.registry.install_to_vcs(mocked_definitions, "registry-id", **options)
-
-    mocked_requests_get.assert_called_once_with(
-        "https://wiz.themill.com/api/registry/all"
-    )
-
-    mocked_requests_post.assert_called_once_with(
-        "https://wiz.themill.com/api/registry/registry-id/release",
-        params={"overwrite": overwrite},
-        data={
-            "contents": json.dumps([
-                definition.encode() for definition in mocked_definitions
-            ]),
-            "author": "John Doe"
-        }
-    )
-
-    mocked_filesystem_get_name.assert_called_once()
-
-    logger.info.assert_called_once_with(
-        "Successfully installed 3 definition(s) to registry 'registry-id'."
-    )
-
-
-@pytest.mark.parametrize("json_response, expected_error", [
-    ({"error": {"message": "Oh Shit!"}}, "Oh Shit!"),
-    ({}, "unknown"),
-], ids=[
-    "with-json-error",
-    "without-json-error",
-])
-def test_install_to_vcs_error_get(
-    mocked_requests_get, mocked_requests_post, mocked_definitions,
-    mocked_filesystem_get_name, logger, monkeypatch, mocker, json_response,
-    expected_error
-):
-    """Fail to install definitions when fetching process failed."""
-    monkeypatch.setenv("WIZ_SERVER", "https://wiz.themill.com")
-    reload(wiz.symbol)
-
-    mocked_requests_get.return_value = mocker.Mock(
-        ok=False, **{"json.return_value": json_response}
-    )
-
-    with pytest.raises(wiz.exception.InstallError) as error:
-        wiz.registry.install_to_vcs(mocked_definitions, "registry-id")
-
-    mocked_requests_get.assert_called_once_with(
-        "https://wiz.themill.com/api/registry/all"
-    )
-
-    mocked_requests_post.assert_not_called()
-    mocked_filesystem_get_name.assert_not_called()
-    logger.info.assert_not_called()
-
-    assert (
-        "VCS registries could not be retrieved: {}".format(expected_error)
-    ) in str(error)
-
-
-@pytest.mark.parametrize("json_response", [
-    {"data": {"content": {}}}, {}
-], ids=[
-    "with-json-error",
-    "without-json-error",
-])
-def test_install_to_vcs_error_incorrect_identifier(
-    mocked_requests_get, mocked_requests_post, mocked_definitions,
-    mocked_filesystem_get_name, logger, monkeypatch, mocker, json_response
-):
-    """Fail to install definitions when registry identifier is incorrect."""
-    monkeypatch.setenv("WIZ_SERVER", "https://wiz.themill.com")
-    reload(wiz.symbol)
-
-    mocked_requests_get.return_value = mocker.Mock(
-        ok=True, **{"json.return_value": json_response}
-    )
-
-    with pytest.raises(wiz.exception.InstallError) as error:
-        wiz.registry.install_to_vcs(mocked_definitions, "registry-id")
-
-    mocked_requests_get.assert_called_once_with(
-        "https://wiz.themill.com/api/registry/all"
-    )
-
-    mocked_requests_post.assert_not_called()
-    mocked_filesystem_get_name.assert_not_called()
-    logger.info.assert_not_called()
-
-    assert "'registry-id' is not a valid registry" in str(error)
-
-
-def test_install_to_vcs_error_definition_exists(
-    mocked_requests_get, mocked_requests_post, mocked_definitions,
-    mocked_filesystem_get_name, logger, monkeypatch, mocker
-):
-    """Fail to install definition when definition exists."""
-    monkeypatch.setenv("WIZ_SERVER", "https://wiz.themill.com")
-    reload(wiz.symbol)
-
-    mocked_requests_get.return_value = mocker.Mock(
-        ok=True, **{
-            "json.return_value": {
-                "data": {
-                    "content": {
-                        "registry-id": {
-                            "identifier": "registry-id",
-                            "description": "This is a registry",
-                            "avatar_url": "/project/registry-id/avatar",
-                        }
-                    }
-                }
-            }
-        }
-    )
-
-    mocked_requests_post.return_value = mocker.Mock(
-        ok=False, status_code=409, **{
-            "json.return_value": {
-                "error": {
-                    "code": 409,
-                    "definitions": ["def_A"]
-                }
-            }
-        }
-    )
-    mocked_filesystem_get_name.return_value = "John Doe"
-
-    with pytest.raises(wiz.exception.DefinitionsExist) as error:
-        wiz.registry.install_to_vcs(mocked_definitions, "registry-id")
-
-    mocked_requests_get.assert_called_once_with(
-        "https://wiz.themill.com/api/registry/all"
-    )
-
-    mocked_requests_post.assert_called_once_with(
-        "https://wiz.themill.com/api/registry/registry-id/release",
-        params={"overwrite": "false"},
-        data={
-            "contents": json.dumps([
-                definition.encode() for definition in mocked_definitions
-            ]),
-            "author": "John Doe"
-        }
-    )
-
-    mocked_filesystem_get_name.assert_called_once()
-    logger.info.assert_not_called()
-
-    assert (
-        "DefinitionsExist: 1 definition(s) already exist in registry."
-    ) in str(error)
-
-
-@pytest.mark.parametrize("json_response, expected_error", [
-    ({"error": {"message": "Oh Shit!"}}, "Oh Shit!"),
-    ({}, "unknown"),
-], ids=[
-    "with-json-error",
-    "without-json-error",
-])
-def test_install_to_vcs_error_post(
-    mocked_requests_get, mocked_requests_post, mocked_definitions,
-    mocked_filesystem_get_name, logger, monkeypatch, mocker, json_response,
-    expected_error
-):
-    """Fail to install definition when release post failed."""
-    monkeypatch.setenv("WIZ_SERVER", "https://wiz.themill.com")
-    reload(wiz.symbol)
-
-    mocked_requests_get.return_value = mocker.Mock(
-        ok=True, **{
-            "json.return_value": {
-                "data": {
-                    "content": {
-                        "registry-id": {
-                            "identifier": "registry-id",
-                            "description": "This is a registry",
-                            "avatar_url": "/project/registry-id/avatar",
-                        }
-                    }
-                }
-            }
-        }
-    )
-
-    mocked_requests_post.return_value = mocker.Mock(
-        ok=False, status_code=500, **{"json.return_value": json_response}
-    )
-    mocked_filesystem_get_name.return_value = "John Doe"
-
-    with pytest.raises(wiz.exception.InstallError) as error:
-        wiz.registry.install_to_vcs(mocked_definitions, "registry-id")
-
-    mocked_requests_get.assert_called_once_with(
-        "https://wiz.themill.com/api/registry/all"
-    )
-
-    mocked_requests_post.assert_called_once_with(
-        "https://wiz.themill.com/api/registry/registry-id/release",
-        params={"overwrite": "false"},
-        data={
-            "contents": json.dumps([
-                definition.encode() for definition in mocked_definitions
-            ]),
-            "author": "John Doe"
-        }
-    )
-
-    mocked_filesystem_get_name.assert_called_once()
-    logger.info.assert_not_called()
-
-    print(str(error))
-    assert (
-        "Definitions could not be installed to registry 'registry-id' "
-        "[{}]".format(expected_error)
-    ) in str(error)
-
-
-def test_install_to_vcs_no_content(
-    mocked_requests_get, mocked_requests_post, mocked_definitions,
-    mocked_filesystem_get_name, logger, monkeypatch, mocker
-):
-    """Fail to install definitions when no new content available."""
-    monkeypatch.setenv("WIZ_SERVER", "https://wiz.themill.com")
-    reload(wiz.symbol)
-
-    mocked_requests_get.return_value = mocker.Mock(
-        ok=True, **{
-            "json.return_value": {
-                "data": {
-                    "content": {
-                        "registry-id": {
-                            "identifier": "registry-id",
-                            "description": "This is a registry",
-                            "avatar_url": "/project/registry-id/avatar",
-                        }
-                    }
-                }
-            }
-        }
-    )
-
-    mocked_requests_post.return_value = mocker.Mock(ok=False, status_code=417)
-    mocked_filesystem_get_name.return_value = "John Doe"
-
-    with pytest.raises(wiz.exception.InstallNoChanges) as error:
-        wiz.registry.install_to_vcs(mocked_definitions, "registry-id")
-
-    mocked_requests_get.assert_called_once_with(
-        "https://wiz.themill.com/api/registry/all"
-    )
-
-    mocked_requests_post.assert_called_once_with(
-        "https://wiz.themill.com/api/registry/registry-id/release",
-        params={"overwrite": "false"},
-        data={
-            "contents": json.dumps([
-                definition.encode() for definition in mocked_definitions
-            ]),
-            "author": "John Doe"
-        }
-    )
-
-    mocked_filesystem_get_name.assert_called_once()
     logger.info.assert_not_called()
 
     assert "InstallNoChanges: Nothing to install." in str(error)

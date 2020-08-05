@@ -2,9 +2,9 @@
 
 """Wiz documentation build configuration file."""
 
-import sys
 import os
 import re
+import sys
 
 # -- General ------------------------------------------------------------------
 # Inject source onto path so that autodoc can find it by default, but in such a
@@ -25,7 +25,7 @@ extensions = [
 
 # Add local extensions.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '_extension'))
-extensions.append('code_block')
+extensions.append("code_block")
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -60,7 +60,6 @@ modindex_common_prefix = [
     "wiz."
 ]
 
-
 # -- HTML output --------------------------------------------------------------
 
 html_theme = "sphinx_rtd_theme"
@@ -91,12 +90,7 @@ intersphinx_mapping = {
     "python": ("http://docs.python.org/", None),
     "packaging": ("https://packaging.pypa.io/en/stable/", None),
     "click": ("https://click.palletsprojects.com/en/7.x/", None),
-    "sawmill": ("https://sawmill.readthedocs.io/en/stable/", None),
-    "infinite-monkey": (
-        "http://rtd.themill.com/docs/infinite-monkey/en/stable/", None
-    ),
-    "wiz-vault": ("http://rtd.themill.com/docs/wiz-vault/en/stable/", None),
-    "qip": ("http://rtd.themill.com/docs/qip/en/stable/", None)
+    "sawmill": ("https://sawmill.readthedocs.io/en/stable/", None)
 }
 
 
@@ -104,6 +98,8 @@ intersphinx_mapping = {
 
 def setup(app):
     """Setup *app*."""
+    app.connect("autodoc-skip-member", autodoc_skip)
+
     # Ensure custom stylesheet added, even when on Read The Docs server where
     # html_style setting is ignored.
     app.add_stylesheet("style.css")

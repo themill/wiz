@@ -2,12 +2,6 @@
 
 """Common symbols."""
 
-import os
-
-
-#: Server hosting the Wiz-Vault API
-WIZ_SERVER = os.environ.get("WIZ_SERVER", "http://wiz.themill.com")
-
 #: Environment variable corresponding to the 'install-location' definition key.
 INSTALL_LOCATION = "INSTALL_LOCATION"
 
@@ -21,7 +15,7 @@ COMMAND_SEPARATOR = "--"
 NAMESPACE_SEPARATOR = "::"
 
 #: Default value when a definition value is unknown.
-UNKNOWN_VALUE = "unknown"
+UNSET_VALUE = "-"
 
 #: Package request type.
 PACKAGE_REQUEST_TYPE = "package"

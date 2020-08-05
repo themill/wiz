@@ -1,20 +1,12 @@
 # :coding: utf-8
 
 import os
-import json
-import requests
 
-import wiz.logging
-import wiz.history
-import wiz.package
+import wiz.config
 import wiz.exception
-import wiz.utility
-import wiz.symbol
 import wiz.filesystem
-
-
-#: Schema to reach :term:`VCS registries <VCS Registry>`.
-SCHEME = "wiz://"
+import wiz.logging
+import wiz.utility
 
 
 def get_local():
@@ -26,13 +18,8 @@ def get_local():
 
 def get_defaults():
     """Return the default registries."""
-    server_root = os.path.join(os.sep, "mill3d", "server", "apps", "WIZ")
-
-    return [
-        os.path.join(server_root, "registry", "primary", "default"),
-        os.path.join(server_root, "registry", "secondary", "default"),
-        os.path.join(os.sep, "jobs", ".wiz", "registry", "default")
-    ]
+    config = wiz.config.fetch()
+    return config.get("registry", {}).get("paths", [])
 
 
 def fetch(paths, include_local=True, include_working_directory=True):
@@ -79,19 +66,21 @@ def discover(path):
             "/jobs/ads/project/identity/shot/.wiz/registry"
         ]
 
-    .. important::
-
-        Registry folders can be discovered only under :file:`/jobs/ads`.
+    .. seealso:: :ref:`registry/discover-implicit`
 
     """
     path = os.path.abspath(path)
 
-    # Only discover the registry if the top level hierarchy is /jobs/ads.
-    prefix = os.path.join(os.sep, "jobs", "ads")
+    config = wiz.config.fetch()
+
+    # Only discover the registry if the top level hierarchy is defined in the
+    # config as 'discovery_prefix'.
+    prefix = config.get("registry", {}).get("discovery_prefix", os.sep)
     if not path.startswith(prefix):
         return
 
-    for folder in path.split(os.sep)[3:]:
+    _path = [p for p in path[len(prefix):].split(os.sep) if len(p)]
+    for folder in _path:
         prefix = os.path.join(prefix, folder)
         registry_path = os.path.join(prefix, ".wiz", "registry")
 
@@ -130,8 +119,6 @@ def install_to_path(definitions, registry_path, overwrite=False):
         )
 
     registry_path = os.path.abspath(registry_path)
-    if not registry_path.endswith(".wiz/registry"):
-        registry_path = os.path.join(registry_path, ".wiz", "registry")
 
     # Record definitions to install.
     _definitions = []
@@ -191,89 +178,3 @@ def install_to_path(definitions, registry_path, overwrite=False):
             registry=registry_path
         )
     )
-
-
-def install_to_vcs(definitions, registry_uri, overwrite=False):
-    """Install a list of definitions to a :term:`VCS` registry.
-
-    *definitions* must be a list of valid :class:`~wiz.definition.Definition`
-    instances.
-
-    *registry_uri* must be the valid URI of the :term:`VCS` registry to install
-    to.
-
-    If *overwrite* is True, any existing definitions in the target registry
-    will be overwritten.
-
-    Raises :exc:`wiz.exception.DefinitionExists` if definitions already exists
-    in the target registry and overwrite is False.
-
-    Raises :exc:`wiz.exception.InstallNoChanges` if definitions already exists
-    in the target registry and no changes is detected.
-
-    Raises :exc:`wiz.exception.InstallError` if the registry could not be found,
-    or definition could not be installed into it.
-
-    """
-    logger = wiz.logging.Logger(__name__ + ".install_to_vcs")
-
-    registry_identifier = registry_uri.strip(SCHEME)
-
-    response = requests.get("{}/api/registry/all".format(wiz.symbol.WIZ_SERVER))
-    if not response.ok:
-        raise wiz.exception.InstallError(
-            "VCS registries could not be retrieved: {}".format(
-                response.json().get("error", {}).get("message", "unknown")
-            )
-        )
-
-    registry_identifiers = response.json().get("data", {}).get("content", {})
-    if registry_identifier not in registry_identifiers:
-        raise wiz.exception.InstallError(
-            "{!r} is not a valid registry.".format(registry_identifier)
-        )
-
-    # Sanitize and encode definitions.
-    encoded_definitions = [
-        definition.sanitized().encode() for definition in definitions
-    ]
-
-    response = requests.post(
-        "{server}/api/registry/{name}/release".format(
-            server=wiz.symbol.WIZ_SERVER,
-            name=registry_identifier
-        ),
-        params={"overwrite": json.dumps(overwrite)},
-        data={
-            "contents": json.dumps(encoded_definitions),
-            "author": wiz.filesystem.get_name()
-        }
-    )
-
-    # Return if all good.
-    if response.ok:
-        logger.info(
-            "Successfully installed {number} definition(s) to "
-            "registry {registry!r}.".format(
-                number=len(definitions),
-                registry=registry_identifier
-            )
-        )
-        return
-
-    # If no content was released.
-    if response.status_code == 417:
-        raise wiz.exception.InstallNoChanges()
-
-    if response.status_code == 409:
-        _definitions = response.json().get("error", {}).get("definitions", [])
-        raise wiz.exception.DefinitionsExist(_definitions)
-
-    else:
-        raise wiz.exception.InstallError(
-            "Definitions could not be installed to registry {registry!r} "
-            "[{error}]".format(
-                registry=registry_identifier,
-                error=response.json().get("error", {}).get("message", "unknown")
-            )
-        )

@@ -1,27 +1,26 @@
 # :coding: utf-8
 
 from __future__ import print_function
-import os
-import io
-import sys
-import time
-import getpass
+
 import datetime
+import getpass
+import io
+import os
+import sys
 import tempfile
 
 import colorama
 import pystache
 import sawmill
-import sawmill.logger.classic
+import sawmill.compatibility
+import sawmill.filterer.item
+import sawmill.filterer.level
+import sawmill.formatter.field
 import sawmill.formatter.mustache
 import sawmill.handler.stream
-import sawmill.formatter.field
-import sawmill.filterer.level
-import sawmill.filterer.item
-import sawmill.compatibility
+import sawmill.logger.classic
 
 import wiz.filesystem
-
 
 #: Top level handler responsible for relaying all logs to other handlers.
 root = sawmill.root
@@ -31,11 +30,8 @@ root = sawmill.root
 levels = sawmill.levels
 
 
-def configure(stderr_level="info"):
+def configure():
     """Configure logging handlers.
-
-    A standard error handler is created to output any message with a level
-    greater than *stderr_level*.
 
     A file handler is created to log warnings and greater to :file:`wiz/logs`
     under system temporary directory.
@@ -53,7 +49,7 @@ def configure(stderr_level="info"):
     )
     stderr_handler.formatter = stderr_formatter
 
-    stderr_filterer = sawmill.filterer.level.Level(min=stderr_level, max=None)
+    stderr_filterer = sawmill.filterer.level.Level(min="info", max=None)
     stderr_handler.filterer = stderr_filterer
 
     # File handler
@@ -61,8 +57,10 @@ def configure(stderr_level="info"):
     wiz.filesystem.ensure_directory(logging_path_prefix)
 
     pid = os.getpid()
+    timestamp = datetime.datetime.now().strftime("%Y%m%d")
+
     file_path = os.path.join(
-        logging_path_prefix, "{}_{}.log".format(pid, int(time.time()))
+        logging_path_prefix, "{}_{}.log".format(pid, timestamp)
     )
     file_filterer = sawmill.filterer.level.Level(min="warning", max=None)
     file_stream = open(file_path, "a", 1)

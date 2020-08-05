@@ -4,17 +4,16 @@
 Wiz
 ###
 
-Package management system.
-
 .. toctree::
     :maxdepth: 1
 
     introduction
     installing
+    getting_started
+    configuration
+    plugins
     registry
     definition
-    installing_definitions
-    tutorial/index
     guidelines
     tools
     command_line

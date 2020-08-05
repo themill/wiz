@@ -6,11 +6,6 @@ Environment variables
 
 Environment variables directly defined or referenced by this package.
 
-.. envvar:: WIZ_SERVER
-
-    Indicate the :term:`Wiz Vault` host server. By default the host is
-    `http://wiz.themill.com <http://wiz.themill.com>`_.
-
 .. envvar:: INSTALL_LOCATION
 
     Environment variable used within a Wiz definition environment to refer to

@@ -1,21 +1,21 @@
 # :coding: utf-8
 
-import shlex
 import os
+import shlex
 
-from _version import __version__
-import wiz.registry
 import wiz.definition
-import wiz.package
 import wiz.environ
-import wiz.graph
-import wiz.symbol
-import wiz.spawn
-import wiz.system
-import wiz.filesystem
 import wiz.exception
-import wiz.utility
+import wiz.filesystem
+import wiz.graph
 import wiz.logging
+import wiz.package
+import wiz.registry
+import wiz.spawn
+import wiz.symbol
+import wiz.system
+import wiz.utility
+from _version import __version__
 
 
 def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
@@ -384,48 +384,10 @@ def export_definition(path, data, overwrite=False):
     return wiz.definition.export(path, data, overwrite=overwrite)
 
 
-def install_definitions(paths, registry_target, overwrite=False):
-    """Install a definition file to a registry.
-
-    *paths* is the path list to all definition files.
-
-    *registry_target* should be a valid :term:`VCS` registry URI or a path to a
-    local registry.
-
-    If *overwrite* is True, any existing definitions in the target registry
-    will be overwritten.
-
-    Raises :exc:`wiz.exception.IncorrectDefinition` if data in *paths* cannot
-    create a valid instance of :class:`wiz.definition.Definition`.
-
-    Raises :exc:`wiz.exception.DefinitionExists` if definition already exists in
-    the target registry and *overwrite* is False.
-
-    Raises :exc:`OSError` if the definition can not be exported in a registry
-    local *path*.
-
-    """
-    definitions = []
-
-    for path in paths:
-        _definition = wiz.load_definition(path)
-        definitions.append(_definition)
-
-    if registry_target.startswith(wiz.registry.SCHEME):
-        wiz.registry.install_to_vcs(
-            definitions, registry_target, overwrite=overwrite
-        )
-
-    else:
-        wiz.registry.install_to_path(
-            definitions, registry_target, overwrite=overwrite
-        )
-
-
 def export_script(
     path, script_type, identifier, environ, command=None, packages=None,
 ):
-    """Export context as :term:`Bash` wrapper in *path*.
+    """Export context as :term:`Bash` or :term:`C-Shell` wrapper in *path*.
 
     Return the path to the bash wrapper created.
 

@@ -24,8 +24,7 @@ The registry paths can now be set as follow::
     wiz -r /path/to/registry1 -r /path/to/registry2 use foo
 
 The :option:`--add-registry <wiz --add-registry>` command has been added in
-order to prepend registry in front of :ref:`project registries
-<registry/project>`.
+order to prepend a registry in front of discovered registries.
 
 .. rubric:: installation
 
@@ -56,7 +55,7 @@ The optional :ref:`namespace <definition/namespace>` keyword has been added to
 the definition in lieu of the previous "group" keyword which has been removed.
 
 The "group" keyword was only used to precise the folder hierarchy within
-:term:`VCS Registry`, whereas :ref:`namespaces <definition/namespace>` are
+``VCS Registry``, whereas :ref:`namespaces <definition/namespace>` are
 actively used for the definition query and package extraction process.
 
 .. rubric:: conditions
