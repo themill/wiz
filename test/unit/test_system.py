@@ -4,10 +4,10 @@ import platform
 
 import pytest
 
-from wiz.utility import Version
-import wiz.system
 import wiz.definition
 import wiz.exception
+import wiz.system
+from wiz.utility import Version
 
 
 @pytest.fixture()
@@ -323,4 +323,4 @@ def test_validate_requirement_error():
     })
 
     with pytest.raises(wiz.exception.IncorrectDefinition):
-        print wiz.system.validate(definition, {})
+        print(wiz.system.validate(definition, {}))
