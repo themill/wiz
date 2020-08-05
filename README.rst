@@ -5,8 +5,8 @@ Wiz
 .. image:: https://img.shields.io/pypi/v/wiz-env.svg
     :target: https://pypi.python.org/pypi/wiz-env
 
-.. image:: https://api.travis-ci.org/buddly27/champollion.svg?branch=master
-    :target: https://travis-ci.org/buddly27/champollion
+.. image:: https://travis-ci.org/themill/wiz.svg?branch=master
+    :target: https://travis-ci.org/themill/wiz
 
 .. image:: https://readthedocs.org/projects/wiz/badge/?version=latest
     :target: https://wiz.readthedocs.io/en/latest/?badge=latest
