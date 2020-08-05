@@ -9,7 +9,7 @@ Wiz
     :target: https://travis-ci.org/themill/wiz
 
 .. image:: https://readthedocs.org/projects/wiz/badge/?version=latest
-    :target: https://wiz.readthedocs.io/en/latest/?badge=latest
+    :target: https://wiz.readthedocs.io/en/stable/?badge=latest
     :alt: Documentation Status
 
 Wiz is an environment management framework which consists of a Python API and a
@@ -42,7 +42,7 @@ Documentation
 *************
 
 Full documentation, including installation and setup guides, can be found at
-https://wiz.readthedocs.io/en/latest/
+https://wiz.readthedocs.io/en/stable/
 
 *********
 Copyright
