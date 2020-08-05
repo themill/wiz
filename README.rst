@@ -11,9 +11,11 @@ several registries.
 
 The command line tool can be used as follows::
 
-    wiz use "app==2.*" my-plugin -- AppExe /path/to/script
+    >>> wiz use "app==2.*" my-plugin -- AppExe /path/to/script
 
-Equivalent commands can be executed using the Python API::
+Equivalent commands can be executed using the Python API:
+
+.. code-block:: python
 
     import subprocess
     import wiz
