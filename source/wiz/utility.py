@@ -1,22 +1,21 @@
 # :coding: utf-8
 
-import re
-import pipes
-import json
-import zlib
 import base64
+import collections
 import hashlib
+import json
+import pipes
+import re
+import zlib
 
 import colorama
-
-from _requirement import Requirement
 from packaging.requirements import InvalidRequirement
 from packaging.version import Version, InvalidVersion
 
-import wiz.symbol
-import wiz.mapping
 import wiz.exception
-
+import wiz.mapping
+import wiz.symbol
+from _requirement import Requirement
 
 # Arbitrary number which indicates a very high version number
 _INFINITY_VERSION = 9999
@@ -516,3 +515,32 @@ def colored_text(message, color):
         getattr(colorama.Fore, color.upper()) + message +
         colorama.Style.RESET_ALL
     )
+
+
+def deep_update(mapping1, mapping2):
+    """Recursively update *mapping1* from *mapping2*.
+
+    Contrary to :meth:`dict.update`, this function will attempt to update
+    sub-dictionaries defined in both mappings instead of overwriting the value
+    defined in *mapping1*::
+
+        >>> deep_update({"A": {"B": 2}}, {"A": {"C": 3}})
+        {"A": {"B": 2, "C": 3}}
+
+    :param mapping1: Mapping to update
+
+    :param mapping2: Mapping to update *mapping1* from
+
+    :return: *mapping1* mutated.
+
+    .. note::
+
+        *mapping1* will be mutated, but *mapping2* will not.
+
+    """
+    for key, value in mapping2.items():
+        if isinstance(value, collections.Mapping):
+            mapping1[key] = deep_update(mapping1.get(key, {}), value)
+        else:
+            mapping1[key] = value
+    return mapping1

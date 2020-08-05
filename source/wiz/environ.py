@@ -1,59 +1,32 @@
 # :coding: utf-8
 
-import re
-import os
-import socket
-import getpass
 import itertools
+import os
+import re
 
+import wiz.config
 
 #: Compiled regular expression to identify environment variables in string.
-ENV_PATTERN = re.compile("\${(\w+)}|\$(\w+)")
+ENV_PATTERN = re.compile(r"\${(\w+)}|\$(\w+)")
 
 
 def initiate(mapping=None):
     """Return the minimal environment mapping to augment.
 
-    The initial environment mapping contains basic variables from the external
-    environment that can be used by the resolved environment, such as
-    the *USER*, the *HOSTNAME* or the *HOME* variables.
-
-    The other variable added are:
-
-    * DISPLAY:
-        This variable is necessary to open user interface within the current
-        X display name.
-
-    * XAUTHORITY:
-        This variable is necessary to indicate the file used to store
-        credentials in cookies used by xauth_ for authentication of X sessions.
-
-    * PATH:
-        This variable is initialised with default values to have access to the
-        basic UNIX commands.
-
     *mapping* can be a custom environment mapping which will be added to the
     initial environment.
 
-    .. _xauth: https://www.x.org/releases/X11R6.8.2/doc/xauth.1.html
+    .. seealso:: :ref:`configuration/initial_environment`
 
     """
-    environ = {
-        "USER": getpass.getuser(),
-        "HOME": os.path.expanduser("~"),
-        "HOSTNAME": socket.gethostname(),
-        "LOGNAME": os.environ.get("LOGNAME", ""),
-        "DISPLAY": os.environ.get("DISPLAY", ""),
-        "XAUTHORITY": os.environ.get("XAUTHORITY", ""),
-        "PATH": os.pathsep.join([
-            "/usr/local/sbin",
-            "/usr/local/bin",
-            "/usr/sbin",
-            "/usr/bin",
-            "/sbin",
-            "/bin",
-        ])
-    }
+    config = wiz.config.fetch()
+    environ = config.get("environ", {}).get("initial", {})
+
+    for key in config.get("environ", {}).get("passthrough", []):
+        value = os.environ.get(key)
+
+        if value:
+            environ[key] = value
 
     if mapping is not None:
         environ.update(**mapping)
@@ -67,10 +40,10 @@ def sanitise(mapping):
     Resolve all key references within *mapping* values and remove all
     self-references::
 
-        >>> sanitise(
+        >>> sanitise({
         ...     "PLUGIN": "${HOME}/.app:/path/to/somewhere:${PLUGIN}",
         ...     "HOME": "/usr/people/me"
-        ... )
+        ... })
 
         {
             "HOME": "/usr/people/me",
@@ -128,6 +101,7 @@ def substitute(text, environment):
         /usr/people/john-doe/path/to/data
 
     """
+
     def _substitute(match):
         origin = match.group(0)
         name = next(item for item in match.groups() if item is not None)

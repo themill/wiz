@@ -1,13 +1,12 @@
 # :coding: utf-8
 
-import os
-import json
 import collections
+import json
+import os
 
 import jsonschema.validators
 from packaging.requirements import Requirement
 from packaging.version import Version
-
 
 #: Root directory containing the schemas.
 _SCHEMA_ROOT = os.path.join(

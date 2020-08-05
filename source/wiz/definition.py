@@ -1,16 +1,16 @@
 # :coding: utf-8
 
-import os
 import json
+import os
 
+import wiz.exception
+import wiz.filesystem
+import wiz.history
 import wiz.logging
-import wiz.symbol
 import wiz.mapping
 import wiz.package
-import wiz.filesystem
-import wiz.exception
+import wiz.symbol
 import wiz.system
-import wiz.history
 import wiz.utility
 import wiz.validator
 
@@ -210,7 +210,7 @@ def query(requirement, definition_mapping, namespace_counter=None):
         reverse=True
     )
 
-    if wiz.symbol.UNKNOWN_VALUE in versions and len(versions) > 1:
+    if wiz.symbol.UNSET_VALUE in versions and len(versions) > 1:
         raise wiz.exception.RequestNotFound(
             "Impossible to retrieve the best matching definition for "
             "'{}' as non-versioned and versioned definitions have "
@@ -421,7 +421,7 @@ def discover(paths, system_mapping=None, max_depth=None):
                 ):
                     logger.warning(
                         "Error occurred trying to load definition from {!r}"
-                        .format(_path),
+                            .format(_path),
                     )
                     logger.debug_traceback()
                     continue
@@ -510,7 +510,7 @@ class Definition(wiz.mapping.Mapping):
     @property
     def version_identifier(self):
         """Return version identifier."""
-        if self.version != wiz.symbol.UNKNOWN_VALUE:
+        if self.version != wiz.symbol.UNSET_VALUE:
             return "{}=={}".format(self.identifier, self.version)
         return self.identifier
 

@@ -3,10 +3,9 @@
 import platform as _platform
 
 import wiz.exception
-import wiz.symbol
 import wiz.history
+import wiz.symbol
 import wiz.utility
-
 
 #: Operating System group mapping
 OS_MAPPING = {

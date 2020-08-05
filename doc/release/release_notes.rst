@@ -4,12 +4,77 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: new
+
+        Added :mod:`wiz.config` to handle :term:`TOML` configuration and
+        plugins to customize Wiz default values and callbacks.
+
+        .. seealso::
+
+            * :ref:`configuration`
+            * :ref:`plugins`
+
+    .. change:: new
+
+        Added default plugin to register installation callback to deploy
+        package definitions to a registry path.
+
+        .. seealso:: :ref:`plugins/default/installer`
+
+    .. change:: new
+
+        Added default plugin to initialize environment variables.
+
+        .. seealso:: :ref:`plugins/default/environ`
+
+    .. change:: changed
+
+        Removed :func:`wiz.install_definitions` and
+        :func:`wiz.registry.install_to_vcs` as the concept of Local and VCS
+        registry has been removed.
+
+        Default plugin only install package definition to a registry path.
+
+        .. seealso:: :ref:`plugins/default/installer`
+
+        Custom plugin can be used to extend the installation logic.
+
+    .. change:: changed
+
+        Updated :ref:`command_line` to use configuration mapping to initialize
+        default values.
+
+    .. change:: changed
+
+        Updated :func:`wiz.registry.get_defaults` to return registry paths from
+        the configuration mapping instead of using a hardcoded list of paths.
+
+        .. seealso:: :ref:`configuration/registry_paths`
+
+    .. change:: changed
+
+        Updated :func:`wiz.environ.initiate` to set initial environment
+        variables from configuration mapping instead of using a hardcoded
+        mapping.
+
+        .. seealso:: :ref:`configuration/initial_environment`
+
+    .. change:: new
+
+        Added :func:`wiz.utility.deep_update` to merge two mappings recursively.
+
+    .. change:: changed
+
+        Updated documentation to remove Mill Specific examples.
+
 .. release:: 2.6.5
     :date: 2019-04-04
 
     .. change:: fixed
 
-        Updated the :term:`Gitlab` links to their fully qualified domain name,
+        Updated the GitLab links to their fully qualified domain name,
         as the `resolv.conf <https://en.wikipedia.org/wiki/Resolv.conf>`_ setup
         is not consistent globally, which leads to it currently not resolving in
         all Mill sites.
@@ -395,7 +460,7 @@ Release Notes
         Added optional :ref:`namespace <definition/namespace>` keyword which
         can be used to provide a scope to a definition. It replaces the
         "group" keyword as it is also used to define where in the hierarchy of a
-        :term:`VCS Registry` a definition will be installed.
+        VCS Registry a definition will be installed.
 
     .. change:: new
         :tags: definition
@@ -491,7 +556,7 @@ Release Notes
 
         Updated command line arguments to use the same option
         :option:`--registry <wiz install --registry>` for installing to a
-        :term:`Local Registry` and installing to a :term:`VCS Registry`.
+        Local Registry and installing to a VCS Registry.
         Previously the argument was split into `--registry-path` and
         `--registry-id`.
 
@@ -750,14 +815,12 @@ Release Notes
         Added ``wiz install`` sub-command to install package definition to a
         registry.
 
-        .. seealso:: :ref:`installing_definitions`
-
     .. change:: new
         :tags: definition
 
         Added optional :ref:`group <definition/namespace>` keyword to definition
         schema, which can be used to define where in the hierarchy of a
-        :term:`VCS Registry` a definition will be installed (e.g. "python",
+        VCS Registry a definition will be installed (e.g. "python",
         "maya").
 
     .. change:: new
@@ -772,14 +835,14 @@ Release Notes
 
         Added :func:`wiz.install_definitions_to_path` and
         :func:`wiz.install_definitions_to_vcs` to install one or several
-        definition files to a :term:`Local Registry` or a :term:`VCS Registry`.
+        definition files to a Local Registry or a VCS Registry.
 
     .. change:: new
         :tags: API
 
         Added :func:`wiz.registry.install_to_path` and
         :func:`wiz.registry.install_to_vcs` to install a definition instance
-        to a :term:`Local Registry` or a :term:`VCS Registry`.
+        to a Local Registry or a VCS Registry.
 
     .. change:: new
         :tags: API
@@ -816,16 +879,6 @@ Release Notes
 
         Added :func:`wiz.utility.compute_file_name` to compute a unique
         :term:`JSON` file name for a definition (e.g. "foo-0.1.0.json").
-
-    .. change:: new
-        :tags: documentation
-
-        Added :ref:`installing_definitions` section.
-
-    .. change:: new
-        :tags: documentation
-
-        Added :ref:`tutorial/install/qip` section to tutorial.
 
     .. change:: new
         :tags: documentation
@@ -1439,9 +1492,9 @@ Release Notes
         :tags: documentation
 
         Added :ref:`tutorial` section to documentation, including a guide for
-        :ref:`tutorial/project`, as well as some introduction into
+        project registries, as well as some introduction into
         :ref:`registry` and :ref:`definition`.
-        Additonal :ref:`guidelines` and :ref:`tools` sections have been added to
+        Additional :ref:`guidelines` and :ref:`tools` sections have been added to
         provide help for developers.
 
 .. release:: 0.7.1

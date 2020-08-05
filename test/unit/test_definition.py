@@ -1,18 +1,18 @@
 # :coding: utf-8
 
+import copy
+import itertools
 import os
 import types
-import copy
 from collections import OrderedDict, Counter
-import itertools
 
 import pytest
 
-from wiz.utility import Requirement, Version
 import wiz.definition
+import wiz.exception
 import wiz.filesystem
 import wiz.system
-import wiz.exception
+from wiz.utility import Requirement, Version
 
 
 @pytest.fixture()
@@ -229,10 +229,10 @@ def test_fetch(mocked_discover, definitions, options):
                 "0.1.0": definitions[7]
             },
             "other::foo": {
-                "unknown": definitions[8]
+                "-": definitions[8]
             },
             "foo": {
-                "unknown": definitions[9]
+                "-": definitions[9]
             }
         },
         "command": {
@@ -296,10 +296,10 @@ def test_fetch_with_implicit_packages(mocked_discover, definitions, options):
                 "0.1.0": definitions[7]
             },
             "other::foo": {
-                "unknown": definitions[8]
+                "-": definitions[8]
             },
             "foo": {
-                "unknown": definitions[9]
+                "-": definitions[9]
             }
         },
         "command": {
@@ -582,7 +582,7 @@ def test_query_definition_mixed_version_error():
                 "identifier": "foo",
                 "version": "0.1.0",
             }),
-            "unknown": wiz.definition.Definition({
+            "-": wiz.definition.Definition({
                 "identifier": "foo",
             }),
         },
@@ -1162,9 +1162,9 @@ def test_minimal_definition():
     assert definition.qualified_identifier == "test"
     assert definition.version_identifier == "test"
     assert definition.qualified_version_identifier == "test"
-    assert definition.version == "unknown"
+    assert definition.version == "-"
     assert definition.namespace is None
-    assert definition.description == "unknown"
+    assert definition.description == "-"
     assert definition.environ == {}
     assert definition.requirements == []
     assert definition.conditions == []
@@ -1189,9 +1189,9 @@ def test_minimal_definition_with_namespace():
     assert definition.qualified_identifier == "foo::test"
     assert definition.version_identifier == "test"
     assert definition.qualified_version_identifier == "foo::test"
-    assert definition.version == "unknown"
+    assert definition.version == "-"
     assert definition.namespace == "foo"
-    assert definition.description == "unknown"
+    assert definition.description == "-"
     assert definition.environ == {}
     assert definition.requirements == []
     assert definition.command == {}
@@ -1225,7 +1225,7 @@ def test_definition_with_version(options, expected_version):
     assert definition.qualified_version_identifier == "test==0.1.0"
     assert definition.version == Version("0.1.0")
     assert definition.namespace is None
-    assert definition.description == "unknown"
+    assert definition.description == "-"
     assert definition.environ == {}
     assert definition.requirements == []
     assert definition.command == {}
@@ -1260,7 +1260,7 @@ def test_definition_with_version_and_namespace(options, expected_version):
     assert definition.qualified_version_identifier == "foo::test==0.1.0"
     assert definition.version == Version("0.1.0")
     assert definition.namespace == "foo"
-    assert definition.description == "unknown"
+    assert definition.description == "-"
     assert definition.environ == {}
     assert definition.requirements == []
     assert definition.conditions == []
@@ -1287,7 +1287,7 @@ def test_definition_with_description():
     assert definition.qualified_identifier == "test"
     assert definition.version_identifier == "test"
     assert definition.qualified_version_identifier == "test"
-    assert definition.version == "unknown"
+    assert definition.version == "-"
     assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
@@ -1320,7 +1320,7 @@ def test_definition_with_environ():
     assert definition.qualified_identifier == "test"
     assert definition.version_identifier == "test"
     assert definition.qualified_version_identifier == "test"
-    assert definition.version == "unknown"
+    assert definition.version == "-"
     assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.requirements == []
@@ -1363,7 +1363,7 @@ def test_definition_with_requirements():
     assert definition.qualified_identifier == "test"
     assert definition.version_identifier == "test"
     assert definition.qualified_version_identifier == "test"
-    assert definition.version == "unknown"
+    assert definition.version == "-"
     assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
@@ -1405,7 +1405,7 @@ def test_definition_with_conditions():
 
     definition = wiz.definition.Definition(data)
     assert definition.identifier == "test"
-    assert definition.version == "unknown"
+    assert definition.version == "-"
     assert definition.description == "This is a definition"
     assert definition.environ == {}
     assert definition.command == {}
@@ -1448,7 +1448,7 @@ def test_definition_with_command():
     assert definition.qualified_identifier == "test"
     assert definition.version_identifier == "test"
     assert definition.qualified_version_identifier == "test"
-    assert definition.version == "unknown"
+    assert definition.version == "-"
     assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
@@ -1488,7 +1488,7 @@ def test_definition_with_system():
     assert definition.qualified_identifier == "test"
     assert definition.version_identifier == "test"
     assert definition.qualified_version_identifier == "test"
-    assert definition.version == "unknown"
+    assert definition.version == "-"
     assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}
@@ -1553,7 +1553,7 @@ def test_definition_with_variant():
     assert definition.qualified_identifier == "test"
     assert definition.version_identifier == "test"
     assert definition.qualified_version_identifier == "test"
-    assert definition.version == "unknown"
+    assert definition.version == "-"
     assert definition.namespace is None
     assert definition.description == "This is a definition"
     assert definition.environ == {}

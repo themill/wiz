@@ -1,12 +1,12 @@
 # :coding: utf-8
 
-import wiz.logging
 import wiz.definition
-import wiz.mapping
-import wiz.symbol
-import wiz.history
 import wiz.environ
 import wiz.exception
+import wiz.history
+import wiz.logging
+import wiz.mapping
+import wiz.symbol
 
 
 def extract(requirement, definition_mapping, namespace_counter=None):
@@ -77,6 +77,7 @@ def extract_context(packages, environ_mapping=None):
     be augmented.
 
     """
+
     def _combine(combined_mapping, package):
         """Return intermediate context combining both extracted results."""
         identifier = package.identifier
