@@ -89,7 +89,7 @@ class BuildExtended(build_py):
 
 
 setup(
-    name="wiz",
+    name="wiz-env",
     version=VERSION,
     description="Environment management framework.",
     long_description=open(README_PATH).read(),
