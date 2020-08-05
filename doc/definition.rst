@@ -24,7 +24,7 @@ Here is an example of package definition:
             "app-py": "AppPython"
         },
         "environ": {
-            "LICENSE": "42000@licence.themill.com",
+            "LICENSE": "port@licence-server.com",
             "PATH": "/path/to/application:${PATH}",
             "PYTHONPATH": "/path/to/application/python:${PYTHONPATH}",
             "LD_LIBRARY_PATH": "/path/to/application:${LD_LIBRARY_PATH}"
@@ -200,7 +200,7 @@ can override any precedent value.
 
     {
         "environ": {
-            "LICENSE": "42000@licence.themill.com",
+            "LICENSE": "port@licence-server.com",
             "PATH": "/path/to/application:${PATH}",
             "PYTHONPATH": "/path/to/application/python:${PYTHONPATH}",
             "LD_LIBRARY_PATH": "/path/to/application:${LD_LIBRARY_PATH}"
