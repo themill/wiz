@@ -2,6 +2,10 @@
 Wiz
 ###
 
+.. image:: https://readthedocs.org/projects/wiz/badge/?version=latest
+    :target: https://wiz.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
 Wiz is an environment management framework which consists of a Python API and a
 command line tool. It can be used to run a command within a deterministic
 environment resolved from one or several package requests.
@@ -32,7 +36,7 @@ Documentation
 *************
 
 Full documentation, including installation and setup guides, can be found at
-https://wiz.readthedocs.io/en/stable/
+https://wiz.readthedocs.io/en/latest/
 
 *********
 Copyright
