@@ -15,7 +15,6 @@ Wiz
     registry
     definition
     guidelines
-    tools
     command_line
     environment_variables
     api_reference/index
