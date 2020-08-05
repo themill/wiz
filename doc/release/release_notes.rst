@@ -6,6 +6,11 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: changed
+
+        Project name has been changed to ``wiz-env`` to guarantee a unique name
+        on `Pypi <https://pypi.org/>`_.
+
     .. change:: new
 
         Added :mod:`wiz.config` to handle :term:`TOML` configuration and
@@ -1494,7 +1499,7 @@ Release Notes
         Added :ref:`tutorial` section to documentation, including a guide for
         project registries, as well as some introduction into
         :ref:`registry` and :ref:`definition`.
-        Additional :ref:`guidelines` and :ref:`tools` sections have been added to
+        Additional :ref:`guidelines` and "tools" sections have been added to
         provide help for developers.
 
 .. release:: 0.7.1

@@ -7,6 +7,54 @@ Migration notes
 This section will show more detailed information when relevant for switching to
 a new version, such as when upgrading involves backwards incompatibilities.
 
+.. _release/migration/3.0.0:
+
+Migrate to 3.0.0
+================
+
+.. rubric:: project name
+
+Project name has been changed to ``wiz-env`` to guarantee a unique name on
+`Pypi <https://pypi.org/>`_.
+
+.. rubric:: configuration and plugins
+
+Wiz is now customizable via :ref:`configurations <configuration>` and
+:ref:`plugins <plugins>`.
+
+The user can define a custom configuration in :file:`~/.wiz/config.toml` as well
+as custom plugins in :file:`~/.wiz/plugins`, or overwrite these default during
+the installation process.
+
+.. seealso:: :ref:`installing/source/options`
+
+.. rubric:: registries
+
+Registry paths are no longer hard-coded in the package.
+:func:`wiz.registry.get_defaults` now returns the paths defined in the
+:ref:`configuration mapping <configuration>`.
+
+.. rubric:: installation
+
+The logic to install package definition is now defined by :ref:`plugins
+<plugins>`. A default plugin is provided to install package definition to a
+registry path (:ref:`installer.py <plugins/default/installer>`).
+
+The concept of a VCS Registry has been removed and should be taken care of by
+:ref:`plugins <plugins/new>`.
+
+These functions have been removed:
+
+* :func:`wiz.install_definitions`
+* :func:`wiz.registry.install_to_vcs`
+
+.. rubric:: initial environment
+
+The initial environment is no longer hard-coded in the package but instead
+defined by :ref:`configurations <configuration>` and :ref:`plugins
+<plugins/default/environ>`. :func:`wiz.environ.initiate` returns the mapping
+accordingly.
+
 .. _release/migration/2.0.0:
 
 Migrate to 2.0.0
