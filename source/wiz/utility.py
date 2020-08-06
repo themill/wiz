@@ -402,7 +402,7 @@ def encode(element):
     Raises :exc:`TypeError` if *element* is not JSON serializable.
 
     """
-    return base64.b64encode(zlib.compress(json.dumps(element)))
+    return base64.b64encode(zlib.compress(json.dumps(element).encode("utf-8")))
 
 
 def decode(element):
