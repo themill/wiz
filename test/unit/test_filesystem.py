@@ -133,7 +133,6 @@ def test_ensure_directory(temporary_directory, temporary_file):
         wiz.filesystem.ensure_directory("/incorrect")
 
 
-
 def test_sanitise_value():
     """Sanitize value."""
     value = "/path/to/a-file/with: A F@#%ing Name!!!"
