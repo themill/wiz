@@ -37,9 +37,7 @@ def test_execute(mocked_subprocess_call, spied_environ_substitute, logger):
     logger.debug.assert_not_called()
 
 
-def test_execute_fail(
-    mocker, mocked_subprocess_call, spied_environ_substitute, logger
-):
+def test_execute_fail(mocked_subprocess_call, spied_environ_substitute, logger):
     """Fail to execute command within environment."""
     exception = OSError("Oh Shit!")
     mocked_subprocess_call.side_effect = exception
