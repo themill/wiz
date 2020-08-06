@@ -43,10 +43,11 @@ DOC_REQUIRES = [
 TEST_REQUIRES = [
     "mock >= 2, < 3",
     "pytest-runner >= 2.7, < 3",
-    "pytest >= 3.2.2, < 4",
-    "pytest-mock >= 0.11, < 1",
-    "pytest-xdist >= 1.1, < 2",
+    "pytest >= 4, < 5",
+    "pytest-mock >= 1.2, < 2",
+    "pytest-xdist >= 1.18, < 2",
     "pytest-cov >= 2, < 3",
+    "six >= 1.15.0, < 2"
 ]
 
 

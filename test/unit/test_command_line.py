@@ -7,6 +7,7 @@ import tempfile
 import click
 import pytest
 from click.testing import CliRunner
+from six.moves import reload_module
 
 import wiz.command_line
 import wiz.config
@@ -28,7 +29,7 @@ def reset_configuration(mocker):
 
     # Reset configuration.
     wiz.command_line._CONFIG = wiz.config.fetch(refresh=True)
-    reload(wiz.command_line)
+    reload_module(wiz.command_line)
 
 
 @pytest.fixture()
