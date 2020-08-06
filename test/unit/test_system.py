@@ -64,7 +64,7 @@ def mocked_query_windows(mocker):
     )
 
 
-@pytest.mark.parametrize("platform, expected", [
+@pytest.mark.parametrize("_platform, expected", [
     ("Linux", "LINUX_SYSTEM_MAPPING"),
     ("Darwin", "MAC_SYSTEM_MAPPING"),
     ("Windows", "WINDOWS_SYSTEM_MAPPING")
@@ -76,9 +76,9 @@ def mocked_query_windows(mocker):
 @pytest.mark.usefixtures("mocked_query_linux")
 @pytest.mark.usefixtures("mocked_query_mac")
 @pytest.mark.usefixtures("mocked_query_windows")
-def test_query(mocked_platform_system, platform, expected):
+def test_query(mocked_platform_system, _platform, expected):
     """Query system mapping."""
-    mocked_platform_system.return_value = platform
+    mocked_platform_system.return_value = _platform
     assert wiz.system.query() == expected
 
 
