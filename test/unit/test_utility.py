@@ -35,7 +35,7 @@ def mocked_extract_version_ranges(mocker):
 def test_encode_and_decode(element):
     """Encode *element* and immediately decode it."""
     encoded = wiz.utility.encode(element)
-    assert isinstance(encoded, basestring)
+    assert isinstance(encoded, bytes)
     assert element == wiz.utility.decode(encoded)
 
 
