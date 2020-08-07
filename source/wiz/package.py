@@ -1,5 +1,7 @@
 # :coding: utf-8
 
+import functools
+
 import wiz.definition
 import wiz.environ
 import wiz.exception
@@ -91,7 +93,9 @@ def extract_context(packages, environ_mapping=None):
         )
         return dict(command=_command, environ=_environ)
 
-    mapping = reduce(_combine, packages, dict(environ=environ_mapping or {}))
+    mapping = functools.reduce(
+        _combine, packages, dict(environ=environ_mapping or {})
+    )
     mapping["environ"] = wiz.environ.sanitise(mapping.get("environ", {}))
 
     wiz.history.record_action(
@@ -161,7 +165,7 @@ def combine_environ_mapping(package_identifier, mapping1, mapping2):
 
     mapping = {}
 
-    for key in set(mapping1.keys() + mapping2.keys()):
+    for key in set(list(mapping1.keys()) + list(mapping2.keys())):
         value1 = mapping1.get(key)
         value2 = mapping2.get(key)
 
@@ -207,7 +211,7 @@ def combine_command_mapping(package_identifier, mapping1, mapping2):
 
     mapping = {}
 
-    for command in set(mapping1.keys() + mapping2.keys()):
+    for command in set(list(mapping1.keys()) + list(mapping2.keys())):
         value1 = mapping1.get(command)
         value2 = mapping2.get(command)
 
@@ -370,6 +374,6 @@ class Package(wiz.mapping.Mapping):
             return mapping
 
         if "install-location" in self.keys():
-            _environ = reduce(_replace_location, _environ.items(), {})
+            _environ = functools.reduce(_replace_location, _environ.items(), {})
 
         return _environ
