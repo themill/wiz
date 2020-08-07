@@ -144,7 +144,10 @@ def extract_version_ranges(requirement):
     """
     version_ranges = [(None, None)]
 
-    for specifier in requirement.specifier:
+    # Sort specifiers for deterministic results.
+    for specifier in sorted(
+        requirement.specifier, key=lambda s: (s.version, s.operator)
+    ):
         # Extract version number.
         _version = wiz.utility.get_version(
             re.sub(r"\.\*$", "", specifier.version)
@@ -209,7 +212,7 @@ def _update_maximum_version(version, ranges):
 
     Example::
 
-        >>> ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
+        >>> ranges = [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))]
         >>> _update_maximum_version((1, 2, 3), ranges)
         >>> print(ranges)
         [((1, 2, 3), (1, 2, 3))]
@@ -219,14 +222,16 @@ def _update_maximum_version(version, ranges):
 
     if ranges[0][0] is not None and version < ranges[0][0]:
         raise wiz.exception.InvalidRequirement(
-            "The requirement is incorrect as maximum value '{}' cannot be set"
+            "The requirement is incorrect as maximum value '{}' cannot be set "
             "when minimum value is '{}'.".format(
                 ".".join(str(v) for v in version),
-                ".".join(str(v) for v in ranges[-1][1])
+                ".".join(str(v) for v in ranges[0][0])
             )
         )
 
     for start_version, end_version in ranges:
+        if start_version and start_version > version:
+            break
         if not end_version or end_version >= version:
             _ranges.append((start_version, version))
             break
@@ -246,7 +251,7 @@ def _update_minimum_version(version, ranges):
 
     Example::
 
-        >>> ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
+        >>> ranges = [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))]
         >>> _update_minimum_version((1, 3, 3), ranges)
         >>> print(ranges)
         [((1, 3, 3), (1, 4))]
@@ -256,7 +261,7 @@ def _update_minimum_version(version, ranges):
 
     if ranges[-1][1] is not None and version > ranges[-1][1]:
         raise wiz.exception.InvalidRequirement(
-            "The requirement is incorrect as minimum value '{}' cannot be set"
+            "The requirement is incorrect as minimum value '{}' cannot be set "
             "when maximum value is '{}'.".format(
                 ".".join(str(v) for v in version),
                 ".".join(str(v) for v in ranges[-1][1])
@@ -264,6 +269,8 @@ def _update_minimum_version(version, ranges):
         )
 
     for start_version, end_version in reversed(ranges):
+        if end_version and end_version < version:
+            break
         if not start_version or start_version <= version:
             _ranges = [(version, end_version)] + _ranges
             break
@@ -274,7 +281,7 @@ def _update_minimum_version(version, ranges):
 
 
 def _update_version_ranges(excluded, ranges):
-    """Update version *ranges* from excluded *version_range*.
+    """Update version *ranges* from *excluded* version range.
 
     *excluded* should be a tuple containing two ordered version release
     tuples (e.g. ((1,2,3), (1,3,0))). These two versions are included in the
@@ -294,8 +301,8 @@ def _update_version_ranges(excluded, ranges):
     _ranges = []
 
     for r in ranges:
-        out_before = r[0] is not None and r[0] > excluded[1]
-        out_after = r[1] is not None and r[1] < excluded[0]
+        out_before = r[0] is not None and r[0] >= excluded[1]
+        out_after = r[1] is not None and r[1] <= excluded[0]
 
         # Exclusion zone is outside of range.
         if out_before or out_after:
