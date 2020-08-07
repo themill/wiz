@@ -2006,7 +2006,7 @@ def test_graph_create_node_from_package():
     graph._create_node_from_package(package)
 
     assert graph._identifiers_per_definition == {"defA": {"A==0.1.0"}}
-    assert graph._node_mapping.keys() == ["A==0.1.0"]
+    assert list(graph._node_mapping.keys()) == ["A==0.1.0"]
     assert isinstance(graph._node_mapping["A==0.1.0"], wiz.graph.Node)
 
 

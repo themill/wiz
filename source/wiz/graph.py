@@ -1361,11 +1361,12 @@ def extract_ordered_packages(graph, distance_mapping):
 
     packages = []
 
-    for node in sorted(
-        graph.nodes(),
-        key=lambda n: distance_mapping[n.identifier].items(),
-        reverse=True
-    ):
+    def _sorting_keywords(_node):
+        """Return tuple with distance and parent to sort nodes."""
+        mapping = distance_mapping[_node.identifier]
+        return mapping.get("distance") or 0, mapping.get("parent"), 0
+
+    for node in sorted(graph.nodes(), key=_sorting_keywords, reverse=True):
         # Skip node if unreachable.
         if distance_mapping[node.identifier].get("distance") is None:
             continue
