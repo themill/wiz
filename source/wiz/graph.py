@@ -1481,11 +1481,11 @@ class Graph(object):
 
     def nodes(self):
         """Return all nodes in the graph."""
-        return self._node_mapping.values()
+        return list(self._node_mapping.values())
 
     def identifiers(self):
         """Return all node identifiers in the graph."""
-        return self._node_mapping.keys()
+        return list(self._node_mapping.keys())
 
     def exists(self, identifier):
         """Indicate whether the node *identifier* is in the graph."""
