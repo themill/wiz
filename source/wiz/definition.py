@@ -204,11 +204,8 @@ def query(requirement, definition_mapping, namespace_counter=None):
 
     definition = None
 
-    # Sort the definition versions so that the highest one is first.
-    versions = sorted(
-        map(lambda d: d.version, definition_mapping[identifier].values()),
-        reverse=True
-    )
+    # Extract all versions from definitions.
+    versions = [d.version for d in definition_mapping[identifier].values()]
 
     if wiz.symbol.UNSET_VALUE in versions and len(versions) > 1:
         raise wiz.exception.RequestNotFound(
@@ -217,8 +214,12 @@ def query(requirement, definition_mapping, namespace_counter=None):
             "been fetched.".format(identifier)
         )
 
-    # Get the best matching definition.
-    for version in versions:
+    # Sort the definition versions so that the highest one is first.
+    versions = sorted(versions, reverse=True)
+
+    # Get the best matching definition by sorting versions so that the highest
+    # one is first.
+    for version in sorted(versions, reverse=True):
         _definition = definition_mapping[identifier][str(version)]
 
         # Skip if the variant identifier required is not found in definition.
@@ -421,7 +422,7 @@ def discover(paths, system_mapping=None, max_depth=None):
                 ):
                     logger.warning(
                         "Error occurred trying to load definition from {!r}"
-                            .format(_path),
+                        .format(_path),
                     )
                     logger.debug_traceback()
                     continue
