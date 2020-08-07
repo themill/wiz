@@ -2,6 +2,8 @@
 
 import platform as _platform
 
+import distro
+
 import wiz.exception
 import wiz.history
 import wiz.symbol
@@ -82,7 +84,7 @@ def query(platform=None, architecture=None, os_name=None, os_version=None):
 
 def query_linux():
     """Return Linux system mapping."""
-    distribution, version, _ = _platform.linux_distribution(
+    distribution, version, _ = distro.linux_distribution(
         full_distribution_name=False
     )
 

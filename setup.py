@@ -26,6 +26,7 @@ with open(
 INSTALL_REQUIRES = [
     "click >= 7, < 8",
     "colorama >= 0.3.9, < 1",
+    "distro >= 1.5.0, < 2",
     "jsonschema >= 2.5, < 3",
     "packaging >= 17.1, < 18",
     "pystache >= 0.5.4, < 1",
