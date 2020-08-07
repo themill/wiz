@@ -91,8 +91,8 @@ def is_overlapping(requirement1, requirement2):
     r1 = extract_version_ranges(requirement1)
     r2 = extract_version_ranges(requirement2)
     return (
-        (r2[-1][1] is None or r2[-1][1] >= r1[0][0]) and
-        (r1[-1][1] is None or r1[-1][1] >= r2[0][0])
+        (r2[-1][1] is None or r1[0][0] is None or r2[-1][1] >= r1[0][0]) and
+        (r1[-1][1] is None or r2[0][0] is None or r1[-1][1] >= r2[0][0])
     )
 
 
