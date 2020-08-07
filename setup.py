@@ -31,6 +31,7 @@ INSTALL_REQUIRES = [
     "packaging >= 17.1, < 18",
     "pystache >= 0.5.4, < 1",
     "sawmill >= 0.2.1, < 1",
+    "six >= 1.15.0, < 2",
     "toml >= 0.10.1, < 1"
 ]
 
@@ -47,8 +48,7 @@ TEST_REQUIRES = [
     "pytest >= 4, < 5",
     "pytest-mock >= 0.11, < 1",
     "pytest-xdist >= 1.18, < 2",
-    "pytest-cov >= 2, < 3",
-    "six >= 1.15.0, < 2"
+    "pytest-cov >= 2, < 3"
 ]
 
 

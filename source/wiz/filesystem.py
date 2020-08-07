@@ -9,12 +9,9 @@ import gzip
 import pwd
 import getpass
 
-import wiz.exception
+import six
 
-try:
-    to_unicode = unicode
-except NameError:
-    to_unicode = str
+import wiz.exception
 
 
 def get_name():
@@ -54,7 +51,7 @@ def export(path, content, compressed=False, overwrite=False):
 
     else:
         with io.open(path, "w", encoding="utf8") as outfile:
-            outfile.write(to_unicode(content))
+            outfile.write(six.text_type(content))
 
 
 def is_accessible(folder_path):
@@ -89,15 +86,12 @@ def sanitise_value(value, substitution_character="_", case_sensitive=True):
     If not *case_sensitive*, then also lowercase value.
 
     """
-    if isinstance(value, str):
-        value = value.decode("utf-8")
-
-    value = unicodedata.normalize("NFKD", value)
-    value = value.encode("ascii", "ignore")
+    value = unicodedata.normalize("NFKD", six.u(value))
+    value = value.encode("ascii", "ignore").decode("ascii")
     value = re.sub(r"[^\w._\-\\/:%]", substitution_character, value)
     value = value.strip()
 
     if not case_sensitive:
         value = value.lower()
 
-    return unicode(value)
+    return six.text_type(value)
