@@ -1,6 +1,5 @@
 # :coding: utf-8
 
-import sys
 import traceback
 
 import packaging.requirements
@@ -26,9 +25,7 @@ class WizError(Exception):
             details = {}
 
         self.details = {}
-        for key, value in details.iteritems():
-            if isinstance(value, unicode):
-                value = value.encode(sys.getfilesystemencoding())
+        for key, value in details.items():
             self.details[key] = value
 
         self.traceback = traceback.format_exc()
