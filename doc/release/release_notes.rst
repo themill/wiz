@@ -19,6 +19,13 @@ Release Notes
         Previously, conflicting nodes wouldn't be sorted properly when new
         packages are added to the graph during the conflict resolution process.
 
+    .. change:: fixed
+
+        Fixed :func:`wiz.utility.extract_version_ranges`.
+
+        Previously, it would sometimes fail to update minimal and maximum
+        versions of the range in particular conditions.
+
 .. release:: 3.0.0
     :date: 2020-08-05
 
