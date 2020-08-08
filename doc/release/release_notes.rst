@@ -4,6 +4,21 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+
+        Added compatibility with python 3.6, 3.7 and 3.8.
+
+    .. change:: fixed
+
+        Fixed :class:`wiz.graph.Resolver` to ensure that conflicted nodes are
+        always sorted in ascending order of distance from the :attr:`root
+        <Graph.ROOT>` level of the graph.
+
+        Previously, conflicting nodes wouldn't be sorted properly when new
+        packages are added to the graph during the conflict resolution process.
+
 .. release:: 3.0.0
     :date: 2020-08-05
 
