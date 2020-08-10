@@ -8,8 +8,14 @@ Release Notes
 
     .. change:: changed
 
-        Updated :mod:`command_line`, :mod:`filesystem`, :mod:`package`, :mod:`system` 
-        and :mod:`utility` to add compatibility with python 3.6, 3.7 and 3.8.
+        Updated the following modules to add compatibility with python 3.6,
+        3.7 and 3.8:
+
+        * :mod:`wiz.command_line`
+        * :mod:`wiz.filesystem`
+        * :mod:`wiz.package`
+        * :mod:`wiz.system`
+        * :mod:`wiz.utility`
 
     .. change:: fixed
 
