@@ -1,12 +1,18 @@
 # :coding: utf-8
 
 import copy
-import itertools
 import os
 import types
 from collections import OrderedDict, Counter
+try:
+    # Python 3
+    from itertools import zip_longest
+except ImportError:
+    # Python 2
+    from itertools import izip_longest as zip_longest
 
 import pytest
+import six
 
 import wiz.definition
 import wiz.exception
@@ -1561,7 +1567,7 @@ def test_definition_with_variant():
     assert definition.command == {}
     assert definition.system == {}
 
-    for variant_data, variant in itertools.izip_longest(
+    for variant_data, variant in zip_longest(
         data["variants"], definition.variants
     ):
         assert variant.identifier == variant_data["identifier"]
@@ -1606,7 +1612,9 @@ def test_definition_with_error():
         wiz.definition.Definition(data)
 
     assert (
-        "IncorrectDefinition: u'identifier' is a required property (/)"
+        "IncorrectDefinition: {!r} is a required property (/)".format(
+            six.text_type("identifier")
+        )
     ) in str(error)
 
 

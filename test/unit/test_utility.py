@@ -35,7 +35,7 @@ def mocked_extract_version_ranges(mocker):
 def test_encode_and_decode(element):
     """Encode *element* and immediately decode it."""
     encoded = wiz.utility.encode(element)
-    assert isinstance(encoded, basestring)
+    assert isinstance(encoded, bytes)
     assert element == wiz.utility.decode(encoded)
 
 
@@ -99,6 +99,25 @@ def test_is_overlapping(
 
     mocked_extract_version_ranges.side_effect = [ranges1, ranges2]
     assert wiz.utility.is_overlapping(req1, req2) == expected
+
+
+def test_is_overlapping_fail(mocker):
+    """Fail to compare requirement with different name."""
+    req1 = mocker.Mock()
+    req2 = mocker.Mock()
+
+    # Hack due to the impossibility to directly mock an attribute called "name"
+    # See: https://bradmontgomery.net/blog/how-world-do-you-mock-name-attribute
+    type(req1).name = mocker.PropertyMock(return_value="foo")
+    type(req2).name = mocker.PropertyMock(return_value="bar")
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        wiz.utility.is_overlapping(req1, req2)
+
+    assert (
+        "Impossible to compare requirements with different names "
+        "['foo' and 'bar']."
+    ) in str(error)
 
 
 @pytest.mark.parametrize("requirement, expected", [
@@ -191,13 +210,18 @@ def test_extract_version_ranges(requirement, expected):
     ),
     (
         Requirement("foo >=9, <8"),
-        "The requirement is incorrect as minimum value '9' cannot be set"
+        "The requirement is incorrect as minimum value '9' cannot be set "
+        "when maximum value is '7.9999'."
+    ),
+    (
+        Requirement("foo >=8, <8"),
+        "The requirement is incorrect as minimum value '8' cannot be set "
         "when maximum value is '7.9999'."
     ),
     (
         Requirement("foo ==1, ==2"),
-        "The requirement is incorrect as maximum value '1' cannot be set"
-        "when minimum value is '2'."
+        "The requirement is incorrect as minimum value '2' cannot be set "
+        "when maximum value is '1'."
     ),
     (
         Requirement("foo ==1, !=1.*"),
@@ -208,6 +232,7 @@ def test_extract_version_ranges(requirement, expected):
     "incorrect-operator",
     "incorrect-comparison-1",
     "incorrect-comparison-2",
+    "incorrect-comparison-3",
     "incorrect-exclusion"
 ])
 def test_extract_version_ranges_error(requirement, expected):
@@ -216,6 +241,180 @@ def test_extract_version_ranges_error(requirement, expected):
         wiz.utility.extract_version_ranges(requirement)
 
     assert expected in str(error)
+
+
+@pytest.mark.parametrize("version, ranges, expected", [
+    (
+        (1,),
+        [(None, None)],
+        [((1,), None)]
+    ),
+    (
+        (1, 3, 3),
+        [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))],
+        [((1, 3, 3), (1, 4))]
+    ),
+    (
+        (1, 2, 9),
+        [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))],
+        [((1, 2, 9), (1, 3, 0)), ((1, 3, 3), (1, 4))],
+    ),
+    (
+        (1,),
+        [(None, (0, 9999)), ((2,), None)],
+        [((2,), None)]
+    ),
+    (
+        (1,),
+        [(None, (1, 1, 0))],
+        [((1,), (1, 1, 0))]
+    ),
+    (
+        (1, 0, 0),
+        [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))],
+        [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))],
+    ),
+], ids=[
+    "minimal",
+    "simple-01",
+    "simple-02",
+    "simple-03",
+    "simple-04",
+    "unchanged",
+])
+def test_update_minimum_version(version, ranges, expected):
+    """Update range with minimum value."""
+    wiz.utility._update_minimum_version(version, ranges)
+    assert ranges == expected
+
+
+def test_update_minimum_version_fail():
+    """Fail to update range with minimum value."""
+    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+        wiz.utility._update_minimum_version((1, 2, 3), [(None, (1,))])
+
+    assert (
+        "The requirement is incorrect as minimum value '1.2.3' cannot be set "
+        "when maximum value is '1'."
+    ) in str(error)
+
+
+@pytest.mark.parametrize("version, ranges, expected", [
+    (
+        (1,),
+        [(None, None)],
+        [(None, (1,))]
+    ),
+    (
+        (1, 3, 3),
+        [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))],
+        [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 3, 3))]
+    ),
+    (
+        (1, 2, 9),
+        [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))],
+        [((1, 2, 3), (1, 2, 9))],
+    ),
+    (
+        (1,),
+        [(None, (0, 9999)), ((2,), None)],
+        [(None, (0, 9999))]
+    ),
+    (
+        (1,),
+        [((0, 1, 0), None)],
+        [((0, 1, 0), (1,))]
+    ),
+    (
+        (2, 0, 0),
+        [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))],
+        [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))],
+    ),
+], ids=[
+    "minimal",
+    "simple-01",
+    "simple-02",
+    "simple-03",
+    "simple-04",
+    "unchanged",
+])
+def test_update_maximum_version(version, ranges, expected):
+    """Update range with minimum value."""
+    wiz.utility._update_maximum_version(version, ranges)
+    assert ranges == expected
+
+
+def test_update_maximum_version_fail():
+    """Fail to update range with maximum value."""
+    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+        wiz.utility._update_maximum_version((1, 2, 3), [((2,), None)])
+
+    assert (
+        "The requirement is incorrect as maximum value '1.2.3' cannot be set "
+        "when minimum value is '2'."
+    ) in str(error)
+
+
+@pytest.mark.parametrize("excluded, ranges, expected", [
+    (
+        ((1,), (2,)),
+        [(None, None)],
+        [(None, (1,)), ((2,), None)]
+    ),
+    (
+        ((1,), (2,)),
+        [((0,), (3,))],
+        [((0,), (1,)), ((2,), (3,))]
+    ),
+    (
+        ((1,), (2,)),
+        [((1,), (2,))],
+        [((1,), (1,)), ((2,), (2,))],
+    ),
+    (
+        ((1,), (2,)),
+        [(None, (1, 2, 3))],
+        [(None, (1,))]
+    ),
+    (
+        ((1,), (2,)),
+        [((1, 2, 3), None)],
+        [((2,), None)]
+    ),
+    (
+        ((1,), (2,)),
+        [((2,), (3,))],
+        [((2,), (3,))],
+    ),
+    (
+        ((4,), (5,)),
+        [((2,), (3,))],
+        [((2,), (3,))],
+    ),
+], ids=[
+    "exclude-middle-range-01",
+    "exclude-middle-range-02",
+    "exclude-middle-range-03",
+    "exclude-end-range",
+    "exclude-start-range",
+    "out-of-range-01",
+    "out-of-range-02",
+])
+def test_update_version_ranges(excluded, ranges, expected):
+    """Update version ranges from excluded version range."""
+    wiz.utility._update_version_ranges(excluded, ranges)
+    assert ranges == expected
+
+
+def test_update_version_ranges_fail():
+    """Fail to update version ranges from excluded version range."""
+    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+        wiz.utility._update_version_ranges(((0,), (3,)), [((1,), (2,))])
+
+    assert (
+        "The requirement is incorrect as excluded version range '0-3' "
+        "makes all other versions unreachable."
+    ) in str(error)
 
 
 @pytest.mark.parametrize("definition, expected", [

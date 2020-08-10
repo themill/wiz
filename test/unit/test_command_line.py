@@ -7,6 +7,7 @@ import tempfile
 import click
 import pytest
 from click.testing import CliRunner
+from six.moves import reload_module
 
 import wiz.command_line
 import wiz.config
@@ -28,7 +29,7 @@ def reset_configuration(mocker):
 
     # Reset configuration.
     wiz.command_line._CONFIG = wiz.config.fetch(refresh=True)
-    reload(wiz.command_line)
+    reload_module(wiz.command_line)
 
 
 @pytest.fixture()
@@ -1449,7 +1450,8 @@ def test_use_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
         )
 
     else:
@@ -1756,6 +1758,10 @@ def test_use_initial_environment(
         environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"},
     )
 
+    mocked_spawn_execute.assert_called_once_with(
+        "__RESOLVED_COMMAND__", {"KEY1": "value1", "KEY2": "value2"}
+    )
+
 
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
@@ -1791,7 +1797,8 @@ def test_run_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
         )
 
     else:
@@ -2062,6 +2069,10 @@ def test_run_initial_environment(
         environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"},
     )
 
+    mocked_spawn_execute.assert_called_once_with(
+        "__RESOLVED_COMMAND__", {"KEY1": "value1", "KEY2": "value2"}
+    )
+
 
 @pytest.mark.parametrize("options, recorded", [
     ([], False),
@@ -2257,8 +2268,8 @@ def test_freeze_as_script(
     assert not result.exception
     assert result.output == (
         "Available aliases:\n"
-        "- foo --debug\n"
         "- foo\n"
+        "- foo --debug\n"
     )
 
     mocked_fetch_definition_mapping.assert_called_once_with(
@@ -2745,7 +2756,8 @@ def test_edit_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__", compressed=True
+            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            compressed=True
         )
 
     else:

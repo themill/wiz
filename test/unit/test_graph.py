@@ -3,8 +3,13 @@
 import pytest
 import mock
 import types
-import itertools
 import re
+try:
+    # Python 3
+    from itertools import zip_longest
+except ImportError:
+    # Python 2
+    from itertools import izip_longest as zip_longest
 
 from wiz.utility import Requirement, Version
 import wiz.graph
@@ -313,7 +318,7 @@ def test_generate_variant_combinations(
     mocked_graph.node = lambda _id: mocker.Mock(
         identifier=_id,
         package=mocker.Mock(
-            variant_name=re.search("(?<=\[).+(?=\])", _id).group(0)
+            variant_name=re.search(r"(?<=\[).+(?=\])", _id).group(0)
         )
     )
 
@@ -321,7 +326,7 @@ def test_generate_variant_combinations(
         mocked_graph, variant_groups
     )
     assert isinstance(results, types.GeneratorType) is True
-    for combination, _expected in itertools.izip_longest(results, expected):
+    for combination, _expected in zip_longest(results, expected):
         assert combination[0] == mocked_graph
         assert combination[1] == _expected
 
@@ -2001,7 +2006,7 @@ def test_graph_create_node_from_package():
     graph._create_node_from_package(package)
 
     assert graph._identifiers_per_definition == {"defA": {"A==0.1.0"}}
-    assert graph._node_mapping.keys() == ["A==0.1.0"]
+    assert list(graph._node_mapping.keys()) == ["A==0.1.0"]
     assert isinstance(graph._node_mapping["A==0.1.0"], wiz.graph.Node)
 
 

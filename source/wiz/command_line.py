@@ -4,12 +4,18 @@ from __future__ import print_function
 
 import collections
 import datetime
-import itertools
 import json
 import os
 import time
+try:
+    # Python 3
+    from itertools import zip_longest
+except ImportError:
+    # Python 2
+    from itertools import izip_longest as zip_longest
 
 import click
+import six
 
 import wiz.config
 import wiz.definition
@@ -1395,7 +1401,10 @@ def display_definition(definition):
 
         if isinstance(item, collections.OrderedDict) or isinstance(item, dict):
             for key, value in item.items():
-                if isinstance(value, basestring) or isinstance(value, int):
+                if (
+                    isinstance(value, six.string_types) or
+                    isinstance(value, int)
+                ):
                     click.echo("{}{}: {}".format(indent, key, value))
                 else:
                     click.echo("{}{}:".format(indent, key))
@@ -1748,7 +1757,7 @@ def _display_environ_from_context(context):
     success = False
 
     for variable in sorted(environ_mapping.keys()):
-        for key, _value in itertools.izip_longest(
+        for key, _value in zip_longest(
             [variable], _compute_value(variable, environ_mapping[variable])
         ):
             _create_row(key or "", columns[0])
@@ -1827,7 +1836,7 @@ def _query_command(aliases=None):
     """Query the commands to run within the exported wrapper."""
     if aliases is not None and len(aliases) > 0:
         click.echo("Available aliases:")
-        for _command in aliases:
+        for _command in sorted(aliases):
             click.echo("- {}".format(_command))
 
     return click.prompt(
@@ -1875,7 +1884,7 @@ def _display_table(columns):
     )
 
     # Print elements.
-    for row in itertools.izip_longest(*[column["rows"] for column in columns]):
+    for row in zip_longest(*[column["rows"] for column in columns]):
         click.echo(
             "   ".join([
                 row[i] + " " * (columns[i]["size"] - len(row[i]))

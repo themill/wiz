@@ -210,7 +210,7 @@ def resolve_context(
             definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, []) + _requests
         )
 
-    requirements = map(wiz.utility.get_requirement, _requests)
+    requirements = [wiz.utility.get_requirement(r) for r in _requests]
 
     registries = definition_mapping["registries"]
     resolver = wiz.graph.Resolver(

@@ -108,6 +108,15 @@ class Resolver(object):
         # used as it is a FIFO queue.
         self._conflicts = collections.deque()
 
+        # Keep track of whether one or several packages are added to the graph
+        # during conflict resolution loop.
+
+        # Keep track of whether the conflict list needs to be sorted according
+        # to the latest distance mapping computed. It should always be true for
+        # the first conflict resolution loop, and be updated depending on
+        # whether the conflict list is updated.
+        self._conflicts_needs_sorting = True
+
     @property
     def definition_mapping(self):
         """Return mapping of all available definitions."""
@@ -561,7 +570,7 @@ class Resolver(object):
             # Sort conflicting nodes by distances.
             distance_mapping, updated = self._fetch_distance_mapping(graph)
 
-            if updated:
+            if updated or self._conflicts_needs_sorting:
                 conflicts = updated_by_distance(conflicts, distance_mapping)
 
             # Pick up the furthest conflicting node identifier so that nearest
@@ -608,6 +617,9 @@ class Resolver(object):
                 updated = self._add_packages_to_graph(
                     graph, packages, requirement, conflicting_nodes
                 )
+
+                # Indicate whether the conflict list order must be updated.
+                self._conflicts_needs_sorting = updated
 
                 # Relink node parents to package identifiers. It needs to be
                 # done before possible combination extraction otherwise newly
@@ -1054,12 +1066,13 @@ def updated_by_distance(identifiers, distance_mapping):
     graph with its corresponding parent node identifier.
 
     """
-    _identifiers = filter(
-        lambda _id: distance_mapping.get(_id, {}).get("distance") is not None,
-        identifiers
+    identifiers = (
+        _id for _id in identifiers
+        if distance_mapping.get(_id, {}).get("distance") is not None
     )
+
     return sorted(
-        _identifiers,
+        identifiers,
         key=lambda _id: (-distance_mapping[_id]["distance"], _id),
         reverse=True
     )
@@ -1361,11 +1374,12 @@ def extract_ordered_packages(graph, distance_mapping):
 
     packages = []
 
-    for node in sorted(
-        graph.nodes(),
-        key=lambda n: distance_mapping[n.identifier].items(),
-        reverse=True
-    ):
+    def _sorting_keywords(_node):
+        """Return tuple with distance and parent to sort nodes."""
+        mapping = distance_mapping[_node.identifier]
+        return mapping.get("distance") or 0, mapping.get("parent"), 0
+
+    for node in sorted(graph.nodes(), key=_sorting_keywords, reverse=True):
         # Skip node if unreachable.
         if distance_mapping[node.identifier].get("distance") is None:
             continue
@@ -1480,11 +1494,11 @@ class Graph(object):
 
     def nodes(self):
         """Return all nodes in the graph."""
-        return self._node_mapping.values()
+        return list(self._node_mapping.values())
 
     def identifiers(self):
         """Return all node identifiers in the graph."""
-        return self._node_mapping.keys()
+        return list(self._node_mapping.keys())
 
     def exists(self, identifier):
         """Indicate whether the node *identifier* is in the graph."""
