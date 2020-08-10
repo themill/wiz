@@ -21,7 +21,8 @@ Release Notes
 
     .. change:: fixed
 
-        Fixed :func:`wiz.utility.extract_version_ranges`.
+        Fixed :func:`wiz.utility.extract_version_ranges` to sort specifiers
+        properly for deterministic results.
 
         Previously, it would sometimes fail to update minimal and maximum
         versions of the range in particular conditions.
