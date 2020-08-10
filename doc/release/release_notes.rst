@@ -8,7 +8,8 @@ Release Notes
 
     .. change:: changed
 
-        Added compatibility with python 3.6, 3.7 and 3.8.
+        Updated :mod:`command_line`, :mod:`filesystem`, :mod:`package`, :mod:`system` 
+        and :mod:`utility` to add compatibility with python 3.6, 3.7 and 3.8.
 
     .. change:: fixed
 
