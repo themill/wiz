@@ -8,8 +8,8 @@ Release Notes
 
     .. change:: changed
 
-        Updated the following modules to add compatibility with python 3.6,
-        3.7 and 3.8:
+        Updated the following modules to add compatibility with python 3.7 and
+        3.8:
 
         * :mod:`wiz.command_line`
         * :mod:`wiz.filesystem`
@@ -21,10 +21,12 @@ Release Notes
 
         Fixed :class:`wiz.graph.Resolver` to ensure that conflicted nodes are
         always sorted in ascending order of distance from the :attr:`root
-        <Graph.ROOT>` level of the graph.
+        <wiz.graph.Graph.ROOT>` level of the graph.
 
-        Previously, conflicting nodes wouldn't be sorted properly when new
-        packages are added to the graph during the conflict resolution process.
+        Previously, conflicting nodes would not be sorted properly when new
+        packages are added to the graph during the conflict resolution process,
+        resulting in potentially unresolvable conflicts of packages that should
+        have been removed before.
 
     .. change:: fixed
 
