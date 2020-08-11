@@ -4,6 +4,17 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+
+        Updated :func:`wiz.filesystem.get_name` to support Windows. Previously
+        only Unix was supported, as "pwd" library does not work on Windows. Now
+        using the "win32api" library on Windows and "pwd" on linux to retrieve
+        the full user.
+
+        Added windows requirement to :file:`setup.py`.
+
 .. release:: 3.0.0
     :date: 2020-08-05
 

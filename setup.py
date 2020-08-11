@@ -30,8 +30,13 @@ INSTALL_REQUIRES = [
     "packaging >= 17.1, < 18",
     "pystache >= 0.5.4, < 1",
     "sawmill >= 0.2.1, < 1",
-    "toml >= 0.10.1, < 1"
+    "toml >= 0.10.1, < 1",
 ]
+
+if os.name == 'nt':
+    INSTALL_REQUIRES.extend([
+        "pywin32",
+    ])
 
 DOC_REQUIRES = [
     "sphinx >= 1.8, < 2",
