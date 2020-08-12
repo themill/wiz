@@ -5,6 +5,7 @@ import uuid
 import shutil
 import tempfile
 
+import ujson as json
 import pytest
 
 import wiz
@@ -64,7 +65,14 @@ def registries(request):
                 data["version"] = version
 
             # Write definition
-            wiz.export_definition(os.path.join(registry, identifier), data=data)
+            path = os.path.join(registry, identifier)
+            file_path = os.path.join(path, "{}.json".format(identifier))
+
+            if not os.path.isdir(path):
+                os.makedirs(path)
+
+            with open(file_path, "w") as stream:
+                json.dumps(data, stream)
 
     def cleanup():
         """Remove temporary directories."""
