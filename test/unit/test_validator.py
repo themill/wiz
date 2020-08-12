@@ -1,5 +1,7 @@
 # :coding: utf-8
 
+import re
+
 import pytest
 import six
 
@@ -26,17 +28,17 @@ def test_unexpected_property():
 
     assert sorted(
         list(wiz.validator.yield_definition_errors(data)),
-        key=lambda error: error["message"]
+        key=lambda error: re.sub(r"[^\w]", "", error["message"])[1:]
     ) == [
         {
-            "message": "{!r} is a required property".format(
-                six.text_type("identifier")
+            "message": (
+                "Additional properties are not allowed ('other' was unexpected)"
             ),
             "path": "/",
         },
         {
-            "message": (
-                "Additional properties are not allowed ('other' was unexpected)"
+            "message": "{!r} is a required property".format(
+                six.text_type("identifier")
             ),
             "path": "/",
         },
@@ -797,17 +799,17 @@ def test_unexpected_variant_property():
 
     assert sorted(
         list(wiz.validator.yield_definition_errors(data)),
-        key=lambda error: error["message"]
+        key=lambda error: re.sub(r"[^\w]", "", error["message"])[1:]
     ) == [
         {
-            "message": "{!r} is a required property".format(
-                six.text_type("identifier")
+            "message": (
+                "Additional properties are not allowed ('other' was unexpected)"
             ),
             "path": "/variants/0",
         },
         {
-            "message": (
-                "Additional properties are not allowed ('other' was unexpected)"
+            "message": "{!r} is a required property".format(
+                six.text_type("identifier")
             ),
             "path": "/variants/0",
         },
