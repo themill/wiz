@@ -31,7 +31,7 @@ def registries(request):
     # Define environment for each definitions.
     environ = {
         "KEY{}".format(index): "VALUE{}".format(index)
-        for index in range(1000)
+        for index in range(100)
     }
 
     # All possible versions and system requirements.
@@ -42,7 +42,7 @@ def registries(request):
     identifier = None
 
     for registry in [registry_01, registry_02, registry_03]:
-        for index in range(1000):
+        for index in range(1500):
             version = versions[index % len(versions)]
             system = systems[index % len(systems)]
 
@@ -76,16 +76,32 @@ def registries(request):
     return [registry_01, registry_02, registry_03]
 
 
-def test_discover_one_registry(registries, benchmark):
-    """Test performance when fetching 1000 definitions in one registry."""
+def test_discover_1500_definitions(registries, benchmark):
+    """Test performance when fetching 1500 definitions in one registry."""
     benchmark(wiz.fetch_definition_mapping, registries[:1])
 
 
-def test_discover_two_registries(registries, benchmark):
-    """Test performance when fetching 2000 definitions in two registries."""
+def test_discover_3000_definitions(registries, benchmark):
+    """Test performance when fetching 3000 definitions in two registries."""
     benchmark(wiz.fetch_definition_mapping, registries[:2])
 
 
-def test_discover_three_registries(registries, benchmark):
-    """Test performance when fetching 3000 definitions in three registries."""
+def test_discover_4500_definitions(registries, benchmark):
+    """Test performance when fetching 4500 definitions in three registries."""
     benchmark(wiz.fetch_definition_mapping, registries)
+
+
+def test_discover_4500_definitions_linux_only(registries, benchmark):
+    """Test performance when fetching definitions for linux only."""
+    benchmark(
+        wiz.fetch_definition_mapping, registries,
+        system_mapping={"platform": "linux"}
+    )
+
+
+def test_discover_4500_definitions_windows_only(registries, benchmark):
+    """Test performance when fetching definitions for windows only."""
+    benchmark(
+        wiz.fetch_definition_mapping, registries,
+        system_mapping={"platform": "windows"}
+    )
