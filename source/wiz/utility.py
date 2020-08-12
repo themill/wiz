@@ -490,7 +490,7 @@ def compute_file_name(definition):
         system_identifier = wiz.utility.compute_system_label(definition)
         data = re.sub(r"(\s+|:+)", "", system_identifier).encode("utf-8")
         encoded = base64.urlsafe_b64encode(hashlib.sha1(data).digest())
-        name += "-{}".format(encoded.rstrip(b"="))
+        name += "-{}".format(encoded.rstrip(b"=").decode("utf-8"))
 
     return "{}.json".format(name)
 
