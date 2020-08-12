@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import collections
 import datetime
-import json
 import os
 import time
 try:
@@ -16,6 +15,7 @@ except ImportError:
 
 import click
 import six
+import ujson as json
 
 import wiz.config
 import wiz.definition

@@ -1,7 +1,8 @@
 # :coding: utf-8
 
-import json
 import os
+
+import ujson as json
 
 import wiz.exception
 import wiz.filesystem

@@ -3,7 +3,8 @@
 import abc
 import collections
 import copy
-import json
+
+import ujson as json
 
 import wiz.exception
 import wiz.symbol

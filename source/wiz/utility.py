@@ -3,12 +3,12 @@
 import base64
 import collections
 import hashlib
-import json
 import pipes
 import re
 import zlib
 
 import colorama
+import ujson as json
 from packaging.requirements import InvalidRequirement
 from packaging.version import Version, InvalidVersion
 

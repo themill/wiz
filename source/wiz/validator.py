@@ -1,9 +1,9 @@
 # :coding: utf-8
 
 import collections
-import json
 import os
 
+import ujson as json
 import jsonschema.validators
 from packaging.requirements import Requirement
 from packaging.version import Version
