@@ -45,8 +45,5 @@ def yield_definition_errors(data):
     for error in _VALIDATOR(_DEFINITION_SCHEMA).iter_errors(data):
         yield {
             "message": error.message,
-            "path": "/{}".format("/".join(str(e) for e in error.path)),
-            "schema_path": "/{}".format(
-                "/".join(str(e) for e in error.schema_path)
-            )
+            "path": "/{}".format("/".join(str(e) for e in error.path))
         }
