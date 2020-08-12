@@ -4,7 +4,7 @@ import abc
 import collections
 import copy
 
-import ujson as json
+import json
 
 import wiz.exception
 import wiz.symbol
@@ -333,6 +333,7 @@ class Mapping(collections.Mapping):
 
     def encode(self):
         """Return serialized definition data."""
+
         return json.dumps(
             self.to_ordered_dict(serialize_content=True),
             indent=4,
