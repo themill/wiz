@@ -8,6 +8,9 @@ import re
 import gzip
 import pwd
 import getpass
+import tempfile
+import hashlib
+import shutil
 
 import six
 
@@ -95,3 +98,35 @@ def sanitise_value(value, substitution_character="_", case_sensitive=True):
         value = value.lower()
 
     return six.text_type(value)
+
+
+def is_mounted(path):
+    """Indicate whether the directory is under a mounted point."""
+    if os.path.ismount(path):
+        return True
+
+    # Check folder structure to see if one parent is mounted.
+    parent = os.path.abspath(os.path.join(path, os.pardir))
+
+    while parent != path:
+        if os.path.ismount(parent):
+            return True
+
+        parent = os.path.abspath(os.path.join(parent, os.pardir))
+        path = parent
+
+    return False
+
+
+def localize(path):
+    """Localize content of path."""
+    name = hashlib.md5(os.path.abspath(path)).hexdigest()
+    target_path = os.path.join(
+        tempfile.gettempdir(), "wiz", "cache", "registry", name
+    )
+    if os.path.isdir(target_path):
+        shutil.rmtree(target_path)
+
+    shutil.copytree(path, target_path)
+    return target_path
+

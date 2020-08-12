@@ -391,6 +391,10 @@ def discover(paths, system_mapping=None, max_depth=None):
     logger = wiz.logging.Logger(__name__ + ".discover")
 
     for path in paths:
+        # Cache registry locally if path is mounted.
+        if wiz.filesystem.is_mounted(path):
+            path = wiz.filesystem.localize(path)
+
         # Ignore empty paths that could resolve to current directory.
         path = path.strip()
         if not path:
