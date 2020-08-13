@@ -112,8 +112,8 @@ def is_mounted(path):
         if os.path.ismount(parent):
             return True
 
-        parent = os.path.abspath(os.path.join(parent, os.pardir))
         path = parent
+        parent = os.path.abspath(os.path.join(parent, os.pardir))
 
     return False
 
