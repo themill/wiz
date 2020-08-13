@@ -79,6 +79,7 @@ def registries(request):
 
             data = {
                 "identifier": identifier,
+                "description": "This is a definition",
                 "system": system,
                 "environ": environ,
                 "command": command,
@@ -91,6 +92,11 @@ def registries(request):
 
             # Write definition
             path = os.path.join(registry, identifier)
+            if system is not None:
+                path = os.path.join(path, system["platform"])
+            if version is not None:
+                path = os.path.join(path, version)
+
             file_path = os.path.join(path, "{}.json".format(identifier))
 
             if not os.path.isdir(path):
