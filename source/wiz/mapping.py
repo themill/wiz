@@ -3,14 +3,16 @@
 import abc
 import collections
 import copy
-
 import json
+
+import six
 
 import wiz.exception
 import wiz.symbol
 import wiz.utility
 
 
+@six.add_metaclass(abc.ABCMeta)
 class Mapping(collections.Mapping):
     """Immutable mapping mixin object."""
 
