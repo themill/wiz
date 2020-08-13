@@ -29,11 +29,33 @@ def registries(request):
     registry_02 = tempfile.mkdtemp()
     registry_03 = tempfile.mkdtemp()
 
-    # Define environment for each definitions.
+    # Define lots of environment variables for each definitions.
     environ = {
         "KEY{}".format(index): "VALUE{}".format(index)
         for index in range(100)
     }
+
+    # Define lots of commands for each definitions.
+    command = {
+        "app{}".format(index): "App{}".format(index)
+        for index in range(100)
+    }
+
+    # Define lots of requirements for each definitions.
+    requirements = ["foo{}".format(index) for index in range(100)]
+
+    # Define lots of variants for each definitions.
+    variants = [
+        {
+            "identifier": "Variant{}".format(index),
+            "requirements": ["bar{}".format(index) for index in range(100)],
+            "environ": {
+                "VAR_KEY{}".format(index): "VALUE{}".format(index)
+                for index in range(100)
+            }
+        }
+        for index in range(100)
+    ]
 
     # All possible versions and system requirements.
     versions = ["0.1.0", "0.2.0", "1.0.0", "2.0.0", "2.0.0a", None]
@@ -58,7 +80,10 @@ def registries(request):
             data = {
                 "identifier": identifier,
                 "system": system,
-                "environ": environ
+                "environ": environ,
+                "command": command,
+                "requirements": requirements,
+                "variants": variants[:]
             }
 
             if version is not None:
