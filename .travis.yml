@@ -7,6 +7,6 @@ install:
   - pip install -e .[test]
   - pip install coveralls
 script:
-  - pytest --cov ./test/unit/ ./test/integration/
+  - pytest --cov .
 after_success:
   - coveralls

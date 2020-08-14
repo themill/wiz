@@ -1,8 +1,7 @@
 # :coding: utf-8
 
+import json
 import os
-
-import ujson as json
 
 import wiz.exception
 import wiz.filesystem
@@ -423,7 +422,6 @@ def discover(paths, system_mapping=None, max_depth=None):
     logger = wiz.logging.Logger(__name__ + ".discover")
 
     for path in paths:
-
         # Ignore empty paths that could resolve to current directory.
         path = path.strip()
         if not path:

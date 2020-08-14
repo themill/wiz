@@ -2,12 +2,11 @@
 
 import copy
 import datetime
+import json
 import os
 import platform
 import time
 import traceback
-
-import ujson as json
 
 from wiz.utility import Requirement, Version
 from ._version import __version__
@@ -38,6 +37,7 @@ def get(serialized=False):
 
     :return: History mapping - serialized or not - in the form of
         ::
+
             {
                 "version": "3.0.0",
                 "user": "john-doe",

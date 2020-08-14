@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import collections
 import datetime
+import json
 import os
 import time
 import textwrap
@@ -11,7 +12,6 @@ import textwrap
 import click
 import six
 import six.moves
-import ujson as json
 
 import wiz.config
 import wiz.definition
