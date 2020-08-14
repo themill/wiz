@@ -3,7 +3,6 @@
 import base64
 import collections
 import hashlib
-import json
 import pipes
 import re
 import zlib
@@ -11,6 +10,7 @@ import zlib
 import colorama
 from packaging.requirements import InvalidRequirement
 from packaging.version import Version, InvalidVersion
+import ujson as json
 
 import wiz.exception
 import wiz.mapping
@@ -517,10 +517,9 @@ def compute_file_name(definition):
 
     if definition.get("system"):
         system_identifier = wiz.utility.compute_system_label(definition)
-        encoded = base64.urlsafe_b64encode(
-            hashlib.sha1(re.sub(r"(\s+|:+)", "", system_identifier)).digest()
-        )
-        name += "-{}".format(encoded.rstrip("="))
+        data = re.sub(r"(\s+|:+)", "", system_identifier).encode("utf-8")
+        encoded = base64.urlsafe_b64encode(hashlib.sha1(data).digest())
+        name += "-{}".format(encoded.rstrip(b"=").decode("utf-8"))
 
     return "{}.json".format(name)
 
