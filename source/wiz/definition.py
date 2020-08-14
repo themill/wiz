@@ -47,9 +47,18 @@ def fetch(paths, system_mapping=None, max_depth=None):
             ]
         }
 
-    *system_mapping* could be a mapping of the current system which will filter
-    out non compatible definitions. The mapping should have been retrieved via
-    :func:`wiz.system.query`.
+    :param paths: List of registry paths to recursively fetch
+        :class:`definitions <Definition>` from.
+
+    :param system_mapping: Mapping defining the current system to filter
+        out non compatible definitions. Default is None, which means that the
+        current system mapping will be :func:`queried <wiz.system.query>`.
+
+    :param max_depth: Limited recursion value to search for :class:`definitions
+        <Definition>`. Default is None, which means that all  sub-trees will be
+        visited.
+
+    :return: Definition mapping.
 
     """
     mapping = {
@@ -105,6 +114,10 @@ def _add_to_mapping(definition, mapping):
             ...
         }
 
+    :param definition: Instance of :class:`Definition`.
+
+    :param mapping: Mapping to mutate.
+
     """
     identifier = definition.identifier
     if definition.namespace is not None:
@@ -126,29 +139,30 @@ def _extract_implicit_requests(identifiers, mapping):
     Package requests are returned in inverse order of discovery to give priority
     to the latest discovered
 
-    *identifiers* should be a list of definition identifiers sorted in order of
-    discovery.
+    :param identifiers: List of definition identifiers sorted in order of
+        discovery.
 
-    *mapping* should be a mapping regrouping all implicit package definitions.
-    It should be in the form of::
+    :param mapping: Mapping regrouping all implicit package definitions.
+        It should be in the form of::
 
-        {
-            "__namespace__": {
-                "bar": {"test"}
-            },
-            "foo": {
-                "1.1.0": <Definition(identifier="foo", version="1.1.0")>,
-                "1.0.0": <Definition(identifier="foo", version="1.0.0")>,
-                "0.1.0": <Definition(identifier="foo", version="0.1.0")>,
+            {
+                "__namespace__": {
+                    "bar": {"test"}
+                },
+                "foo": {
+                    "1.1.0": <Definition(identifier="foo", version="1.1.0")>,
+                    "1.0.0": <Definition(identifier="foo", version="1.0.0")>,
+                    "0.1.0": <Definition(identifier="foo", version="0.1.0")>,
+                    ...
+                },
+                "test::bar": {
+                    "0.1.0": <Definition(identifier="bar", version="0.1.0")>,
+                    ...
+                },
                 ...
-            },
-            "test::bar": {
-                "0.1.0": <Definition(identifier="bar", version="0.1.0")>,
-                ...
-            },
-            ...
         }
 
+    :return: List of request strings.
 
     """
     requests = []
@@ -167,17 +181,19 @@ def _extract_implicit_requests(identifiers, mapping):
 def query(requirement, definition_mapping, namespace_counter=None):
     """Return best matching definition version from *requirement*.
 
-    *requirement* is an instance of :class:`packaging.requirements.Requirement`.
+    :param requirement: Instance of :class:`packaging.requirements.Requirement`.
 
-    *definition_mapping* is a mapping regrouping all available definition
-    associated with their unique identifier.
+    :param definition_mapping: Mapping regrouping all available definitions
+        associated with their unique identifier.
 
-    *namespace_counter* is an optional :class:`collections.Counter` instance
-    which indicate occurrence of namespaces used as hints for package
-    identification.
+    :param namespace_counter: instance of :class:`collections.Counter`
+        which indicates occurrence of namespaces used as hints for package
+        identification. Default is None.
 
-    :exc:`wiz.exception.RequestNotFound` is raised if the requirement can not
-    be resolved.
+    :return: Instance of :class:`Definition`.
+
+    :raise: :exc:`wiz.exception.RequestNotFound` if the requirement can not
+        be resolved.
 
     """
     identifier = requirement.name
@@ -244,15 +260,6 @@ def _guess_qualified_identifier(
 ):
     """Return qualified identifier with default namespace if possible.
 
-    *identifier* is a definition identifier.
-
-    *definition_mapping* is a mapping regrouping all available definition
-    associated with their unique identifier.
-
-    *namespace_counter* is an optional :class:`collections.Counter` instance
-    which indicate occurrence of namespaces used as hints for package
-    identification.
-
     Rules are as follow:
 
     * If definition does not have any namespaces, return identifier;
@@ -267,6 +274,20 @@ def _guess_qualified_identifier(
       "maya::maya"), return that one.
     * If definition still has several namespaces after exhausting all other
       options, raise :exc:`wiz.exception.RequestNotFound`.
+
+    :param identifier: Unique identifier of a definition.
+
+    :param definition_mapping: Mapping regrouping all available definitions
+        associated with their unique identifier.
+
+    :param namespace_counter: instance of :class:`collections.Counter`
+        which indicates occurrence of namespaces used as hints for package
+        identification. Default is None.
+
+    :return: Qualified identifier (e.g. "namespace::foo")
+
+    :raise: :exc:`wiz.exception.RequestNotFound` if the default namespace can
+        not be guessed.
 
     """
     namespace_mapping = definition_mapping.get("__namespace__", {})
@@ -318,53 +339,60 @@ def _guess_qualified_identifier(
     )
 
 
-def export(path, definition, overwrite=False):
+def export(path, data, overwrite=False):
     """Export *definition* as a :term:`JSON` file to *path*.
 
-    Return exported definition file path.
+    :param path: Target path to save the exported definition into.
 
-    *path* should be a valid directory to save the exported definition.
+    :param data: Instance of :class:`wiz.definition.Definition` or a mapping in
+        the form of::
 
-    *definition* could be an instance of :class:`Definition` or a mapping in
-    the form of::
+            {
+                "identifier": "foo",
+                "description": "This is my package",
+                "version": "0.1.0",
+                "command": {
+                    "app": "AppExe",
+                    "appX": "AppExe --mode X"
+                },
+                "environ": {
+                    "KEY1": "value1",
+                    "KEY2": "value2"
+                },
+                "requirements": [
+                    "package1 >=1, <2",
+                    "package2"
+                ]
+            }
 
-        {
-            "identifier": "my-package",
-            "description": "This is my package",
-            "version": "0.1.0",
-            "command": {
-                "app": "AppExe",
-                "appX": "AppExe --mode X"
-            },
-            "environ": {
-                "KEY1": "value1",
-                "KEY2": "value2"
-            },
-            "requirements": [
-                "package1 >=1, <2",
-                "package2"
-            ]
-        }
+    :param overwrite: Indicate whether existing definitions in the target path
+        will be overwritten. Default is False.
 
-    The identifier must be unique in the registry so that it could be
-    :func:`queried <query>`.
+    :return: Path to exported definition.
 
-    *overwrite* indicate whether existing definitions in the target path
-    will be overwritten. Default is False.
+    :raise: :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
+        cannot create a valid instance of :class:`wiz.definition.Definition`.
 
-    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
-    cannot create a valid instance of :class:`wiz.definition.Definition`.
+    :raise: :exc:`wiz.exception.FileExists` if definition already exists in
+        *path* and overwrite is False.
 
-    Raises :exc:`wiz.exception.FileExists` if definition already exists in
-    *path* and overwrite is False.
+    :raise: :exc:`OSError` if the definition can not be exported in *path*.
 
-    Raises :exc:`OSError` if the definition can not be exported in *path*.
+    .. warning::
 
-    The command identifier must also be unique in the registry.
+        Ensure that the *data* :ref:`identifier <definition/identifier>`,
+        :ref:`namespace <definition/namespace>`, :ref:`version
+        <definition/version>` and :ref:`system requirement <definition/system>`
+        are unique in the registry.
+
+        Each :ref:`command <definition/command>` must also be unique in the
+        registry.
 
     """
-    if not isinstance(definition, Definition):
-        definition = wiz.definition.Definition(**definition)
+    if not isinstance(data, Definition):
+        definition = wiz.definition.Definition(**data)
+    else:
+        definition = data
 
     definition = definition.sanitized()
 
@@ -377,14 +405,18 @@ def export(path, definition, overwrite=False):
 def discover(paths, system_mapping=None, max_depth=None):
     """Discover and yield all definitions found under *paths*.
 
-    *system_mapping* could be a mapping of the current system which will filter
-    out non compatible definitions. The mapping should have been retrieved via
-    :func:`wiz.system.query`.
+    :param paths: List of registry paths to recursively fetch
+        :class:`definitions <Definition>` from.
 
-    If *max_depth* is None, search all sub-trees under each path for
-    definition files in JSON format. Otherwise, only search up to *max_depth*
-    under each path. A *max_depth* of 0 should only search directly under the
-    specified paths.
+    :param system_mapping: Mapping of the current system which will filter out
+        non compatible definitions. The mapping should have been retrieved via
+        :func:`wiz.system.query`.
+
+    :param max_depth: Limited recursion value to search for :class:`definitions
+        <Definition>`. Default is None, which means that all  sub-trees will be
+        visited.
+
+    :return: Generator which yield all :class:`definitions <Definition>`.
 
     """
     logger = wiz.logging.Logger(__name__ + ".discover")
@@ -446,11 +478,15 @@ def discover(paths, system_mapping=None, max_depth=None):
 def load(path, mapping=None):
     """Load and return a definition from *path*.
 
-    *mapping* can indicate a optional mapping which will augment the data
-    leading to the creation of the definition.
+    :param path: :term:`JSON` file path which contains a definition.
 
-    A :exc:`wiz.exception.IncorrectDefinition` exception will be raised
-    if the definition is incorrect.
+    :param mapping: Mapping which will augment the data leading to the creation
+        of the definition. Default is None.
+
+    :return: Instance of :class:`Definition`.
+
+    :raise: :exc:`wiz.exception.IncorrectDefinition` if the definition is
+        incorrect.
 
     """
     if mapping is None:
@@ -468,7 +504,7 @@ class Definition(wiz.mapping.Mapping):
     """Definition object."""
 
     def __init__(self, *args, **kwargs):
-        """Initialise definition."""
+        """Initialize definition."""
         mapping = dict(*args, **kwargs)
 
         for error in wiz.validator.yield_definition_errors(mapping):
@@ -553,7 +589,7 @@ class _Variant(wiz.mapping.Mapping):
     """Variant Definition object."""
 
     def __init__(self, *args, **kwargs):
-        """Initialise variant definition."""
+        """Initialize variant definition."""
         mapping = dict(*args, **kwargs)
         self.definition_identifier = mapping.pop("definition")
         super(_Variant, self).__init__(mapping)

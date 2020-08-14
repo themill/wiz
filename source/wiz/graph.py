@@ -6,10 +6,7 @@ import itertools
 import uuid
 from heapq import heapify, heappush, heappop
 
-try:
-    import queue as _queue
-except ImportError:
-    import Queue as _queue
+import six.moves
 
 import wiz.logging
 import wiz.package
@@ -72,10 +69,10 @@ class Resolver(object):
     """
 
     def __init__(self, definition_mapping):
-        """Initialise Resolver with *requirements*.
+        """Initialize Resolver with *requirements*.
 
-        *definition_mapping* is a mapping regrouping all available definitions
-        associated with their unique identifier.
+        :param definition_mapping: Mapping regrouping all available definitions
+            associated with their unique identifier.
 
         """
         self._logger = wiz.logging.Logger(__name__ + ".Resolver")
@@ -125,11 +122,11 @@ class Resolver(object):
     def compute_packages(self, requirements):
         """Resolve requirements graphs and return list of packages.
 
-        *requirements* should be a list of
-        :class:`packaging.requirements.Requirement` instances.
+        :param requirements: List of :class:`packaging.requirements.Requirement`
+            instances.
 
-        Raise :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
-        resolved in time.
+        :raise: :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
+            resolved in time.
 
         """
         graph = Graph(self)
@@ -197,6 +194,8 @@ class Resolver(object):
         Conflicts are only recorded in :exc:`wiz.exception.GraphResolutionError`
         exceptions.
 
+        :param exception: Instance of :exc:`wiz.exception.WizError`.
+
         """
         if not isinstance(exception, wiz.exception.GraphResolutionError):
             return
@@ -216,7 +215,7 @@ class Resolver(object):
     def _initiate_iterator(self, graph):
         """Initialize iterator with a *graph*.
 
-        *graph* must be an instance of :class:`Graph`.
+        :param graph: Instance of :class:`Graph`.
 
         """
         self._logger.debug("Initiate iterator from graph")
@@ -234,7 +233,9 @@ class Resolver(object):
         Return a boolean value indicating whether combination generator has been
         added to the iterator.
 
-        *graph* must be an instance of :class:`Graph`.
+        :param graph: Instance of :class:`Graph`.
+
+        :return: Boolean value.
 
         """
         variant_groups = graph.variant_groups()
@@ -286,6 +287,10 @@ class Resolver(object):
         *graph*. The boolean update indicator is True only if a new distance
         mapping is generated.
 
+        :param graph: Instance of :class:`Graph`.
+
+        :return: Tuple with distance mapping and boolean value.
+
         """
         updated = False
 
@@ -298,11 +303,9 @@ class Resolver(object):
     def _fetch_next_combination(self):
         """Return next graph and nodes to remove from the combination iterator.
 
-        A tuple will be returned with the next :class:`Graph` instance and a
-        list of nodes to remove from it.
-
-        If the combination iterator is empty, the graph will be returned as
-        None and the node removal list will be empty.
+        :return: Next :class:`Graph` instance and list of nodes to remove from
+            it. If the combination iterator is empty, the graph will be returned
+            as None and the node removal list will be empty.
 
         """
         # Reset the distance mapping for new graph.
@@ -322,7 +325,7 @@ class Resolver(object):
 
                 # If iterator is empty, check the requirement conflicts to find
                 # out if a new graph could be computed with different versions.
-                if not self._reinitiate_from_conflicts():
+                if not self._reset_from_conflicts():
                     self._logger.debug(
                         "Impossible to reinitiate the iterator from previous "
                         "requirement conflicts"
@@ -330,7 +333,7 @@ class Resolver(object):
 
                     return None, []
 
-    def _reinitiate_from_conflicts(self):
+    def _reset_from_conflicts(self):
         """Re-initialize iterator from recorded requirement conflicts.
 
         After exhausting all graph combinations, the requirement conflicts
@@ -344,6 +347,9 @@ class Resolver(object):
 
         A new graph will be created with other versions for these two node if
         possible.
+
+        :return: Boolean value indicating whether iterator has been
+            re-initialized.
 
         """
         while True:
@@ -368,12 +374,13 @@ class Resolver(object):
     def _replace_versions_in_graph(self, graph, identifiers):
         """Replace all node *identifiers* in *graph* with different versions.
 
-        Return True if all node *identifiers* were replaced with different
-        versions. Return False if at least one node cannot be replaced.
+        :param graph: Instance of :class:`Graph`.
 
-        *graph* must be an instance of :class:`Graph`.
+        :param identifiers: List of node identifiers.
 
-        *identifiers* should be valid node identifiers.
+        :return: Boolean value indicating whether all node identifiers have been
+            replaced with different versions. Returned value is False if at
+            least one node cannot be replaced.
 
         """
         # Record replacement mapping for debugging purposes.
@@ -448,13 +455,15 @@ class Resolver(object):
     def _compute_combination(self, graph, nodes_to_remove):
         """Compute and return processed *graph* from combination.
 
-        *graph* must be an instance of :class:`Graph`.
+        :param graph: Instance of :class:`Graph`.
 
-        *nodes_to_remove* should be a list of node identifiers that should be
-        removed from the graph as part of this combination.
+        :param nodes_to_remove: List of node identifiers that should be
+            removed from the graph as part of this combination.
 
-        Raise :exc:`wiz.exception.GraphResolutionError` if the parent of nodes
-        removed cannot be re-linked to any existing node in the graph.
+        :raise: :exc:`wiz.exception.GraphResolutionError` if the parent of nodes
+            removed cannot be re-linked to any existing node in the graph.
+
+        :return: Processed instance of :class:`Graph`.
 
         """
         self._logger.debug(
@@ -494,6 +503,8 @@ class Resolver(object):
         If so, a :exc:`wiz.exception.GraphResolutionError` is raised and the
         combination is skipped.
 
+        :param graph: Instance of :class:`Graph`.
+
         """
         all_identifiers = [graph.ROOT] + graph.identifiers()
 
@@ -508,6 +519,8 @@ class Resolver(object):
 
         If so, a :exc:`wiz.exception.GraphResolutionError` is raised and the
         combination is skipped.
+
+        :param graph: Instance of :class:`Graph`.
 
         """
         all_identifiers = [graph.ROOT] + graph.identifiers()
@@ -536,17 +549,17 @@ class Resolver(object):
     def _resolve_conflicts(self, graph):
         """Attempt to resolve all conflicts in *graph*.
 
-        *graph* must be an instance of :class:`Graph`.
+        :param graph: Instance of :class:`Graph`.
 
-        Raise :exc:`wiz.exception.GraphResolutionError` if several node
-        requirements are incompatible.
+        :raise: :exc:`wiz.exception.GraphResolutionError` if several node
+            requirements are incompatible.
 
-        Raise :exc:`wiz.exception.GraphResolutionError` if new package
-        versions added to the graph during the resolution process lead to
-        a division of the graph.
+        :raise: :exc:`wiz.exception.GraphResolutionError` if new package
+            versions added to the graph during the resolution process lead to
+            a division of the graph.
 
-        Raise :exc:`wiz.exception.GraphResolutionError` if the parent of nodes
-        removed cannot be re-linked to any existing node in the graph.
+        :raise: :exc:`wiz.exception.GraphResolutionError` if the parent of nodes
+            removed cannot be re-linked to any existing node in the graph.
 
         """
         conflicts = graph.conflicting_identifiers()
@@ -653,15 +666,17 @@ class Resolver(object):
         returned. Otherwise, :exc:`wiz.exception.GraphResolutionError` is
         raised.
 
-        *requirement* must be a :class:`packaging.requirements.Requirement`
-        instance.
+        :param requirement: Instance of
+            :class:`packaging.requirements.Requirement`.
 
-        *graph* must be an instance of :class:`Graph`.
+        :param graph: Instance of :class:`Graph`.
 
-        *nodes* must be a list of :class:`Node` instances.
+        :param nodes: List of :class:`Node` instances.
 
-        *conflicting_identifiers* must be a list of node identifiers conflicting
-        in *graph*.
+        :param conflicting_identifiers: List of node identifiers conflicting
+            in *graph*.
+
+        :return: List of :class:`~wiz.package.Package` instances, or None.
 
         """
         try:
@@ -696,22 +711,24 @@ class Resolver(object):
         * It is already represented as a conflicted nodes.
         * It has already led to a graph division.
 
-        Return whether the graph has been updated with at least one package.
+        :param graph: Instance of :class:`Graph`.
 
-        *graph* must be an instance of :class:`Graph`.
+        :param packages: List of :class:`~wiz.package.Package` instances
+            that has been extracted from *requirement*. The list contains more
+            than one package only if variants are detected.
 
-        *packages* must be a list of :class:`~wiz.package.Package` instances
-        that has been extracted from *requirement*. The list contains more than
-        one package only if variants are detected.
+        :param requirement: Instance of
+            :class:`packaging.requirements.Requirement` which led to the package
+            extraction. It is a :func:`combined requirement
+            <wiz.graph.combined_requirements>` from all requirements which
+            extracted packages embedded in *conflicting_nodes*.
 
-        *requirement* must be the :class:`packaging.requirements.Requirement`
-        which led to the package extraction. It is a :func:`combined requirement
-        <wiz.graph.combined_requirements>` from all requirements which extracted
-        packages embedded in *conflicting_nodes*.
+        :param conflicting_nodes: List of :class:`Node` instances representing
+            conflicting version for the same definition identifier as *packages*
+            within the *graph*.
 
-        *conflicting_nodes* should be a list of :class:`Node` instances
-        representing conflicting version for the same definition identifier as
-        *packages* within the *graph*.
+        :return: Boolean value indicating whether the graph has been updated
+            with at least one package.
 
         """
         identifiers = set([p.qualified_identifier for p in packages])
@@ -748,7 +765,7 @@ class Resolver(object):
 
         3. Step 1 and 2 are repeated until the distance mapping is not updated.
 
-        *graph* must be an instance of :class:`Graph`.
+        :param graph: Instance of :class:`Graph`.
 
         """
         while True:
@@ -775,11 +792,11 @@ class Resolver(object):
 def _raise_node_errors(graph, identifiers):
     """Raise exception for node *identifier* in *graph* containing errors.
 
-    Raise :exc:`wiz.exception.GraphResolutionError`.
+    :param graph: Instance of :class:`Graph`.
 
-    *graph* must be an instance of :class:`Graph`.
+    :param identifiers: List of node identifiers.
 
-    *identifiers* should be valid node identifiers.
+    :raise: :exc:`wiz.exception.GraphResolutionError`.
 
     """
     raise wiz.exception.GraphResolutionError(
@@ -798,27 +815,28 @@ def _raise_node_errors(graph, identifiers):
 def _raise_node_conflicts(mappings, record_conflicts=True):
     """Raise exception for list of conflict *mappings*.
 
-    Raise :exc:`wiz.exception.GraphResolutionError`.
+    :param mappings: List of conflict mappings in the form of
+        ::
 
-    *mappings* should be a list of conflict mappings in the form of::
+            [
+                {
+                    "requirement": Requirement("foo >=0.1.0, <1"),
+                    "identifiers": {"bar", "bim"},
+                    "conflicts": {"baz"},
+                    "graph": Graph()
+                },
+                {
+                    "requirement": Requirement("foo >2"),
+                    "identifiers": {"baz"},
+                    "conflicts": {"bar", "bim"},
+                    "graph": Graph()
+                }
+            ]
 
-        [
-            {
-                "requirement": Requirement("foo >=0.1.0, <1"),
-                "identifiers": {"bar", "bim"},
-                "conflicts": {"baz"},
-                "graph": Graph()
-            },
-            {
-                "requirement": Requirement("foo >2"),
-                "identifiers": {"baz"},
-                "conflicts": {"bar", "bim"},
-                "graph": Graph()
-            }
-        ]
+    :param record_conflicts: Indicate whether conflict *mappings* should be
+        recorded within the exception raised.
 
-    *record_conflicts* indicate whether conflict *mappings* should be recorded
-    within the exception raised.
+    :raise: :exc:`wiz.exception.GraphResolutionError`.
 
     """
     def _format(mapping):
@@ -851,10 +869,12 @@ def compute_distance_mapping(graph):
     The distance is defined by the sum of the weights from each node to the
     :attr:`root <Graph.ROOT>` level of the *graph*.
 
-    *graph* must be an instance of :class:`Graph`.
-
     This is using `Dijkstra's shortest path algorithm
     <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>`_.
+
+    :param graph: Instance of :class:`Graph`.
+
+    :return: Distance mapping.
 
     .. note::
 
@@ -917,11 +937,9 @@ def compute_distance_mapping(graph):
 def generate_variant_combinations(graph, variant_groups):
     """Yield combinations of nodes identifiers to remove from *graph*.
 
-    *graph* must be an instance of :class:`Graph`.
-
-    *variant_groups* should be a list of node identifier lists. Each list
-    contains node identifiers added to the *graph* in the order of importance
-    which share the same definition identifier and variant identifier.
+    Each list of variant groups contains node identifiers added to the *graph*
+    in the order of importance which share the same definition identifier and
+    variant identifier.
 
     After identifying and grouping version conflicts in each group, a cartesian
     product is performed on all groups in order to extract combinations of node
@@ -944,6 +962,12 @@ def generate_variant_combinations(graph, variant_groups):
             (graph, ("foo[V3]", "foo[V2]", "bar[V2]==1", "bar[V2]==2")),
             (graph, ("foo[V3]", "foo[V2]", "bar[V1]==1"))
         ]
+
+    :param graph: Instance of :class:`Graph`.
+
+    :param variant_groups: List of node identifier lists.
+
+    :return: Generator which yield variant combinations.
 
     """
     # Flatten list of identifiers
@@ -983,18 +1007,18 @@ def generate_variant_combinations(graph, variant_groups):
 def trim_unreachable_from_graph(graph, distance_mapping):
     """Remove unreachable nodes from *graph* based on *distance_mapping*.
 
-    Return boolean indicating if nodes have been removed.
-
     If a node within the *graph* does not have a distance, it means that it
     cannot be reached from the :attr:`root <Graph.ROOT>` level of the *graph*.
     It will then be lazily removed from the graph (the links are preserved to
     save on computing time).
 
-    *graph* must be an instance of :class:`Graph`.
+    :param graph: Instance of :class:`Graph`.
 
-    *distance_mapping* is a mapping indicating the shortest possible distance
-    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-    *graph* with its corresponding parent node identifier.
+    :param distance_mapping: Mapping indicating the shortest possible distance
+        of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+        *graph* with its corresponding parent node identifier.
+
+    :return: Boolean value indicating whether nodes have been removed.
 
     """
     logger = wiz.logging.Logger(__name__ + ".trim_unreachable_from_graph")
@@ -1013,16 +1037,16 @@ def trim_unreachable_from_graph(graph, distance_mapping):
 def trim_invalid_from_graph(graph, distance_mapping):
     """Remove invalid nodes from *graph* based on *distance_mapping*.
 
-    Return boolean value indicating whether invalid nodes have been removed.
-
     If any packages that a node is conditioned by are no longer in the graph,
     the node is marked invalid and must be removed from the graph.
 
-    *graph* must be an instance of :class:`Graph`.
+    :param graph: Instance of :class:`Graph`.
 
-    *distance_mapping* is a mapping indicating the shortest possible distance
-    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-    *graph* with its corresponding parent node identifier.
+    :param distance_mapping: Mapping indicating the shortest possible distance
+        of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+        *graph* with its corresponding parent node identifier.
+
+    :return: Boolean value indicating whether invalid nodes have been removed.
 
     """
     logger = wiz.logging.Logger(__name__ + ".trim_invalid_from_graph")
@@ -1059,11 +1083,13 @@ def updated_by_distance(identifiers, distance_mapping):
     reached from the root level. It will then not be included in the list
     returned.
 
-    *identifiers* should be valid node identifiers.
+    :param identifiers: List of node identifiers.
 
-    *distance_mapping* is a mapping indicating the shortest possible distance
-    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-    graph with its corresponding parent node identifier.
+    :param distance_mapping: Mapping indicating the shortest possible distance
+        of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+        *graph* with its corresponding parent node identifier.
+
+    :return: Sorted list of node identifiers.
 
     """
     identifiers = (
@@ -1084,9 +1110,11 @@ def extract_conflicting_nodes(graph, node):
     A node from the *graph* is in conflict with the node *identifier* when
     its definition identifier is identical.
 
-    *graph* must be an instance of :class:`Graph`.
+    :param graph: Instance of :class:`Graph`.
 
-    *node* should be a :class:`Node` instance.
+    :param node: Instance of :class:`Node`.
+
+    :return: List of conflicting :class:`Node`.
 
     """
     nodes = (graph.node(_id) for _id in graph.conflicting_identifiers())
@@ -1104,12 +1132,12 @@ def extract_conflicting_nodes(graph, node):
 def combined_requirements(graph, nodes):
     """Return combined requirements from *nodes* in *graph*.
 
-    *graph* must be an instance of :class:`Graph`.
+    :param graph: Instance of :class:`Graph`.
 
-    *nodes* should be a list of :class:`Node` instances.
+    :param nodes: List of :class:`Node` instances.
 
-    Raise :exc:`wiz.exception.GraphResolutionError` if requirements cannot
-    be combined.
+    :raise: :exc:`wiz.exception.GraphResolutionError` if requirements cannot
+        be combined.
 
     """
     requirement = None
@@ -1153,6 +1181,12 @@ def sanitize_requirement(requirement, namespace):
     package "bar" which doesn't have a namespace, the requirement will be
     mutated to "bar==0.1.0"
 
+    :param requirement: Instance of :class:`packaging.requirements.Requirement`.
+
+    :param namespace: String indicating the package namespace, or None.
+
+    :return: Updated instance of :class:`packaging.requirements.Requirement`.
+
     """
     separator = wiz.symbol.NAMESPACE_SEPARATOR
 
@@ -1187,10 +1221,12 @@ def extract_conflicting_requirements(graph, nodes):
     other requirement from existing parents of *nodes*. The conflict list
     is sorted based on the number of times a requirement is conflicting.
 
-    *graph* must be an instance of :class:`Graph`.
+    :param graph: Instance of :class:`Graph`.
 
-    *nodes* should be a list of :class:`Node` instances which belong to the
-    same definition identifier.
+    :param nodes: List of :class:`Node` instances which belong to the
+        same definition identifier.
+
+    :return: List of conflict mappings.
 
     """
     # Ensure that definition requirement is the same for all nodes.
@@ -1259,15 +1295,15 @@ def relink_parents(graph, node, requirement=None):
     given, otherwise the same requirement connecting the *node* to its parents
     is being used
 
-    *graph* must be an instance of :class:`Graph`.
+    :param graph: Instance of :class:`Graph`.
 
-    *node* should be a :class:`Node` instance.
+    :param node: Instance of :class:`Node`.
 
-    *requirement* could be a :class:`packaging.requirements.Requirement`
-    instance which should be used for .
+    :param requirement: Instance of :class:`packaging.requirements.Requirement`
+        which can be used. Default is None.
 
-    Raise :exc:`wiz.exception.GraphResolutionError` if one *node* parent cannot
-    be re-linked to any existing node in the graph.
+    :raise: :exc:`wiz.exception.GraphResolutionError` if one *node* parent
+        cannot be re-linked to any existing node in the graph.
 
     """
     nodes = None
@@ -1321,14 +1357,14 @@ def validate(graph, distance_mapping):
     first, and the first exception raised under one this identifier will be
     raised.
 
-    *graph* must be an instance of :class:`Graph`.
+    :param graph: Instance of :class:`Graph`.
 
-    *distance_mapping* is a mapping indicating the shortest possible distance
-    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-    graph with its corresponding parent node identifier.
+    :param distance_mapping: Mapping indicating the shortest possible distance
+        of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+        *graph* with its corresponding parent node identifier.
 
-    A :exc:`wiz.exception.GraphResolutionError` is raised if an error attached
-    to the :attr:`root <Graph.ROOT>` level or any reachable node is found.
+    :raise: :exc:`wiz.exception.GraphResolutionError` if an error attached
+        to the :attr:`root <Graph.ROOT>` level or any reachable node is found.
 
     """
     logger = wiz.logging.Logger(__name__ + ".validate")
@@ -1365,9 +1401,13 @@ def extract_ordered_packages(graph, distance_mapping):
     Best matching :class:`~wiz.package.Package` instances are
     extracted from each node instance and added to the list.
 
-    *distance_mapping* is a mapping indicating the shortest possible distance
-    of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-    graph with its corresponding parent node identifier.
+    :param graph: Instance of :class:`Graph`.
+
+    :param distance_mapping: Mapping indicating the shortest possible distance
+        of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+        *graph* with its corresponding parent node identifier.
+
+    :return: Sorted list of :class:`~wiz.package.Package` instances.
 
     """
     logger = wiz.logging.Logger(__name__ + ".extract_ordered_packages")
@@ -1408,9 +1448,9 @@ class Graph(object):
     ROOT = "root"
 
     def __init__(self, resolver):
-        """Initialise Graph.
+        """Initialize Graph.
 
-        *resolver* should be an instance of :class:`Resolver`.
+        :param resolver: Instance of :class:`Resolver`.
 
         """
         self._logger = wiz.logging.Logger(__name__ + ".Graph")
@@ -1464,8 +1504,16 @@ class Graph(object):
         """Return unique graph identifier."""
         return self._identifier
 
+    def identifiers(self):
+        """Return all node identifiers in the graph."""
+        return list(self._node_mapping.keys())
+
     def to_dict(self):
-        """Return corresponding dictionary."""
+        """Return corresponding dictionary.
+
+        :return Mapping containing all information about the graph.
+
+        """
         return {
             "identifier": self.identifier,
             "node_mapping": {
@@ -1489,26 +1537,40 @@ class Graph(object):
         }
 
     def node(self, identifier):
-        """Return node from *identifier*."""
+        """Return node from *identifier*.
+
+        :param identifier: Unique identifier of the targeted node.
+
+        :return Instance of :class:`Node`.
+
+        """
         return self._node_mapping.get(identifier)
 
     def nodes(self):
-        """Return all nodes in the graph."""
+        """Return all nodes in the graph.
+
+        :return List of :class:`Node` instances.
+
+        """
         return list(self._node_mapping.values())
 
-    def identifiers(self):
-        """Return all node identifiers in the graph."""
-        return list(self._node_mapping.keys())
-
     def exists(self, identifier):
-        """Indicate whether the node *identifier* is in the graph."""
+        """Indicate whether the node *identifier* is in the graph.
+
+        :param identifier: Unique identifier of the targeted node.
+
+        :return: Boolean value.
+
+        """
         return identifier in self._node_mapping.keys()
 
     def find(self, requirement):
         """Return matching node identifiers in graph for *requirement*.
 
-        *requirement* should be an instance of
-        :class:`packaging.requirements.Requirement`.
+        :param requirement: Instance of
+            :class:`packaging.requirements.Requirement`.
+
+        :return: List of matching node identifiers.
 
         .. warning::
 
@@ -1548,12 +1610,13 @@ class Graph(object):
         2. By the package version in descending order
         3. By the original variant order within the definition.
 
-        The mapping should be in the form of::
+        :return: Mapping in the form of
+            ::
 
-            [
-                ["foo[V2]==0.1.0", "foo[V1]==0.1.0"],
-                ["bar[V2]==2.2.0", "bar[V2]==2.1.5", "bar[V1]==2.1.0"]
-            ]
+                [
+                    ["foo[V2]==0.1.0", "foo[V1]==0.1.0"],
+                    ["bar[V2]==2.2.0", "bar[V2]==2.1.5", "bar[V1]==2.1.0"]
+                ]
 
         """
         groups = []
@@ -1582,7 +1645,13 @@ class Graph(object):
         return groups
 
     def outcoming(self, identifier):
-        """Return outcoming node identifiers for node *identifier*."""
+        """Return outcoming node identifiers for node *identifier*.
+
+        :param identifier: Unique identifier of the targeted node.
+
+        :return: List of dependent node identifiers.
+
+        """
         return [
             identifier for identifier
             in self._link_mapping.get(identifier, {}).keys()
@@ -1590,15 +1659,25 @@ class Graph(object):
         ]
 
     def link_weight(self, identifier, parent_identifier):
-        """Return weight from link between *parent_identifier* and *identifier*.
+        """Return weight from link between parent and node identifier.
+
+        :param identifier: Unique identifier of the targeted node.
+
+        :param parent_identifier: Unique identifier of parent node.
+
+        :return: Integer value.
+
         """
         return self._link_mapping[parent_identifier][identifier]["weight"]
 
     def link_requirement(self, identifier, parent_identifier):
-        """Return requirement from link between *parent_identifier* and
-        *identifier*.
+        """Return requirement from link between parent and node identifier.
 
-        This should be a :class:`packaging.requirements.Requirement` instance.
+        :param identifier: Unique identifier of the targeted node.
+
+        :param parent_identifier: Unique identifier of parent node.
+
+        :return: Instance of :class:`packaging.requirements.Requirement`.
 
         """
         return self._link_mapping[parent_identifier][identifier]["requirement"]
@@ -1608,6 +1687,8 @@ class Graph(object):
 
         A conflict appears when several nodes are found for a single
         definition identifier.
+
+        :return: List of node identifiers.
 
         """
         conflicting = []
@@ -1625,6 +1706,9 @@ class Graph(object):
 
     def error_identifiers(self):
         """Return list of existing node identifiers which encapsulate an error.
+
+        :return: List of node identifiers.
+
         """
         return [
             identifier for identifier in self._error_mapping.keys()
@@ -1632,17 +1716,17 @@ class Graph(object):
         ]
 
     def errors(self, identifier):
-        """Return list of exceptions raised for node *identifier*."""
+        """Return list of exceptions raised for node *identifier*.
+
+        :param identifier: Unique identifier of the targeted node.
+
+        :return: List of :exc:`wiz.exception.GraphResolutionError` instances.
+
+        """
         return self._error_mapping.get(identifier)
 
     def update_from_requirements(self, requirements, parent_identifier):
         """Update graph from *requirements*.
-
-        *requirements* should be a list of
-        class:`packaging.requirements.Requirement` instances ordered from the
-        most important to the least important.
-
-        *parent_identifier* should indicate a parent node identifier.
 
         One or several :class:`~wiz.package.Package` instances will be
         extracted from  *requirements* and :class:`Node` instances will be added
@@ -1658,8 +1742,13 @@ class Graph(object):
         package with the same definition identifier has previously been added
         to the graph.
 
+        :param requirements: List of class:`packaging.requirements.Requirement`
+            instances ordered from the most important to the least important.
+
+        :param parent_identifier: Unique identifier of the parent node.
+
         """
-        queue = _queue.Queue()
+        queue = six.moves.queue.Queue()
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_UPDATE_ACTION,
@@ -1684,25 +1773,26 @@ class Graph(object):
     ):
         """Update graph from *package*.
 
-        *package* should be a class:`~wiz.package.Package` instance.
+        :param package: Instance of class:`wiz.package.Package`.
 
-        *requirement* should be an instance of
-        :class:`packaging.requirements.Requirement` which led to the *package*
-        extraction.
+        :param requirement: Instance of
+            :class:`packaging.requirements.Requirement` which led to the
+            *package* extraction.
 
-        *parent_identifier* can indicate a parent node identifier. Default is
-        None, which means that *package* will not be linked to any parent.
+        :param parent_identifier: Unique identifier of the parent node. Default
+            is None, which means that *package* will not be linked to any
+            parent.
 
-        *weight* is a number which indicate the importance of the dependency
-        link from the node to its parent. The lesser this number, the higher is
-        the importance of the link. Default is 1.
+        :param weight: Number indicating the importance of the dependency
+            link from the node to its parent. The lesser this number, the higher
+            is the importance of the link. Default is 1.
 
         .. note::
 
             *weight* is irrelevant if no *parent_identifier* is given.
 
         """
-        queue = _queue.Queue()
+        queue = six.moves.queue.Queue()
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_UPDATE_ACTION,
@@ -1725,7 +1815,7 @@ class Graph(object):
     def _update(self, queue):
         """Update graph and fetch stored nodes from data contained in *queue*.
 
-        *queue* should be a :class:`Queue` instance.
+        :param queue: Instance of :class:`Queue`.
 
         """
         self._update_from_queue(queue)
@@ -1752,6 +1842,8 @@ class Graph(object):
 
         A :class:`StoredNode` instance has been created for each package which
         has one or several conditions.
+
+        :return: List of :class:`StoredNode` instances.
 
         """
         stored_nodes = []
@@ -1794,7 +1886,7 @@ class Graph(object):
     def _update_from_queue(self, queue):
         """Recursively update graph from data contained in *queue*.
 
-        *queue* should be a :class:`Queue` instance.
+        :param queue: Instance of :class:`Queue`.
 
         """
         while not queue.empty():
@@ -1821,17 +1913,17 @@ class Graph(object):
     ):
         """Update graph from *requirement*.
 
-        *requirement* should be an instance of
-        :class:`packaging.requirements.Requirement`.
+        :param requirement: Instance of
+            :class:`packaging.requirements.Requirement`.
 
-        *parent_identifier* indicate a parent node identifier.
+        :param parent_identifier: Unique identifier of the parent node.
 
-        *queue* should be a :class:`Queue` instance that will be updated with
-        all dependent requirements data.
+        :param queue: Instance of :class:`Queue` that will be updated with all
+            dependent requirements data.
 
-        *weight* is a number which indicate the importance of the dependency
-        link from the node to its parent. The lesser this number, the higher is
-        the importance of the link. Default is 1.
+        :param weight: Number indicating the importance of the dependency
+            link from the node to its parent. The lesser this number, the higher
+            is the importance of the link. Default is 1.
 
         """
         self._logger.debug("Update from requirement: {}".format(requirement))
@@ -1862,19 +1954,19 @@ class Graph(object):
     ):
         """Update graph from *package*.
 
-        *package* should be an instance of :class:`wiz.package.Package`.
+        :param package: Instance of :class:`wiz.package.Package`.
 
-        *requirement* should be an instance of
-        :class:`packaging.requirements.Requirement`.
+        :param requirement: Instance of
+            :class:`packaging.requirements.Requirement`.
 
-        *parent_identifier* indicate a parent node identifier.
+        :param parent_identifier: Unique identifier of the parent node.
 
-        *queue* should be a :class:`Queue` instance that will be updated with
-        all dependent requirements data.
+        :param queue: Instance of :class:`Queue` that will be updated with all
+            dependent requirements data.
 
-        *weight* is a number which indicate the importance of the dependency
-        link from the node to its parent. The lesser this number, the higher is
-        the importance of the link. Default is 1.
+        :param weight: Number indicating the importance of the dependency
+            link from the node to its parent. The lesser this number, the higher
+            is the importance of the link. Default is 1.
 
         """
         identifier = package.qualified_identifier
@@ -1926,7 +2018,7 @@ class Graph(object):
     def _create_node_from_package(self, package):
         """Create node in graph from *package*.
 
-        *package* should be a :class:`~wiz.package.Package` instance.
+        :param package: Instance of :class:`wiz.package.Package`.
 
         """
         identifier = package.qualified_identifier
@@ -1948,6 +2040,9 @@ class Graph(object):
 
     def _update_variant_mapping(self, identifier):
         """Update variant mapping according to node *identifier*.
+
+        :param identifier: Unique identifier of the targeted node.
+
         """
         node = self._node_mapping[identifier]
         if node.package.variant_name is None:
@@ -1964,8 +2059,8 @@ class Graph(object):
 
         Requirement names are used to find out all available namespaces.
 
-        *requirements* should be a list of
-        class:`packaging.requirements.Requirement` instances.
+        :param requirements: List of :class:`packaging.requirements.Requirement`
+            instances.
 
         """
         mapping = self._resolver.definition_mapping.get("__namespace__", {})
@@ -1982,18 +2077,18 @@ class Graph(object):
     ):
         """Add dependency link from *parent_identifier* to *identifier*.
 
-        *identifier* is the identifier of the package which is added to the
-        dependency graph.
+        :param identifier: Unique identifier of the package which is added to
+            the dependency graph.
 
-        *parent_identifier* is the identifier of the targeted package which
-        must be linked to the new *identifier*.
+        :param parent_identifier: Unique identifier of the targeted package
+            which must be linked to the new *identifier*.
 
-        *requirement* should be an instance of
-        :class:`packaging.requirements.Requirement`.
+        :param requirement: Instance of
+            :class:`packaging.requirements.Requirement`.
 
-        *weight* is a number which indicate the importance of the dependency
-        link. The lesser this number, the higher is the importance of the link.
-        Default is 1.
+        :param weight: Number indicating the importance of the dependency
+            link from the node to its parent. The lesser this number, the higher
+            is the importance of the link. Default is 1.
 
         .. note::
 
@@ -2040,6 +2135,8 @@ class Graph(object):
     def remove_node(self, identifier):
         """Remove node from the graph.
 
+        :param identifier: Unique identifier of the targeted node.
+
         .. warning::
 
             A lazy deletion is performed as the links are not deleted to save on
@@ -2063,9 +2160,9 @@ class Node(object):
     """
 
     def __init__(self, package):
-        """Initialise Node.
+        """Initialize Node.
 
-        *package* indicates a :class:`~wiz.package.Package` instance.
+        :param package: Instance of :class:`wiz.package.Package`.
 
         """
         self._package = package
@@ -2085,7 +2182,7 @@ class Node(object):
 
     @property
     def definition(self):
-        """Return corresponding :class:`wiz.definition.Definition` instance."""
+        """Return corresponding :class:`~wiz.definition.Definition` instance."""
         return self._package.definition
 
     @property
@@ -2131,15 +2228,15 @@ class StoredNode(object):
     def __init__(self, requirement, package, parent_identifier, weight=1):
         """Initialize StoredNode.
 
-        *requirement* should be an instance of
-        :class:`packaging.requirements.Requirement`.
+        :param requirement: Instance of
+            :class:`packaging.requirements.Requirement`.
 
-        *package* should be an instance of :class:`wiz.package.Package`.
+        :param package: Instance of :class:`wiz.package.Package`.
 
-        *parent_identifier* indicate a parent node identifier.
+        :param parent_identifier: Unique identifier if the parent node.
 
-        *weight* is a number which indicate the importance of the dependency
-        link from the node to its parent. Default is 1.
+        :param weight: Number indicating the importance of the dependency
+            link from the node to its parent. Default is 1.
 
         """
         self._requirement = requirement
@@ -2209,7 +2306,7 @@ class _DistanceQueue(dict):
     """
 
     def __init__(self, *args, **kwargs):
-        """Initialise mapping and build heap."""
+        """Initialize mapping and build heap."""
         super(_DistanceQueue, self).__init__(*args, **kwargs)
         self._build_heap()
 
@@ -2223,11 +2320,11 @@ class _DistanceQueue(dict):
     def __setitem__(self, identifier, distance):
         """Set *distance* value for *identifier* item.
 
-        *identifier* should be a node identifier.
+        :param identifier: Unique node identifier.
 
-        *distance* should be a number indicating the importance of the node. A
-        shorter distance from the graph root means that the node has a higher
-        importance than nodes with longer distances.
+        :param distance: Number indicating the importance of the node. A
+            shorter distance from the graph root means that the node has a
+            higher importance than nodes with longer distances.
 
         .. note::
 
@@ -2251,7 +2348,7 @@ class _DistanceQueue(dict):
     def pop_smallest(self):
         """Return item with the shortest distance from graph root and remove it.
 
-        Raise :exc:`IndexError` if the object is empty.
+        :raise: :exc:`IndexError` if the object is empty.
 
         """
         heap = self._heap

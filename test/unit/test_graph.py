@@ -4,12 +4,8 @@ import pytest
 import mock
 import types
 import re
-try:
-    # Python 3
-    from itertools import zip_longest
-except ImportError:
-    # Python 2
-    from itertools import izip_longest as zip_longest
+
+import six.moves
 
 from wiz.utility import Requirement, Version
 import wiz.graph
@@ -326,7 +322,7 @@ def test_generate_variant_combinations(
         mocked_graph, variant_groups
     )
     assert isinstance(results, types.GeneratorType) is True
-    for combination, _expected in zip_longest(results, expected):
+    for combination, _expected in six.moves.zip_longest(results, expected):
         assert combination[0] == mocked_graph
         assert combination[1] == _expected
 

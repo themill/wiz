@@ -4,15 +4,10 @@ import copy
 import os
 import types
 from collections import OrderedDict, Counter
-try:
-    # Python 3
-    from itertools import zip_longest
-except ImportError:
-    # Python 2
-    from itertools import izip_longest as zip_longest
 
 import pytest
 import six
+import six.moves
 
 import wiz.definition
 import wiz.exception
@@ -1567,7 +1562,7 @@ def test_definition_with_variant():
     assert definition.command == {}
     assert definition.system == {}
 
-    for variant_data, variant in zip_longest(
+    for variant_data, variant in six.moves.zip_longest(
         data["variants"], definition.variants
     ):
         assert variant.identifier == variant_data["identifier"]

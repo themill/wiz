@@ -13,8 +13,8 @@ ENV_PATTERN = re.compile(r"\${(\w+)}|\$(\w+)")
 def initiate(mapping=None):
     """Return the minimal environment mapping to augment.
 
-    *mapping* can be a custom environment mapping which will be added to the
-    initial environment.
+    :param mapping: Custom environment mapping which will be added to the
+        initial environment. Default is None.
 
     .. seealso:: :ref:`configuration/initial_environment`
 
@@ -34,13 +34,13 @@ def initiate(mapping=None):
     return environ
 
 
-def sanitise(mapping):
-    """Return sanitised environment *mapping*.
+def sanitize(mapping):
+    """Return sanitized environment *mapping*.
 
     Resolve all key references within *mapping* values and remove all
     self-references::
 
-        >>> sanitise({
+        >>> sanitize({
         ...     "PLUGIN": "${HOME}/.app:/path/to/somewhere:${PLUGIN}",
         ...     "HOME": "/usr/people/me"
         ... })
@@ -49,6 +49,10 @@ def sanitise(mapping):
             "HOME": "/usr/people/me",
             "PLUGIN": "/usr/people/me/.app:/path/to/somewhere"
         }
+
+    :param mapping: Environment mapping to sanitize.
+
+    :return: Sanitized environment mapping.
 
     """
     _mapping = {}
@@ -70,16 +74,18 @@ def sanitise(mapping):
 def contains(text, name):
     """Indicate whether *text* contains a reference to variable *name*.
 
-    *text* is a string which can contain environment variable
-    (e.g. "${PATH}/to/somewhere")
-
-    *name* is the name of an environment variable (e.g. "PATH")
-
     Example::
 
         >>> contains("${HOME}/path/to/data", "HOME")
 
         True
+
+    :param text: String which can contain environment variable
+        (e.g. "${PATH}/to/somewhere").
+
+    :param name: Name of an environment variable (e.g. "PATH").
+
+    :return: Boolean value.
 
     """
     return name in itertools.chain(*ENV_PATTERN.findall(text))
@@ -88,17 +94,19 @@ def contains(text, name):
 def substitute(text, environment):
     """Substitute all environment variables in *text* from *environment*.
 
-    *text* is a string which can contain environment variable
-    (e.g. "${PATH}/to/somewhere")
-
-    *environment* is a mapping of environment variables with their respective
-    values.
-
     Example::
 
         >>> substitute("${HOME}/path/to/data", {"HOME": "/usr/people/john-doe"})
 
         /usr/people/john-doe/path/to/data
+
+    :param text: String which can contain environment variable
+        (e.g. "${PATH}/to/somewhere").
+
+    :param environment: Mapping of environment variables with their respective
+        values.
+
+    :return: Resolved text string.
 
     """
 
