@@ -26,6 +26,19 @@ Release Notes
         Previously, it would sometimes fail to update minimal and maximum
         versions of the range in particular conditions.
 
+    .. change:: changed
+
+        Renamed following functions to use American spelling for consistency:
+
+        * :func:`wiz.environ.sanitise` → :func:`wiz.environ.sanitize`
+        * :func:`wiz.filesystem.sanitise_value` →
+          :func:`wiz.filesystem.sanitize_value`
+
+    .. change:: changed
+
+        Updated all docstrings to use `Sphinx format
+        <https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html#the-sphinx-docstring-format>`_.
+
 .. release:: 3.0.0
     :date: 2020-08-05
 
