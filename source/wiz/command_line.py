@@ -6,6 +6,7 @@ import collections
 import datetime
 import os
 import time
+import textwrap
 try:
     # Python 3
     from itertools import zip_longest
@@ -74,34 +75,34 @@ class _MainGroup(click.Group):
 @click.group(
     context_settings=CONTEXT_SETTINGS,
     cls=_MainGroup,
-    help=(
+    help=textwrap.dedent(
         """
         Wiz is an environment management framework which resolves an environment
         context or executes a command from one or several package requests.
 
-        Example::
+        Example:
 
-            \b
-            wiz use "app==2.*" my-plugin -- AppExe /path/to/script
+        \b
+        >>> wiz use "app==2.*" my-plugin -- AppExe /path/to/script
 
         A command can also be executed from a resolved context via a command
         alias which is extracted from its corresponding package.
 
-        Example::
+        Example:
 
-            \b
-            wiz run python
+        \b
+        >>> wiz run python
 
-        All available packages and command can be listed as follow::
+        All available packages and command can be listed as follow:
 
-            \b
-            wiz list package
-            wiz list command
+        \b
+        >>> wiz list package
+        >>> wiz list command
 
-        It is also possible to search a specific package or command as follow::
+        It is also possible to search a specific package or command as follow:
 
-            \b
-            wiz search python
+        \b
+        >>> wiz search python
 
         """
     ),
@@ -249,17 +250,17 @@ def main(click_context, **kwargs):
 
 @main.group(
     name="list",
-    help=(
+    help=textwrap.dedent(
         """
         Display all available commands or package definitions.
 
-        Example::
+        Example:
 
-            \b
-            wiz list command
-            wiz list package
-            wiz list command --all
-            wiz list package --all
+        \b
+        >>> wiz list command
+        >>> wiz list package
+        >>> wiz list command --all
+        >>> wiz list package --all
 
         """
     ),
@@ -275,15 +276,15 @@ def wiz_list_group(click_context):
 
 @wiz_list_group.command(
     name="package",
-    help=(
+    help=textwrap.dedent(
         """
         Display all available package definitions.
 
-        Example::
+        Example:
 
-            \b
-            wiz list package
-            wiz list package --all
+        \b
+        >>> wiz list package
+        >>> wiz list package --all
 
         """
     ),
@@ -338,15 +339,15 @@ def wiz_list_package(click_context, **kwargs):
 
 @wiz_list_group.command(
     name="command",
-    help=(
+    help=textwrap.dedent(
         """
         Display all available commands.
 
-        Example::
+        Example:
 
-            \b
-            wiz list command
-            wiz list command --all
+        \b
+        >>> wiz list command
+        >>> wiz list command --all
 
         """
     ),
@@ -407,17 +408,17 @@ def wiz_list_command(click_context, **kwargs):
 
 @main.command(
     name="search",
-    help=(
+    help=textwrap.dedent(
         """
         Search and display definitions from a list of filters.
 
-        Example::
+        Example:
 
-            \b
-            wiz search foo
-            wiz search foo --all
-            wiz search foo --no-arch
-            wiz search foo bar
+        \b
+        >>> wiz search foo
+        >>> wiz search foo --all
+        >>> wiz search foo --no-arch
+        >>> wiz search foo bar
 
         """
     ),
@@ -523,16 +524,16 @@ def wiz_search(click_context, **kwargs):
 
 @main.command(
     name="view",
-    help=(
+    help=textwrap.dedent(
         """
         Display content of a package definition from definition identifier or
         command.
 
-        Example::
+        Example:
 
-            \b
-            wiz view foo
-            wiz view foo --json
+        \b
+        >>> wiz view foo
+        >>> wiz view foo --json
 
         """
     ),
@@ -616,17 +617,17 @@ def wiz_view(click_context, **kwargs):
 
 @main.command(
     name="use",
-    help=(
+    help=textwrap.dedent(
         """
         Spawn shell with resolved context from requested packages, or run
         a command within the resolved context.
 
-        Example::
+        Example:
 
-            \b
-            wiz use package1>=1 package2==2.3.0 package3
-            wiz use package1>=1 package2==2.3.0 package3 -- app --option value
-            wiz use --view command
+        \b
+        >>> wiz use package1>=1 package2==2.3.0 package3
+        >>> wiz use package1>=1 package2==2.3.0 package3 -- app --option value
+        >>> wiz use --view command
 
         """
     ),
@@ -699,15 +700,15 @@ def wiz_use(click_context, **kwargs):
 
 @main.command(
     "run",
-    help=(
+    help=textwrap.dedent(
         """
         Run command from resolved context.
 
-        Example::
+        Example:
 
-            \b
-            wiz run command
-            wiz run command -- --option value /path/to/output
+        \b
+        >>> wiz run command
+        >>> wiz run command -- --option value /path/to/output
 
         """
     ),
@@ -782,16 +783,17 @@ def wiz_run(click_context, **kwargs):
 
 @main.command(
     "freeze",
-    help=(
+    help=textwrap.dedent(
         """
         Export resolved context into a package definition or a script.
 
-        Example::
+        Example:
 
-            \b
-            wiz freeze foo>=1 bar==2.3.0 baz -o /tmp
-            wiz freeze --format bash foo>=1 bar==2.3.0 baz -o /tmp
-            wiz freeze --format tcsh foo>=1 bar==2.3.0 baz -o /tmp
+        \b
+        >>> wiz freeze foo>=1 bar==2.3.0 baz -o /tmp
+        >>> wiz freeze --format bash foo>=1 bar==2.3.0 baz -o /tmp
+        >>> wiz freeze --format tcsh foo>=1 bar==2.3.0 baz -o /tmp
+
         """
     ),
     short_help="Export resolved context.",
@@ -891,15 +893,15 @@ def wiz_freeze(click_context, **kwargs):
 
 @main.command(
     "install",
-    help=(
+    help=textwrap.dedent(
         """
         Install a package definition to a registry.
 
-        Example::
+        Example:
 
-            \b
-            wiz install /path/to/foo.json --registry /path/to/registry
-            wiz install /all/definitions/* --registry /path/to/registry
+        \b
+        >>> wiz install /path/to/foo.json --registry /path/to/registry
+        >>> wiz install /all/definitions/* --registry /path/to/registry
 
         """
     ),
@@ -980,7 +982,7 @@ def wiz_install(click_context, **kwargs):
 
 @main.command(
     "edit",
-    help=(
+    help=textwrap.dedent(
         """
         Edit one or several definitions with default editor or with operation
         option(s).
@@ -991,14 +993,14 @@ def wiz_install(click_context, **kwargs):
 
         The edited definition(s) will be validated before export.
 
-        Example::
+        Example:
 
-            \b
-            wiz edit foo.json
-            wiz edit foo.json --output /tmp/target
-            wiz edit foo.json --set install-location --value /path/data
-            wiz edit foo.json --update environ --value '{"KEY": "VALUE"}'
-            wiz edit * --extend requirements --value "bar > 0.1.0"
+        \b
+        >>> wiz edit foo.json
+        >>> wiz edit foo.json --output /tmp/target
+        >>> wiz edit foo.json --set install-location --value /path/data
+        >>> wiz edit foo.json --update environ --value '{"KEY": "VALUE"}'
+        >>> wiz edit * --extend requirements --value "bar > 0.1.0"
 
         """
     ),
@@ -1158,19 +1160,19 @@ def wiz_edit(click_context, **kwargs):
 
 @main.command(
     "analyze",
-    help=(
+    help=textwrap.dedent(
         """
         Analyze reachable definitions and display corresponding errors and
         warnings. A filter can be set to target specific definitions.
 
-        Example::
+        Example:
 
-            \b
-            wiz analyze
-            wiz analyze --verbose
-            wiz analyze -f "foo"
-            wiz -r /path/to/registry analyze
-            wiz -add /path/to/additional/registry analyze
+        \b
+        >>> wiz analyze
+        >>> wiz analyze --verbose
+        >>> wiz analyze -f "foo"
+        >>> wiz -r /path/to/registry analyze
+        >>> wiz -add /path/to/additional/registry analyze
 
         """
     ),
