@@ -1,5 +1,7 @@
 # :coding: utf-8
 
+import re
+
 import pytest
 import six
 
@@ -16,7 +18,6 @@ def test_minimal_definition():
                 six.text_type("identifier")
             ),
             "path": "/",
-            "schema_path": "/required/0"
         }
     ]
 
@@ -27,22 +28,20 @@ def test_unexpected_property():
 
     assert sorted(
         list(wiz.validator.yield_definition_errors(data)),
-        key=lambda error: error["schema_path"]
+        key=lambda error: re.sub(r"[^\w]", "", error["message"])[1:]
     ) == [
         {
             "message": (
                 "Additional properties are not allowed ('other' was unexpected)"
             ),
             "path": "/",
-            "schema_path": "/additionalProperties"
         },
         {
             "message": "{!r} is a required property".format(
                 six.text_type("identifier")
             ),
             "path": "/",
-            "schema_path": "/required/0"
-        }
+        },
     ]
 
 
@@ -67,7 +66,6 @@ def test_incorrect_identifier_type(value):
                 value, six.text_type("string")
             ),
             "path": "/identifier",
-            "schema_path": "/properties/identifier/type"
         }
     ]
 
@@ -116,7 +114,6 @@ def test_incorrect_version_type(value):
                 "{!r} is not valid under any of the given schemas".format(value)
             ),
             "path": "/version",
-            "schema_path": "/properties/version/anyOf"
         }
     ]
 
@@ -154,7 +151,6 @@ def test_incorrect_description_type(value):
                 value, six.text_type("string")
             ),
             "path": "/description",
-            "schema_path": "/properties/description/type"
         }
     ]
 
@@ -192,7 +188,6 @@ def test_incorrect_disabled_type(value):
                 value, six.text_type("boolean")
             ),
             "path": "/disabled",
-            "schema_path": "/properties/disabled/type"
         }
     ]
 
@@ -230,7 +225,6 @@ def test_incorrect_definition_location_type(value):
                 value, six.text_type("string")
             ),
             "path": "/definition-location",
-            "schema_path": "/properties/definition-location/type"
         }
     ]
 
@@ -268,7 +262,6 @@ def test_incorrect_registry_type(value):
                 value, six.text_type("string")
             ),
             "path": "/registry",
-            "schema_path": "/properties/registry/type"
         }
     ]
 
@@ -310,7 +303,6 @@ def test_incorrect_system_type(value):
                 value, six.text_type("object")
             ),
             "path": "/system",
-            "schema_path": "/properties/system/type"
         }
     ]
 
@@ -330,7 +322,6 @@ def test_incorrect_unexpected_system_property():
                 "Additional properties are not allowed ('key' was unexpected)"
             ),
             "path": "/system",
-            "schema_path": "/properties/system/additionalProperties"
         }
     ]
 
@@ -355,21 +346,18 @@ def test_incorrect_system_values():
                 six.text_type("string")
             ),
             "path": "/system/arch",
-            "schema_path": "/properties/system/properties/arch/type"
         },
         {
             "message": "False is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/system/os",
-            "schema_path": "/properties/system/properties/os/type"
         },
         {
             "message": "42 is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/system/platform",
-            "schema_path": "/properties/system/properties/platform/type"
         }
     ]
 
@@ -385,7 +373,6 @@ def test_system_empty():
         {
             "message": "{} does not have enough properties",
             "path": "/system",
-            "schema_path": "/properties/system/minProperties"
         }
     ]
 
@@ -427,7 +414,6 @@ def test_incorrect_environ_type(value):
                 value, six.text_type("object")
             ),
             "path": "/environ",
-            "schema_path": "/properties/environ/type"
         }
     ]
 
@@ -452,28 +438,24 @@ def test_incorrect_environ_value_type():
                 six.text_type("string")
             ),
             "path": "/environ/KEY1",
-            "schema_path": "/properties/environ/additionalProperties/type"
         },
         {
             "message": "True is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/environ/KEY2",
-            "schema_path": "/properties/environ/additionalProperties/type"
         },
         {
             "message": "{{'env1': 'something'}} is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/environ/KEY3",
-            "schema_path": "/properties/environ/additionalProperties/type"
         },
         {
             "message": "['env1', 'env2'] is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/environ/KEY4",
-            "schema_path": "/properties/environ/additionalProperties/type"
         }
     ]
 
@@ -489,7 +471,6 @@ def test_environ_empty():
         {
             "message": "{} does not have enough properties",
             "path": "/environ",
-            "schema_path": "/properties/environ/minProperties"
         }
     ]
 
@@ -530,7 +511,6 @@ def test_incorrect_command_type(value):
                 value, six.text_type("object")
             ),
             "path": "/command",
-            "schema_path": "/properties/command/type"
         }
     ]
 
@@ -555,28 +535,24 @@ def test_incorrect_command_value_type():
                 six.text_type("string")
             ),
             "path": "/command/app1",
-            "schema_path": "/properties/command/additionalProperties/type"
         },
         {
             "message": "True is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/command/app2",
-            "schema_path": "/properties/command/additionalProperties/type"
         },
         {
             "message": "{{'app': 'something'}} is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/command/app3",
-            "schema_path": "/properties/command/additionalProperties/type"
         },
         {
             "message": "['app1', 'app2'] is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/command/app4",
-            "schema_path": "/properties/command/additionalProperties/type"
         }
     ]
 
@@ -592,7 +568,6 @@ def test_command_empty():
         {
             "message": "{} does not have enough properties",
             "path": "/command",
-            "schema_path": "/properties/command/minProperties"
         }
     ]
 
@@ -634,7 +609,6 @@ def test_incorrect_requirements_type(value):
                 value, six.text_type("array")
             ),
             "path": "/requirements",
-            "schema_path": "/properties/requirements/type"
         }
     ]
 
@@ -655,12 +629,10 @@ def test_incorrect_requirement_item_type():
         {
             "message": "42 is not valid under any of the given schemas",
             "path": "/requirements/0",
-            "schema_path": "/properties/requirements/items/anyOf"
         },
         {
             "message": "True is not valid under any of the given schemas",
             "path": "/requirements/1",
-            "schema_path": "/properties/requirements/items/anyOf"
         },
         {
             "message": (
@@ -668,7 +640,6 @@ def test_incorrect_requirement_item_type():
                 "given schemas"
             ),
             "path": "/requirements/2",
-            "schema_path": "/properties/requirements/items/anyOf"
         },
         {
             "message": (
@@ -676,7 +647,6 @@ def test_incorrect_requirement_item_type():
                 "given schemas"
             ),
             "path": "/requirements/3",
-            "schema_path": "/properties/requirements/items/anyOf"
         },
     ]
 
@@ -692,7 +662,6 @@ def test_requirements_empty():
         {
             "message": "[] is too short",
             "path": "/requirements",
-            "schema_path": "/properties/requirements/minItems"
         }
     ]
 
@@ -758,7 +727,6 @@ def test_incorrect_variants_type(value):
                 value, six.text_type("array")
             ),
             "path": "/variants",
-            "schema_path": "/properties/variants/type"
         }
     ]
 
@@ -779,28 +747,24 @@ def test_incorrect_variant_item_type():
         {
             "message": "42 is not of type {!r}".format(six.text_type("object")),
             "path": "/variants/0",
-            "schema_path": "/properties/variants/items/type"
         },
         {
             "message": "True is not of type {!r}".format(
                 six.text_type("object")
             ),
             "path": "/variants/1",
-            "schema_path": "/properties/variants/items/type"
         },
         {
             "message": "'a-variant' is not of type {!r}".format(
                 six.text_type("object")
             ),
             "path": "/variants/2",
-            "schema_path": "/properties/variants/items/type"
         },
         {
             "message": "['variant1', 'variant2'] is not of type {!r}".format(
                 six.text_type("object")
             ),
             "path": "/variants/3",
-            "schema_path": "/properties/variants/items/type"
         },
     ]
 
@@ -820,7 +784,6 @@ def test_incorrect_minimal_variant():
                 six.text_type("identifier")
             ),
             "path": "/variants/0",
-            "schema_path": "/properties/variants/items/required/0"
         }
     ]
 
@@ -836,22 +799,20 @@ def test_unexpected_variant_property():
 
     assert sorted(
         list(wiz.validator.yield_definition_errors(data)),
-        key=lambda error: error["schema_path"]
+        key=lambda error: re.sub(r"[^\w]", "", error["message"])[1:]
     ) == [
         {
             "message": (
                 "Additional properties are not allowed ('other' was unexpected)"
             ),
             "path": "/variants/0",
-            "schema_path": "/properties/variants/items/additionalProperties"
         },
         {
             "message": "{!r} is a required property".format(
                 six.text_type("identifier")
             ),
             "path": "/variants/0",
-            "schema_path": "/properties/variants/items/required/0"
-        }
+        },
     ]
 
 
@@ -866,7 +827,6 @@ def test_variants_empty():
         {
             "message": "[] is too short",
             "path": "/variants",
-            "schema_path": "/properties/variants/minItems"
         }
     ]
 
@@ -897,9 +857,6 @@ def test_incorrect_variant_identifier_type(value):
                 value, six.text_type("string")
             ),
             "path": "/variants/0/identifier",
-            "schema_path": (
-                "/properties/variants/items/properties/identifier/type"
-            )
         }
     ]
 
@@ -933,9 +890,6 @@ def test_incorrect_variant_command_type(value):
                 value, six.text_type("object")
             ),
             "path": "/variants/0/command",
-            "schema_path": (
-                "/properties/variants/items/properties/command/type"
-            )
         }
     ]
 
@@ -964,40 +918,24 @@ def test_incorrect_variant_command_value_type():
         {
             "message": "42 is not of type {!r}".format(six.text_type("string")),
             "path": "/variants/0/command/app1",
-            "schema_path": (
-                "/properties/variants/items/properties/command/"
-                "additionalProperties/type"
-            )
         },
         {
             "message": "True is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/variants/0/command/app2",
-            "schema_path": (
-                "/properties/variants/items/properties/command/"
-                "additionalProperties/type"
-            )
         },
         {
             "message": "{{'app': 'something'}} is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/variants/0/command/app3",
-            "schema_path": (
-                "/properties/variants/items/properties/command/"
-                "additionalProperties/type"
-            )
         },
         {
             "message": "['app1', 'app2'] is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/variants/0/command/app4",
-            "schema_path": (
-                "/properties/variants/items/properties/command/"
-                "additionalProperties/type"
-            )
         }
     ]
 
@@ -1018,9 +956,6 @@ def test_variant_command_empty():
         {
             "message": "{} does not have enough properties",
             "path": "/variants/0/command",
-            "schema_path": (
-                "/properties/variants/items/properties/command/minProperties"
-            )
         }
     ]
 
@@ -1054,7 +989,6 @@ def test_incorrect_variant_environ_type(value):
                 value, six.text_type("object")
             ),
             "path": "/variants/0/environ",
-            "schema_path": "/properties/variants/items/properties/environ/type"
         }
     ]
 
@@ -1083,40 +1017,24 @@ def test_incorrect_variant_environ_value_type():
         {
             "message": "42 is not of type {!r}".format(six.text_type("string")),
             "path": "/variants/0/environ/KEY1",
-            "schema_path": (
-                "/properties/variants/items/properties/environ/"
-                "additionalProperties/type"
-            )
         },
         {
             "message": "True is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/variants/0/environ/KEY2",
-            "schema_path": (
-                "/properties/variants/items/properties/environ/"
-                "additionalProperties/type"
-            )
         },
         {
             "message": "{{'env1': 'something'}} is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/variants/0/environ/KEY3",
-            "schema_path": (
-                "/properties/variants/items/properties/environ/"
-                "additionalProperties/type"
-            )
         },
         {
             "message": "['env1', 'env2'] is not of type {!r}".format(
                 six.text_type("string")
             ),
             "path": "/variants/0/environ/KEY4",
-            "schema_path": (
-                "/properties/variants/items/properties/environ/"
-                "additionalProperties/type"
-            )
         }
     ]
 
@@ -1137,9 +1055,6 @@ def test_variant_environ_empty():
         {
             "message": "{} does not have enough properties",
             "path": "/variants/0/environ",
-            "schema_path": (
-                "/properties/variants/items/properties/environ/minProperties"
-            )
         }
     ]
 
@@ -1173,9 +1088,6 @@ def test_incorrect_variant_requirements_type(value):
                 value, six.text_type("array")
             ),
             "path": "/variants/0/requirements",
-            "schema_path": (
-                "/properties/variants/items/properties/requirements/type"
-            )
         }
     ]
 
@@ -1201,16 +1113,10 @@ def test_incorrect_variant_requirement_item_type():
         {
             "message": "42 is not valid under any of the given schemas",
             "path": "/variants/0/requirements/0",
-            "schema_path": (
-                "/properties/variants/items/properties/requirements/items/anyOf"
-            )
         },
         {
             "message": "True is not valid under any of the given schemas",
             "path": "/variants/0/requirements/1",
-            "schema_path": (
-                "/properties/variants/items/properties/requirements/items/anyOf"
-            )
         },
         {
             "message": (
@@ -1218,9 +1124,6 @@ def test_incorrect_variant_requirement_item_type():
                 "given schemas"
             ),
             "path": "/variants/0/requirements/2",
-            "schema_path": (
-                "/properties/variants/items/properties/requirements/items/anyOf"
-            )
         },
         {
             "message": (
@@ -1228,9 +1131,6 @@ def test_incorrect_variant_requirement_item_type():
                 "given schemas"
             ),
             "path": "/variants/0/requirements/3",
-            "schema_path": (
-                "/properties/variants/items/properties/requirements/items/anyOf"
-            )
         },
     ]
 
@@ -1251,8 +1151,5 @@ def test_variant_requirements_empty():
         {
             "message": "[] is too short",
             "path": "/variants/0/requirements",
-            "schema_path": (
-                "/properties/variants/items/properties/requirements/minItems"
-            )
         }
     ]
