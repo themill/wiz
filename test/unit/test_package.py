@@ -233,15 +233,15 @@ def mocked_combine_command(mocker):
 
 
 @pytest.fixture()
-def mocked_environ_sanitise(mocker):
-    """Return mocked 'wiz.environ.sanitise' function."""
+def mocked_environ_sanitize(mocker):
+    """Return mocked 'wiz.environ.sanitize' function."""
     return mocker.patch.object(
-        wiz.environ, "sanitise", return_value={"CLEAN_KEY": "CLEAN_VALUE"}
+        wiz.environ, "sanitize", return_value={"CLEAN_KEY": "CLEAN_VALUE"}
     )
 
 
 def test_extract_context_without_packages(
-    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitise
+    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitize
 ):
     """Extract context with no packages."""
     assert wiz.package.extract_context([]) == {
@@ -249,11 +249,11 @@ def test_extract_context_without_packages(
     }
     mocked_combine_environ.assert_not_called()
     mocked_combine_command.assert_not_called()
-    mocked_environ_sanitise.assert_called_once_with({})
+    mocked_environ_sanitize.assert_called_once_with({})
 
 
 def test_extract_context_with_empty_package(
-    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitise
+    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitize
 ):
     """Extract context with package without environ nor command."""
     definition = wiz.definition.Definition({"identifier": "test"})
@@ -264,11 +264,11 @@ def test_extract_context_with_empty_package(
     }
     mocked_combine_environ.assert_called_once_with("test", {}, {})
     mocked_combine_command.assert_called_once_with("test", {}, {})
-    mocked_environ_sanitise.assert_called_once_with({"KEY": "VALUE"})
+    mocked_environ_sanitize.assert_called_once_with({"KEY": "VALUE"})
 
 
 def test_extract_context_with_one_package(
-    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitise
+    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitize
 ):
     """Extract context with one package."""
     definition = wiz.definition.Definition({
@@ -287,11 +287,11 @@ def test_extract_context_with_one_package(
     mocked_combine_command.assert_called_once_with(
         "test", {}, {"app": "App"}
     )
-    mocked_environ_sanitise.assert_called_once_with({"KEY": "VALUE"})
+    mocked_environ_sanitize.assert_called_once_with({"KEY": "VALUE"})
 
 
 def test_extract_context_with_six_package(
-    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitise
+    mocked_combine_environ, mocked_combine_command, mocked_environ_sanitize
 ):
     """Extract context with five packages."""
     definitions = [
@@ -378,11 +378,11 @@ def test_extract_context_with_six_package(
         "test6==30.5", {"APP": "APP_EXE"}, {"app1": "AppX"}
     )
 
-    mocked_environ_sanitise.assert_called_once_with({"KEY": "VALUE"})
+    mocked_environ_sanitize.assert_called_once_with({"KEY": "VALUE"})
 
 
 @pytest.mark.usefixtures("mocked_combine_command")
-@pytest.mark.usefixtures("mocked_environ_sanitise")
+@pytest.mark.usefixtures("mocked_environ_sanitize")
 def test_extract_context_with_initial_data(mocked_combine_environ):
     """Return extracted context with initial environ mapping."""
     definitions = [

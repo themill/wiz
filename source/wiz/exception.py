@@ -11,12 +11,13 @@ class WizError(Exception):
     default_message = "Unspecified Wiz error occurred."
 
     def __init__(self, message=None, details=None):
-        """Initialise with *message* and optional *details*.
+        """Initialize with *message* and optional *details*.
 
-        Use :attr:`default_message` if *message* not specified.
+        :param message: Message to display instead of :attr:`default_message`.
+            Default is None.
 
-        *details* should be a mapping of additional contextual information. Its
-        contents may be referenced in the message.
+        :param details: Mapping of additional contextual information. Its
+            contents may be referenced in the message. Default is None.
 
         """
         self.message = message or self.default_message
@@ -47,7 +48,7 @@ class UnsupportedPlatform(WizError):
     default_message = "The current platform is not supported: {platform}"
 
     def __init__(self, platform):
-        """Initialise with *platform*."""
+        """Initialize with *platform*."""
         super(UnsupportedPlatform, self).__init__(
             details={"platform": platform}
         )
@@ -65,15 +66,14 @@ class RequestNotFound(WizError):
     default_message = "The requirement could not be resolved."
 
     def __init__(self, message=None, details=None):
-        """Initialise with *message* and optional *details*.
+        """Initialize with *message* and optional *details*.
 
-        Use :attr:`default_message` if *message* not specified.
+        :param message: Message to display instead of :attr:`default_message`,
+            or instance of :class:`packaging.requirements.Requirement`. Default
+            is None.
 
-        Alternatively, *message* may be an instance of
-        :class:`packaging.requirements.Requirement`.
-
-        *details* should be a mapping of additional contextual information. Its
-        contents may be referenced in the message.
+        :param details: Mapping of additional contextual information. Its
+            contents may be referenced in the message. Default is None.
 
         """
         if isinstance(message, packaging.requirements.Requirement):
@@ -94,30 +94,31 @@ class GraphResolutionError(WizError):
     default_message = "The environment graph could not be resolved."
 
     def __init__(self, message=None, details=None, conflicts=None):
-        """Initialise with *message* and optional *details*.
+        """Initialize with *message* and optional *details*.
 
-        Use :attr:`default_message` if *message* not specified.
+        :param message: Message to display instead of :attr:`default_message`.
+            Default is None.
 
-        *details* should be a mapping of additional contextual information. Its
-        contents may be referenced in the message.
+        :param details: Mapping of additional contextual information. Its
+            contents may be referenced in the message. Default is None.
 
-        *conflicts* could be a list of conflicting requirement mapping with
-        corresponding parent identifiers which should be in the form of::
+        :param conflicts: None or List of conflicting requirement mappings with
+            corresponding parent identifiers which should be in the form of::
 
-            [
-                {
-                    "requirement": Requirement("foo >=0.1.0, <1"),
-                    "identifiers": {"bar", "bim"},
-                    "conflicts": {"baz"},
-                    "graph": Graph()
-                },
-                {
-                    "requirement": Requirement("foo >2"),
-                    "identifiers": {"baz"},
-                    "conflicts": {"bar", "bim"},
-                    "graph": Graph()
-                }
-            ]
+                [
+                    {
+                        "requirement": Requirement("foo >=0.1.0, <1"),
+                        "identifiers": {"bar", "bim"},
+                        "conflicts": {"baz"},
+                        "graph": Graph()
+                    },
+                    {
+                        "requirement": Requirement("foo >2"),
+                        "identifiers": {"baz"},
+                        "conflicts": {"bar", "bim"},
+                        "graph": Graph()
+                    }
+                ]
 
         """
         super(GraphResolutionError, self).__init__(
@@ -152,16 +153,17 @@ class DefinitionsExist(WizError):
     default_message = "Definitions already exist."
 
     def __init__(self, definition_labels):
-        """Initialise with list of existing *definitions*.
+        """Initialize with list of existing *definitions*.
 
-        *definition_labels* should be in the form of::
+        :param definition_labels: List in the form of
+            ::
 
-            [
-                "foo",
-                "bar 0.1.0",
-                "baz [linux : el =! 7]",
-                "baz [linux : el >= 6, < 7]"
-            ]
+                [
+                    "foo",
+                    "bar 0.1.0",
+                    "baz [linux : el =! 7]",
+                    "baz [linux : el >= 6, < 7]"
+                ]
 
         """
         self.definitions = definition_labels

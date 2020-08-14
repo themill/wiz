@@ -20,10 +20,14 @@ import wiz.symbol
 def shell(environment, command=None):
     """Spawn a sub-shell with an *environment* mapping.
 
-    Default shell is Bash.
+    :param environment: Environment mapping to spawn the shell with.
 
-    *command* is a mapping of command aliases which should be available in the
-    shell.
+    :param command: Mapping of command aliases which should be available in the
+        shell.
+
+    .. note::
+
+        Default shell is :term:`Bash`.
 
     """
     logger = wiz.logging.Logger(__name__ + ".shell")
@@ -87,7 +91,14 @@ def shell(environment, command=None):
 
 
 def execute(elements, environment):
-    """Run command *elements* within a specific *environment*."""
+    """Run command *elements* within a specific *environment*.
+
+    :param elements: List of strings constituting the command line to execute
+        (e.g. ["app_exe", "--option", "value"])
+
+    :param environment: Environment mapping to execute command with.
+
+    """
     logger = wiz.logging.Logger(__name__ + ".shell")
     logger.info(
         "Start command: {}".format(wiz.utility.combine_command(elements))

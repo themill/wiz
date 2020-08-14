@@ -20,14 +20,16 @@ def extract(requirement, definition_mapping, namespace_counter=None):
     If this definition contains variants, a :class:`Package` instance will be
     returned for each combined variant.
 
-    *requirement* is an instance of :class:`packaging.requirements.Requirement`.
+    :param requirement: Instance of :class:`packaging.requirements.Requirement`.
 
-    *definition_mapping* is a mapping regrouping all available definitions
-    associated with their unique identifier.
+    :param definition_mapping: Mapping regrouping all available definitions
+        associated with their unique identifier.
 
-    *namespace_counter* is an optional :class:`collections.Counter` instance
-    which indicate occurrence of namespaces used as hints for package
-    identification.
+    :param namespace_counter: instance of :class:`collections.Counter`
+        which indicates occurrence of namespaces used as hints for package
+        identification. Default is None.
+
+    :return: List of :class:`Package` instances.
 
     """
     definition = wiz.definition.query(
@@ -56,7 +58,7 @@ def extract(requirement, definition_mapping, namespace_counter=None):
 def extract_context(packages, environ_mapping=None):
     """Return combined mapping extracted from *packages*.
 
-    A context mapping should look as follow::
+    Example::
 
         >>> extract_context(packages)
         {
@@ -71,12 +73,14 @@ def extract_context(packages, environ_mapping=None):
             },
         }
 
-    *packages* should be a list of :class:`Package` instances. it should be
-    ordered from the less important to the most important so that the later are
-    prioritized over the first.
+    :param packages: List of :class:`Package` instances. it should be ordered
+        from the less important to the most important so that the later are
+        prioritized over the first.
 
-    *environ_mapping* can be a mapping of environment variables which would
-    be augmented.
+    :param environ_mapping: Mapping of environment variables which would
+        be augmented. Default is None.
+
+    :return: Context mapping.
 
     """
 
@@ -96,7 +100,7 @@ def extract_context(packages, environ_mapping=None):
     mapping = functools.reduce(
         _combine, packages, dict(environ=environ_mapping or {})
     )
-    mapping["environ"] = wiz.environ.sanitise(mapping.get("environ", {}))
+    mapping["environ"] = wiz.environ.sanitize(mapping.get("environ", {}))
 
     wiz.history.record_action(
         wiz.symbol.CONTEXT_EXTRACTION_ACTION,
@@ -107,12 +111,6 @@ def extract_context(packages, environ_mapping=None):
 
 def combine_environ_mapping(package_identifier, mapping1, mapping2):
     """Return combined environ mapping from *mapping1* and *mapping2*.
-
-    *package_identifier* must be the identifier of the combined package. It will
-    be used to indicate whether any variable is overridden in the combination
-    process.
-
-    *mapping1* and *mapping2* must be mappings of environment variables.
 
     Each variable name from both mappings will be combined into a final value.
     If a variable is only contained in one of the mapping, its value will be
@@ -156,6 +154,16 @@ def combine_environ_mapping(package_identifier, mapping1, mapping2):
             "PLUGIN": "/usr/people/me/.app:/path/to/settings"
         }
 
+    :param package_identifier: Identifier of the combined package. It will
+        be used to indicate whether any variable is overridden in the
+        combination process.
+
+    :param mapping1: Mapping containing environment variables.
+
+    :param mapping2: Mapping containing environment variables.
+
+    :return: Combined environment mapping.
+
     .. warning::
 
         This process will stringify all variable values.
@@ -189,12 +197,6 @@ def combine_environ_mapping(package_identifier, mapping1, mapping2):
 def combine_command_mapping(package_identifier, mapping1, mapping2):
     """Return combined command mapping from *package1* and *package2*.
 
-    *package_identifier* must be the identifier of the combined package. It will
-    be used to indicate whether any variable is overridden in the combination
-    process.
-
-    *mapping1* and *mapping2* must be mappings of commands.
-
     If the command exists in both mappings, the value from *mapping2* will have
     priority over elements from *mapping1*::
 
@@ -205,6 +207,16 @@ def combine_command_mapping(package_identifier, mapping1, mapping2):
         ... )
 
         {"app": "App2.1"}
+
+    :param package_identifier: Identifier of the combined package. It will
+        be used to indicate whether any variable is overridden in the
+        combination process.
+
+    :param mapping1: Mapping containing command aliased.
+
+    :param mapping2: Mapping containing command aliased.
+
+    :return: Combined command alias mapping.
 
     """
     logger = wiz.logging.Logger(__name__ + ".combine_command_mapping")
@@ -233,17 +245,20 @@ def combine_command_mapping(package_identifier, mapping1, mapping2):
 def create(definition, variant_identifier=None):
     """Create and return a package from *definition*.
 
-    *definition* must be a valid :class:`~wiz.definition.Definition` instance.
+    :param definition: Instance of :class:`wiz.definition.Definition`.
 
-    *variant_identifier* could be a valid variant identifier.
+    :param variant_identifier: Unique identifier of variant in *definition* to
+        create package from.
+
+    :return: Instance of :class:`Package`.
+
+    :raise: :exc:`wiz.exception.RequestNotFound` if *variant_identifier* is not
+        a valid variant identifier of *definition*.
 
     .. note::
 
         In case of conflicted elements in 'data' or 'command' elements, the
         elements from the variant will have priority.
-
-    Raise :exc:`wiz.exception.RequestNotFound` if *variant_identifier* is not a
-    valid variant identifier of *definition*.
 
     """
     mapping = definition.to_dict()
@@ -310,7 +325,7 @@ class Package(wiz.mapping.Mapping):
     """Package object."""
 
     def __init__(self, *args, **kwargs):
-        """Initialise package."""
+        """Initialize package."""
         super(Package, self).__init__(*args, **kwargs)
 
     @property

@@ -1252,16 +1252,6 @@ def display_definition_analysis(
 ):
     """Analyze *definition* and display results.
 
-    *definition* should be a :class:`wiz.definition.Definition` instance.
-
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
-    If no definition mapping is provided, a sensible one will be fetched from
-    :func:`default registries <wiz.registry.get_defaults>`.
-
-    *verbose* indicate whether time duration and history information should be
-    added to analysis.
-
     Example::
 
         >>> display_definition_analysis(definition)
@@ -1296,6 +1286,16 @@ def display_definition_analysis(
         * IDENTIFY_VERSION_CONFLICTS: 1
         * RESOLUTION_ERROR: 10
         * REPLACE_NODES: 3
+
+    :param definition: Instance of :class:`wiz.definition.Definition`.
+
+    :param definition_mapping: Mapping regrouping all available definitions. It
+        could be fetched with :func:`wiz.fetch_definition_mapping`. If no
+        definition mapping is provided, a default one will be fetched from
+        :func:`default registries <wiz.registry.get_defaults>`.
+
+    :param verbose: Indicate whether time duration and history information
+        should be added to analysis.
 
     """
     if definition_mapping is None:
@@ -1358,6 +1358,8 @@ def display_registries(paths):
         [0] /path/to/registry-1
         [1] /path/to/registry-2
 
+    :param paths: List of registry paths.
+
     """
     columns = _create_columns(["Registries"])
 
@@ -1373,8 +1375,6 @@ def display_registries(paths):
 
 def display_definition(definition):
     """Display *definition*.
-
-    *definition* should be a :class:`wiz.definition.Definition` instance.
 
     Example::
 
@@ -1394,6 +1394,8 @@ def display_definition(definition):
         environ:
             PATH: ${INSTALL_LOCATION}/bin:${PATH}
             LD_LIBRARY_PATH: ${INSTALL_LOCATION}/lib:${LD_LIBRARY_PATH}
+
+    :param definition: Instance of :class:`wiz.definition.Definition`.
 
     """
 
@@ -1434,40 +1436,6 @@ def display_command_mapping(
 ):
     """Display command mapping.
 
-    *command_mapping* should be a mapping which associates all available
-    commands with a package definition. It should be in the form of::
-
-        {
-            "fooExe": "foo",
-            ...
-        }
-
-    *package_mapping* should be a mapping which associates each package
-    definition with an identifier, a version and a system label. It should be in
-    the form of::
-
-        {
-            "foo": {
-                "1.1.0": {
-                    "linux : el >=6, <7": <Definition(identifier="foo")>,
-                    "linux : el >=7, <8": <Definition(identifier="foo")>,
-                "0.1.0": {
-                    "linux : el >=6, <7": <Definition(identifier="foo")>,
-                ...
-            },
-            ...
-        }
-
-    *registries* should be a list of registry paths from which definitions were
-    fetched.
-
-    *all_versions* indicate whether all package definition versions should be
-    displayed. Default is False, which means that only the latest version will
-    be displayed.
-
-    *with_system* indicate whether the package system should be displayed.
-    Default is False.
-
     Example::
 
         >>> display_command_mapping(
@@ -1480,6 +1448,40 @@ def display_command_mapping(
         fooExe    0.1.0     noarch                0          Description of Foo
         python    3.6.6     linux : el >= 6, <7   1          Python interpreter
         python    2.7.4     linux : el >= 6, <7   1          Python interpreter
+
+    :param command_mapping: Mapping which associates all available commands with
+        a package definition. It should be in the form of::
+
+            {
+                "fooExe": "foo",
+                ...
+            }
+
+    :param package_mapping: Mapping which associates each package definition
+        with an identifier, a version and a system label. It should be in the
+        form of::
+
+            {
+                "foo": {
+                    "1.1.0": {
+                        "linux : el >=6, <7": <Definition(identifier="foo")>,
+                        "linux : el >=7, <8": <Definition(identifier="foo")>,
+                    "0.1.0": {
+                        "linux : el >=6, <7": <Definition(identifier="foo")>,
+                    ...
+                },
+                ...
+            }
+
+    :param registries: List of registry paths from which definitions were
+        fetched.
+
+    :param all_versions: Indicate whether all package definition versions should
+        be displayed. Default is False, which means that only the latest version
+        will be displayed.
+
+    :param with_system: Indicate whether the package system should be displayed.
+        Default is False.
 
     """
     headers = ["Command", "Version", "Registry", "Description"]
@@ -1536,32 +1538,6 @@ def display_package_mapping(
 ):
     """Display package mapping
 
-    *package_mapping* should be a mapping which associates each package
-    definition with an identifier, a version and a system label. It should be in
-    the form of::
-
-        {
-            "foo": {
-                "1.1.0": {
-                    "linux : el >=6, <7": <Definition(identifier="foo")>,
-                    "linux : el >=7, <8": <Definition(identifier="foo")>,
-                "0.1.0": {
-                    "linux : el >=6, <7": <Definition(identifier="foo")>,
-                ...
-            },
-            ...
-        }
-
-    *registries* should be a list of registry paths from which definitions were
-    fetched.
-
-    *all_versions* indicate whether all package definition versions should be
-    displayed. Default is False, which means that only the latest version will
-    be displayed.
-
-    *with_system* indicate whether the package system should be displayed.
-    Default is False.
-
     Example::
 
         >>> display_command_mapping(
@@ -1577,6 +1553,32 @@ def display_package_mapping(
         bar [V3]   0.1.0     linux                 0          Description of Bar
         python     3.6.6     linux : el >= 6, <7   0          Python interpreter
         python     2.7.4     linux : el >= 6, <7   0          Python interpreter
+
+    :param package_mapping: Mapping which associates each package definition
+        with an identifier, a version and a system label. It should be in the
+        form of::
+
+            {
+                "foo": {
+                    "1.1.0": {
+                        "linux : el >=6, <7": <Definition(identifier="foo")>,
+                        "linux : el >=7, <8": <Definition(identifier="foo")>,
+                    "0.1.0": {
+                        "linux : el >=6, <7": <Definition(identifier="foo")>,
+                    ...
+                },
+                ...
+            }
+
+    :param registries: List of registry paths from which definitions were
+        fetched.
+
+    :param all_versions: Indicate whether all package definition versions should
+        be displayed. Default is False, which means that only the latest version
+        will be displayed.
+
+    :param with_system: Indicate whether the package system should be displayed.
+        Default is False.
 
     """
     headers = ["Package", "Version", "Registry", "Description"]
@@ -1660,6 +1662,8 @@ def display_resolved_context(context):
                                /bin
         USER                   john-doe
 
+    :param context: Context mapping as resolved by :func:`wiz.resolve_context`.
+
     """
     _display_packages_from_context(context)
     _display_command_from_context(context)
@@ -1667,11 +1671,9 @@ def display_resolved_context(context):
 
 
 def _display_packages_from_context(context):
-    """Display *packages*.
+    """Display packages contained in *context* mapping.
 
-    *packages* should be a list of :class:`wiz.package.Package` instances.
-
-    *registries* should be a list of available registry paths.
+    :param context: Context mapping as resolved by :func:`wiz.resolve_context`.
 
     """
     columns = _create_columns(["Package", "Version", "Registry", "Description"])
@@ -1704,14 +1706,9 @@ def _display_packages_from_context(context):
 
 
 def _display_command_from_context(context):
-    """Display commands contained in *mapping*.
+    """Display commands contained in *context* mapping.
 
-    *mapping* should be in the form of::
-
-        {
-            "app": "App0.1.0",
-            "appX": "App0.1.0 --option value"
-        }
+    :param context: Context mapping as resolved by :func:`wiz.resolve_context`.
 
     """
     columns = _create_columns(["Command", "Value"])
@@ -1734,14 +1731,9 @@ def _display_command_from_context(context):
 
 
 def _display_environ_from_context(context):
-    """Display environment variables contained in *mapping*.
+    """Display environment variables contained in *context* mapping.
 
-    *mapping* should be in the form of::
-
-        {
-            "KEY1": "VALUE1",
-            "KEY2": "VALUE2"
-        }
+    :param context: Context mapping as resolved by :func:`wiz.resolve_context`.
 
     """
     columns = _create_columns(["Environment Variable", "Environment Value"])
@@ -1791,7 +1783,7 @@ def _query_identifier():
 
     while True:
         value = click.prompt("Please enter a definition identifier")
-        identifier = wiz.filesystem.sanitise_value(value.strip())
+        identifier = wiz.filesystem.sanitize_value(value.strip())
         if len(identifier) > 2:
             return identifier
 
@@ -1921,6 +1913,10 @@ def _add_to_mapping(definition, mapping):
             },
             ...
         }
+
+    :param definition: Instance of :class:`wiz.definition.Definition`.
+
+    :param mapping: Mapping to mutate.
 
     """
     identifier = definition.qualified_identifier

@@ -17,7 +17,7 @@ class Mapping(collections.Mapping):
     """Immutable mapping mixin object."""
 
     def __init__(self, *args, **kwargs):
-        """Initialise mapping."""
+        """Initialize mapping."""
         super(Mapping, self).__init__()
         self._mapping = copy.deepcopy(dict(*args, **kwargs))
 
@@ -149,6 +149,13 @@ class Mapping(collections.Mapping):
 
     def set(self, element, value):
         """Returns copy of instance with *element* set to *value*.
+
+        :param element: Keyword to add or update in mapping.
+
+        :param value: New value to set as keyword value.
+
+        :return: New updated mapping.
+
         """
         _mapping = self.to_dict()
         _mapping[element] = value
@@ -157,7 +164,13 @@ class Mapping(collections.Mapping):
     def update(self, element, value):
         """Returns copy of instance with *element* mapping updated with *value*.
 
-        Raise :exc:`ValueError` if *element* is not a dictionary.
+        :param element: keyword associated to a dictionary.
+
+        :param value: mapping to update *element*  dictionary with.
+
+        :return: New updated mapping.
+
+        :raise: :exc:`ValueError` if *element* is not a dictionary.
 
         """
         _mapping = self.to_dict()
@@ -175,7 +188,13 @@ class Mapping(collections.Mapping):
     def extend(self, element, values):
         """Returns copy of instance with *element* list extended with *values*.
 
-        Raise :exc:`ValueError` if *mapping* is not a list.
+        :param element: keyword associated to a list.
+
+        :param values: Values to extend *element* list with.
+
+        :return: New updated mapping.
+
+        :raise: :exc:`ValueError` if *element* is not a list.
 
         """
         _mapping = self.to_dict()
@@ -192,10 +211,15 @@ class Mapping(collections.Mapping):
     def insert(self, element, value, index):
         """Returns copy of instance with *value* inserted in *element* list.
 
-        *index* should be the index number at which the *value* should be
-        inserted.
+        :param element: keyword associated to a list.
 
-        Raise :exc:`ValueError` if *mapping* is not a list.
+        :param value: Value which will be added to the *element* list
+
+        :param index: Index number at which the *value* should be inserted.
+
+        :return: New updated mapping.
+
+        :raise: :exc:`ValueError` if *element* is not a list.
 
         """
         _mapping = self.to_dict()
@@ -211,7 +235,14 @@ class Mapping(collections.Mapping):
         return self.copy(**_mapping)
 
     def remove(self, element):
-        """Returns copy of instance without *element*."""
+        """Returns copy of instance without *element*.
+
+        :param element: keyword to remove from mapping.
+
+        :return: New updated mapping or "self" if *element* didn't exist in
+            mapping.
+
+        """
         _mapping = self.to_dict()
         if element not in _mapping.keys():
             return self
@@ -225,7 +256,13 @@ class Mapping(collections.Mapping):
         If *element* mapping is empty after removing *value*, the *element* key
         will be removed.
 
-        Raise :exc:`ValueError` if *element* is not a dictionary.
+        :param element: keyword associated to a dictionary.
+
+        :param value: Value to remove from *element* dictionary.
+
+        :return: New updated mapping.
+
+        :raise: :exc:`ValueError` if *element* is not a dictionary.
 
         """
         _mapping = self.to_dict()
@@ -253,7 +290,13 @@ class Mapping(collections.Mapping):
         If *element* list is empty after removing *index*, the *element* key
         will be removed.
 
-        Raise :exc:`ValueError` if *element* is not a list.
+        :param element: keyword associated to a list.
+
+        :param index: Index to remove from *element* list.
+
+        :return: New updated mapping.
+
+        :raise: :exc:`ValueError` if *element* is not a list.
 
         """
         _mapping = self.to_dict()
@@ -278,8 +321,10 @@ class Mapping(collections.Mapping):
     def to_dict(self, serialize_content=False):
         """Return corresponding dictionary.
 
-        *serialize_content* indicates whether all mapping values should be
-        serialized.
+        :param serialize_content: Indicate whether all mapping values should be
+            serialized.
+
+        :return: Instance of :class:`dict`.
 
         """
         _mapping = copy.deepcopy(self._mapping)
@@ -291,8 +336,10 @@ class Mapping(collections.Mapping):
     def to_ordered_dict(self, serialize_content=False):
         """Return corresponding ordered dictionary.
 
-        *serialize_content* indicates whether all mapping values should be
-        serialized.
+        :param serialize_content: Indicate whether all mapping values should be
+            serialized.
+
+        :return: Instance of :class:`collections.OrderedDict`.
 
         """
         mapping = self.to_dict()
@@ -367,7 +414,10 @@ class Mapping(collections.Mapping):
 def _serialize_content(element):
     """Return recursively serialized *element*.
 
-    *element* can be a of any types (:class:`Mapping`, dict, list, ...)
+    :param element: Content which can be of any type (:class:`Mapping`,
+        :class:`dict`, :class:`list`, ...)
+
+    :return: Serialized content.
 
     """
     if isinstance(element, list):

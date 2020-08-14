@@ -41,6 +41,16 @@ def yield_definition_errors(data):
 
     .. literalinclude:: ../../source/wiz/package_data/schema/definition.json
 
+    :param data: Data to validate.
+
+    :return: Generator which yield potential error mapping in the form of
+        ::
+
+            {
+                "message": "42 is not of type 'object'",
+                "path": "/system"
+            }
+
     """
     for error in _VALIDATOR(_DEFINITION_SCHEMA).iter_errors(data):
         yield {

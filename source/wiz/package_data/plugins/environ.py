@@ -15,7 +15,7 @@ def register(config):
     environment that can be used by the resolved environment, such as
     the *USER*, the *HOSTNAME* or the *HOME* variables.
 
-    The *PATH* variable is initialised with default values to have access to the
+    The *PATH* variable is initialized with default values to have access to the
     basic UNIX commands.
 
     """
