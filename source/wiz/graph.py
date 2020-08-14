@@ -6,10 +6,7 @@ import itertools
 import uuid
 from heapq import heapify, heappush, heappop
 
-try:
-    import queue as _queue
-except ImportError:
-    import Queue as _queue
+import six.moves
 
 import wiz.logging
 import wiz.package
@@ -1751,7 +1748,7 @@ class Graph(object):
         :param parent_identifier: Unique identifier of the parent node.
 
         """
-        queue = _queue.Queue()
+        queue = six.moves.queue.Queue()
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_UPDATE_ACTION,
@@ -1795,7 +1792,7 @@ class Graph(object):
             *weight* is irrelevant if no *parent_identifier* is given.
 
         """
-        queue = _queue.Queue()
+        queue = six.moves.queue.Queue()
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_UPDATE_ACTION,

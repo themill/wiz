@@ -7,15 +7,10 @@ import datetime
 import os
 import time
 import textwrap
-try:
-    # Python 3
-    from itertools import zip_longest
-except ImportError:
-    # Python 2
-    from itertools import izip_longest as zip_longest
 
 import click
 import six
+import six.moves
 import ujson as json
 
 import wiz.config
@@ -1751,7 +1746,7 @@ def _display_environ_from_context(context):
     success = False
 
     for variable in sorted(environ_mapping.keys()):
-        for key, _value in zip_longest(
+        for key, _value in six.moves.zip_longest(
             [variable], _compute_value(variable, environ_mapping[variable])
         ):
             _create_row(key or "", columns[0])
@@ -1878,7 +1873,7 @@ def _display_table(columns):
     )
 
     # Print elements.
-    for row in zip_longest(*[column["rows"] for column in columns]):
+    for row in six.moves.zip_longest(*[column["rows"] for column in columns]):
         click.echo(
             "   ".join([
                 row[i] + " " * (columns[i]["size"] - len(row[i]))
