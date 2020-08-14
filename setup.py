@@ -32,6 +32,7 @@ INSTALL_REQUIRES = [
     "pystache >= 0.5.4, < 1",
     "sawmill >= 0.2.1, < 1",
     "six >= 1.15.0, < 2",
+    "toml >= 0.10.1, < 1"
 ]
 
 DOC_REQUIRES = [

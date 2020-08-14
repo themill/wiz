@@ -8,6 +8,36 @@ Release Notes
 
     .. change:: changed
 
+        Updated the following modules to add compatibility with python 3.7 and
+        3.8:
+
+        * :mod:`wiz.command_line`
+        * :mod:`wiz.filesystem`
+        * :mod:`wiz.package`
+        * :mod:`wiz.system`
+        * :mod:`wiz.utility`
+
+    .. change:: fixed
+
+        Fixed :class:`wiz.graph.Resolver` to ensure that conflicted nodes are
+        always sorted in ascending order of distance from the :attr:`root
+        <wiz.graph.Graph.ROOT>` level of the graph.
+
+        Previously, conflicting nodes would not be sorted properly when new
+        packages are added to the graph during the conflict resolution process,
+        resulting in potentially unresolvable conflicts of packages that should
+        have been removed before.
+
+    .. change:: fixed
+
+        Fixed :func:`wiz.utility.extract_version_ranges` to sort specifiers
+        properly for deterministic results.
+
+        Previously, it would sometimes fail to update minimal and maximum
+        versions of the range in particular conditions.
+
+    .. change:: changed
+
         Renamed following functions to use American spelling for consistency:
 
         * :func:`wiz.environ.sanitise` → :func:`wiz.environ.sanitize`
