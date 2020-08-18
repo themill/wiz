@@ -2,7 +2,6 @@
 
 import pytest
 import six
-from packaging.version import Version
 
 import wiz.validator
 import wiz.exception
@@ -224,15 +223,31 @@ def test_validate_version_keyword():
     """Validate 'version' keyword within data."""
     wiz.validator.validate_version_keyword({})
     wiz.validator.validate_version_keyword({"version": "0.1.0"})
-    wiz.validator.validate_version_keyword({"version": Version("0.1.0")})
 
 
-def test_validate_version_keyword_failed():
+@pytest.mark.parametrize("value, message", [
+    ({"version": 42}, "'version' has incorrect type."),
+    ({"version": "_"}, "Invalid version: '_'"),
+    ({"version": "abc"}, "Invalid version: 'abc'"),
+    ({"version": "test0.1.0"}, "Invalid version: 'test0.1.0'"),
+    ({"version": "0.1.*"}, "Invalid version: '0.1.*'"),
+    ({"version": "0.1."}, "Invalid version: '0.1.'"),
+    ({"version": "#@;"}, "Invalid version: '#@;'"),
+], ids=[
+    "incorrect-type",
+    "incorrect-version-1",
+    "incorrect-version-2",
+    "incorrect-version-3",
+    "incorrect-version-4",
+    "incorrect-version-5",
+    "incorrect-version-6",
+])
+def test_validate_version_keyword_failed(value, message):
     """Raise error when 'version' keyword is incorrect."""
     with pytest.raises(ValueError) as error:
-        wiz.validator.validate_version_keyword({"version": True})
+        wiz.validator.validate_version_keyword(value)
 
-    assert "'version' has incorrect type." in str(error)
+    assert message in str(error)
 
 
 def test_validate_namespace_keyword():
@@ -564,8 +579,7 @@ def test_validate_required():
 def test_validate_type():
     """Ensure that data has correct type."""
     wiz.validator.validate_type("foo", six.string_types)
-    wiz.validator.validate_type("0.1.0", (six.string_types, Version))
-    wiz.validator.validate_type(Version("0.1.0"), (six.string_types, Version))
+    wiz.validator.validate_type("0.1.0", six.string_types)
     wiz.validator.validate_type(42, int)
     wiz.validator.validate_type([1, 2, 3], list)
     wiz.validator.validate_type({"A": "foo"}, dict)

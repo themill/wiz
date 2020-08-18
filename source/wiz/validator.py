@@ -1,9 +1,15 @@
 # :coding: utf-8
 
+import re
+
 import six
-from packaging.version import Version
+from packaging.version import VERSION_PATTERN
 
 import wiz.exception
+
+_REGEXP_VERSION = re.compile(
+    "^{}$".format(VERSION_PATTERN), re.VERBOSE | re.IGNORECASE
+)
 
 
 def validate_definition(data):
@@ -89,7 +95,12 @@ def validate_version_keyword(data):
 
     """
     data = data.get("version")
-    validate_type(data, (six.string_types, Version), label="'version'")
+    validate_type(data, six.string_types, label="'version'")
+
+    if data is not None:
+        match = _REGEXP_VERSION.match(data)
+        if not match:
+            raise ValueError("Invalid version: '{}'".format(data))
 
 
 def validate_namespace_keyword(data):
