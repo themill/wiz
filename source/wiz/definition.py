@@ -829,12 +829,14 @@ class Definition(object):
 
         return Definition(data, input_protected=False)
 
-    def data(self):
+    def data(self, copy_data=True):
         """Return copy of definition data.
 
         :return: Definition data mapping.
 
         """
+        if not copy_data:
+            return self._data
         return copy.deepcopy(self._data)
 
     def ordered_data(self):
