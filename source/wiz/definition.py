@@ -873,7 +873,7 @@ class Definition(object):
                         mapping["system"], system_keywords
                     )
 
-                elif keywords == "variants":
+                elif keyword == "variants":
                     content[keyword] = [
                         _create_ordered_dict(variant, variant_keywords)
                         for variant in mapping["variants"]
