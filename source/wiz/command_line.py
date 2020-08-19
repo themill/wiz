@@ -11,7 +11,7 @@ import textwrap
 import click
 import six
 import six.moves
-import ujson as json
+import ujson
 
 import wiz.config
 import wiz.definition
@@ -1110,8 +1110,7 @@ def wiz_edit(click_context, **kwargs):
                     continue
 
                 definition = wiz.definition.Definition(
-                    json.loads(data),
-                    path=definition.path
+                    ujson.loads(data), path=definition.path
                 )
 
             else:
@@ -1765,7 +1764,7 @@ def _casted_argument(argument):
     argument = argument.replace("True", "true").replace("False", "false")
 
     try:
-        return json.loads(argument)
+        return ujson.loads(argument)
     except ValueError:
         return argument
 

@@ -10,7 +10,7 @@ import zlib
 import colorama
 from packaging.requirements import InvalidRequirement
 from packaging.version import Version, InvalidVersion
-import ujson as json
+import ujson
 
 import wiz.exception
 import wiz.symbol
@@ -428,7 +428,7 @@ def encode(element):
     :raise: :exc:`TypeError` if *element* is not JSON serializable.
 
     """
-    return base64.b64encode(zlib.compress(json.dumps(element).encode("utf-8")))
+    return base64.b64encode(zlib.compress(ujson.dumps(element).encode("utf-8")))
 
 
 def decode(element):
@@ -441,7 +441,7 @@ def decode(element):
     :raise: :exc:`TypeError` if *element* cannot be decoded or deserialized.
 
     """
-    return json.loads(zlib.decompress(base64.b64decode(element)))
+    return ujson.loads(zlib.decompress(base64.b64decode(element)))
 
 
 def compute_label(definition):
