@@ -462,10 +462,10 @@ def compute_label(definition):
     """
     label = "'{}'".format(definition.qualified_identifier)
 
-    if definition.get("version"):
+    if definition.version:
         label += " [{}]".format(definition.version)
 
-    if definition.get("system"):
+    if definition.system:
         system_identifier = compute_system_label(definition)
         label += " ({})".format(system_identifier)
 
@@ -512,10 +512,10 @@ def compute_file_name(definition):
     """
     name = definition.identifier
 
-    if definition.get("version"):
+    if definition.version:
         name += "-{}".format(definition.version)
 
-    if definition.get("system"):
+    if definition.system:
         system_identifier = wiz.utility.compute_system_label(definition)
         data = re.sub(r"(\s+|:+)", "", system_identifier).encode("utf-8")
         encoded = base64.urlsafe_b64encode(hashlib.sha1(data).digest())
