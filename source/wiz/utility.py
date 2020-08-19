@@ -13,7 +13,6 @@ from packaging.version import Version, InvalidVersion
 import ujson as json
 
 import wiz.exception
-import wiz.mapping
 import wiz.symbol
 from ._requirement import Requirement
 

@@ -17,12 +17,6 @@ def mocked_definition_query(mocker):
     return mocker.patch.object(wiz.definition, "query")
 
 
-@pytest.fixture()
-def mocked_package(mocker):
-    """Return mocked Package constructor."""
-    return mocker.patch.object(wiz.package, "Package", return_value="PACKAGE")
-
-
 @pytest.mark.parametrize("kwargs, namespace_counter", [
     ({}, None),
     ({"namespace_counter": "COUNTER"}, "COUNTER")
@@ -31,7 +25,7 @@ def mocked_package(mocker):
     "with-namespace-hints",
 ])
 def test_extract_without_variant(
-    mocked_definition_query, mocked_package, kwargs, namespace_counter
+    mocked_definition_query, kwargs, namespace_counter
 ):
     """Extract one Package from definition."""
     definition = wiz.definition.Definition({
@@ -46,21 +40,21 @@ def test_extract_without_variant(
     mocked_definition_query.return_value = definition
 
     requirement = Requirement("test")
-    result = wiz.package.extract(requirement, {}, **kwargs)
+    packages = wiz.package.extract(requirement, {}, **kwargs)
+
     mocked_definition_query.assert_called_once_with(
         requirement, {}, namespace_counter=namespace_counter
     )
 
-    mocked_package.assert_called_once_with({
-        "identifier": "test==0.3.4",
-        "definition": definition,
-        "version": Version("0.3.4"),
-        "environ": {
-            "KEY1": "VALUE1",
-            "KEY2": "VALUE2"
-        }
-    })
-    assert result == ["PACKAGE"]
+    assert len(packages) == 1
+    assert packages[0].identifier == "test==0.3.4"
+    assert packages[0].version == Version("0.3.4")
+    assert packages[0].definition == definition
+    assert packages[0].variant_identifier is None
+    assert packages[0].environ == {
+        "KEY1": "VALUE1",
+        "KEY2": "VALUE2",
+    }
 
 
 @pytest.mark.parametrize("kwargs, namespace_counter", [
@@ -71,7 +65,7 @@ def test_extract_without_variant(
     "with-namespace-hints",
 ])
 def test_extract_with_all_variants(
-    mocked_definition_query, mocked_package, kwargs, namespace_counter
+    mocked_definition_query, kwargs, namespace_counter
 ):
     """Extract all variant Packages from definition."""
     definition = wiz.definition.Definition({
@@ -96,37 +90,31 @@ def test_extract_with_all_variants(
     mocked_definition_query.return_value = definition
 
     requirement = Requirement("test")
-    result = wiz.package.extract(requirement, {}, **kwargs)
+    packages = wiz.package.extract(requirement, {}, **kwargs)
+
     mocked_definition_query.assert_called_once_with(
         requirement, {}, namespace_counter=namespace_counter
     )
 
-    assert mocked_package.call_count == 3
-    mocked_package.assert_any_call({
-        "identifier": "test[Variant1]==0.3.4",
-        "definition": definition,
-        "version": Version("0.3.4"),
-        "variant-name": "Variant1",
-        "environ": {"KEY1": "VALUE1"}
-    })
+    assert len(packages) == 3
 
-    mocked_package.assert_any_call({
-        "identifier": "test[Variant2]==0.3.4",
-        "definition": definition,
-        "version": Version("0.3.4"),
-        "variant-name": "Variant2",
-        "environ": {"KEY2": "VALUE2"}
-    })
+    assert packages[0].identifier == "test[Variant1]==0.3.4"
+    assert packages[0].version == Version("0.3.4")
+    assert packages[0].definition == definition
+    assert packages[0].variant_identifier is "Variant1"
+    assert packages[0].environ == {"KEY1": "VALUE1"}
 
-    mocked_package.assert_any_call({
-        "identifier": "test[Variant3]==0.3.4",
-        "definition": definition,
-        "version": Version("0.3.4"),
-        "variant-name": "Variant3",
-        "environ": {"KEY3": "VALUE3"}
-    })
+    assert packages[1].identifier == "test[Variant2]==0.3.4"
+    assert packages[1].version == Version("0.3.4")
+    assert packages[1].definition == definition
+    assert packages[1].variant_identifier is "Variant2"
+    assert packages[1].environ == {"KEY2": "VALUE2"}
 
-    assert result == ["PACKAGE", "PACKAGE", "PACKAGE"]
+    assert packages[2].identifier == "test[Variant3]==0.3.4"
+    assert packages[2].version == Version("0.3.4")
+    assert packages[2].definition == definition
+    assert packages[2].variant_identifier is "Variant3"
+    assert packages[2].environ == {"KEY3": "VALUE3"}
 
 
 @pytest.mark.parametrize("kwargs, namespace_counter", [
@@ -137,7 +125,7 @@ def test_extract_with_all_variants(
     "with-namespace-hints",
 ])
 def test_extract_with_one_requested_variant(
-    mocked_definition_query, mocked_package, kwargs, namespace_counter
+    mocked_definition_query, kwargs, namespace_counter
 ):
     """Extract one requested variant Package from definition."""
     definition = wiz.definition.Definition({
@@ -162,20 +150,19 @@ def test_extract_with_one_requested_variant(
     mocked_definition_query.return_value = definition
 
     requirement = Requirement("test[Variant2]")
-    result = wiz.package.extract(requirement, {}, **kwargs)
+    packages = wiz.package.extract(requirement, {}, **kwargs)
+
     mocked_definition_query.assert_called_once_with(
         requirement, {}, namespace_counter=namespace_counter
     )
 
-    mocked_package.assert_called_once_with({
-        "identifier": "test[Variant2]==0.3.4",
-        "definition": definition,
-        "version": Version("0.3.4"),
-        "variant-name": "Variant2",
-        "environ": {"KEY2": "VALUE2"}
-    })
+    assert len(packages) == 1
 
-    assert result == ["PACKAGE"]
+    assert packages[0].identifier == "test[Variant2]==0.3.4"
+    assert packages[0].version == Version("0.3.4")
+    assert packages[0].definition == definition
+    assert packages[0].variant_identifier is "Variant2"
+    assert packages[0].environ == {"KEY2": "VALUE2"}
 
 
 @pytest.mark.parametrize("kwargs, namespace_counter", [
@@ -186,7 +173,7 @@ def test_extract_with_one_requested_variant(
     "with-namespace-hints",
 ])
 def test_extract_error(
-    mocked_definition_query, mocked_package, kwargs, namespace_counter
+    mocked_definition_query, kwargs, namespace_counter
 ):
     """Fail to extract Package from definition."""
     definition = wiz.definition.Definition({
@@ -208,7 +195,6 @@ def test_extract_error(
     mocked_definition_query.assert_called_once_with(
         requirement, {}, namespace_counter=namespace_counter
     )
-    mocked_package.assert_not_called()
 
     assert (
         "The variant 'Incorrect' could not been resolved "
@@ -502,139 +488,6 @@ def test_combine_command_mapping(mapping1, mapping2, expected):
     ) == expected
 
 
-def test_package_mapping():
-    """Create package and return mapping and serialized mapping."""
-    definition = wiz.definition.Definition({
-        "identifier": "test",
-        "version": "0.1.0",
-        "description": "This is a definition",
-        "registry": "/registry",
-        "definition-location": "/registry/test-0.1.0.json",
-        "auto-use": True,
-        "system": {
-            "platform": "linux",
-            "os": "el >= 6, < 7",
-            "arch": "x86_64"
-        },
-        "variants": [
-            {
-                "identifier": "V1",
-                "command": {
-                    "app": "AppX"
-                },
-                "environ": {
-                    "KEY1": "VALUE1"
-                },
-                "requirements": ["foo"]
-            }
-        ]
-    })
-
-    data = {
-        "identifier": "test[V1]==0.1.0",
-        "version": "0.1.0",
-        "definition": definition,
-        "variant-name": "V1",
-        "description": "This is a definition",
-        "registry": "/registry",
-        "definition-location": "/registry/test-0.1.0.json",
-        "auto-use": True,
-        "system": {
-            "platform": "linux",
-            "os": "el >= 6, < 7",
-            "arch": "x86_64"
-        },
-        "command": {
-            "app": "AppX"
-        },
-        "environ": {
-            "KEY1": "VALUE1"
-        },
-        "requirements": ["foo"]
-    }
-
-    environment = wiz.package.Package(data)
-
-    assert environment.to_dict() == {
-        "identifier": "test[V1]==0.1.0",
-        "version": Version("0.1.0"),
-        "definition": definition,
-        "variant-name": "V1",
-        "description": "This is a definition",
-        "registry": "/registry",
-        "definition-location": "/registry/test-0.1.0.json",
-        "auto-use": True,
-        "system": {
-            "platform": "linux",
-            "os": "el >= 6, < 7",
-            "arch": "x86_64"
-        },
-        "command": {
-            "app": "AppX"
-        },
-        "environ": {
-            "KEY1": "VALUE1"
-        },
-        "requirements": [Requirement("foo")]
-    }
-
-    assert environment.encode() == (
-        "{\n"
-        "    \"identifier\": \"test[V1]==0.1.0\",\n"
-        "    \"definition\": {\n"
-        "        \"identifier\": \"test\",\n"
-        "        \"version\": \"0.1.0\",\n"
-        "        \"description\": \"This is a definition\",\n"
-        "        \"registry\": \"/registry\",\n"
-        "        \"definition-location\": \"/registry/test-0.1.0.json\",\n"
-        "        \"auto-use\": true,\n"
-        "        \"system\": {\n"
-        "            \"platform\": \"linux\",\n"
-        "            \"os\": \"el >= 6, < 7\",\n"
-        "            \"arch\": \"x86_64\"\n"
-        "        },\n"
-        "        \"variants\": [\n"
-        "            {\n"
-        "                \"identifier\": \"V1\",\n"
-        "                \"command\": {\n"
-        "                    \"app\": \"AppX\"\n"
-        "                },\n"
-        "                \"environ\": {\n"
-        "                    \"KEY1\": \"VALUE1\"\n"
-        "                },\n"
-        "                \"requirements\": [\n"
-        "                    \"foo\"\n"
-        "                ]\n"
-        "            }\n"
-        "        ]\n"
-        "    },\n"
-        "    \"variant-name\": \"V1\",\n"
-        "    \"version\": \"0.1.0\",\n"
-        "    \"description\": \"This is a definition\",\n"
-        "    \"registry\": \"/registry\",\n"
-        "    \"definition-location\": \"/registry/test-0.1.0.json\",\n"
-        "    \"auto-use\": true,\n"
-        "    \"system\": {\n"
-        "        \"platform\": \"linux\",\n"
-        "        \"os\": \"el >= 6, < 7\",\n"
-        "        \"arch\": \"x86_64\"\n"
-        "    },\n"
-        "    \"command\": {\n"
-        "        \"app\": \"AppX\"\n"
-        "    },\n"
-        "    \"environ\": {\n"
-        "        \"KEY1\": \"VALUE1\"\n"
-        "    },\n"
-        "    \"requirements\": [\n"
-        "        \"foo\"\n"
-        "    ]\n"
-        "}"
-    )
-
-    assert len(environment) == len(data)
-    assert sorted(environment) == sorted(data)
-
-
 def test_minimal_package_without_variant():
     """Create minimal package instance created with no variant."""
     definition = wiz.definition.Definition({"identifier": "test"})
@@ -643,15 +496,13 @@ def test_minimal_package_without_variant():
     assert package.identifier == "test"
     assert package.qualified_identifier == "test"
     assert package.definition == definition
-    assert package.version == "-"
-    assert package.variant_name is None
-    assert package.description == "-"
+    assert package.version is None
+    assert package.variant_identifier is None
+    assert package.variant is None
+    assert package.description is None
     assert package.command == {}
     assert package.environ == {}
     assert package.requirements == []
-
-    assert len(package) == 2
-    assert sorted(package) == ["definition", "identifier"]
 
 
 def test_full_package_without_variant():
@@ -679,7 +530,8 @@ def test_full_package_without_variant():
     assert package.qualified_identifier == "test==0.3.4"
     assert package.definition == definition
     assert package.version == Version("0.3.4")
-    assert package.variant_name is None
+    assert package.variant_identifier is None
+    assert package.variant is None
     assert package.description == "Test definition"
     assert package.command == {"app1": "App1", "app2": "App2"}
     assert package.environ == {"KEY1": "VALUE1", "KEY2": "VALUE2"}
@@ -723,11 +575,11 @@ def test_package_with_variant(mocked_combine_environ, mocked_combine_command):
         definition, variant_identifier="Variant1"
     )
     assert package.identifier == "test[Variant1]==0.1.0"
-    assert package.get("install-location") == "/tmp"
+    assert package.install_location == "/tmp"
     assert package.qualified_identifier == "test[Variant1]==0.1.0"
     assert package.definition == definition
     assert package.version == Version("0.1.0")
-    assert package.variant_name == "Variant1"
+    assert package.variant_identifier == "Variant1"
     assert package.description == "This is a definition"
     assert package.command == {"APP": "APP_EXE"}
     assert package.environ == {"KEY": "VALUE"}
@@ -833,628 +685,3 @@ def test_package_localized_environ_without_key():
             "${INSTALL_LOCATION}/lib/python2.7/site-packages:${PYTHONPATH}"
         )
     }
-
-
-def test_package_set():
-    """Create new package from existing package with new element."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-    package2 = package1.set("description", "This is a test")
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "description": "This is a test",
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-
-def test_package_update():
-    """Create new package from existing package with updated element."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-    package2 = package1.update(
-        "environ", {"key1": "value1", "key2": "value2"}
-    )
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "value1",
-            "key2": "value2"
-        }
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-    package3 = package2.update(
-        "environ", {"key1": "VALUE1", "key3": "value3"}
-    )
-    assert package3.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "VALUE1",
-            "key2": "value2",
-            "key3": "value3"
-        }
-    }
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "value1",
-            "key2": "value2"
-        }
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-
-def test_package_update_error():
-    """Fail to create new package with non-dictionary element updated."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-    with pytest.raises(ValueError):
-        package1.update("identifier", {"key1": "value1"})
-
-
-def test_package_extend():
-    """Create new package from existing package with extended element."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-    package2 = package1.extend(
-        "requirements", [Requirement("bar"), Requirement("bim>=1")]
-    )
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [Requirement("bar"), Requirement("bim>=1")]
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-    package3 = package2.extend(
-        "requirements", [Requirement("test")]
-    )
-    assert package3.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("bar"), Requirement("bim>=1"), Requirement("test")
-        ]
-    }
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [Requirement("bar"), Requirement("bim>=1")]
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-
-def test_package_extend_error():
-    """Fail to create new package with non-list element extended."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-    with pytest.raises(ValueError):
-        package1.extend("identifier", ["test"])
-
-
-def test_package_insert():
-    """Create new package from existing package with extended element."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-    package2 = package1.set(
-        "requirements", [Requirement("bar"), Requirement("bim>=1")]
-    )
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [Requirement("bar"), Requirement("bim>=1")]
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-    package3 = package2.insert(
-        "requirements", Requirement("test"), 0
-    )
-    assert package3.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"), Requirement("bar"), Requirement("bim>=1")
-        ]
-    }
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [Requirement("bar"), Requirement("bim>=1")]
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-
-def test_package_insert_error():
-    """Fail to create new package with non-list element extended."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-    with pytest.raises(ValueError):
-        package1.insert("identifier", ["test"], 0)
-
-
-def test_package_remove():
-    """Create new package from existing package without element."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "description": "This is a test"
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "description": "This is a test"
-    }
-
-    package2 = package1.remove("description")
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "description": "This is a test"
-    }
-
-
-def test_package_remove_non_existing():
-    """Do not raise when removing non existing element."""
-    package = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    })
-
-    assert package.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-    _package = package.remove("error")
-    assert _package == package
-
-
-def test_package_remove_key():
-    """Create new package from existing package without element key."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "value1",
-            "key2": "value2"
-        }
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "value1",
-            "key2": "value2"
-        }
-    }
-
-    package2 = package1.remove_key("environ", "key1")
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key2": "value2"
-        }
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "value1",
-            "key2": "value2"
-        }
-    }
-
-
-def test_package_remove_last_key():
-    """Create new package from existing package without element."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "value1",
-        }
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "value1",
-        }
-    }
-
-    package2 = package1.remove_key("environ", "key1")
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-
-
-def test_package_remove_key_error():
-    """Fail to create new package without un-existing element or element key.
-    """
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "value1",
-        }
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "value1",
-        }
-    }
-
-    with pytest.raises(ValueError) as error:
-        package1.remove_key("identifier", "key42")
-
-    assert (
-       "Impossible to remove key from 'identifier' as it is not a dictionary."
-    ) in str(error)
-
-
-def test_package_remove_non_existing_key():
-    """Do not raise when removing non existing element key."""
-    package = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "value1",
-        }
-    })
-
-    assert package.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "environ": {
-            "key1": "value1",
-        }
-    }
-
-    _package = package.remove_key("test", "error")
-    assert package == _package
-
-    _package = package.remove_key("environ", "key42")
-    assert package == _package
-
-
-def test_package_remove_index():
-    """Create new package from existing package without element index."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"),
-            Requirement("bar"),
-            Requirement("bim >=1")
-        ]
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"),
-            Requirement("bar"),
-            Requirement("bim >=1")
-        ]
-    }
-
-    package2 = package1.remove_index("requirements", 0)
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("bar"),
-            Requirement("bim >=1")
-        ]
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"),
-            Requirement("bar"),
-            Requirement("bim >=1")
-        ]
-    }
-
-    package3 = package2.remove_index("requirements", 1)
-    assert package3.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("bar"),
-        ]
-    }
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("bar"),
-            Requirement("bim >=1")
-        ]
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"),
-            Requirement("bar"),
-            Requirement("bim >=1")
-        ]
-    }
-
-
-def test_package_remove_last_index():
-    """Create new package from existing package without element."""
-    package1 = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"),
-        ]
-    })
-
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"),
-        ]
-    }
-
-    package2 = package1.remove_index("requirements", 0)
-    assert package2.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-    }
-    assert package1.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"),
-        ]
-    }
-
-
-def test_package_remove_index_error():
-    """Fail to create package without un-existing element or element index.
-    """
-    package = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"),
-            Requirement("bar"),
-            Requirement("bim >=1")
-        ]
-    })
-
-    assert package.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"),
-            Requirement("bar"),
-            Requirement("bim >=1")
-        ]
-    }
-
-    with pytest.raises(ValueError) as error:
-        package.remove_index("identifier", 42)
-
-    assert (
-       "Impossible to remove index from 'identifier' as it is not a list."
-    ) in str(error)
-
-
-def test_package_remove_non_existing_index():
-    """Do not raise when removing non existing element index."""
-    package = wiz.package.Package({
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"),
-        ]
-    })
-
-    assert package.to_dict() == {
-        "identifier": "foo==0.1.0",
-        "version": Version("0.1.0"),
-        "definition-identifier": "foo",
-        "requirements": [
-            Requirement("test"),
-        ]
-    }
-
-    _package = package.remove_index("requirements", 5)
-    assert package == _package
-
-    _package = package.remove_index("test", "error")
-    assert package == _package
-
-
-def test_package_non_mutated_input():
-    """Ensure that input mapping isn't mutated when creating package."""
-    data = {
-        "identifier": "test[V1]==0.1.0",
-        "version": "0.1.0",
-        "definition-identifier": "test",
-        "variant-name": "V1",
-        "description": "This is a definition",
-        "registry": "/path/to/registry",
-        "definition-location": "/path/to/registry/test-0.1.0.json",
-        "auto-use": True,
-        "system": {
-            "platform": "linux",
-            "os": "el >= 6, < 7",
-            "arch": "x86_64"
-        },
-        "command": {
-            "app": "AppX"
-        },
-        "environ": {
-            "KEY1": "VALUE1"
-        },
-        "requirements": ["foo"]
-    }
-
-    _data = copy.deepcopy(data)
-    wiz.package.Package(_data)
-
-    assert data == _data

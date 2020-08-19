@@ -7,7 +7,6 @@ import wiz.environ
 import wiz.exception
 import wiz.history
 import wiz.logging
-import wiz.mapping
 import wiz.symbol
 
 
@@ -261,72 +260,55 @@ def create(definition, variant_identifier=None):
         elements from the variant will have priority.
 
     """
-    mapping = definition.to_dict()
-
-    # Set definition
-    mapping["definition"] = definition
-
-    # Update identifier.
     if variant_identifier is not None:
-        mapping["identifier"] += "[{}]".format(variant_identifier)
+        for index, variant in enumerate(definition.variants):
+            if variant_identifier == variant.identifier:
+                return Package(definition, variant_index=index)
 
-    if mapping.get("version") is not None:
-        mapping["identifier"] += "=={}".format(mapping.get("version"))
-
-    # Extract data from variants.
-    variants = mapping.pop("variants", [])
-
-    if variant_identifier is not None:
-        success = False
-
-        for _mapping in variants:
-            if variant_identifier == _mapping.get("identifier"):
-                mapping["variant-name"] = variant_identifier
-
-                if len(_mapping.get("environ", {})) > 0:
-                    mapping["environ"] = combine_environ_mapping(
-                        mapping["identifier"],
-                        definition.environ, _mapping.environ
-                    )
-
-                if len(_mapping.get("command", {})) > 0:
-                    mapping["command"] = combine_command_mapping(
-                        mapping["identifier"],
-                        definition.command, _mapping.command
-                    )
-
-                if len(_mapping.get("requirements", [])) > 0:
-                    mapping["requirements"] = (
-                        # To prevent mutating the the original requirement list.
-                        mapping.get("requirements", [])[:]
-                        + _mapping["requirements"]
-                    )
-
-                if _mapping.get("install-location") is not None:
-                    mapping["install-location"] = _mapping["install-location"]
-
-                success = True
-                break
-
-        if not success:
-            raise wiz.exception.RequestNotFound(
-                "The variant '{variant}' could not been resolved for "
-                "'{definition}' [{version}].".format(
-                    variant=variant_identifier,
-                    definition=definition.identifier,
-                    version=definition.version
-                )
+        raise wiz.exception.RequestNotFound(
+            "The variant '{variant}' could not been resolved for "
+            "'{definition}' [{version}].".format(
+                variant=variant_identifier,
+                definition=definition.identifier,
+                version=definition.version
             )
+        )
 
-    return Package(mapping)
+    return Package(definition)
 
 
-class Package(wiz.mapping.Mapping):
+class Package(object):
     """Package object."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, definition, variant_index=None):
         """Initialize package."""
-        super(Package, self).__init__(*args, **kwargs)
+        self._definition = definition
+        self._variant_index = variant_index
+
+        # Store values that needs to be constructed.
+        self._cache = {}
+
+    @property
+    def definition(self):
+        """Return corresponding :class:`wiz.definition.Definition` instance."""
+        return self._definition
+
+    @property
+    def identifier(self):
+        """Return package identifier."""
+        # Create cache value if necessary.
+        if self._cache.get("identifier") is None:
+            identifier = self._definition.identifier
+
+            if self.variant_identifier is not None:
+                identifier += "[{}]".format(self.variant_identifier)
+            if self._definition.version:
+                identifier += "=={}".format(self._definition.version)
+
+            self._cache["identifier"] = identifier
+
+        # Return cached value.
+        return self._cache["identifier"]
 
     @property
     def qualified_identifier(self):
@@ -336,46 +318,112 @@ class Package(wiz.mapping.Mapping):
         return self.identifier
 
     @property
-    def definition(self):
-        """Return :class:`wiz.definition.Definition` instance."""
-        return self.get("definition")
+    def variant(self):
+        """Return variant instance if applicable."""
+        if self._variant_index is not None:
+            return self.definition.variants[self._variant_index]
 
     @property
-    def variant_name(self):
-        """Return variant name."""
-        return self.get("variant-name")
+    def variant_identifier(self):
+        """Return variant name if applicable."""
+        if self.variant is not None:
+            return self.variant.identifier
 
     @property
-    def _ordered_keywords(self):
-        """Return ordered keywords."""
-        return [
-            "identifier",
-            "definition",
-            "variant-name",
-            "version",
-            "namespace",
-            "description",
-            "registry",
-            "definition-location",
-            "install-root",
-            "install-location",
-            "auto-use",
-            "system",
-            "command",
-            "environ",
-            "requirements",
-            "conditions"
-        ]
+    def version(self):
+        """Return package version."""
+        return self._definition.version
+
+    @property
+    def description(self):
+        """Return package description."""
+        return self._definition.description
+
+    @property
+    def namespace(self):
+        """Return package namespace."""
+        return self._definition.namespace
+
+    @property
+    def install_root(self):
+        """Return root installation path."""
+        return self._definition.install_root
+
+    @property
+    def install_location(self):
+        """Return installation path."""
+        if self.variant is not None:
+            return self.variant.install_location
+        return self._definition.install_location
+
+    @property
+    def environ(self):
+        """Return environment variable mapping."""
+        # Create cache value if necessary.
+        if self._cache.get("environ") is None:
+            if self.variant is not None and len(self.variant.environ) > 0:
+                self._cache["environ"] = combine_environ_mapping(
+                    self.identifier,
+                    self._definition.environ,
+                    self.variant.environ
+                )
+
+            else:
+                self._cache["environ"] = self._definition.environ
+
+        # Return cached value.
+        return self._cache.get("environ", {})
+
+    @property
+    def command(self):
+        """Return command mapping."""
+        # Create cache value if necessary.
+        if self._cache.get("command") is None:
+            if self.variant is not None and len(self.variant.command) > 0:
+                self._cache["command"] = combine_command_mapping(
+                    self.identifier,
+                    self._definition.command,
+                    self.variant.command
+                )
+
+            else:
+                self._cache["command"] = self._definition.command
+
+        # Return cached value.
+        return self._cache.get("command", {})
+
+    @property
+    def requirements(self):
+        """Return list of requirements."""
+        # Create cache value if necessary.
+        if self._cache.get("requirements") is None:
+            if self.variant is not None and len(self.variant.requirements) > 0:
+                self._cache["requirements"] = (
+                    # To prevent mutating the the original requirement list.
+                    self._definition.requirements[:]
+                    + self.variant.requirements
+                )
+            else:
+                self._cache["requirements"] = self._definition.requirements
+
+        # Return cached value.
+        return self._cache.get("requirements", [])
+
+    @property
+    def conditions(self):
+        """Return list of conditions."""
+        return self._definition.conditions
 
     def localized_environ(self):
         """Return localized environ mapping."""
-        # Extract install location value.
-        _install_location = self.get("install-location")
+        if not self.install_location:
+            return self.environ
 
-        if "install-root" in self.keys():
-            _install_location = wiz.environ.substitute(
-                self.get("install-location"),
-                {wiz.symbol.INSTALL_ROOT: self.get("install-root")}
+        path = self.install_location
+
+        if self.install_root:
+            path = wiz.environ.substitute(
+                path, {wiz.symbol.INSTALL_ROOT: self.install_root}
             )
 
         # Localize each environment variable.
@@ -384,11 +432,9 @@ class Package(wiz.mapping.Mapping):
         def _replace_location(mapping, item):
             """Replace install-location in *item* for *mapping*."""
             mapping[item[0]] = wiz.environ.substitute(
-                item[1], {wiz.symbol.INSTALL_LOCATION: _install_location}
+                item[1], {wiz.symbol.INSTALL_LOCATION: path}
             )
             return mapping
 
-        if "install-location" in self.keys():
-            _environ = functools.reduce(_replace_location, _environ.items(), {})
-
+        _environ = functools.reduce(_replace_location, _environ.items(), {})
         return _environ

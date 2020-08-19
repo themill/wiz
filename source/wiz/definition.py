@@ -11,7 +11,6 @@ import wiz.exception
 import wiz.filesystem
 import wiz.history
 import wiz.logging
-import wiz.mapping
 import wiz.package
 import wiz.symbol
 import wiz.system
