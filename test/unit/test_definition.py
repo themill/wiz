@@ -758,32 +758,32 @@ def test_discover(mocked_load, mocked_system_validate, registries, definitions):
 
     path = os.path.join(r1, "defA.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defF.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defE.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r2, "defH.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2}
+        path, registry_path=r2
     )
 
     path = os.path.join(r2, "defI.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2}
+        path, registry_path=r2
     )
 
     assert discovered == definitions[:6]
@@ -809,22 +809,22 @@ def test_discover_with_max_depth(
 
     path = os.path.join(r1, "defA.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r2, "defH.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2}
+        path, registry_path=r2
     )
 
     path = os.path.join(r2, "defI.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2}
+        path, registry_path=r2
     )
 
     assert discovered == definitions[:4]
@@ -851,32 +851,32 @@ def test_discover_with_system_valid(
 
     path = os.path.join(r1, "defA.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defF.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defE.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r2, "defH.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2}
+        path, registry_path=r2
     )
 
     path = os.path.join(r2, "defI.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2}
+        path, registry_path=r2
     )
 
     assert discovered == definitions[:6]
@@ -902,32 +902,32 @@ def test_discover_with_system_invalid(
 
     path = os.path.join(r1, "defA.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r1, "level1", "level2", "defC.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defF.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r1, "level1", "level2", "level3", "defE.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r1}
+        path, registry_path=r1
     )
 
     path = os.path.join(r2, "defH.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2}
+        path, registry_path=r2
     )
 
     path = os.path.join(r2, "defI.json")
     mocked_load.assert_any_call(
-        path, mapping={"registry": r2}
+        path, registry_path=r2
     )
 
     assert discovered == []
@@ -1013,6 +1013,7 @@ def test_load(mocked_definition, temporary_file):
     mocked_definition.assert_called_once_with(
         {"identifier": "test_definition"},
         path=temporary_file,
+        registry_path=None,
         input_protected=False
     )
 
@@ -1028,6 +1029,7 @@ def test_load_with_mapping(mocked_definition, temporary_file):
     mocked_definition.assert_called_once_with(
         {"identifier": "test_definition", "key": "value"},
         path=temporary_file,
+        registry_path=None,
         input_protected=False
     )
 

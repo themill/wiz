@@ -165,101 +165,113 @@ def mocked_registry_install_to_path(mocker):
 def definitions():
     """Return mocked definitions."""
     return [
-        wiz.definition.Definition({
-            "identifier": "foo",
-            "version": "0.2.0",
-            "description": "This is Foo 0.2.0.",
-            "registry": "/registry1",
-            "command": {
-                "fooExe": "fooExe -X"
-            },
-            "system": {
-                "platform": "linux",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "foo",
-            "version": "0.2.0",
-            "description": "This is Foo 0.2.0.",
-            "registry": "/registry1",
-            "command": {
-                "fooExe": "fooExe -X"
-            },
-            "system": {
-                "platform": "mac",
-            }
-        }),
-        wiz.definition.Definition({
-            "identifier": "foo",
-            "version": "0.1.0",
-            "description": "This is Foo 0.1.0.",
-            "registry": "/registry1",
-            "command": {
-                "fooExe": "fooExe -X"
-            },
-            "system": {
-                "platform": "linux",
-            },
-            "environ": {
-                "PATH": "/path/to/bin:${PATH}",
-                "PYTHONPATH": "/path/to/lib:${PYTHONPATH}",
-            },
-            "requirements": [
-                "bim >= 0.1.0, < 1"
-            ]
-        }),
-        wiz.definition.Definition({
-            "identifier": "bar",
-            "version": "0.1.0",
-            "description": "This is Bar 0.1.0.",
-            "registry": "/registry2",
-            "environ": {
-                "PATH": "/path/to/bin:${PATH}",
-            },
-            "variants": [
-                {
-                    "identifier": "Variant1",
-                    "environ": {
-                        "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
-                    }
+        wiz.definition.Definition(
+            {
+                "identifier": "foo",
+                "version": "0.2.0",
+                "description": "This is Foo 0.2.0.",
+                "command": {
+                    "fooExe": "fooExe -X"
                 },
-                {
-                    "identifier": "Variant2",
-                    "environ": {
-                        "PYTHONPATH": "/path/to/lib/2:${PYTHONPATH}",
-                    }
-                },
-            ],
-            "requirements": [
-                "bim >= 0.1.0, < 1"
-            ]
-        }),
-        wiz.definition.Definition({
-            "identifier": "bim",
-            "version": "0.1.1",
-            "description": "This is Bim 0.1.1.",
-            "registry": "/registry2",
-            "command": {
-                "bimExe": "bimExe -X"
+                "system": {
+                    "platform": "linux",
+                }
             },
-            "variants": [
-                {
-                    "identifier": "Variant1",
-                    "environ": {
-                        "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
-                    }
+            registry_path="/registry1"
+        ),
+        wiz.definition.Definition(
+            {
+                "identifier": "foo",
+                "version": "0.2.0",
+                "description": "This is Foo 0.2.0.",
+                "command": {
+                    "fooExe": "fooExe -X"
                 },
-            ],
-        }),
-        wiz.definition.Definition({
-            "identifier": "bim",
-            "version": "0.1.0",
-            "description": "This is Bim 0.1.0.",
-            "registry": "/registry2",
-            "command": {
-                "bimExe": "bimExe -X"
+                "system": {
+                    "platform": "mac",
+                }
             },
-        })
+            registry_path="/registry1"
+        ),
+        wiz.definition.Definition(
+            {
+                "identifier": "foo",
+                "version": "0.1.0",
+                "description": "This is Foo 0.1.0.",
+                "command": {
+                    "fooExe": "fooExe -X"
+                },
+                "system": {
+                    "platform": "linux",
+                },
+                "environ": {
+                    "PATH": "/path/to/bin:${PATH}",
+                    "PYTHONPATH": "/path/to/lib:${PYTHONPATH}",
+                },
+                "requirements": [
+                    "bim >= 0.1.0, < 1"
+                ]
+            },
+            registry_path="/registry1"
+        ),
+        wiz.definition.Definition(
+            {
+                "identifier": "bar",
+                "version": "0.1.0",
+                "description": "This is Bar 0.1.0.",
+                "environ": {
+                    "PATH": "/path/to/bin:${PATH}",
+                },
+                "variants": [
+                    {
+                        "identifier": "Variant1",
+                        "environ": {
+                            "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
+                        }
+                    },
+                    {
+                        "identifier": "Variant2",
+                        "environ": {
+                            "PYTHONPATH": "/path/to/lib/2:${PYTHONPATH}",
+                        }
+                    },
+                ],
+                "requirements": [
+                    "bim >= 0.1.0, < 1"
+                ]
+            },
+            registry_path="/registry2"
+        ),
+        wiz.definition.Definition(
+            {
+                "identifier": "bim",
+                "version": "0.1.1",
+                "description": "This is Bim 0.1.1.",
+                "command": {
+                    "bimExe": "bimExe -X"
+                },
+                "variants": [
+                    {
+                        "identifier": "Variant1",
+                        "environ": {
+                            "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
+                        }
+                    },
+                ],
+            },
+            registry_path="/registry2"
+        ),
+        wiz.definition.Definition(
+            {
+                "identifier": "bim",
+                "version": "0.1.0",
+                "description": "This is Bim 0.1.0.",
+                "command": {
+                    "bimExe": "bimExe -X"
+                },
+            },
+            registry_path="/registry2"
+        )
     ]
 
 
@@ -273,75 +285,91 @@ def definition_mapping():
         },
         "package": {
             "foo": {
-                "0.2.0": wiz.definition.Definition({
-                    "identifier": "foo",
-                    "version": "0.2.0",
-                    "description": "This is Foo 0.2.0.",
-                    "registry": "/registry1",
-                }),
-                "0.1.0": wiz.definition.Definition({
-                    "identifier": "foo",
-                    "version": "0.1.0",
-                    "description": "This is Foo 0.1.0.",
-                    "registry": "/registry1",
-                    "environ": {
-                        "PATH": "/path/to/bin:${PATH}",
-                        "PYTHONPATH": "/path/to/lib:${PYTHONPATH}",
+                "0.2.0": wiz.definition.Definition(
+                    {
+                        "identifier": "foo",
+                        "version": "0.2.0",
+                        "description": "This is Foo 0.2.0.",
                     },
-                    "requirements": [
-                        "bim >= 0.1.0, < 1"
-                    ]
-                }),
+                    registry_path="/registry1"
+                ),
+                "0.1.0": wiz.definition.Definition(
+                    {
+                        "identifier": "foo",
+                        "version": "0.1.0",
+                        "description": "This is Foo 0.1.0.",
+                        "environ": {
+                            "PATH": "/path/to/bin:${PATH}",
+                            "PYTHONPATH": "/path/to/lib:${PYTHONPATH}",
+                        },
+                        "requirements": [
+                            "bim >= 0.1.0, < 1"
+                        ]
+                    },
+                    registry_path="/registry1"
+                ),
             },
             "bar": {
-                "0.1.0": wiz.definition.Definition({
-                    "identifier": "bar",
-                    "version": "0.1.0",
-                    "description": "This is Bar 0.1.0.",
-                    "registry": "/registry2",
-                    "environ": {
-                        "PATH": "/path/to/bin:${PATH}",
+                "0.1.0": wiz.definition.Definition(
+                    {
+                        "identifier": "bar",
+                        "version": "0.1.0",
+                        "description": "This is Bar 0.1.0.",
+                        "environ": {
+                            "PATH": "/path/to/bin:${PATH}",
+                        },
+                        "variants": [
+                            {
+                                "identifier": "Variant1",
+                                "environ": {
+                                    "PYTHONPATH": (
+                                        "/path/to/lib/1:${PYTHONPATH}"
+                                    ),
+                                }
+                            },
+                            {
+                                "identifier": "Variant2",
+                                "environ": {
+                                    "PYTHONPATH": (
+                                        "/path/to/lib/2:${PYTHONPATH}"
+                                    ),
+                                }
+                            },
+                        ],
+                        "requirements": [
+                            "bim >= 0.1.0, < 1"
+                        ]
                     },
-                    "variants": [
-                        {
-                            "identifier": "Variant1",
-                            "environ": {
-                                "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
-                            }
-                        },
-                        {
-                            "identifier": "Variant2",
-                            "environ": {
-                                "PYTHONPATH": "/path/to/lib/2:${PYTHONPATH}",
-                            }
-                        },
-                    ],
-                    "requirements": [
-                        "bim >= 0.1.0, < 1"
-                    ]
-                }),
+                    registry_path="/registry2"
+                ),
             },
             "bim": {
-                "0.1.1": wiz.definition.Definition({
-                    "identifier": "bim",
-                    "version": "0.1.1",
-                    "description": "This is Bim 0.1.1.",
-                    "registry": "/registry2",
-                    "variants": [
-                        {
-                            "identifier": "Variant1",
-                            "environ": {
-                                "PYTHONPATH": "/path/to/lib/1:${PYTHONPATH}",
-                            }
-                        },
-                    ],
-                }),
-                "0.1.0": wiz.definition.Definition({
-                    "identifier": "bim",
-                    "version": "0.1.0",
-                    "description": "This is Bim 0.1.0.",
-                    "registry": "/registry2",
-                }),
+                "0.1.1": wiz.definition.Definition(
+                    {
+                        "identifier": "bim",
+                        "version": "0.1.1",
+                        "description": "This is Bim 0.1.1.",
+                        "variants": [
+                            {
+                                "identifier": "Variant1",
+                                "environ": {
+                                    "PYTHONPATH": (
+                                        "/path/to/lib/1:${PYTHONPATH}"
+                                    ),
+                                }
+                            },
+                        ],
+                    },
+                    registry_path="/registry2"
+                ),
+                "0.1.0": wiz.definition.Definition(
+                    {
+                        "identifier": "bim",
+                        "version": "0.1.0",
+                        "description": "This is Bim 0.1.0.",
+                    },
+                    registry_path="/registry2"
+                ),
             }
         },
         "registries": ["/registry1", "/registry2"]
@@ -351,39 +379,43 @@ def definition_mapping():
 @pytest.fixture()
 def wiz_context():
     """Return mocked context."""
-    foo_definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "version": "0.1.0",
-        "description": "This is Foo 0.1.0.",
-        "registry": "/registry1",
-        "environ": {
-            "PATH": "/path/to/foo/bin:${PATH}",
-            "PYTHONPATH": "/path/to/foo/lib:${PYTHONPATH}",
+    foo_definition = wiz.definition.Definition(
+        {
+            "identifier": "foo",
+            "version": "0.1.0",
+            "description": "This is Foo 0.1.0.",
+            "environ": {
+                "PATH": "/path/to/foo/bin:${PATH}",
+                "PYTHONPATH": "/path/to/foo/lib:${PYTHONPATH}",
+            },
+            "requirements": [
+                "bim >= 0.1.0, < 1"
+            ]
         },
-        "requirements": [
-            "bim >= 0.1.0, < 1"
-        ]
-    })
+        registry_path="/registry1"
+    )
 
-    bim_definition = wiz.definition.Definition({
-        "identifier": "bim",
-        "version": "0.1.1",
-        "description": "This is Bim 0.1.1.",
-        "registry": "/registry2",
-        "environ": {
-            "PATH": "/path/to/bim/bin:${PATH}",
-            "PYTHONPATH": "/path/to/bim/lib:${PYTHONPATH}",
-            "LICENSE_ENV": "license@bim.com:2000"
-        },
-        "variants": [
-            {
-                "identifier": "Variant1",
-                "environ": {
-                    "PYTHONPATH": "/path/to/bim/lib:${PYTHONPATH}",
+    bim_definition = wiz.definition.Definition(
+        {
+            "identifier": "bim",
+            "version": "0.1.1",
+            "description": "This is Bim 0.1.1.",
+            "environ": {
+                "PATH": "/path/to/bim/bin:${PATH}",
+                "PYTHONPATH": "/path/to/bim/lib:${PYTHONPATH}",
+                "LICENSE_ENV": "license@bim.com:2000"
+            },
+            "variants": [
+                {
+                    "identifier": "Variant1",
+                    "environ": {
+                        "PYTHONPATH": "/path/to/bim/lib:${PYTHONPATH}",
+                    }
                 }
-            }
-        ]
-    })
+            ]
+        },
+        registry_path="/registry2"
+    )
 
     return {
         "command": {
@@ -922,8 +954,8 @@ def test_search(
     result = runner.invoke(
         wiz.command_line.main, ["search", "bim"] + options
     )
-    # assert result.exit_code == 0
-    # assert not result.exception
+    assert not result.exception
+    assert result.exit_code == 0
     assert result.output == (
         "\n"
         "Registries    \n"
@@ -1292,17 +1324,16 @@ def test_view_definition(
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["view", "bar"])
-    assert result.exit_code == 0
     assert not result.exception
+    assert result.exit_code == 0
     assert result.output == (
         "identifier: bar\n"
         "version: 0.1.0\n"
         "description: This is Bar 0.1.0.\n"
-        "registry: /registry2\n"
         "environ:\n"
         "    PATH: /path/to/bin:${PATH}\n"
         "requirements:\n"
-        "    bim >=0.1.0, <1\n"
+        "    bim >= 0.1.0, < 1\n"
         "variants:\n"
         "    identifier: Variant1\n"
         "        environ:\n"
@@ -1332,19 +1363,18 @@ def test_view_definition_json(
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["view", "bar", "--json"])
-    assert result.exit_code == 0
     assert not result.exception
+    assert result.exit_code == 0
     assert result.output == (
         "{\n"
         "    \"identifier\": \"bar\",\n"
         "    \"version\": \"0.1.0\",\n"
         "    \"description\": \"This is Bar 0.1.0.\",\n"
-        "    \"registry\": \"/registry2\",\n"
         "    \"environ\": {\n"
         "        \"PATH\": \"/path/to/bin:${PATH}\"\n"
         "    },\n"
         "    \"requirements\": [\n"
-        "        \"bim >=0.1.0, <1\"\n"
+        "        \"bim >= 0.1.0, < 1\"\n"
         "    ],\n"
         "    \"variants\": [\n"
         "        {\n"
@@ -1513,8 +1543,8 @@ def test_use_spawn_shell_view(
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["use", "foo", "--view"])
-    assert result.exit_code == 0
     assert not result.exception
+    assert result.exit_code == 0
     assert result.output == (
         "\n"
         "Registries    \n"
@@ -1878,8 +1908,8 @@ def test_run_view(
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["run", "fooExe", "--view"])
-    assert result.exit_code == 0
     assert not result.exception
+    assert result.exit_code == 0
     assert result.output == (
         "\n"
         "Registries    \n"
@@ -2773,19 +2803,15 @@ def test_edit(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Edit definition with editor."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-    })
+    definition = wiz.definition.Definition(
+        {"identifier": "foo"},
+        registry_path="/path",
+        path="/path/to/foo.json"
+    )
 
     mocked_load_definition.return_value = definition
     mocked_click_edit.return_value = (
-        "{\n"
-        "    \"identifier\": \"foo\",\n"
-        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
-        "    \"definition-location\": \"/path/to/foo.json\"\n"
-        "}"
+        "{\"identifier\": \"foo\",\"version\": \"0.1.0\"}"
     )
     mocked_click_confirm.return_value = True
     mocked_filesystem_export.side_effect = [wiz.exception.FileExists(), None]
@@ -2799,9 +2825,7 @@ def test_edit(
     mocked_load_definition.assert_called_once_with("/path/to/foo.json")
     mocked_click_edit.assert_called_once_with(
         "{\n"
-        "    \"identifier\": \"foo\",\n"
-        "    \"registry\": \"/path\",\n"
-        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "    \"identifier\": \"foo\"\n"
         "}",
         extension=".json"
     )
@@ -2847,11 +2871,11 @@ def test_edit_non_saved(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Skip definition editing when updated data is unsaved in editor."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-    })
+    definition = wiz.definition.Definition(
+        {"identifier": "foo"},
+        registry_path="/path",
+        path="/path/to/foo.json"
+    )
 
     mocked_load_definition.return_value = definition
     mocked_click_edit.return_value = None
@@ -2865,9 +2889,7 @@ def test_edit_non_saved(
     mocked_load_definition.assert_called_once_with("/path/to/foo.json")
     mocked_click_edit.assert_called_once_with(
         "{\n"
-        "    \"identifier\": \"foo\",\n"
-        "    \"registry\": \"/path\",\n"
-        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "    \"identifier\": \"foo\"\n"
         "}",
         extension=".json"
     )
@@ -2888,19 +2910,15 @@ def test_edit_overwrite_existing(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Edit definition with editor by overwriting original."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-    })
+    definition = wiz.definition.Definition(
+        {"identifier": "foo"},
+        registry_path="/path",
+        path="/path/to/foo.json"
+    )
 
     mocked_load_definition.return_value = definition
     mocked_click_edit.return_value = (
-        "{\n"
-        "    \"identifier\": \"foo\",\n"
-        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
-        "    \"definition-location\": \"/path/to/foo.json\"\n"
-        "}"
+        "{\"identifier\": \"foo\", \"version\": \"0.1.0\"}"
     )
 
     runner = CliRunner()
@@ -2915,9 +2933,7 @@ def test_edit_overwrite_existing(
     mocked_load_definition.assert_called_once_with("/path/to/foo.json")
     mocked_click_edit.assert_called_once_with(
         "{\n"
-        "    \"identifier\": \"foo\",\n"
-        "    \"registry\": \"/path\",\n"
-        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "    \"identifier\": \"foo\"\n"
         "}",
         extension=".json"
     )
@@ -2950,19 +2966,15 @@ def test_edit_skip_existing(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Abort definition edition by skipping overwriting."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-    })
+    definition = wiz.definition.Definition(
+        {"identifier": "foo"},
+        registry_path="/path",
+        path="/path/to/foo.json"
+    )
 
     mocked_load_definition.return_value = definition
     mocked_click_edit.return_value = (
-        "{\n"
-        "    \"identifier\": \"foo\",\n"
-        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
-        "    \"definition-location\": \"/path/to/foo.json\"\n"
-        "}"
+        "{\"identifier\": \"foo\", \"version\": \"0.1.0\"}"
     )
 
     mocked_click_confirm.return_value = False
@@ -2979,9 +2991,7 @@ def test_edit_skip_existing(
     mocked_load_definition.assert_called_once_with("/path/to/foo.json")
     mocked_click_edit.assert_called_once_with(
         "{\n"
-        "    \"identifier\": \"foo\",\n"
-        "    \"registry\": \"/path\",\n"
-        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "    \"identifier\": \"foo\"\n"
         "}",
         extension=".json"
     )
@@ -3013,19 +3023,15 @@ def test_edit_with_output(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Edit definition with editor and save in different output path."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-    })
+    definition = wiz.definition.Definition(
+        {"identifier": "foo"},
+        registry_path="/path",
+        path="/path/to/foo.json"
+    )
 
     mocked_load_definition.return_value = definition
     mocked_click_edit.return_value = (
-        "{\n"
-        "    \"identifier\": \"foo\",\n"
-        "    \"version\": \"0.1.0\", \"registry\": \"/path\",\n"
-        "    \"definition-location\": \"/path/to/foo.json\"\n"
-        "}"
+        "{\"identifier\": \"foo\",\"version\": \"0.1.0\"}"
     )
 
     runner = CliRunner()
@@ -3040,9 +3046,7 @@ def test_edit_with_output(
     mocked_load_definition.assert_called_once_with("/path/to/foo.json")
     mocked_click_edit.assert_called_once_with(
         "{\n"
-        "    \"identifier\": \"foo\",\n"
-        "    \"registry\": \"/path\",\n"
-        "    \"definition-location\": \"/path/to/foo.json\"\n"
+        "    \"identifier\": \"foo\"\n"
         "}",
         extension=".json"
     )
@@ -3075,11 +3079,11 @@ def test_edit_with_operation_set(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Edit definition with operation 'set'."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-    })
+    definition = wiz.definition.Definition(
+        {"identifier": "foo"},
+        registry_path="/path",
+        path="/path/to/foo.json"
+    )
 
     mocked_load_definition.return_value = definition
 
@@ -3126,14 +3130,16 @@ def test_edit_with_operation_update(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Edit definition with operation 'update'."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-        "environ": {
-            "KEY1": "VALUE1"
+    definition = wiz.definition.Definition(
+        {
+            "identifier": "foo",
+            "environ": {
+                "KEY1": "VALUE1"
+            },
         },
-    })
+        path="/path/to/foo.json",
+        registry_path="/path"
+    )
 
     mocked_load_definition.return_value = definition
 
@@ -3182,14 +3188,16 @@ def test_edit_with_operation_extend(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Edit definition with operation 'extend'."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-        "requirements": [
-            "bar >= 0.1.0, < 1"
-        ],
-    })
+    definition = wiz.definition.Definition(
+        {
+            "identifier": "foo",
+            "requirements": [
+                "bar >= 0.1.0, < 1"
+            ],
+        },
+        path="/path/to/foo.json",
+        registry_path="/path"
+    )
 
     mocked_load_definition.return_value = definition
 
@@ -3213,8 +3221,8 @@ def test_edit_with_operation_extend(
             "{\n"
             "    \"identifier\": \"foo\",\n"
             "    \"requirements\": [\n"
-            "        \"bar >=0.1.0, <1\",\n"
-            "        \"bim >=2.5, <3\",\n"
+            "        \"bar >= 0.1.0, < 1\",\n"
+            "        \"bim >= 2.5, < 3\",\n"
             "        \"baz\"\n"
             "    ]\n"
             "}"
@@ -3240,15 +3248,17 @@ def test_edit_with_operation_insert(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Edit definition with operation 'insert'."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-        "requirements": [
-            "bar >= 0.1.0, < 1",
-            "bim >= 2.5, < 3"
-        ],
-    })
+    definition = wiz.definition.Definition(
+        {
+            "identifier": "foo",
+            "requirements": [
+                "bar >= 0.1.0, < 1",
+                "bim >= 2.5, < 3"
+            ],
+        },
+        path="/path/to/foo.json",
+        registry_path="/path"
+    )
 
     mocked_load_definition.return_value = definition
 
@@ -3272,9 +3282,9 @@ def test_edit_with_operation_insert(
             "{\n"
             "    \"identifier\": \"foo\",\n"
             "    \"requirements\": [\n"
-            "        \"bar >=0.1.0, <1\",\n"
+            "        \"bar >= 0.1.0, < 1\",\n"
             "        \"baz\",\n"
-            "        \"bim >=2.5, <3\"\n"
+            "        \"bim >= 2.5, < 3\"\n"
             "    ]\n"
             "}"
         ),
@@ -3299,15 +3309,17 @@ def test_edit_with_operation_remove(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Edit definition with operation 'remove'."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-        "requirements": [
-            "bar >= 0.1.0, < 1",
-            "bim >= 2.5, < 3"
-        ],
-    })
+    definition = wiz.definition.Definition(
+        {
+            "identifier": "foo",
+            "requirements": [
+                "bar >= 0.1.0, < 1",
+                "bim >= 2.5, < 3"
+            ],
+        },
+        path="/path/to/foo.json",
+        registry_path="/path"
+    )
 
     mocked_load_definition.return_value = definition
 
@@ -3353,15 +3365,17 @@ def test_edit_with_operation_remove_key(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Edit definition with operation 'remove-key'."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-        "environ": {
-            "KEY1": "VALUE1",
-            "KEY2": "VALUE2",
+    definition = wiz.definition.Definition(
+        {
+            "identifier": "foo",
+            "environ": {
+                "KEY1": "VALUE1",
+                "KEY2": "VALUE2",
+            },
         },
-    })
+        path="/path/to/foo.json",
+        registry_path="/path"
+    )
 
     mocked_load_definition.return_value = definition
 
@@ -3410,15 +3424,18 @@ def test_edit_with_operation_remove_index(
     mocked_history_record_action, mocked_filesystem_export, logger
 ):
     """Edit definition with operation 'remove-index'."""
-    definition = wiz.definition.Definition({
-        "identifier": "foo",
-        "registry": "/path",
-        "definition-location": "/path/to/foo.json",
-        "requirements": [
-            "bar >= 0.1.0, < 1",
-            "bim >= 2.5, < 3"
-        ],
-    })
+    definition = wiz.definition.Definition(
+        {
+            "identifier": "foo",
+            "requirements": [
+                "bar >= 0.1.0, < 1",
+                "bim >= 2.5, < 3"
+            ],
+        },
+        path="/path/to/foo.json",
+        registry_path="/path"
+
+    )
 
     mocked_load_definition.return_value = definition
 
@@ -3442,7 +3459,7 @@ def test_edit_with_operation_remove_index(
             "{\n"
             "    \"identifier\": \"foo\",\n"
             "    \"requirements\": [\n"
-            "        \"bim >=2.5, <3\"\n"
+            "        \"bim >= 2.5, < 3\"\n"
             "    ]\n"
             "}"
         ),

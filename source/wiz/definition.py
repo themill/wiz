@@ -685,7 +685,12 @@ class Definition(object):
         """
         data = self.data()
         data[element] = value
-        return Definition(data, input_protected=False)
+
+        return Definition(
+            data, path=self._path,
+            registry_path=self._registry_path,
+            input_protected=False
+        )
 
     def update(self, element, value):
         """Returns copy of instance with *element* mapping updated with *value*.
@@ -709,7 +714,12 @@ class Definition(object):
             )
 
         data[element].update(value)
-        return Definition(data, input_protected=False)
+
+        return Definition(
+            data, path=self._path,
+            registry_path=self._registry_path,
+            input_protected=False
+        )
 
     def extend(self, element, values):
         """Returns copy of instance with *element* list extended with *values*.
@@ -732,7 +742,12 @@ class Definition(object):
             )
 
         data[element].extend(values)
-        return Definition(data, input_protected=False)
+
+        return Definition(
+            data, path=self._path,
+            registry_path=self._registry_path,
+            input_protected=False
+        )
 
     def insert(self, element, value, index):
         """Returns copy of instance with *value* inserted in *element* list.
@@ -758,7 +773,12 @@ class Definition(object):
             )
 
         data[element].insert(index, value)
-        return Definition(data, input_protected=False)
+
+        return Definition(
+            data, path=self._path,
+            registry_path=self._registry_path,
+            input_protected=False
+        )
 
     def remove(self, element):
         """Returns copy of instance without *element*.
@@ -774,7 +794,12 @@ class Definition(object):
             return self
 
         del data[element]
-        return Definition(data, input_protected=False)
+
+        return Definition(
+            data, path=self._path,
+            registry_path=self._registry_path,
+            input_protected=False
+        )
 
     def remove_key(self, element, value):
         """Returns copy of instance without key *value* from *element* mapping.
@@ -808,7 +833,11 @@ class Definition(object):
         if len(data[element]) == 0:
             del data[element]
 
-        return Definition(data, input_protected=False)
+        return Definition(
+            data, path=self._path,
+            registry_path=self._registry_path,
+            input_protected=False
+        )
 
     def remove_index(self, element, index):
         """Returns copy of instance without *index* from *element* list.
@@ -842,7 +871,11 @@ class Definition(object):
         if len(data[element]) == 0:
             del data[element]
 
-        return Definition(data, input_protected=False)
+        return Definition(
+            data, path=self._path,
+            registry_path=self._registry_path,
+            input_protected=False
+        )
 
     def data(self, copy_data=True):
         """Return copy of definition data.

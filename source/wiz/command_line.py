@@ -477,7 +477,7 @@ def wiz_search(click_context, **kwargs):
         system_mapping=system_mapping,
         max_depth=click_context.obj["registry_search_depth"]
     ):
-        values = [str(definition.get(keyword)) for keyword in keywords]
+        values = [str(getattr(definition, keyword)) for keyword in keywords]
         values += definition.command.keys()
 
         if any(_filter in value for value in values for _filter in _filters):
@@ -1109,26 +1109,26 @@ def wiz_edit(click_context, **kwargs):
                     logger.warning("Skip edition for {}.".format(label))
                     continue
 
-                definition = wiz.definition.Definition(**json.loads(data))
+                definition = wiz.definition.Definition(
+                    json.loads(data),
+                    path=definition.path
+                )
 
             else:
                 for name in operations:
                     args = kwargs[name]
                     definition = getattr(definition, name)(*args)
 
-            path = definition["definition-location"]
+            path = definition.path
 
             if kwargs["output"] is not None:
-                name = os.path.basename(definition["definition-location"])
+                name = os.path.basename(definition.path)
                 path = os.path.join(kwargs["output"], name)
 
             overwrite = kwargs["overwrite"]
 
             while True:
                 try:
-                    # Sanitized definition before exporting it.
-                    definition = definition.sanitized()
-
                     wiz.filesystem.export(
                         path, definition.encode(), overwrite=overwrite
                     )
@@ -1211,10 +1211,10 @@ def wiz_analyze(click_context, **kwargs):
         system_mapping=system_mapping,
         max_depth=click_context.obj["registry_search_depth"]
     ):
-        if latest_registry != definition.get("registry"):
-            info = "\nRegistry: {}\n".format(definition.get("registry"))
+        if latest_registry != definition.registry_path:
+            info = "\nRegistry: {}\n".format(definition.registry_path)
             print(wiz.utility.colored_text(info, color="cyan"))
-            latest_registry = definition.get("registry")
+            latest_registry = definition.registry_path
 
         identifier = definition.qualified_version_identifier
 
@@ -1378,8 +1378,6 @@ def display_definition(definition):
         identifier: Foo
         version: 0.1.0
         description: Description of Foo
-        registry: /path/to/registry
-        definition-location: /path/to/registry/foo-0.1.0.json
         install-location: /path/to/foo
         system:
             os: el >= 7, < 8
@@ -1422,7 +1420,7 @@ def display_definition(definition):
         else:
             click.echo("{}{}".format(indent, item))
 
-    _display(definition.to_ordered_dict(serialize_content=True))
+    _display(definition.ordered_data())
 
 
 def display_command_mapping(
@@ -1509,7 +1507,7 @@ def display_command_mapping(
                     rows = [
                         _identifier,
                         definition.version,
-                        registries.index(definition.get("registry")),
+                        registries.index(definition.registry_path),
                         definition.description
                     ]
 
@@ -1606,7 +1604,7 @@ def display_package_mapping(
                     rows = [
                         _identifier,
                         definition.version,
-                        registries.index(definition.get("registry")),
+                        registries.index(definition.registry_path),
                         definition.description
                     ]
 
@@ -1678,13 +1676,13 @@ def _display_packages_from_context(context):
 
     for package in context.get("packages", []):
         _identifier = package.definition.qualified_identifier
-        if package.variant_name is not None:
-            _identifier += " [{}]".format(package.variant_name)
+        if package.variant_identifier is not None:
+            _identifier += " [{}]".format(package.variant_identifier)
 
         rows = [
             _identifier,
             package.version,
-            registries.index(package.get("registry")),
+            registries.index(package.definition.registry_path),
             package.description
         ]
 
