@@ -1,8 +1,11 @@
 # :coding: utf-8
 
 import os
+import copy
+import json
+import collections
 
-import ujson as json
+import ujson
 
 import wiz.exception
 import wiz.filesystem
@@ -83,7 +86,7 @@ def fetch(paths, system_mapping=None, max_depth=None):
             )
 
         # Record package identifiers which should be used implicitly in context.
-        if definition.get("auto-use"):
+        if definition.auto_use:
             implicit_identifiers.append(definition.qualified_identifier)
             _add_to_mapping(definition, implicit_package_mapping)
 
@@ -127,7 +130,7 @@ def _add_to_mapping(definition, mapping):
         mapping["__namespace__"][identifier].add(definition.namespace)
 
     qualified_identifier = definition.qualified_identifier
-    version = str(definition.version)
+    version = str(definition.version or wiz.symbol.UNSET_VALUE)
 
     mapping.setdefault(qualified_identifier, {})
     mapping[qualified_identifier].setdefault(version, {})
@@ -222,7 +225,10 @@ def query(requirement, definition_mapping, namespace_counter=None):
     definition = None
 
     # Extract all versions from definitions.
-    versions = [d.version for d in definition_mapping[identifier].values()]
+    versions = [
+        definition.version or wiz.symbol.UNSET_VALUE
+        for definition in definition_mapping[identifier].values()
+    ]
 
     if wiz.symbol.UNSET_VALUE in versions and len(versions) > 1:
         raise wiz.exception.RequestNotFound(
@@ -246,7 +252,10 @@ def query(requirement, definition_mapping, namespace_counter=None):
         ):
             continue
 
-        if _definition.version in requirement.specifier:
+        if (
+            _definition.version is None
+            or _definition.version in requirement.specifier
+        ):
             definition = _definition
             break
 
@@ -391,11 +400,9 @@ def export(path, data, overwrite=False):
 
     """
     if not isinstance(data, Definition):
-        definition = wiz.definition.Definition(**data)
+        definition = wiz.definition.Definition(data)
     else:
         definition = data
-
-    definition = definition.sanitized()
 
     file_name = wiz.utility.compute_file_name(definition)
     file_path = os.path.join(os.path.abspath(path), file_name)
@@ -469,7 +476,7 @@ def discover(paths, system_mapping=None, max_depth=None):
                     continue
 
                 # Skip definition if "disabled" keyword is set to True.
-                if definition.get("disabled", False):
+                if definition.disabled:
                     _id = definition.qualified_version_identifier
                     logger.warning("Definition '{}' is disabled".format(_id))
                     continue
@@ -494,50 +501,51 @@ def load(path, mapping=None):
     if mapping is None:
         mapping = {}
 
-    mapping.setdefault("definition-location", path)
-
     with open(path, "r") as stream:
-        definition_data = json.load(stream)
+        definition_data = ujson.load(stream)
         definition_data.update(mapping)
-        return Definition(**definition_data)
+
+        return Definition(definition_data, path=path, input_protected=False)
 
 
-class Definition(wiz.mapping.Mapping):
+class Definition(object):
     """Definition object."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, data, path=None, input_protected=True):
         """Initialize definition."""
-        mapping = dict(*args, **kwargs)
+        wiz.validator.validate_definition(data)
 
-        for error in wiz.validator.yield_definition_errors(mapping):
-            # Ensure that message can be used within format string syntax
-            message = error.get("message").replace("{", "{{").replace("}", "}}")
-            raise wiz.exception.IncorrectDefinition(
-                "{message} ({path})".format(
-                    message=message,
-                    path=error.get("path"),
-                )
-            )
+        # Ensure that input data is not mutated if requested.
+        if input_protected:
+            data = copy.deepcopy(data)
 
-        if "variants" in mapping.keys():
-            mapping["variants"] = [
-                _Variant(
-                    dict(definition=mapping.get("identifier"), **variant)
-                ) for variant in mapping["variants"]
-            ]
+        self._data = data
+        self._path = path
 
-        super(Definition, self).__init__(mapping)
+        # Store values that needs to be constructed.
+        self._cache = {}
 
-    def sanitized(self):
-        """Return definition instance without keywords added at load time.
+    @property
+    def path(self):
+        """Return path to definition if available."""
+        return self._path
 
-        These keyword must be removed before exporting the definition into a
-        file.
+    @property
+    def identifier(self):
+        """Return definition identifier."""
+        return self._data["identifier"]
 
-        """
-        _definition = self.remove("definition-location")
-        _definition = _definition.remove("registry")
-        return _definition
+    @property
+    def version(self):
+        """Return definition version."""
+        version = self._data.get("version")
+
+        # Create cache value if necessary.
+        if version is not None and self._cache.get("version") is None:
+            self._cache["version"] = wiz.utility.get_version(version)
+
+        # Return cached value.
+        return self._cache.get("version")
 
     @property
     def qualified_identifier(self):
@@ -549,7 +557,7 @@ class Definition(wiz.mapping.Mapping):
     @property
     def version_identifier(self):
         """Return version identifier."""
-        if self.version != wiz.symbol.UNSET_VALUE:
+        if self.version is not None:
             return "{}=={}".format(self.identifier, self.version)
         return self.identifier
 
@@ -561,61 +569,378 @@ class Definition(wiz.mapping.Mapping):
         return self.version_identifier
 
     @property
-    def variants(self):
-        """Return variant list."""
-        return self.get("variants", [])
+    def description(self):
+        """Return definition description."""
+        return self._data.get("description")
 
     @property
-    def _ordered_keywords(self):
-        """Return ordered keywords."""
-        return [
-            "identifier",
-            "version",
-            "namespace",
-            "description",
-            "registry",
-            "definition-location",
-            "install-root",
-            "install-location",
-            "auto-use",
-            "system",
-            "command",
-            "environ",
-            "requirements",
-            "conditions",
-            "variants"
+    def namespace(self):
+        """Return definition namespace."""
+        return self._data.get("namespace")
+
+    @property
+    def auto_use(self):
+        """Return whether definition should be automatically requested."""
+        return self._data.get("auto-use", False)
+
+    @property
+    def disabled(self):
+        """Return whether definition is disabled."""
+        return self._data.get("disabled", False)
+
+    @property
+    def install_root(self):
+        """Return root installation path."""
+        return self._data.get("install-root")
+
+    @property
+    def install_location(self):
+        """Return installation path."""
+        return self._data.get("install-location")
+
+    @property
+    def environ(self):
+        """Return environment variable mapping."""
+        return self._data.get("environ", {})
+
+    @property
+    def command(self):
+        """Return command mapping."""
+        return self._data.get("command", {})
+
+    @property
+    def system(self):
+        """Return system requirement mapping."""
+        return self._data.get("system", {})
+
+    @property
+    def requirements(self):
+        """Return list of requirements."""
+        requirements = self._data.get("requirements")
+
+        # Create cache value if necessary.
+        if requirements is not None and self._cache.get("requirements") is None:
+            self._cache["requirements"] = [
+                wiz.utility.get_requirement(requirement)
+                for requirement in requirements
+            ]
+
+        # Return cached value.
+        return self._cache.get("requirements", [])
+
+    @property
+    def conditions(self):
+        """Return list of conditions."""
+        conditions = self._data.get("conditions")
+
+        # Create cache value if necessary.
+        if conditions is not None and self._cache.get("conditions") is None:
+            self._cache["conditions"] = [
+                wiz.utility.get_requirement(condition)
+                for condition in conditions
+            ]
+
+        # Return cached value.
+        return self._cache.get("conditions", [])
+
+    @property
+    def variants(self):
+        """Return list of conditions."""
+        variants = self._data.get("variants")
+
+        # Create cache value if necessary.
+        if variants is not None and self._cache.get("variants") is None:
+            self._cache["variants"] = [
+                _Variant(variant, definition_identifier=self.identifier)
+                for variant in variants
+            ]
+
+        # Return cached value.
+        return self._cache.get("variants", [])
+
+    def set(self, element, value):
+        """Returns copy of instance with *element* set to *value*.
+
+        :param element: Keyword to add or update in mapping.
+
+        :param value: New value to set as keyword value.
+
+        :return: New updated mapping.
+
+        """
+        data = self.data()
+        data[element] = value
+        return Definition(data, input_protected=False)
+
+    def update(self, element, value):
+        """Returns copy of instance with *element* mapping updated with *value*.
+
+        :param element: keyword associated to a dictionary.
+
+        :param value: mapping to update *element*  dictionary with.
+
+        :return: New updated mapping.
+
+        :raise: :exc:`ValueError` if *element* is not a dictionary.
+
+        """
+        data = self.data()
+        data.setdefault(element, {})
+
+        if not isinstance(data[element], dict):
+            raise ValueError(
+                "Impossible to update '{}' as it is not a "
+                "dictionary.".format(element)
+            )
+
+        data[element].update(value)
+        return Definition(data, input_protected=False)
+
+    def extend(self, element, values):
+        """Returns copy of instance with *element* list extended with *values*.
+
+        :param element: keyword associated to a list.
+
+        :param values: Values to extend *element* list with.
+
+        :return: New updated mapping.
+
+        :raise: :exc:`ValueError` if *element* is not a list.
+
+        """
+        data = self.data()
+        data.setdefault(element, [])
+
+        if not isinstance(data[element], list):
+            raise ValueError(
+                "Impossible to extend '{}' as it is not a list.".format(element)
+            )
+
+        data[element].extend(values)
+        return Definition(data, input_protected=False)
+
+    def insert(self, element, value, index):
+        """Returns copy of instance with *value* inserted in *element* list.
+
+        :param element: keyword associated to a list.
+
+        :param value: Value which will be added to the *element* list
+
+        :param index: Index number at which the *value* should be inserted.
+
+        :return: New updated mapping.
+
+        :raise: :exc:`ValueError` if *element* is not a list.
+
+        """
+        data = self.data()
+        data.setdefault(element, [])
+
+        if not isinstance(data[element], list):
+            raise ValueError(
+                "Impossible to insert '{}' in '{}' as it is not "
+                "a list.".format(value, element)
+            )
+
+        data[element].insert(index, value)
+        return Definition(data, input_protected=False)
+
+    def remove(self, element):
+        """Returns copy of instance without *element*.
+
+        :param element: keyword to remove from mapping.
+
+        :return: New updated mapping or "self" if *element* didn't exist in
+            mapping.
+
+        """
+        data = self.data()
+        if element not in data.keys():
+            return self
+
+        del data[element]
+        return Definition(data, input_protected=False)
+
+    def remove_key(self, element, value):
+        """Returns copy of instance without key *value* from *element* mapping.
+
+        If *element* mapping is empty after removing *value*, the *element* key
+        will be removed.
+
+        :param element: keyword associated to a dictionary.
+
+        :param value: Value to remove from *element* dictionary.
+
+        :return: New updated mapping.
+
+        :raise: :exc:`ValueError` if *element* is not a dictionary.
+
+        """
+        data = self.data()
+        if element not in data.keys():
+            return self
+
+        if not isinstance(data[element], dict):
+            raise ValueError(
+                "Impossible to remove key from '{}' as it is not a "
+                "dictionary.".format(element)
+            )
+
+        if value not in data[element].keys():
+            return self
+
+        del data[element][value]
+        if len(data[element]) == 0:
+            del data[element]
+
+        return Definition(data, input_protected=False)
+
+    def remove_index(self, element, index):
+        """Returns copy of instance without *index* from *element* list.
+
+        If *element* list is empty after removing *index*, the *element* key
+        will be removed.
+
+        :param element: keyword associated to a list.
+
+        :param index: Index to remove from *element* list.
+
+        :return: New updated mapping.
+
+        :raise: :exc:`ValueError` if *element* is not a list.
+
+        """
+        data = self.data()
+        if element not in data.keys():
+            return self
+
+        if not isinstance(data[element], list):
+            raise ValueError(
+                "Impossible to remove index from '{}' as it is not a "
+                "list.".format(element)
+            )
+
+        if index >= len(data[element]):
+            return self
+
+        del data[element][index]
+        if len(data[element]) == 0:
+            del data[element]
+
+        return Definition(data, input_protected=False)
+
+    def data(self):
+        """Return copy of definition data.
+
+        :return: Definition data mapping.
+
+        """
+        return copy.deepcopy(self._data)
+
+    def ordered_data(self):
+        """Return copy of definition data as :class:`collections.OrderedDict`.
+
+        :return: Instance of :class:`collections.OrderedDict`.
+
+        """
+        definition_keywords = [
+            "identifier", "version", "namespace", "description", "registry",
+            "definition-location", "install-root", "install-location",
+            "auto-use", "system", "command", "environ", "requirements",
+            "conditions", "variants"
         ]
 
+        system_keywords = ["platform", "os", "arch"]
 
-class _Variant(wiz.mapping.Mapping):
-    """Variant Definition object."""
-
-    def __init__(self, *args, **kwargs):
-        """Initialize variant definition."""
-        mapping = dict(*args, **kwargs)
-        self.definition_identifier = mapping.pop("definition")
-        super(_Variant, self).__init__(mapping)
-
-    def _label(self):
-        """Return object label to include in exception messages."""
-        return "The definition '{identifier}' [{variant}]".format(
-            identifier=self.definition_identifier,
-            variant=self.identifier
-        )
-
-    def copy(self, *args, **kwargs):
-        """Return copy of instance."""
-        mapping = dict(*args, **kwargs)
-        mapping["definition"] = self.definition_identifier
-        return super(_Variant, self).copy(**mapping)
-
-    @property
-    def _ordered_keywords(self):
-        """Return ordered keywords."""
-        return [
-            "identifier",
-            "install-location",
-            "command",
-            "environ",
+        variant_keywords = [
+            "identifier", "install-location", "command", "environ",
             "requirements"
         ]
+
+        def _create_ordered_dict(mapping, keywords):
+            """Return ordered dictionary from mapping according to keywords.
+            """
+            content = collections.OrderedDict()
+
+            for keyword in keywords:
+                if keyword not in mapping:
+                    continue
+
+                if keyword == "system":
+                    content[keyword] = _create_ordered_dict(
+                        mapping["system"], system_keywords
+                    )
+
+                elif keywords == "variants":
+                    content[keyword] = [
+                        _create_ordered_dict(variant, variant_keywords)
+                        for variant in mapping["variants"]
+                    ]
+
+                else:
+                    content[keyword] = mapping[keyword]
+
+            return content
+
+        return _create_ordered_dict(self.data(), definition_keywords)
+
+    def encode(self):
+        """Return serialized definition data."""
+        return json.dumps(
+            self.ordered_data(),
+            indent=4,
+            separators=(",", ": "),
+            ensure_ascii=False
+        )
+
+
+class _Variant(object):
+    """Variant object."""
+
+    def __init__(self, data, definition_identifier):
+        """Initialize definition variant."""
+        self._data = data
+        self._definition_identifier = definition_identifier
+
+        # Store values that needs to be constructed.
+        self._cache = {}
+
+    @property
+    def identifier(self):
+        """Return variant identifier."""
+        return self._data["identifier"]
+
+    @property
+    def definition_identifier(self):
+        """Return definition identifier."""
+        return self._definition_identifier
+
+    @property
+    def install_location(self):
+        """Return variant installation path."""
+        return self._data.get("install-location")
+
+    @property
+    def environ(self):
+        """Return variant environment variable mapping."""
+        return self._data.get("environ", {})
+
+    @property
+    def command(self):
+        """Return variant command mapping."""
+        return self._data.get("command", {})
+
+    @property
+    def requirements(self):
+        """Return list of variant requirements."""
+        requirements = self._data.get("requirements")
+
+        # Create cache value if necessary.
+        if requirements is not None and self._cache.get("requirements") is None:
+            self._cache["requirements"] = [
+                wiz.utility.get_requirement(requirement)
+                for requirement in requirements
+            ]
+
+        # Return cached value.
+        return self._cache.get("requirements", [])
