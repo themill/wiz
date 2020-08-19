@@ -288,6 +288,10 @@ class Package(object):
         # Store values that needs to be constructed.
         self._cache = {}
 
+        # Store boolean value indicating whether the package conditions have
+        # been processed
+        self._conditions_processed = False
+
     @property
     def definition(self):
         """Return corresponding :class:`wiz.definition.Definition` instance."""
@@ -414,6 +418,16 @@ class Package(object):
         """Return list of conditions."""
         return self._definition.conditions
 
+    @property
+    def conditions_processed(self):
+        """Indicate whether the package conditions have been processed."""
+        return self._conditions_processed
+
+    @conditions_processed.setter
+    def conditions_processed(self, value):
+        """Set whether the package conditions have been processed."""
+        self._conditions_processed = value
+
     def localized_environ(self):
         """Return localized environ mapping."""
         if not self.install_location:
@@ -438,3 +452,32 @@ class Package(object):
 
         _environ = functools.reduce(_replace_location, _environ.items(), {})
         return _environ
+
+    def data(self):
+        """Return copy of package data.
+        """
+        data = self._definition.data()
+        data["identifier"] = self.identifier
+
+        if self.environ:
+            data["environ"] = self.environ
+
+        if self.command:
+            data["command"] = self.command
+
+        if self.install_location:
+            data["install-location"] = self.install_location
+
+        if self._variant_index is not None:
+            # Remove variants from data
+            variants = data.pop("variants")
+
+            # Add variant identifier to data.
+            data["variant-identifier"] = self.variant_identifier
+
+            # Update requirements if necessary
+            if len(data.get("requirements", [])):
+                variant_data = variants[self._variant_index]
+                data["requirements"] += variant_data.get("requirements", [])
+
+        return data

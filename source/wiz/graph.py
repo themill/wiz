@@ -982,10 +982,10 @@ def generate_variant_combinations(graph, variant_groups):
 
         for node_identifier in _group:
             node = graph.node(node_identifier)
-            variant_name = node.package.variant_name
-            variant_mapping.setdefault(variant_name, [])
-            variant_mapping[variant_name].append(node_identifier)
-            variant_mapping[variant_name].sort(
+            variant_identifier = node.package.variant_identifier
+            variant_mapping.setdefault(variant_identifier, [])
+            variant_mapping[variant_identifier].append(node_identifier)
+            variant_mapping[variant_identifier].sort(
                 key=lambda _id: _group.index(_id)
             )
 
@@ -1628,8 +1628,10 @@ class Graph(object):
                 if self._node_mapping.get(identifier)
             ]
 
-            variant_names = set([node.package.variant_name for node in nodes])
-            if len(variant_names) <= 1:
+            variant_identifiers = set([
+                node.package.variant_identifier for node in nodes
+            ])
+            if len(variant_identifiers) <= 1:
                 continue
 
             count = collections.Counter([node.identifier for node in nodes])
@@ -1974,14 +1976,12 @@ class Graph(object):
         if not self.exists(identifier):
 
             # Do not add the node to the graph if conditions are unprocessed.
-            if (
-                len(package.conditions) > 0 and
-                not package.get("conditions-processed")
-            ):
+            if len(package.conditions) > 0 and not package.conditions_processed:
+                package.conditions_processed = True
+
                 self._conditioned_nodes.append(
                     StoredNode(
-                        requirement,
-                        package.set("conditions-processed", True),
+                        requirement, package,
                         parent_identifier=parent_identifier,
                         weight=weight
                     )
@@ -2002,6 +2002,7 @@ class Graph(object):
             # Update variant mapping if necessary
             self._update_variant_mapping(identifier)
 
+        print(self._node_mapping.keys())
         node = self._node_mapping[identifier]
 
         if parent_identifier is not None:
@@ -2045,7 +2046,7 @@ class Graph(object):
 
         """
         node = self._node_mapping[identifier]
-        if node.package.variant_name is None:
+        if node.package.variant_identifier is None:
             return
 
         # This is not a set because the number of occurrences of each identifier
@@ -2202,7 +2203,7 @@ class Node(object):
     def to_dict(self):
         """Return corresponding dictionary."""
         return {
-            "package": self._package.to_dict(serialize_content=True),
+            "package": self._package.data(),
             "parents": list(self._parent_identifiers)
         }
 
@@ -2280,7 +2281,7 @@ class StoredNode(object):
         """Return corresponding dictionary."""
         return {
             "requirement": self._requirement,
-            "package": self.package.to_dict(serialize_content=True),
+            "package": self.package.data(),
             "parent_identifier": self._parent_identifier,
             "weight": self._weight
         }
