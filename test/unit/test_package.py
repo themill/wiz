@@ -1,7 +1,5 @@
 # :coding: utf-8
 
-import copy
-
 import pytest
 
 import wiz.definition
