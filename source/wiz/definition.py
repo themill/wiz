@@ -226,8 +226,8 @@ def query(requirement, definition_mapping, namespace_counter=None):
 
     # Extract all versions from definitions.
     versions = [
-        definition.version or wiz.symbol.UNSET_VALUE
-        for definition in definition_mapping[identifier].values()
+        _definition.version or wiz.symbol.UNSET_VALUE
+        for _definition in definition_mapping[identifier].values()
     ]
 
     if wiz.symbol.UNSET_VALUE in versions and len(versions) > 1:
