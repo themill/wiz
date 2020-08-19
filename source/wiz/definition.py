@@ -454,7 +454,7 @@ def discover(paths, system_mapping=None, max_depth=None):
 
                 # Load and validate the definition.
                 try:
-                    definition = load(_path, mapping={"registry": path})
+                    definition = load(_path, registry_path=path)
 
                 except (
                     IOError, ValueError, TypeError,
@@ -483,13 +483,16 @@ def discover(paths, system_mapping=None, max_depth=None):
                 yield definition
 
 
-def load(path, mapping=None):
+def load(path, mapping=None, registry_path=None):
     """Load and return a definition from *path*.
 
     :param path: :term:`JSON` file path which contains a definition.
 
     :param mapping: Mapping which will augment the data leading to the creation
         of the definition. Default is None.
+
+    :param registry_path: Path to the registry which contains the definition.
+        Default is None.
 
     :return: Instance of :class:`Definition`.
 
@@ -504,13 +507,20 @@ def load(path, mapping=None):
         definition_data = ujson.load(stream)
         definition_data.update(mapping)
 
-        return Definition(definition_data, path=path, input_protected=False)
+        return Definition(
+            definition_data,
+            path=path,
+            registry_path=registry_path,
+            input_protected=False
+        )
 
 
 class Definition(object):
     """Definition object."""
 
-    def __init__(self, data, path=None, input_protected=True):
+    def __init__(
+        self, data, path=None, registry_path=None, input_protected=True
+    ):
         """Initialize definition."""
         wiz.validator.validate_definition(data)
 
@@ -520,6 +530,7 @@ class Definition(object):
 
         self._data = data
         self._path = path
+        self._registry_path = registry_path
 
         # Store values that needs to be constructed.
         self._cache = {}
@@ -528,6 +539,11 @@ class Definition(object):
     def path(self):
         """Return path to definition if available."""
         return self._path
+
+    @property
+    def registry_path(self):
+        """Return registry path containing the definition if available."""
+        return self._registry_path
 
     @property
     def identifier(self):
