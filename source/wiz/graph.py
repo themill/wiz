@@ -1974,28 +1974,38 @@ class Graph(object):
 
         if not self.exists(identifier):
 
-            # Do not add the node to the graph if conditions are unprocessed.
-            if len(package.conditions) > 0 and not package.conditions_processed:
-                package.conditions_processed = True
+            try:
+                # Do not add node to the graph if conditions are unprocessed.
+                if (
+                    len(package.conditions) > 0
+                    and not package.conditions_processed
+                ):
+                    package.conditions_processed = True
 
-                self._conditioned_nodes.append(
-                    StoredNode(
-                        requirement, package,
-                        parent_identifier=parent_identifier,
-                        weight=weight
+                    self._conditioned_nodes.append(
+                        StoredNode(
+                            requirement, package,
+                            parent_identifier=parent_identifier,
+                            weight=weight
+                        )
                     )
+                    return
+
+                self._create_node_from_package(package)
+
+                # Update queue with dependent requirement.
+                for index, _requirement in enumerate(package.requirements):
+                    queue.put({
+                        "requirement": _requirement,
+                        "parent_identifier": identifier,
+                        "weight": index + 1
+                    })
+
+            except wiz.exception.InvalidRequirement as error:
+                raise wiz.exception.IncorrectDefinition(
+                    "Package '{}' is incorrect [{}]"
+                    .format(package.identifier, error)
                 )
-                return
-
-            self._create_node_from_package(package)
-
-            # Update queue with dependent requirement.
-            for index, _requirement in enumerate(package.requirements):
-                queue.put({
-                    "requirement": _requirement,
-                    "parent_identifier": identifier,
-                    "weight": index + 1
-                })
 
         else:
             # Update variant mapping if necessary

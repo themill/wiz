@@ -2053,6 +2053,64 @@ def test_graph_update_from_requirement_multi_packages(
     mocked_queue.put.assert_not_called()
 
 
+def test_graph_update_from_requirements_with_invalid_requirements(
+    mocked_resolver, mocked_package_extract
+):
+    """Fail to update graph with invalid package requirements."""
+    graph = wiz.graph.Graph(mocked_resolver)
+
+    _mapping = {
+        "A==0.1.0": wiz.package.Package(
+            wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0",
+                "requirements": ["!!!"],
+            })
+        ),
+    }
+
+    mocked_package_extract.side_effect = [
+        [_mapping["A==0.1.0"]],
+    ]
+
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        graph.update_from_requirements([Requirement("A")], graph.ROOT)
+
+    assert (
+        "IncorrectDefinition: Package 'A==0.1.0' is incorrect "
+        "[The requirement '!!!' is incorrect]"
+    ) in str(error)
+
+
+def test_graph_update_from_requirements_with_invalid_conditions(
+    mocked_resolver, mocked_package_extract
+):
+    """Fail to update graph with invalid package conditions."""
+    graph = wiz.graph.Graph(mocked_resolver)
+
+    _mapping = {
+        "A==0.1.0": wiz.package.Package(
+            wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.1.0",
+                "conditions": ["!!!"],
+            })
+        ),
+    }
+
+    mocked_package_extract.side_effect = [
+        [_mapping["A==0.1.0"]],
+    ]
+
+    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+        graph.update_from_requirements([Requirement("A")], graph.ROOT)
+
+    assert (
+        "IncorrectDefinition: Package 'A==0.1.0' is incorrect "
+        "[The requirement '!!!' is incorrect]"
+    ) in str(error)
+
+
 def test_graph_create_node_from_package():
     """Create node in graph from package."""
     package = wiz.package.Package(
