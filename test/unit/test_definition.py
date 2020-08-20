@@ -1014,7 +1014,7 @@ def test_load(mocked_definition, temporary_file):
         {"identifier": "test_definition"},
         path=temporary_file,
         registry_path=None,
-        input_protected=False
+        copy_data=False
     )
 
 
@@ -1030,7 +1030,7 @@ def test_load_with_mapping(mocked_definition, temporary_file):
         {"identifier": "test_definition", "key": "value"},
         path=temporary_file,
         registry_path=None,
-        input_protected=False
+        copy_data=False
     )
 
 
