@@ -17,6 +17,82 @@ Release Notes
         * :mod:`wiz.system`
         * :mod:`wiz.utility`
 
+    .. change:: changed
+
+        Updated :mod:`wiz.validator` to use custom definition validation instead
+        of a JSON Schema validation as it is significantly hindering the
+        performance when creating an instance of
+        :class:`wiz.definition.Definition`.
+
+        Added :func:`wiz.validator.validate_definition` to perform equivalent
+        tests in optimized time.
+
+    .. change:: changed
+
+        Updated code to use `ujson <https://pypi.org/project/ujson/>`_ instead
+        of the built-in :mod:`json` module to optimize the loading of
+        :term:`JSON` files.
+
+    .. change:: changed
+
+        Updated :class:`wiz.definition.Definition` construction to simplify
+        logic and optimize performance. It does not inherit from
+        :class:`collections.Mapping` anymore and does not require from registry
+        and definition location to be included in the mapping.
+
+        .. extended-code-block:: python
+            :icon: ../image/avoid.png
+
+            >>> Definition({
+            ...    "identifier": "foo",
+            ...    "definition-location": "/path/to/definition.json",
+            ...    "registry": "/path/to/registry",
+            ... })
+
+        .. extended-code-block:: python
+            :icon: ../image/prefer.png
+
+            >>> Definition(
+            ...     {"identifier": "foo"},
+            ...     path="/path/to/definition.json",
+            ...     registry_path="/path/to/registry",
+            ... )
+
+        Removed :meth:`wiz.definition.Definition.sanitized` which was previously
+        used to remove the "registry" and "definition-location" keywords from
+        data definition as it is not necessary anymore.
+
+        Deep copy of input data can now be prevented with the "use_copy" option
+        to speed up instantiation::
+
+            >>> Definition({"identifier": "foo"}, copy_data=False)
+
+        The :ref:`definition/version`, :ref:`definition/requirements` and
+        :ref:`definition/conditions` attributes are not sanitized during
+        instantiation for optimization purposes. Instead, they will be sanitized
+        and cached the first time they are accessed.
+
+    .. change:: changed
+
+        Updated :class:`wiz.package.Package` construction to simplify logic
+        and optimize performance. It does not inherit from
+        :class:`collections.Mapping` anymore and use
+        :class:`wiz.definition.Definition` keywords instead of copying data.
+
+        Removed :meth:`wiz.package.Package.qualified_identifier` and prepend
+        :ref:`definition/namespace` to :meth:`wiz.package.Package.identifier`
+        to ensure that a unique identifier is always used.
+
+    .. change:: changed
+
+        Updated :meth:`wiz.graph.Graph.update_from_requirements` to raise a
+        palatable error when a dependent definition uses an invalid requirement
+        as :ref:`definition/requirements` or :ref:`definition/conditions`
+        attributes.
+
+        Previously, these attributes were sanitized when instantiating the
+        :class:`wiz.definition.Definition`.
+
     .. change:: fixed
 
         Fixed :class:`wiz.graph.Resolver` to ensure that conflicted nodes are
@@ -1373,8 +1449,7 @@ Release Notes
         :tags: API
 
         Added :func:`wiz.validator.yield_definition_errors` to identify and
-        yield potential errors in a definition data following a
-        :term:`JSON Schema`.
+        yield potential errors in a definition data following JSON Schema.
 
     .. change:: changed
         :tags: API
