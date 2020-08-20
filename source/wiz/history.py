@@ -135,7 +135,7 @@ def _json_default(_object):
     import wiz.graph
 
     if isinstance(_object, wiz.graph.Graph):
-        return _object.to_dict()
+        return _object.data()
 
     elif isinstance(_object, Requirement) or isinstance(_object, Version):
         return str(_object)

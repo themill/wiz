@@ -1508,7 +1508,7 @@ class Graph(object):
         """Return all node identifiers in the graph."""
         return list(self._node_mapping.keys())
 
-    def to_dict(self):
+    def data(self):
         """Return corresponding dictionary.
 
         :return Mapping containing all information about the graph.
@@ -1517,7 +1517,7 @@ class Graph(object):
         return {
             "identifier": self.identifier,
             "node_mapping": {
-                _id: node.to_dict() for _id, node
+                _id: node.data() for _id, node
                 in self._node_mapping.items()
             },
             "link_mapping": copy.deepcopy(self._link_mapping),
@@ -1526,7 +1526,7 @@ class Graph(object):
                 in self._identifiers_per_definition.items()
             },
             "conditioned_nodes": [
-                stored_node.to_dict() for stored_node in self._conditioned_nodes
+                stored_node.data() for stored_node in self._conditioned_nodes
             ],
             "variants_per_definition": self._variants_per_definition,
             "namespace_count": dict(self._namespace_count),
@@ -2198,7 +2198,7 @@ class Node(object):
         """Add *identifier* as parent to the node."""
         self._parent_identifiers.add(identifier)
 
-    def to_dict(self):
+    def data(self):
         """Return corresponding dictionary."""
         return {
             "package": self._package.data(),
@@ -2275,7 +2275,7 @@ class StoredNode(object):
         """Return weight number."""
         return self._weight
 
-    def to_dict(self):
+    def data(self):
         """Return corresponding dictionary."""
         return {
             "requirement": self._requirement,

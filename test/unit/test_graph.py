@@ -1271,7 +1271,7 @@ def test_graph_update_from_requirements(
         [Requirement("A"), Requirement("B>=2")], graph.ROOT
     )
 
-    assert graph.to_dict() == {
+    assert graph.data() == {
         "identifier": mocker.ANY,
         "node_mapping": {
             "A==0.2.0": {
@@ -1358,7 +1358,7 @@ def test_graph_update_from_requirements_with_dependencies(
 
     graph.update_from_requirements([Requirement("A")], graph.ROOT)
 
-    assert graph.to_dict() == {
+    assert graph.data() == {
         "identifier": mocker.ANY,
         "node_mapping": {
             "A==0.1.0": {
@@ -1461,7 +1461,7 @@ def test_graph_update_from_requirements_with_variants(
 
     graph.update_from_requirements([Requirement("A")], graph.ROOT)
 
-    assert graph.to_dict() == {
+    assert graph.data() == {
         "identifier": mocker.ANY,
         "node_mapping": {
             "A[V1]==0.2.0": {
@@ -1547,7 +1547,7 @@ def test_graph_update_from_requirements_with_namespaces(
         [Requirement("A"), Requirement("B>=2")], graph.ROOT
     )
 
-    assert graph.to_dict() == {
+    assert graph.data() == {
         "identifier": mocker.ANY,
         "node_mapping": {
             "Foo::A==0.2.0": {
@@ -1636,7 +1636,7 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
         [Requirement("A"), Requirement("B>=2"), Requirement("D")], graph.ROOT
     )
 
-    assert graph.to_dict() == {
+    assert graph.data() == {
         "identifier": mocker.ANY,
         "node_mapping": {
             "A==0.2.0": {
@@ -1716,7 +1716,7 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
         [Requirement("A"), Requirement("B>=2")], graph.ROOT
     )
 
-    assert graph.to_dict() == {
+    assert graph.data() == {
         "identifier": mocker.ANY,
         "node_mapping": {
             "A==0.2.0": {
@@ -1796,7 +1796,7 @@ def test_graph_update_from_requirements_with_errors(
         [Requirement("A"), Requirement("B>=2")], graph.ROOT
     )
 
-    assert graph.to_dict() == {
+    assert graph.data() == {
         "identifier": mocker.ANY,
         "node_mapping": {
             "A==0.2.0": {
