@@ -5,7 +5,7 @@ import uuid
 import shutil
 import tempfile
 
-import ujson as json
+import ujson
 import pytest
 
 import wiz
@@ -54,7 +54,7 @@ def registries(request):
                 for index in range(100)
             }
         }
-        for index in range(100)
+        for index in range(500)
     ]
 
     # All possible versions and system requirements.
@@ -97,7 +97,7 @@ def registries(request):
                 os.makedirs(path)
 
             with open(file_path, "w") as stream:
-                json.dumps(data, stream)
+                ujson.dumps(data, stream)
 
     def cleanup():
         """Remove temporary directories."""
