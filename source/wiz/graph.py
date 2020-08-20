@@ -433,7 +433,7 @@ class Resolver(object):
             relink_parents(graph, node)
 
             # Record resulting replacement
-            replacement[identifier] = [p.qualified_identifier for p in packages]
+            replacement[identifier] = [p.identifier for p in packages]
 
         self._logger.debug(
             "Create new graph with new nodes:\n"
@@ -616,7 +616,7 @@ class Resolver(object):
             # If current node is not part of the extracted packages, it will be
             # removed from the graph.
             if not any(
-                node.identifier == package.qualified_identifier
+                node.identifier == package.identifier
                 for package in packages
             ):
                 self._logger.debug("Remove '{}'".format(node.identifier))
@@ -731,7 +731,7 @@ class Resolver(object):
             with at least one package.
 
         """
-        identifiers = set([p.qualified_identifier for p in packages])
+        identifiers = set([p.identifier for p in packages])
 
         # Filter out identifiers already set as conflict.
         identifiers.difference_update([n.identifier for n in conflicting_nodes])
@@ -1429,7 +1429,7 @@ def extract_ordered_packages(graph, distance_mapping):
 
     logger.debug(
         "Sorted packages: {}".format(
-            ", ".join([package.qualified_identifier for package in packages])
+            ", ".join([package.identifier for package in packages])
         )
     )
 
@@ -1588,11 +1588,11 @@ class Graph(object):
 
             # Node is matching if package has no version.
             if node.package.version is None:
-                identifiers.append(node.package.qualified_identifier)
+                identifiers.append(node.package.identifier)
 
             # Node is matching if requirement contains package version.
             elif requirement.specifier.contains(node.package.version):
-                identifiers.append(node.package.qualified_identifier)
+                identifiers.append(node.package.identifier)
 
         return identifiers
 
@@ -1864,8 +1864,7 @@ class Graph(object):
 
                 # Require all package identifiers to be in the node mapping.
                 identifiers = [
-                    package.qualified_identifier
-                    for package in itertools.chain(*packages)
+                    package.identifier for package in itertools.chain(*packages)
                 ]
 
             except wiz.exception.WizError:
@@ -1971,7 +1970,7 @@ class Graph(object):
             is the importance of the link. Default is 1.
 
         """
-        identifier = package.qualified_identifier
+        identifier = package.identifier
 
         if not self.exists(identifier):
 
@@ -2002,7 +2001,6 @@ class Graph(object):
             # Update variant mapping if necessary
             self._update_variant_mapping(identifier)
 
-        print(self._node_mapping.keys())
         node = self._node_mapping[identifier]
 
         if parent_identifier is not None:
@@ -2022,7 +2020,7 @@ class Graph(object):
         :param package: Instance of :class:`wiz.package.Package`.
 
         """
-        identifier = package.qualified_identifier
+        identifier = package.identifier
 
         self._logger.debug("Adding package: {}".format(identifier))
         self._node_mapping[identifier] = Node(package)
@@ -2179,7 +2177,7 @@ class Node(object):
             :class:`~wiz.package.Package` instance qualified identifier.
 
         """
-        return self._package.qualified_identifier
+        return self._package.identifier
 
     @property
     def definition(self):
@@ -2255,7 +2253,7 @@ class StoredNode(object):
             :class:`~wiz.package.Package` instance qualified identifier.
 
         """
-        return self._package.qualified_identifier
+        return self._package.identifier
 
     @property
     def requirement(self):

@@ -262,10 +262,9 @@ def create(definition, variant_identifier=None):
 
         raise wiz.exception.RequestNotFound(
             "The variant '{variant}' could not been resolved for "
-            "'{definition}' [{version}].".format(
+            "'{definition}'.".format(
                 variant=variant_identifier,
-                definition=definition.identifier,
-                version=definition.version
+                definition=definition.qualified_version_identifier,
             )
         )
 
@@ -307,7 +306,7 @@ class Package(object):
     def identifier(self):
         """Return package identifier.
 
-        :return: String value (e.g. "foo[variant1]==0.1.0").
+        :return: String value (e.g. "namespace::foo[variant1]==0.1.0").
 
         .. note::
 
@@ -323,22 +322,13 @@ class Package(object):
                 identifier += "[{}]".format(self.variant_identifier)
             if self._definition.version:
                 identifier += "=={}".format(self._definition.version)
+            if self.namespace is not None:
+                identifier = "{}::{}".format(self.namespace, identifier)
 
             self._cache["identifier"] = identifier
 
         # Return cached value.
         return self._cache["identifier"]
-
-    @property
-    def qualified_identifier(self):
-        """Return qualified identifier with optional namespace.
-
-        :return: String value (e.g. "namespace::foo[variant1]==0.1.0").
-
-        """
-        if self.namespace is not None:
-            return "{}::{}".format(self.namespace, self.identifier)
-        return self.identifier
 
     @property
     def variant(self):

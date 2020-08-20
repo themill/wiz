@@ -2781,10 +2781,10 @@ def test_scenario_23(
         Requirement("A"), Requirement("B"), Requirement("C"), Requirement("D")
     ])
     assert len(packages) == 4
-    assert packages[0].qualified_identifier == "Namespace4::D"
-    assert packages[1].qualified_identifier == "Namespace4::C==0.2.0"
-    assert packages[2].qualified_identifier == "Namespace1::B==0.1.0"
-    assert packages[3].qualified_identifier == "Namespace1::A"
+    assert packages[0].identifier == "Namespace4::D"
+    assert packages[1].identifier == "Namespace4::C==0.2.0"
+    assert packages[2].identifier == "Namespace1::B==0.1.0"
+    assert packages[3].identifier == "Namespace1::A"
 
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
@@ -2858,7 +2858,7 @@ def test_scenario_24(
     packages = resolver.compute_packages([Requirement("A")])
 
     assert len(packages) == 1
-    assert packages[0].qualified_identifier == "A==0.1.0"
+    assert packages[0].identifier == "A==0.1.0"
 
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
@@ -2943,8 +2943,8 @@ def test_scenario_25(
     packages = resolver.compute_packages([Requirement("A"), Requirement("B")])
 
     assert len(packages) == 2
-    assert packages[0].qualified_identifier == "Namespace1::B==0.1.0"
-    assert packages[1].qualified_identifier == "Namespace1::A==0.2.0"
+    assert packages[0].identifier == "Namespace1::B==0.1.0"
+    assert packages[1].identifier == "Namespace1::A==0.2.0"
 
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
@@ -3028,8 +3028,8 @@ def test_scenario_26(
     packages = resolver.compute_packages([Requirement("::A"), Requirement("B")])
 
     assert len(packages) == 2
-    assert packages[0].qualified_identifier == "Namespace1::B==0.1.0"
-    assert packages[1].qualified_identifier == "A==0.1.0"
+    assert packages[0].identifier == "Namespace1::B==0.1.0"
+    assert packages[1].identifier == "A==0.1.0"
 
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
@@ -3111,8 +3111,8 @@ def test_scenario_27(
     packages = resolver.compute_packages([Requirement("A"), Requirement("B")])
 
     assert len(packages) == 2
-    assert packages[0].qualified_identifier == "B==0.1.0"
-    assert packages[1].qualified_identifier == "A==0.1.0"
+    assert packages[0].identifier == "B==0.1.0"
+    assert packages[1].identifier == "A==0.1.0"
 
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:
@@ -3188,7 +3188,7 @@ def test_scenario_28(
     packages = resolver.compute_packages([Requirement("A")])
 
     assert len(packages) == 1
-    assert packages[0].qualified_identifier == "A::A==0.2.0"
+    assert packages[0].identifier == "A::A==0.2.0"
 
     # Check spied functions / methods
     if _CHECK_SPIED_CALL:

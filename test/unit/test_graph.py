@@ -1054,28 +1054,28 @@ def test_graph_find_matching_identifiers(
             definition=mocker.Mock(qualified_identifier="A"),
             package=mocker.Mock(
                 version=Version("0.1.0"),
-                qualified_identifier="A==0.1.0"
+                identifier="A==0.1.0"
             )
         ),
         "A==2.4.5": mocker.Mock(
             definition=mocker.Mock(qualified_identifier="A"),
             package=mocker.Mock(
                 version=Version("2.4.5"),
-                qualified_identifier="A==2.4.5"
+                identifier="A==2.4.5"
             )
         ),
         "Name1::B": mocker.Mock(
             definition=mocker.Mock(qualified_identifier="Name1::B"),
             package=mocker.Mock(
                 version=None,
-                qualified_identifier="Name1::B"
+                identifier="Name1::B"
             )
         ),
         "B==1": mocker.Mock(
             definition=mocker.Mock(qualified_identifier="B"),
             package=mocker.Mock(
                 version=Version("1"),
-                qualified_identifier="B==1"
+                identifier="B==1"
             )
         ),
     }
@@ -1552,7 +1552,7 @@ def test_graph_update_from_requirements_with_namespaces(
         "node_mapping": {
             "Foo::A==0.2.0": {
                 "package": {
-                    "identifier": "A==0.2.0",
+                    "identifier": "Foo::A==0.2.0",
                     "namespace": "Foo",
                     "version": "0.2.0"
                 },
@@ -1560,7 +1560,7 @@ def test_graph_update_from_requirements_with_namespaces(
             },
             "Foo::B==2.1.1": {
                 "package": {
-                    "identifier": "B==2.1.1",
+                    "identifier": "Foo::B==2.1.1",
                     "namespace": "Foo",
                     "version": "2.1.1"
                 },
