@@ -254,11 +254,6 @@ def create(definition, variant_identifier=None):
     :raise: :exc:`wiz.exception.RequestNotFound` if *variant_identifier* is not
         a valid variant identifier of *definition*.
 
-    .. note::
-
-        In case of conflicted elements in 'data' or 'command' elements, the
-        elements from the variant will have priority.
-
     """
     if variant_identifier is not None:
         for index, variant in enumerate(definition.variants):
