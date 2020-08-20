@@ -1,7 +1,6 @@
 # :coding: utf-8
 
 import pytest
-import mock
 import types
 import re
 
@@ -1243,7 +1242,7 @@ def test_graph_conflicts(definition_mapping, node_mapping, expected):
 
 
 def test_graph_update_from_requirements(
-    mocked_resolver, mocked_package_extract
+    mocker, mocked_resolver, mocked_package_extract
 ):
     """Update graph from requirements."""
     graph = wiz.graph.Graph(mocked_resolver)
@@ -1273,7 +1272,7 @@ def test_graph_update_from_requirements(
     )
 
     assert graph.to_dict() == {
-        "identifier": mock.ANY,
+        "identifier": mocker.ANY,
         "node_mapping": {
             "A==0.2.0": {
                 "package": {
@@ -1308,7 +1307,7 @@ def test_graph_update_from_requirements(
 
 
 def test_graph_update_from_requirements_with_dependencies(
-    mocked_resolver, mocked_package_extract
+    mocker, mocked_resolver, mocked_package_extract
 ):
     """Update graph from requirements with dependency requirements."""
     graph = wiz.graph.Graph(mocked_resolver)
@@ -1360,7 +1359,7 @@ def test_graph_update_from_requirements_with_dependencies(
     graph.update_from_requirements([Requirement("A")], graph.ROOT)
 
     assert graph.to_dict() == {
-        "identifier": mock.ANY,
+        "identifier": mocker.ANY,
         "node_mapping": {
             "A==0.1.0": {
                 "package": {
@@ -1431,7 +1430,7 @@ def test_graph_update_from_requirements_with_dependencies(
 
 
 def test_graph_update_from_requirements_with_variants(
-    mocked_resolver, mocked_package_extract
+    mocker, mocked_resolver, mocked_package_extract
 ):
     """Update graph from requirements with variants of definition."""
     graph = wiz.graph.Graph(mocked_resolver)
@@ -1463,7 +1462,7 @@ def test_graph_update_from_requirements_with_variants(
     graph.update_from_requirements([Requirement("A")], graph.ROOT)
 
     assert graph.to_dict() == {
-        "identifier": mock.ANY,
+        "identifier": mocker.ANY,
         "node_mapping": {
             "A[V1]==0.2.0": {
                 "package": {
@@ -1510,7 +1509,7 @@ def test_graph_update_from_requirements_with_variants(
 
 
 def test_graph_update_from_requirements_with_namespaces(
-    mocked_resolver, mocked_package_extract
+    mocker, mocked_resolver, mocked_package_extract
 ):
     """Update graph from requirements with namespaces."""
     mocked_resolver.definition_mapping = {
@@ -1549,7 +1548,7 @@ def test_graph_update_from_requirements_with_namespaces(
     )
 
     assert graph.to_dict() == {
-        "identifier": mock.ANY,
+        "identifier": mocker.ANY,
         "node_mapping": {
             "Foo::A==0.2.0": {
                 "package": {
@@ -1590,7 +1589,7 @@ def test_graph_update_from_requirements_with_namespaces(
 
 
 def test_graph_update_from_requirements_with_skipped_conditional_packages(
-    mocked_resolver, mocked_package_extract
+    mocker, mocked_resolver, mocked_package_extract
 ):
     """Update graph from requirements with skipped conditional packages."""
     graph = wiz.graph.Graph(mocked_resolver)
@@ -1638,7 +1637,7 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
     )
 
     assert graph.to_dict() == {
-        "identifier": mock.ANY,
+        "identifier": mocker.ANY,
         "node_mapping": {
             "A==0.2.0": {
                 "package": {
@@ -1659,13 +1658,21 @@ def test_graph_update_from_requirements_with_skipped_conditional_packages(
         "conditioned_nodes": [
             {
                 "requirement": Requirement("B >=2"),
-                "package": mock.ANY,
+                "package": {
+                    "identifier": "B==2.1.1",
+                    "version": "2.1.1",
+                    "conditions": ["C > 2"]
+                },
                 "parent_identifier": "root",
                 "weight": 2
             },
             {
                 "requirement": Requirement("D"),
-                "package": mock.ANY,
+                "package": {
+                    "identifier": "D==0.1.0",
+                    "version": "0.1.0",
+                    "conditions": ["W"]
+                },
                 "parent_identifier": "root",
                 "weight": 3
             }
@@ -1710,7 +1717,7 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
     )
 
     assert graph.to_dict() == {
-        "identifier": mock.ANY,
+        "identifier": mocker.ANY,
         "node_mapping": {
             "A==0.2.0": {
                 "package": {
@@ -1741,7 +1748,11 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
         "conditioned_nodes": [
             {
                 "requirement": Requirement("B >=2"),
-                "package": mock.ANY,
+                "package": {
+                    "identifier": "B==2.1.1",
+                    "version": "2.1.1",
+                    "conditions": ["A"],
+                },
                 "parent_identifier": "root",
                 "weight": 2
             },
@@ -1753,7 +1764,7 @@ def test_graph_update_from_requirements_with_used_conditional_packages(
 
 
 def test_graph_update_from_requirements_with_errors(
-    mocked_resolver, mocked_package_extract
+    mocker, mocked_resolver, mocked_package_extract
 ):
     """Update graph from requirements with errors."""
     graph = wiz.graph.Graph(mocked_resolver)
@@ -1786,7 +1797,7 @@ def test_graph_update_from_requirements_with_errors(
     )
 
     assert graph.to_dict() == {
-        "identifier": mock.ANY,
+        "identifier": mocker.ANY,
         "node_mapping": {
             "A==0.2.0": {
                 "package": {
@@ -1857,9 +1868,7 @@ def test_graph_update_from_requirement_existing(
 
     graph._create_node_from_package.assert_not_called()
     graph.create_link.assert_called_once_with(
-        "_A==0.1.0",
-        graph.ROOT,
-        requirement,
+        "_A==0.1.0", graph.ROOT, requirement,
         weight=options.get("weight", 1)
     )
 
