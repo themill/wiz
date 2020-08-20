@@ -511,7 +511,7 @@ def load(path, mapping=None, registry_path=None):
             definition_data,
             path=path,
             registry_path=registry_path,
-            input_protected=False
+            copy_data=False
         )
 
 
@@ -519,13 +519,43 @@ class Definition(object):
     """Definition object."""
 
     def __init__(
-        self, data, path=None, registry_path=None, input_protected=True
+        self, data, path=None, registry_path=None, copy_data=True
     ):
-        """Initialize definition."""
+        """Initialize definition from input *data* mapping.
+
+        :param data: Data definition mapping.
+
+        :param path: Path to the definition :term:`JSON` file used to create the
+            definition if available. Default is None.
+
+        :param registry_path: Path to the registry from which the definition
+            where fetched if available. Default is None.
+
+        :param copy_data: Indicate whether input *data* will be copied to
+            prevent mutating it. Default is True.
+
+        :raise: :exc:`wiz.exception.IncorrectDefinition` if the *data* mapping
+            is incorrect.
+
+        .. warning::
+
+            "requirements" and "conditions" values will not get validated when
+            constructing the instance for performance reason. Therefore,
+            accessing these values could raise an error when data is incorrect::
+
+                >>> definition = Definition({
+                ...     "identifier": "foo",
+                ...     "requirements": ["!!!"],
+                ... })
+                >>> print(definition.requirements)
+
+                InvalidRequirement: The requirement '!!!' is incorrect
+
+        """
         wiz.validator.validate_definition(data)
 
         # Ensure that input data is not mutated if requested.
-        if input_protected:
+        if copy_data:
             data = copy.deepcopy(data)
 
         self._data = data
@@ -537,22 +567,49 @@ class Definition(object):
 
     @property
     def path(self):
-        """Return path to definition if available."""
+        """Return path to definition if available.
+
+        :return: Definition :term:`JSON` path or None.
+
+        """
         return self._path
 
     @property
     def registry_path(self):
-        """Return registry path containing the definition if available."""
+        """Return registry path containing the definition if available.
+
+        :return: Registry path or None.
+
+        """
         return self._registry_path
 
     @property
     def identifier(self):
-        """Return definition identifier."""
+        """Return definition identifier.
+
+        :return: String value (e.g. "foo").
+
+        .. seealso:: :ref:`definition/identifier`
+
+        """
         return self._data["identifier"]
 
     @property
     def version(self):
-        """Return definition version."""
+        """Return definition version.
+
+        :return: Instance of :class:`packaging.version.Version` or None.
+
+        :raise: :exc:`wiz.exception.InvalidVersion` if the version is incorrect.
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        .. seealso:: :ref:`definition/version`
+
+        """
         version = self._data.get("version")
 
         # Create cache value if necessary.
@@ -564,73 +621,153 @@ class Definition(object):
 
     @property
     def qualified_identifier(self):
-        """Return qualified identifier with optional namespace."""
+        """Return qualified identifier with optional namespace.
+
+        :return: String value (e.g. "namespace::foo").
+
+        """
         if self.namespace is not None:
             return "{}::{}".format(self.namespace, self.identifier)
         return self.identifier
 
     @property
     def version_identifier(self):
-        """Return version identifier."""
+        """Return version identifier.
+
+        :return: String value (e.g. "foo==0.1.0").
+
+        """
         if self.version is not None:
             return "{}=={}".format(self.identifier, self.version)
         return self.identifier
 
     @property
     def qualified_version_identifier(self):
-        """Return qualified version identifier with optional namespace."""
+        """Return qualified version identifier with optional namespace.
+
+        :return: String value (e.g. "namespace::foo==0.1.0").
+
+        """
         if self.namespace is not None:
             return "{}::{}".format(self.namespace, self.version_identifier)
         return self.version_identifier
 
     @property
     def description(self):
-        """Return definition description."""
+        """Return definition description.
+
+        :return: String value or None.
+
+        .. seealso:: :ref:`definition/description`
+
+        """
         return self._data.get("description")
 
     @property
     def namespace(self):
-        """Return definition namespace."""
+        """Return definition namespace.
+
+        :return: String value or None.
+
+        .. seealso:: :ref:`definition/namespace`
+
+        """
         return self._data.get("namespace")
 
     @property
     def auto_use(self):
-        """Return whether definition should be automatically requested."""
+        """Return whether definition should be automatically requested.
+
+        :return: Boolean value.
+
+        .. seealso:: :ref:`definition/auto-use`
+
+        """
         return self._data.get("auto-use", False)
 
     @property
     def disabled(self):
-        """Return whether definition is disabled."""
+        """Return whether definition is disabled.
+
+        :return: Boolean value.
+
+        .. seealso:: :ref:`definition/disabled`
+
+        """
         return self._data.get("disabled", False)
 
     @property
     def install_root(self):
-        """Return root installation path."""
+        """Return root installation path.
+
+        :return: Directory path or None.
+
+        .. seealso:: :ref:`definition/install_root`
+
+        """
         return self._data.get("install-root")
 
     @property
     def install_location(self):
-        """Return installation path."""
+        """Return installation path.
+
+        :return: Directory path or None.
+
+        .. seealso:: :ref:`definition/install_location`
+
+        """
         return self._data.get("install-location")
 
     @property
     def environ(self):
-        """Return environment variable mapping."""
+        """Return environment variable mapping.
+
+        :return: Dictionary value.
+
+        .. seealso:: :ref:`definition/environ`
+
+        """
         return self._data.get("environ", {})
 
     @property
     def command(self):
-        """Return command mapping."""
+        """Return command mapping.
+
+        :return: Dictionary value.
+
+        .. seealso:: :ref:`definition/command`
+
+        """
         return self._data.get("command", {})
 
     @property
     def system(self):
-        """Return system requirement mapping."""
+        """Return system requirement mapping.
+
+        :return: Dictionary value.
+
+        .. seealso:: :ref:`definition/system`
+
+        """
         return self._data.get("system", {})
 
     @property
     def requirements(self):
-        """Return list of requirements."""
+        """Return list of requirements.
+
+        :return: List of :class:`packaging.requirements.Requirement` instances.
+
+        :raise: :exc:`wiz.exception.InvalidRequirement` if one requirement is
+            incorrect.
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        .. seealso:: :ref:`definition/requirements`
+
+        """
         requirements = self._data.get("requirements")
 
         # Create cache value if necessary.
@@ -645,7 +782,21 @@ class Definition(object):
 
     @property
     def conditions(self):
-        """Return list of conditions."""
+        """Return list of conditions.
+
+        :return: List of :class:`packaging.requirements.Requirement` instances.
+
+        :raise: :exc:`wiz.exception.InvalidRequirement` if one requirement is
+            incorrect.
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        .. seealso:: :ref:`definition/conditions`
+
+        """
         conditions = self._data.get("conditions")
 
         # Create cache value if necessary.
@@ -660,13 +811,24 @@ class Definition(object):
 
     @property
     def variants(self):
-        """Return list of conditions."""
+        """Return list of conditions.
+
+        :return: List of :class:`Variant` instances.
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        .. seealso:: :ref:`definition/variants`
+
+        """
         variants = self._data.get("variants")
 
         # Create cache value if necessary.
         if variants is not None and self._cache.get("variants") is None:
             self._cache["variants"] = [
-                _Variant(variant, definition_identifier=self.identifier)
+                Variant(variant, definition_identifier=self.identifier)
                 for variant in variants
             ]
 
@@ -689,7 +851,7 @@ class Definition(object):
         return Definition(
             data, path=self._path,
             registry_path=self._registry_path,
-            input_protected=False
+            copy_data=False
         )
 
     def update(self, element, value):
@@ -718,7 +880,7 @@ class Definition(object):
         return Definition(
             data, path=self._path,
             registry_path=self._registry_path,
-            input_protected=False
+            copy_data=False
         )
 
     def extend(self, element, values):
@@ -746,7 +908,7 @@ class Definition(object):
         return Definition(
             data, path=self._path,
             registry_path=self._registry_path,
-            input_protected=False
+            copy_data=False
         )
 
     def insert(self, element, value, index):
@@ -777,7 +939,7 @@ class Definition(object):
         return Definition(
             data, path=self._path,
             registry_path=self._registry_path,
-            input_protected=False
+            copy_data=False
         )
 
     def remove(self, element):
@@ -798,7 +960,7 @@ class Definition(object):
         return Definition(
             data, path=self._path,
             registry_path=self._registry_path,
-            input_protected=False
+            copy_data=False
         )
 
     def remove_key(self, element, value):
@@ -836,7 +998,7 @@ class Definition(object):
         return Definition(
             data, path=self._path,
             registry_path=self._registry_path,
-            input_protected=False
+            copy_data=False
         )
 
     def remove_index(self, element, index):
@@ -874,11 +1036,14 @@ class Definition(object):
         return Definition(
             data, path=self._path,
             registry_path=self._registry_path,
-            input_protected=False
+            copy_data=False
         )
 
     def data(self, copy_data=True):
-        """Return copy of definition data.
+        """Return definition data used to created the definition instance.
+
+        :param copy_data: Indicate whether definition data will be copied to
+            prevent mutating it. Default is True.
 
         :return: Definition data mapping.
 
@@ -887,17 +1052,52 @@ class Definition(object):
             return self._data
         return copy.deepcopy(self._data)
 
-    def ordered_data(self):
+    def ordered_data(self, copy_data=True):
         """Return copy of definition data as :class:`collections.OrderedDict`.
+
+        Definition keywords will be sorted as follows:
+
+            1. identifier
+            2. version
+            3. namespace
+            4. description
+            5. install-root
+            6. install-location
+            7. auto-use
+            8. disabled
+            9. system
+            10. command
+            11. environ
+            12. requirements
+            13. conditions
+            14. variants
+
+        :ref:`System <definition/system>` keywords will be sorted as follows:
+
+            1. platform
+            2. os
+            3. arch
+
+        Each :ref:`variant <definition/variants>` mapping will be sorted as
+        follows:
+
+            1. identifier
+            2. install-location
+            3. command
+            4. environ
+            5. requirements
+
+        :param copy_data: Indicate whether definition data will be copied to
+            prevent mutating it. Default is True.
 
         :return: Instance of :class:`collections.OrderedDict`.
 
         """
         definition_keywords = [
-            "identifier", "version", "namespace", "description", "registry",
-            "definition-location", "install-root", "install-location",
-            "auto-use", "system", "command", "environ", "requirements",
-            "conditions", "variants"
+            "identifier", "version", "namespace", "description",
+            "install-root", "install-location", "auto-use", "disabled",
+            "system", "command", "environ", "requirements", "conditions",
+            "variants"
         ]
 
         system_keywords = ["platform", "os", "arch"]
@@ -932,10 +1132,19 @@ class Definition(object):
 
             return content
 
-        return _create_ordered_dict(self.data(), definition_keywords)
+        return _create_ordered_dict(
+            self.data(copy_data=copy_data), definition_keywords
+        )
 
     def encode(self):
-        """Return serialized definition data."""
+        """Return serialized definition data.
+
+        :class:`collections.OrderedDict` instance as returned by
+        :meth:`ordered_data` is being used.
+
+        :return: Serialized mapping.
+
+        """
         return json.dumps(
             self.ordered_data(),
             indent=4,
@@ -944,11 +1153,37 @@ class Definition(object):
         )
 
 
-class _Variant(object):
-    """Variant object."""
+class Variant(object):
+    """Definition variant object."""
 
     def __init__(self, data, definition_identifier):
-        """Initialize definition variant."""
+        """Initialize definition variant.
+
+        :param data: Variant data definition mapping.
+
+        :param definition_identifier: Identifier of the definition containing
+            the variant data.
+
+        .. warning::
+
+            "requirements" values will not get validated when constructing the
+            instance for performance reason. Therefore, accessing this value
+            could raise an error when data is incorrect::
+
+                >>> variant = Variant(
+                ...     {
+                ...         "identifier": "variant1",
+                ...         "requirements": ["!!!"],
+                ...     },
+                ...     definition_identifier="foo"
+                ... )
+                >>> print(variant.requirements)
+
+                InvalidRequirement: The requirement '!!!' is incorrect
+
+        .. seealso:: :ref:`definition/variants`
+
+        """
         self._data = data
         self._definition_identifier = definition_identifier
 
@@ -957,32 +1192,72 @@ class _Variant(object):
 
     @property
     def identifier(self):
-        """Return variant identifier."""
+        """Return variant identifier.
+
+        :return: String value (e.g. "variant1").
+
+        """
         return self._data["identifier"]
 
     @property
     def definition_identifier(self):
-        """Return definition identifier."""
+        """Return definition identifier.
+
+        :return: String value (e.g. "foo").
+
+        """
         return self._definition_identifier
 
     @property
     def install_location(self):
-        """Return variant installation path."""
+        """Return installation path.
+
+        :return: Directory path or None.
+
+        .. seealso:: :ref:`definition/install_location`
+
+        """
         return self._data.get("install-location")
 
     @property
     def environ(self):
-        """Return variant environment variable mapping."""
+        """Return environment variable mapping.
+
+        :return: Dictionary value.
+
+        .. seealso:: :ref:`definition/environ`
+
+        """
         return self._data.get("environ", {})
 
     @property
     def command(self):
-        """Return variant command mapping."""
+        """Return command mapping.
+
+        :return: Dictionary value.
+
+        .. seealso:: :ref:`definition/command`
+
+        """
         return self._data.get("command", {})
 
     @property
     def requirements(self):
-        """Return list of variant requirements."""
+        """Return list of requirements.
+
+        :return: List of :class:`packaging.requirements.Requirement` instances.
+
+        :raise: :exc:`wiz.exception.InvalidRequirement` if one requirement is
+            incorrect.
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        .. seealso:: :ref:`definition/requirements`
+
+        """
         requirements = self._data.get("requirements")
 
         # Create cache value if necessary.
