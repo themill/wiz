@@ -74,6 +74,12 @@ Release Notes
 
     .. change:: changed
 
+        Updated :func:`wiz.definition.load` to prevent copying definition data
+        when creating the :class:`wiz.definition.Definition` instance for
+        optimisation purposes.
+
+    .. change:: changed
+
         Updated :class:`wiz.package.Package` construction to simplify logic
         and optimize performance. It does not inherit from
         :class:`collections.Mapping` anymore and use
