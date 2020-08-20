@@ -551,6 +551,8 @@ class Definition(object):
 
                 InvalidRequirement: The requirement '!!!' is incorrect
 
+        .. seealso:: :ref:`definition`
+
         """
         wiz.validator.validate_definition(data)
 

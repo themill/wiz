@@ -281,7 +281,14 @@ class Package(object):
     """Package object."""
 
     def __init__(self, definition, variant_index=None):
-        """Initialize package."""
+        """Initialize package.
+
+        :param definition: Instance of :class:`wiz.definition.Definition`.
+
+        :param variant_index: Index number of the variant which will be used to
+            create package instance if applicable. Default is None.
+
+        """
         self._definition = definition
         self._variant_index = variant_index
 
@@ -294,12 +301,25 @@ class Package(object):
 
     @property
     def definition(self):
-        """Return corresponding :class:`wiz.definition.Definition` instance."""
+        """Return definition used to create package.
+
+        :return: Instance of :class:`wiz.definition.Definition`.
+
+        """
         return self._definition
 
     @property
     def identifier(self):
-        """Return package identifier."""
+        """Return package identifier.
+
+        :return: String value (e.g. "foo[variant1]==0.1.0").
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        """
         # Create cache value if necessary.
         if self._cache.get("identifier") is None:
             identifier = self._definition.identifier
@@ -316,53 +336,93 @@ class Package(object):
 
     @property
     def qualified_identifier(self):
-        """Return qualified identifier with optional namespace."""
+        """Return qualified identifier with optional namespace.
+
+        :return: String value (e.g. "namespace::foo[variant1]==0.1.0").
+
+        """
         if self.namespace is not None:
             return "{}::{}".format(self.namespace, self.identifier)
         return self.identifier
 
     @property
     def variant(self):
-        """Return variant instance if applicable."""
+        """Return variant instance if applicable.
+
+        :return: Instance of :class:`wiz.definition.Variant` or None.
+
+        """
         if self._variant_index is not None:
             return self.definition.variants[self._variant_index]
 
     @property
     def variant_identifier(self):
-        """Return variant name if applicable."""
+        """Return variant identifier if applicable.
+
+        :return: String value (e.g. "variant1") or None.
+
+        """
         if self.variant is not None:
             return self.variant.identifier
 
     @property
     def version(self):
-        """Return package version."""
+        """Return package version.
+
+        :return: Instance of :class:`packaging.version.Version` or None.
+
+        """
         return self._definition.version
 
     @property
     def description(self):
-        """Return package description."""
+        """Return package description.
+
+        :return: String value or None.
+
+        """
         return self._definition.description
 
     @property
     def namespace(self):
-        """Return package namespace."""
+        """Return package namespace.
+
+        :return: String value or None.
+
+        """
         return self._definition.namespace
 
     @property
-    def install_root(self):
-        """Return root installation path."""
-        return self._definition.install_root
-
-    @property
     def install_location(self):
-        """Return installation path."""
-        if self.variant is not None:
+        """Return installation path.
+
+        If a variant is used and if it defines an installation path, this value
+        is returned. Otherwise, the installation path value from the initial
+        definition is returned.
+
+        :return: Directory path or None.
+
+        """
+        if self.variant is not None and self.variant.install_location:
             return self.variant.install_location
         return self._definition.install_location
 
     @property
     def environ(self):
-        """Return environment variable mapping."""
+        """Return environment variable mapping.
+
+        If a variant is used and if it defines an environment variable mapping,
+        this value is :func:`combined <combine_environ_mapping>` with the
+        environment variable mapping defined in the initial definition.
+
+        :return: Dictionary value.
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        """
         # Create cache value if necessary.
         if self._cache.get("environ") is None:
             if self.variant is not None and len(self.variant.environ) > 0:
@@ -380,7 +440,20 @@ class Package(object):
 
     @property
     def command(self):
-        """Return command mapping."""
+        """Return command mapping.
+
+        If a variant is used and if it defines a command mapping, this value is
+        :func:`combined <combine_command_mapping>` with the command mapping
+        defined in the initial definition.
+
+        :return: Dictionary value.
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        """
         # Create cache value if necessary.
         if self._cache.get("command") is None:
             if self.variant is not None and len(self.variant.command) > 0:
@@ -398,7 +471,20 @@ class Package(object):
 
     @property
     def requirements(self):
-        """Return list of requirements."""
+        """Return list of requirements.
+
+        If a variant is used and if it defines a list of requirements, this
+        value is added to the requirement list defined in the initial
+        definition.
+
+        :return: List of :class:`packaging.requirements.Requirement` instances.
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        """
         # Create cache value if necessary.
         if self._cache.get("requirements") is None:
             if self.variant is not None and len(self.variant.requirements) > 0:
@@ -415,29 +501,50 @@ class Package(object):
 
     @property
     def conditions(self):
-        """Return list of conditions."""
+        """Return list of conditions.
+
+        :return: List of :class:`packaging.requirements.Requirement` instances.
+
+        """
         return self._definition.conditions
 
     @property
     def conditions_processed(self):
-        """Indicate whether the package conditions have been processed."""
+        """Indicate whether the package conditions have been processed.
+
+        :return: Boolean value.
+
+        """
         return self._conditions_processed
 
     @conditions_processed.setter
     def conditions_processed(self, value):
-        """Set whether the package conditions have been processed."""
+        """Set whether the package conditions have been processed.
+
+        :param value: Boolean value.
+
+        """
         self._conditions_processed = value
 
     def localized_environ(self):
-        """Return localized environ mapping."""
+        """Return localized environ mapping.
+
+        The :envvar:`INSTALL_ROOT` and :envvar:`INSTALL_LOCATION` values within
+        the environment variable mapping will be replaced respectfully by the
+        values of the :ref:`install-root <definition/install_root>` and
+        :ref:`install-location <definition/install_location>` keywords.
+
+        :return: Dictionary value.
+
+        """
         if not self.install_location:
             return self.environ
 
         path = self.install_location
 
-        if self.install_root:
+        if self._definition.install_root:
             path = wiz.environ.substitute(
-                path, {wiz.symbol.INSTALL_ROOT: self.install_root}
+                path, {wiz.symbol.INSTALL_ROOT: self._definition.install_root}
             )
 
         # Localize each environment variable.
@@ -454,7 +561,10 @@ class Package(object):
         return _environ
 
     def data(self):
-        """Return copy of package data.
+        """Return Mapping representing the package.
+
+        :return: Dictionary value.
+
         """
         data = self._definition.data()
         data["identifier"] = self.identifier
