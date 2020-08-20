@@ -395,6 +395,20 @@ By default this keyword is set to false.
     This keyword should be used carefully as it could potentially pollute all
     other requests.
 
+.. _definition/disabled:
+
+Disabled
+--------
+
+The optional ``disabled`` boolean keyword can be used to prevent a definition
+to be fetched from a registry. By default this keyword is set to false.
+
+.. code-block:: json
+
+    {
+        "disabled": true
+    }
+
 .. _definition/install_location:
 
 Install Location
