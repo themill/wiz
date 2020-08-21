@@ -2587,7 +2587,6 @@ def test_scenario_21(
     resolver = wiz.graph.Resolver(definition_mapping)
     packages = resolver.compute_packages([Requirement("A"), Requirement("G")])
 
-    print([p.identifier for p in packages])
     assert len(packages) == 4
     assert packages[0].identifier == "F==1.0.0"
     assert packages[1].identifier == "D==0.1.0"
