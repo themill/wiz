@@ -401,7 +401,7 @@ Disabled
 --------
 
 The optional ``disabled`` boolean keyword can be used to prevent a definition
-to be fetched from a registry. By default this keyword is set to false.
+from being used. By default this keyword is set to false.
 
 .. code-block:: json
 
