@@ -25,7 +25,7 @@ Release Notes
         :class:`wiz.definition.Definition`.
 
         Added :func:`wiz.validator.validate_definition` to perform equivalent
-        tests in optimized time.
+        tests in shorter time.
 
     .. change:: changed
 
