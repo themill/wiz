@@ -82,7 +82,7 @@ Release Notes
 
         Updated :class:`wiz.package.Package` construction to simplify logic
         and optimize performance. It does not inherit from
-        :class:`collections.Mapping` anymore and use
+        :class:`collections.Mapping` anymore and uses
         :class:`wiz.definition.Definition` keywords instead of copying data.
 
         Removed :meth:`wiz.package.Package.qualified_identifier` and prepend
