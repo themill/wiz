@@ -12,7 +12,7 @@ import tempfile
 import wiz.logging
 
 #: Unique identifier of the plugin.
-IDENTIFIER = "gitbash"
+IDENTIFIER = "bash"
 
 # Path to the git bash executable on the file system.
 EXECUTABLE = "C:\Program Files\Git\git-bash.exe"
@@ -173,6 +173,6 @@ def register(config):
 
     config.setdefault("callback", {})
     config["callback"].setdefault("shell", {})
-    config["callback"]["shell"].setdefault("gitbash", {})
-    config["callback"]["shell"]["gitbash"]["shell"] = shell
-    config["callback"]["shell"]["gitbash"]["execute"] = execute
+    config["callback"]["shell"].setdefault(IDENTIFIER, {})
+    config["callback"]["shell"][IDENTIFIER]["shell"] = shell
+    config["callback"]["shell"][IDENTIFIER]["execute"] = execute

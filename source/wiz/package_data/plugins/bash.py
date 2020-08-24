@@ -143,6 +143,6 @@ def register(config):
 
     config.setdefault("callback", {})
     config["callback"].setdefault("shell", {})
-    config["callback"]["shell"].setdefault("bash", {})
-    config["callback"]["shell"]["bash"]["shell"] = shell
-    config["callback"]["shell"]["bash"]["execute"] = execute
+    config["callback"]["shell"].setdefault(IDENTIFIER, {})
+    config["callback"]["shell"][IDENTIFIER]["shell"] = shell
+    config["callback"]["shell"][IDENTIFIER]["execute"] = execute
