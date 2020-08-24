@@ -76,7 +76,7 @@ Release Notes
 
         Updated :func:`wiz.definition.load` to prevent copying definition data
         when creating the :class:`wiz.definition.Definition` instance for
-        optimisation purposes.
+        optimization purposes.
 
     .. change:: changed
 
