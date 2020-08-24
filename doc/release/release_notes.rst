@@ -20,8 +20,8 @@ Release Notes
     .. change:: changed
 
         Updated :mod:`wiz.validator` to use custom definition validation instead
-        of a JSON Schema validation as it is significantly hindering the
-        performance when creating an instance of
+        of a `JSON Schema <https://json-schema.org/>`_ validation as it is
+        significantly hindering the performance when creating an instance of
         :class:`wiz.definition.Definition`.
 
         Added :func:`wiz.validator.validate_definition` to perform equivalent
@@ -905,10 +905,10 @@ Release Notes
 
     .. change:: fixed
 
-        Changed :mod:`wiz.validator` to open the definition JSON schema once
-        the module is loaded, rather than once per validation.
-        Previously a "too many files opened" issue could be encountered when
-        creating multiple definitions in parallel.
+        Changed :mod:`wiz.validator` to open the definition `JSON Schema
+        <https://json-schema.org/>`_ once the module is loaded, rather than once
+        per validation. Previously a "too many files opened" issue could be
+        encountered when creating multiple definitions in parallel.
 
     .. change:: fixed
 
@@ -1455,7 +1455,8 @@ Release Notes
         :tags: API
 
         Added :func:`wiz.validator.yield_definition_errors` to identify and
-        yield potential errors in a definition data following JSON Schema.
+        yield potential errors in a definition data following `JSON Schema
+        <https://json-schema.org/>`_.
 
     .. change:: changed
         :tags: API
