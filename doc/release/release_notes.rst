@@ -62,7 +62,7 @@ Release Notes
         used to remove the "registry" and "definition-location" keywords from
         data definition as it is not necessary anymore.
 
-        Deep copy of input data can now be prevented with the "use_copy" option
+        Deep copy of input data can now be prevented with the "copy_data" option
         to speed up instantiation::
 
             >>> Definition({"identifier": "foo"}, copy_data=False)
