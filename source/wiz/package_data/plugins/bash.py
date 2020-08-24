@@ -7,23 +7,31 @@ import sys
 import select
 import subprocess
 import tempfile
-import termios
-import tty
-import pty
 import signal
 
 import wiz.logging
 import wiz.utility
 import wiz.symbol
 
+if not os.name == 'nt':
+    import termios
+    import tty
+    import pty
+
+#: Unique identifier of the plugin.
+IDENTIFIER = "bash"
+
+# Path to the bash executable on the file system.
+EXECUTABLE = "/bin/bash"
+
 
 def shell(environment, command=None):
     """Spawn a sub-shell with an *environment* mapping.
 
-    Default shell is Bash.
-
-    *command* is a mapping of command aliases which should be available in the
-    shell.
+    :param environment: Mapping containing environment variables to set in the
+        new shell.
+    :param command: Mapping of command aliases which should be available in the
+        shell.
 
     """
     logger = wiz.logging.Logger(__name__ + ".shell")
@@ -31,9 +39,7 @@ def shell(environment, command=None):
     if command is None:
         command = {}
 
-    # TODO: Improve default shell to make it cross platform...
-    executable = "/bin/bash"
-    logger.info("Spawn shell: {}".format(executable))
+    logger.info("Spawn shell: {}".format(EXECUTABLE))
 
     # save original tty setting then set it to raw mode
     old_tty = termios.tcgetattr(sys.stdin)
@@ -50,11 +56,13 @@ def shell(environment, command=None):
         rcfile.read()
 
     if os.path.exists(rcfile.name):
-        executable = [executable, "--rcfile", rcfile.name]
+        EXECUTABLE = [EXECUTABLE, "--rcfile", rcfile.name]
+    else:
+        EXECUTABLE = [EXECUTABLE]
 
     # Run in a new process group to enable job control
     process = subprocess.Popen(
-        executable,
+        EXECUTABLE,
         preexec_fn=os.setsid,
         stdin=slave_fd,
         stdout=slave_fd,
@@ -87,7 +95,13 @@ def shell(environment, command=None):
 
 
 def execute(elements, environment):
-    """Run command *elements* within a specific *environment*."""
+    """Run command *elements* within a specific *environment*.
+
+    :param elements: List of command elements to run in the new shell.
+    :param environment: Mapping containing environment variables to set in the
+        new shell.
+
+    """
     logger = wiz.logging.Logger(__name__ + ".shell")
     logger.info(
         "Start command: {}".format(wiz.utility.combine_command(elements))
@@ -115,3 +129,20 @@ def execute(elements, environment):
 def _cleanup(signum, frame):
     """Exit from python if a process is terminated or interrupted."""
     sys.exit(0)
+
+
+def register(config):
+    """Register shell callbacks."""
+    # Only register for Unix.
+    if os.name == 'nt':
+        return
+
+    # Only register if executable path exists.
+    if not os.path.exists(EXECUTABLE):
+        return
+
+    config.setdefault("callback", {})
+    config["callback"].setdefault("shell", {})
+    config["callback"]["shell"].setdefault("bash", {})
+    config["callback"]["shell"]["bash"]["shell"] = shell
+    config["callback"]["shell"]["bash"]["execute"] = execute

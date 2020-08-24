@@ -18,7 +18,6 @@ import wiz.filesystem
 import wiz.history
 import wiz.logging
 import wiz.registry
-import wiz.spawn
 import wiz.symbol
 import wiz.utility
 from wiz import __version__
@@ -653,6 +652,11 @@ def wiz_use(click_context, **kwargs):
     # Fetch extra arguments from context.
     extra_arguments = _fetch_extra_arguments(click_context)
 
+    # Get shell callbacks.
+    shell_callback, execute_callback = wiz.utility.get_shell_callbacks(_CONFIG)
+    if None in (shell_callback, execute_callback):
+        return
+
     try:
         wiz_context = wiz.resolve_context(
             list(kwargs["requests"]), definition_mapping,
@@ -668,14 +672,14 @@ def wiz_use(click_context, **kwargs):
 
         # If no commands are indicated, spawn a shell.
         elif len(extra_arguments) == 0:
-            wiz.spawn.shell(wiz_context["environ"], wiz_context["command"])
+            shell_callback(wiz_context["environ"], wiz_context["command"])
 
         # Otherwise, resolve the command and run it within the resolved context.
         else:
             command_elements = wiz.resolve_command(
                 extra_arguments, wiz_context.get("command", {})
             )
-            wiz.spawn.execute(command_elements, wiz_context["environ"])
+            execute_callback(command_elements, wiz_context["environ"])
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
@@ -735,6 +739,11 @@ def wiz_run(click_context, **kwargs):
     # Fetch extra arguments from context.
     extra_arguments = _fetch_extra_arguments(click_context)
 
+    # Get shell callbacks.
+    shell_callback, execute_callback = wiz.utility.get_shell_callbacks(_CONFIG)
+    if None in (shell_callback, execute_callback):
+        return
+
     try:
         requirement = wiz.utility.get_requirement(kwargs["request"])
         request = wiz.fetch_package_request_from_command(
@@ -758,7 +767,7 @@ def wiz_run(click_context, **kwargs):
                 [requirement.name] + extra_arguments,
                 wiz_context.get("command", {})
             )
-            wiz.spawn.execute(command_elements, wiz_context["environ"])
+            execute_callback(command_elements, wiz_context["environ"])
 
     except wiz.exception.WizError as error:
         logger.error(str(error))

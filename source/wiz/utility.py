@@ -544,3 +544,37 @@ def deep_update(mapping1, mapping2):
         else:
             mapping1[key] = value
     return mapping1
+
+
+def get_shell_callbacks(config):
+    """Get shell callbacks from *configuration*."""
+    logger = wiz.logging.Logger(__name__ + ".get_shell_callbacks")
+
+    shell_type = config.get("shell", {}).get("type")
+    if shell_type is None:
+        logger.error("Preferred shell type missing in configuration.")
+        return None, None
+
+    _config = config.get("callback", {}).get("shell", {}).get(shell_type)
+    if _config is None:
+        logger.error(
+            "There are no callbacks registered for preferred shell '{}'. "
+            "Plugin missing.".format(shell_type)
+        )
+        return None, None
+
+    shell_callback = _config.get("shell")
+    if shell_callback is None:
+        logger.error(
+            "There is no available shell callback for '{}' shell."
+            .format(shell_type)
+        )
+
+    execute_callback = _config.get("execute")
+    if execute_callback is None:
+        logger.error(
+            "There is no available execute callback for '{}' shell."
+            .format(shell_type)
+        )
+
+    return shell_callback, execute_callback

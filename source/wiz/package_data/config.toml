@@ -40,3 +40,6 @@ overwrite=false
 [command.analyze]
 no_arch=false
 verbose=false
+
+[shell]
+type="bash"
