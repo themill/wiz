@@ -20,12 +20,20 @@ Release Notes
     .. change:: changed
 
         Updated :mod:`wiz.validator` to use custom definition validation instead
-        of a `JSON Schema <https://json-schema.org/>`_ validation as it is
-        significantly hindering the performance when creating an instance of
-        :class:`wiz.definition.Definition`.
+        of the `jsonschema <https://pypi.org/project/jsonschema/>`_ library
+        which is based on `JSON Schema <https://json-schema.org/>`_ validation
+        as it is significantly hindering the performance when creating an
+        instance of :class:`wiz.definition.Definition`.
 
-        Added :func:`wiz.validator.validate_definition` to perform equivalent
-        tests in shorter time.
+        Removed :func:`wiz.validator.yield_definition_errors` and added
+        :func:`wiz.validator.validate_definition` to perform equivalent
+        tests in shorter time (90% speed improvement for loading complex
+        definitions).
+
+    .. change:: changed
+
+        Updated :class:`wiz.definition.Definition` construction to use
+        :func:`wiz.validator.validate_definition`.
 
     .. change:: changed
 
@@ -35,10 +43,55 @@ Release Notes
 
     .. change:: changed
 
+        Updated :class:`wiz.definition.Definition` construction to provide an
+        option to prevent using :func:`copy.deepcopy` on input data mapping to
+        speed up instantiation whenever necessary::
+
+            >>> Definition({"identifier": "foo"}, copy_data=False)
+
+        By default, "copy_data" is set to True as it can cause unexpected issues
+        when input data is being mutated::
+
+            >>> data = {"identifier": "foo"}
+            >>> definition = wiz.definition.Definition(data, copy_data=False)
+            >>> print(definition.identifier)
+            "foo"
+
+            >>> del data["identifier"]
+            >>> print(definition.identifier)
+            KeyError: 'identifier'
+
+    .. change:: changed
+
+        Updated :func:`wiz.definition.load` to not copy input data mapping as it
+        hindered performance (46% speed improvement for loading complex
+        definitions).
+
+    .. change:: changed
+
+        Updated :class:`wiz.definition.Definition` and
+        :class:`wiz.package.Package` constructions to not perform the following
+        conversions as it hinder performances (94% speed improvement for loading
+        complex definitions):
+
+        * Convert :ref:`definition/version` value into
+          :class:`~packaging.version.Version` instance.
+        * Convert :ref:`definition/requirements` and
+          :ref:`definition/conditions` values into
+          :class:`~packaging.requirements.Requirement` instances.
+        * Convert :ref:`definition/requirements` and
+          :ref:`definition/conditions` values within :ref:`definition/variants`
+          into :class:`~packaging.requirements.Requirement` instances.
+
+        Instead, these attributes will be converted and cached the first time
+        they are accessed.
+
+    .. change:: changed
+
         Updated :class:`wiz.definition.Definition` construction to simplify
-        logic and optimize performance. It does not inherit from
-        :class:`collections.Mapping` anymore and does not require from registry
-        and definition location to be included in the mapping.
+        logic. It does not inherit from :class:`collections.Mapping` anymore and
+        does not require from registry and definition location to be included in
+        the mapping.
 
         .. extended-code-block:: python
             :icon: ../image/avoid.png
@@ -58,25 +111,11 @@ Release Notes
             ...     registry_path="/path/to/registry",
             ... )
 
+    .. change:: changed
+
         Removed :meth:`wiz.definition.Definition.sanitized` which was previously
         used to remove the "registry" and "definition-location" keywords from
         data definition as it is not necessary anymore.
-
-        Deep copy of input data can now be prevented with the "copy_data" option
-        to speed up instantiation::
-
-            >>> Definition({"identifier": "foo"}, copy_data=False)
-
-        The :ref:`definition/version`, :ref:`definition/requirements` and
-        :ref:`definition/conditions` attributes are not sanitized during
-        instantiation for optimization purposes. Instead, they will be sanitized
-        and cached the first time they are accessed.
-
-    .. change:: changed
-
-        Updated :func:`wiz.definition.load` to prevent copying definition data
-        when creating the :class:`wiz.definition.Definition` instance for
-        optimization purposes.
 
     .. change:: changed
 
@@ -84,6 +123,16 @@ Release Notes
         and optimize performance. It does not inherit from
         :class:`collections.Mapping` anymore and uses
         :class:`wiz.definition.Definition` keywords instead of copying data.
+
+        Instance of :class:`wiz.package.Package` does not have possibility to
+        mutate its content anymore for security.
+
+    .. change:: changed
+
+        Removed :mod:`wiz.mapping` as logic has been moved into
+        :class:`wiz.definition.Definition`.
+
+    .. change:: changed
 
         Removed :meth:`wiz.package.Package.qualified_identifier` and prepend
         :ref:`definition/namespace` to :meth:`wiz.package.Package.identifier`
