@@ -6,8 +6,7 @@ import os
 import platform
 import time
 import traceback
-
-import ujson
+import json
 
 from wiz.utility import Requirement, Version
 from ._version import __version__
@@ -53,7 +52,7 @@ def get(serialized=False):
 
     """
     if serialized:
-        return ujson.dumps(_HISTORY, default=_json_default)
+        return json.dumps(_HISTORY, default=_json_default)
     return _HISTORY
 
 
