@@ -52,7 +52,7 @@ def get(serialized=False):
 
     """
     if serialized:
-        return json.dumps(_HISTORY, default=_json_default)
+        return json.dumps(_HISTORY, default=_json_default).encode("utf-8")
     return _HISTORY
 
 
@@ -133,10 +133,15 @@ def _json_default(_object):
     """Override :func:`JSONEncoder.default` to serialize all objects."""
     import wiz.graph
 
-    if isinstance(_object, wiz.graph.Graph):
+    data_types = (
+        wiz.graph.Graph,
+        wiz.definition.Definition,
+        wiz.package.Package
+    )
+    if isinstance(_object, data_types):
         return _object.data()
 
-    elif isinstance(_object, Requirement) or isinstance(_object, Version):
+    elif isinstance(_object, (Requirement, Version)):
         return str(_object)
 
     elif isinstance(_object, Exception):
