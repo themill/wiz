@@ -208,6 +208,15 @@ Release Notes
 
     .. change:: changed
 
+        Updated :func:`wiz.utility.compute_file_name` to prepend the
+        :ref:`definition/namespace` value when creating a :term:`JSON` file name
+        from an instance of :class:`wiz.definition.Definition`. Previously, name
+        clashes were possible when exporting two definitions with the same
+        :ref:`definition/identifier`, :ref:`definition/version` and
+        :ref:`System Constraint <definition/system>` into the same registry.
+
+    .. change:: changed
+
         Renamed following functions to use American spelling for consistency:
 
         * :func:`wiz.environ.sanitise` → :func:`wiz.environ.sanitize`
