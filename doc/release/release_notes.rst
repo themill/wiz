@@ -7,6 +7,46 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: changed
+        :tags: command-line
+
+        Renamed ``wiz install --registry`` to :option:`wiz install --output` to
+        better differentiate the command from :option:`wiz --registry`.
+
+    .. change:: new
+        :tags: command-line
+
+        Added short option ``-f`` to overwrite output when installing
+        definitions and when editing a definition:
+
+        * :option:`wiz install -f` for :option:`wiz install --overwrite`
+        * :option:`wiz edit -f` for :option:`wiz edit --overwrite`
+
+    .. change:: changed
+        :tags: command-line
+
+        Renamed ``wiz freeze -f`` to :option:`wiz freeze -F` to prevent
+        confusion as the short option ``-f`` is used for overwriting outputs.
+
+    .. change:: changed
+        :tags: command-line
+
+        Removed the ``wiz analyze --filter`` options and make it into a
+        non-required positional option instead to prevent confusion as the short
+        option ``-f`` is used for overwriting outputs.
+
+        .. extended-code-block:: bash
+            :icon: ../image/avoid.png
+
+            # Analyze all definitions whose identifiers matched "foo" or "bar"
+            >>> wiz analyze -f "foo" -f "bar"
+
+        .. extended-code-block:: bash
+            :icon: ../image/prefer.png
+
+            # Analyze all definitions whose identifiers matched "foo" or "bar"
+            >>> wiz analyze "foo" "bar"
+
+    .. change:: changed
 
         Updated the following modules to add compatibility with python 3.7 and
         3.8:
@@ -205,6 +245,15 @@ Release Notes
 
         Previously, it would sometimes fail to update minimal and maximum
         versions of the range in particular conditions.
+
+    .. change:: changed
+
+        Updated :func:`wiz.utility.compute_file_name` to prepend the
+        :ref:`definition/namespace` value when creating a :term:`JSON` file name
+        from an instance of :class:`wiz.definition.Definition`. Previously, name
+        clashes were possible when exporting two definitions with the same
+        :ref:`definition/identifier`, :ref:`definition/version` and
+        :ref:`System Constraint <definition/system>` into the same registry.
 
     .. change:: changed
 
@@ -423,8 +472,8 @@ Release Notes
     .. change:: new
         :tags: command-line
 
-        Added :option:`wiz analyze --filter` to only display targeted
-        definitions. The :attr:`qualified version identifier
+        Added `wiz analyze --filter` to only display targeted definitions. The
+        :attr:`qualified version identifier
         <wiz.definition.Definition.qualified_version_identifier>` should match
         all filters for each definition displayed.
 
@@ -776,10 +825,9 @@ Release Notes
         :tags: command-line, backwards-incompatible
 
         Updated command line arguments to use the same option
-        :option:`--registry <wiz install --registry>` for installing to a
-        Local Registry and installing to a VCS Registry.
-        Previously the argument was split into `--registry-path` and
-        `--registry-id`.
+        ``--registry`` for installing to a Local Registry and installing to a
+        VCS Registry. Previously the argument was split into `--registry-path`
+        and `--registry-id`.
 
         Now definitions can be installed using the following commands syntax::
 

@@ -78,8 +78,7 @@ order to prepend a registry in front of discovered registries.
 
 The ``wiz install`` sub-command has been modified to regroup the
 `--registry-path` and `--registry-id` options into one
-:option:`--registry <wiz install --registry>` option which can be used as
-follow::
+`--registry` option which can be used as follow::
 
         # For local registries
         >>> wiz install foo.json --registry /path/to/registry

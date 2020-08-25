@@ -2498,7 +2498,7 @@ def test_install_recorded(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        options + ["install", "/path/to/foo.json", "-r", "/somewhere"],
+        options + ["install", "/path/to/foo.json", "-o", "/somewhere"],
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -2508,7 +2508,7 @@ def test_install_recorded(
         mocked_history_start_recording.assert_called_once_with(
             command=" ".join(
                 ["wiz"] + options + [
-                    "install", "/path/to/foo.json", "-r", "/somewhere"
+                    "install", "/path/to/foo.json", "-o", "/somewhere"
                 ]
             )
         )
@@ -2544,7 +2544,7 @@ def test_install_to_path(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install"] + options + ["--registry", "/registry"],
+        ["install"] + options + ["--output", "/registry"],
     )
     assert not result.exception
     assert result.exit_code == 0
@@ -2581,7 +2581,7 @@ def test_install_overwrite_existing(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry", "/registry"],
+        ["install", "/foo.json", "--output", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -2627,7 +2627,7 @@ def test_install_skip_existing(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry", "/registry"],
+        ["install", "/foo.json", "--output", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -2666,7 +2666,7 @@ def test_install_no_change(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry", "/registry"],
+        ["install", "/foo.json", "--output", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -2700,7 +2700,7 @@ def test_install_local_error(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry", "/registry"],
+        ["install", "/foo.json", "--output", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -2742,7 +2742,7 @@ def test_install_local_command_error(options):
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install"] + options + ["/foo.json", "--registry-path", "/registry"],
+        ["install"] + options + ["/foo.json", "--output", "/registry"],
     )
     assert result.exit_code == 2
     assert result.exception

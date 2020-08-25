@@ -1,6 +1,8 @@
 # :coding: utf-8
 
 import copy
+import base64
+import hashlib
 
 import pytest
 
@@ -466,6 +468,65 @@ def test_update_version_ranges_fail():
 def test_compute_label(definition, expected):
     """Compute definition label."""
     assert wiz.utility.compute_label(definition) == expected
+
+
+@pytest.mark.parametrize("definition, expected", [
+    (
+        wiz.definition.Definition({"identifier": "test"}),
+        "test.json"
+    ),
+    (
+        wiz.definition.Definition({
+            "identifier": "test",
+            "version": "0.1.0"
+        }),
+        "test-0.1.0.json"
+    ),
+    (
+        wiz.definition.Definition({
+            "identifier": "test",
+            "namespace": "foo"
+        }),
+        "foo-test.json"
+    ),
+    (
+        wiz.definition.Definition({
+            "identifier": "test",
+            "system": {
+                "platform": "linux"
+            }
+        }),
+        "test-{}.json".format(
+            base64.urlsafe_b64encode(
+                hashlib.sha1("linux").digest()
+            ).rstrip(b"=").decode("utf-8")
+        )
+    ),
+    (
+        wiz.definition.Definition({
+            "identifier": "test",
+            "version": "0.1.0",
+            "namespace": "foo",
+            "system": {
+                "platform": "linux"
+            }
+        }),
+        "foo-test-0.1.0-{}.json".format(
+            base64.urlsafe_b64encode(
+                hashlib.sha1("linux").digest()
+            ).rstrip(b"=").decode("utf-8")
+        )
+    )
+], ids=[
+    "simple",
+    "with-version",
+    "with-namespace",
+    "with-system",
+    "with-all",
+])
+def test_compute_file_name(definition, expected):
+    """Compute definition file name."""
+    assert wiz.utility.compute_file_name(definition) == expected
 
 
 @pytest.mark.parametrize("mapping1, mapping2, expected", [

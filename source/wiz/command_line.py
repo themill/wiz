@@ -801,7 +801,7 @@ def wiz_run(click_context, **kwargs):
     required=True
 )
 @click.option(
-    "-f", "--format",
+    "-F", "--format",
     help="Indicate the output format.",
     type=click.Choice(["wiz", "tcsh", "bash"]),
     default=_CONFIG.get("command", {}).get("freeze", {}).get("format", "wiz"),
@@ -895,8 +895,8 @@ def wiz_freeze(click_context, **kwargs):
         Example:
 
         \b
-        >>> wiz install /path/to/foo.json --registry /path/to/registry
-        >>> wiz install /all/definitions/* --registry /path/to/registry
+        >>> wiz install /path/to/foo.json -o /path/to/registry
+        >>> wiz install /all/definitions/* -o /path/to/registry
 
         """
     ),
@@ -904,13 +904,13 @@ def wiz_freeze(click_context, **kwargs):
     context_settings=CONTEXT_SETTINGS
 )
 @click.option(
-    "-r", "--registry",
+    "-o", "--output",
     help="Registry target to install the package to.",
     type=click.Path(),
     required=True
 )
 @click.option(
-    "--overwrite",
+    "-f", "--overwrite",
     help="Always overwrite existing definitions.",
     is_flag=True,
     default=(
@@ -940,7 +940,7 @@ def wiz_install(click_context, **kwargs):
     while True:
         try:
             callback(
-                kwargs["definitions"], kwargs["registry"],
+                kwargs["definitions"], kwargs["output"],
                 overwrite=overwrite
             )
             break
@@ -1059,7 +1059,7 @@ def wiz_install(click_context, **kwargs):
     default=(None, None),
 )
 @click.option(
-    "--overwrite",
+    "-f", "--overwrite",
     help="Always overwrite existing definitions.",
     is_flag=True,
     default=_CONFIG.get("command", {}).get("edit", {}).get("overwrite", False)
@@ -1163,8 +1163,8 @@ def wiz_edit(click_context, **kwargs):
 
         \b
         >>> wiz analyze
+        >>> wiz analyze "foo" "bar"
         >>> wiz analyze --verbose
-        >>> wiz analyze -f "foo"
         >>> wiz -r /path/to/registry analyze
         >>> wiz -add /path/to/additional/registry analyze
 
@@ -1185,10 +1185,9 @@ def wiz_edit(click_context, **kwargs):
     is_flag=True,
     default=_CONFIG.get("command", {}).get("analyze", {}).get("verbose", False)
 )
-@click.option(
-    "-f", "--filter",
-    help="Target specific definitions matching this filter.",
-    multiple=True,
+@click.argument(
+    "filters",
+    nargs=-1,
 )
 @click.pass_context
 def wiz_analyze(click_context, **kwargs):
@@ -1220,7 +1219,7 @@ def wiz_analyze(click_context, **kwargs):
         # Skip definition if not matching filters.
         if any(
             _filter.lower() not in identifier.lower()
-            for _filter in kwargs["filter"]
+            for _filter in kwargs["filters"]
         ):
             continue
 
