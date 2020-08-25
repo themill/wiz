@@ -12,6 +12,40 @@ Release Notes
         Renamed ``wiz install --registry`` to :option:`wiz install --output` to
         better differentiate the command from :option:`wiz --registry`.
 
+    .. change:: new
+        :tags: command-line
+
+        Added shorter option ``-f`` to overwrite output when installing
+        definitions and when editing a definition:
+
+        * :option:`wiz install -f` for :option:`wiz install --overwrite`
+        * :option:`wiz edit -f` for :option:`wiz edit --overwrite`
+
+    .. change:: changed
+        :tags: command-line
+
+        Renamed ``wiz freeze -f`` to :option:`wiz freeze -F` to prevent
+        confusion as the short option ``-f`` is used for overwriting outputs.
+
+    .. change:: changed
+        :tags: command-line
+
+        Removed the ``wiz analyze --filter`` options and make it into a
+        non-required positional option instead to prevent confusion as the short
+        option ``-f`` is used for overwriting outputs.
+
+        .. extended-code-block:: bash
+            :icon: ../image/avoid.png
+
+            # Analyze all definitions whose identifiers matched "foo" or "bar"
+            >>> wiz analyze -f "foo" -f "bar"
+
+        .. extended-code-block:: bash
+            :icon: ../image/prefer.png
+
+            # Analyze all definitions whose identifiers matched "foo" or "bar"
+            >>> wiz analyze "foo" "bar"
+
     .. change:: changed
 
         Updated the following modules to add compatibility with python 3.7 and
@@ -438,8 +472,8 @@ Release Notes
     .. change:: new
         :tags: command-line
 
-        Added :option:`wiz analyze --filter` to only display targeted
-        definitions. The :attr:`qualified version identifier
+        Added `wiz analyze --filter` to only display targeted definitions. The
+        :attr:`qualified version identifier
         <wiz.definition.Definition.qualified_version_identifier>` should match
         all filters for each definition displayed.
 
