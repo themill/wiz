@@ -895,8 +895,8 @@ def wiz_freeze(click_context, **kwargs):
         Example:
 
         \b
-        >>> wiz install /path/to/foo.json --registry /path/to/registry
-        >>> wiz install /all/definitions/* --registry /path/to/registry
+        >>> wiz install /path/to/foo.json -o /path/to/registry
+        >>> wiz install /all/definitions/* -o /path/to/registry
 
         """
     ),
@@ -904,7 +904,7 @@ def wiz_freeze(click_context, **kwargs):
     context_settings=CONTEXT_SETTINGS
 )
 @click.option(
-    "-r", "--registry",
+    "-o", "--output",
     help="Registry target to install the package to.",
     type=click.Path(),
     required=True
@@ -940,7 +940,7 @@ def wiz_install(click_context, **kwargs):
     while True:
         try:
             callback(
-                kwargs["definitions"], kwargs["registry"],
+                kwargs["definitions"], kwargs["output"],
                 overwrite=overwrite
             )
             break
