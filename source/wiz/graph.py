@@ -433,7 +433,7 @@ class Resolver(object):
             relink_parents(graph, node)
 
             # Record resulting replacement
-            replacement[identifier] = [p.qualified_identifier for p in packages]
+            replacement[identifier] = [p.identifier for p in packages]
 
         self._logger.debug(
             "Create new graph with new nodes:\n"
@@ -616,7 +616,7 @@ class Resolver(object):
             # If current node is not part of the extracted packages, it will be
             # removed from the graph.
             if not any(
-                node.identifier == package.qualified_identifier
+                node.identifier == package.identifier
                 for package in packages
             ):
                 self._logger.debug("Remove '{}'".format(node.identifier))
@@ -731,7 +731,7 @@ class Resolver(object):
             with at least one package.
 
         """
-        identifiers = set([p.qualified_identifier for p in packages])
+        identifiers = set([p.identifier for p in packages])
 
         # Filter out identifiers already set as conflict.
         identifiers.difference_update([n.identifier for n in conflicting_nodes])
@@ -982,10 +982,10 @@ def generate_variant_combinations(graph, variant_groups):
 
         for node_identifier in _group:
             node = graph.node(node_identifier)
-            variant_name = node.package.variant_name
-            variant_mapping.setdefault(variant_name, [])
-            variant_mapping[variant_name].append(node_identifier)
-            variant_mapping[variant_name].sort(
+            variant_identifier = node.package.variant_identifier
+            variant_mapping.setdefault(variant_identifier, [])
+            variant_mapping[variant_identifier].append(node_identifier)
+            variant_mapping[variant_identifier].sort(
                 key=lambda _id: _group.index(_id)
             )
 
@@ -1429,7 +1429,7 @@ def extract_ordered_packages(graph, distance_mapping):
 
     logger.debug(
         "Sorted packages: {}".format(
-            ", ".join([package.qualified_identifier for package in packages])
+            ", ".join([package.identifier for package in packages])
         )
     )
 
@@ -1508,7 +1508,7 @@ class Graph(object):
         """Return all node identifiers in the graph."""
         return list(self._node_mapping.keys())
 
-    def to_dict(self):
+    def data(self):
         """Return corresponding dictionary.
 
         :return Mapping containing all information about the graph.
@@ -1517,7 +1517,7 @@ class Graph(object):
         return {
             "identifier": self.identifier,
             "node_mapping": {
-                _id: node.to_dict() for _id, node
+                _id: node.data() for _id, node
                 in self._node_mapping.items()
             },
             "link_mapping": copy.deepcopy(self._link_mapping),
@@ -1526,7 +1526,7 @@ class Graph(object):
                 in self._identifiers_per_definition.items()
             },
             "conditioned_nodes": [
-                stored_node.to_dict() for stored_node in self._conditioned_nodes
+                stored_node.data() for stored_node in self._conditioned_nodes
             ],
             "variants_per_definition": self._variants_per_definition,
             "namespace_count": dict(self._namespace_count),
@@ -1588,11 +1588,11 @@ class Graph(object):
 
             # Node is matching if package has no version.
             if node.package.version is None:
-                identifiers.append(node.package.qualified_identifier)
+                identifiers.append(node.package.identifier)
 
             # Node is matching if requirement contains package version.
             elif requirement.specifier.contains(node.package.version):
-                identifiers.append(node.package.qualified_identifier)
+                identifiers.append(node.package.identifier)
 
         return identifiers
 
@@ -1628,8 +1628,10 @@ class Graph(object):
                 if self._node_mapping.get(identifier)
             ]
 
-            variant_names = set([node.package.variant_name for node in nodes])
-            if len(variant_names) <= 1:
+            variant_identifiers = set([
+                node.package.variant_identifier for node in nodes
+            ])
+            if len(variant_identifiers) <= 1:
                 continue
 
             count = collections.Counter([node.identifier for node in nodes])
@@ -1862,8 +1864,7 @@ class Graph(object):
 
                 # Require all package identifiers to be in the node mapping.
                 identifiers = [
-                    package.qualified_identifier
-                    for package in itertools.chain(*packages)
+                    package.identifier for package in itertools.chain(*packages)
                 ]
 
             except wiz.exception.WizError:
@@ -1969,34 +1970,42 @@ class Graph(object):
             is the importance of the link. Default is 1.
 
         """
-        identifier = package.qualified_identifier
+        identifier = package.identifier
 
         if not self.exists(identifier):
 
-            # Do not add the node to the graph if conditions are unprocessed.
-            if (
-                len(package.conditions) > 0 and
-                not package.get("conditions-processed")
-            ):
-                self._conditioned_nodes.append(
-                    StoredNode(
-                        requirement,
-                        package.set("conditions-processed", True),
-                        parent_identifier=parent_identifier,
-                        weight=weight
+            try:
+                # Do not add node to the graph if conditions are unprocessed.
+                if (
+                    len(package.conditions) > 0
+                    and not package.conditions_processed
+                ):
+                    package.conditions_processed = True
+
+                    self._conditioned_nodes.append(
+                        StoredNode(
+                            requirement, package,
+                            parent_identifier=parent_identifier,
+                            weight=weight
+                        )
                     )
+                    return
+
+                self._create_node_from_package(package)
+
+                # Update queue with dependent requirement.
+                for index, _requirement in enumerate(package.requirements):
+                    queue.put({
+                        "requirement": _requirement,
+                        "parent_identifier": identifier,
+                        "weight": index + 1
+                    })
+
+            except wiz.exception.InvalidRequirement as error:
+                raise wiz.exception.IncorrectDefinition(
+                    "Package '{}' is incorrect [{}]"
+                    .format(package.identifier, error)
                 )
-                return
-
-            self._create_node_from_package(package)
-
-            # Update queue with dependent requirement.
-            for index, _requirement in enumerate(package.requirements):
-                queue.put({
-                    "requirement": _requirement,
-                    "parent_identifier": identifier,
-                    "weight": index + 1
-                })
 
         else:
             # Update variant mapping if necessary
@@ -2021,7 +2030,7 @@ class Graph(object):
         :param package: Instance of :class:`wiz.package.Package`.
 
         """
-        identifier = package.qualified_identifier
+        identifier = package.identifier
 
         self._logger.debug("Adding package: {}".format(identifier))
         self._node_mapping[identifier] = Node(package)
@@ -2045,7 +2054,7 @@ class Graph(object):
 
         """
         node = self._node_mapping[identifier]
-        if node.package.variant_name is None:
+        if node.package.variant_identifier is None:
             return
 
         # This is not a set because the number of occurrences of each identifier
@@ -2178,7 +2187,7 @@ class Node(object):
             :class:`~wiz.package.Package` instance qualified identifier.
 
         """
-        return self._package.qualified_identifier
+        return self._package.identifier
 
     @property
     def definition(self):
@@ -2199,10 +2208,10 @@ class Node(object):
         """Add *identifier* as parent to the node."""
         self._parent_identifiers.add(identifier)
 
-    def to_dict(self):
+    def data(self):
         """Return corresponding dictionary."""
         return {
-            "package": self._package.to_dict(serialize_content=True),
+            "package": self._package.data(),
             "parents": list(self._parent_identifiers)
         }
 
@@ -2254,7 +2263,7 @@ class StoredNode(object):
             :class:`~wiz.package.Package` instance qualified identifier.
 
         """
-        return self._package.qualified_identifier
+        return self._package.identifier
 
     @property
     def requirement(self):
@@ -2276,11 +2285,11 @@ class StoredNode(object):
         """Return weight number."""
         return self._weight
 
-    def to_dict(self):
+    def data(self):
         """Return corresponding dictionary."""
         return {
             "requirement": self._requirement,
-            "package": self.package.to_dict(serialize_content=True),
+            "package": self.package.data(),
             "parent_identifier": self._parent_identifier,
             "weight": self._weight
         }

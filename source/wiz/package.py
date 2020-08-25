@@ -7,7 +7,6 @@ import wiz.environ
 import wiz.exception
 import wiz.history
 import wiz.logging
-import wiz.mapping
 import wiz.symbol
 
 
@@ -255,127 +254,282 @@ def create(definition, variant_identifier=None):
     :raise: :exc:`wiz.exception.RequestNotFound` if *variant_identifier* is not
         a valid variant identifier of *definition*.
 
-    .. note::
-
-        In case of conflicted elements in 'data' or 'command' elements, the
-        elements from the variant will have priority.
-
     """
-    mapping = definition.to_dict()
-
-    # Set definition
-    mapping["definition"] = definition
-
-    # Update identifier.
     if variant_identifier is not None:
-        mapping["identifier"] += "[{}]".format(variant_identifier)
+        for index, variant in enumerate(definition.variants):
+            if variant_identifier == variant.identifier:
+                return Package(definition, variant_index=index)
 
-    if mapping.get("version") is not None:
-        mapping["identifier"] += "=={}".format(mapping.get("version"))
-
-    # Extract data from variants.
-    variants = mapping.pop("variants", [])
-
-    if variant_identifier is not None:
-        success = False
-
-        for _mapping in variants:
-            if variant_identifier == _mapping.get("identifier"):
-                mapping["variant-name"] = variant_identifier
-
-                if len(_mapping.get("environ", {})) > 0:
-                    mapping["environ"] = combine_environ_mapping(
-                        mapping["identifier"],
-                        definition.environ, _mapping.environ
-                    )
-
-                if len(_mapping.get("command", {})) > 0:
-                    mapping["command"] = combine_command_mapping(
-                        mapping["identifier"],
-                        definition.command, _mapping.command
-                    )
-
-                if len(_mapping.get("requirements", [])) > 0:
-                    mapping["requirements"] = (
-                        # To prevent mutating the the original requirement list.
-                        mapping.get("requirements", [])[:]
-                        + _mapping["requirements"]
-                    )
-
-                if _mapping.get("install-location") is not None:
-                    mapping["install-location"] = _mapping["install-location"]
-
-                success = True
-                break
-
-        if not success:
-            raise wiz.exception.RequestNotFound(
-                "The variant '{variant}' could not been resolved for "
-                "'{definition}' [{version}].".format(
-                    variant=variant_identifier,
-                    definition=definition.identifier,
-                    version=definition.version
-                )
+        raise wiz.exception.RequestNotFound(
+            "The variant '{variant}' could not been resolved for "
+            "'{definition}'.".format(
+                variant=variant_identifier,
+                definition=definition.qualified_version_identifier,
             )
+        )
 
-    return Package(mapping)
+    return Package(definition)
 
 
-class Package(wiz.mapping.Mapping):
+class Package(object):
     """Package object."""
 
-    def __init__(self, *args, **kwargs):
-        """Initialize package."""
-        super(Package, self).__init__(*args, **kwargs)
+    def __init__(self, definition, variant_index=None):
+        """Initialize package.
 
-    @property
-    def qualified_identifier(self):
-        """Return qualified identifier with optional namespace."""
-        if self.namespace is not None:
-            return "{}::{}".format(self.namespace, self.identifier)
-        return self.identifier
+        :param definition: Instance of :class:`wiz.definition.Definition`.
+
+        :param variant_index: Index number of the variant which will be used to
+            create package instance if applicable. Default is None.
+
+        """
+        self._definition = definition
+        self._variant_index = variant_index
+
+        # Store values that needs to be constructed.
+        self._cache = {}
+
+        # Store boolean value indicating whether the package conditions have
+        # been processed
+        self._conditions_processed = False
 
     @property
     def definition(self):
-        """Return :class:`wiz.definition.Definition` instance."""
-        return self.get("definition")
+        """Return definition used to create package.
+
+        :return: Instance of :class:`wiz.definition.Definition`.
+
+        """
+        return self._definition
 
     @property
-    def variant_name(self):
-        """Return variant name."""
-        return self.get("variant-name")
+    def identifier(self):
+        """Return package identifier.
+
+        :return: String value (e.g. "namespace::foo[variant1]==0.1.0").
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        """
+        # Create cache value if necessary.
+        if self._cache.get("identifier") is None:
+            identifier = self._definition.identifier
+
+            if self.variant_identifier is not None:
+                identifier += "[{}]".format(self.variant_identifier)
+            if self._definition.version:
+                identifier += "=={}".format(self._definition.version)
+            if self.namespace is not None:
+                identifier = "{}::{}".format(self.namespace, identifier)
+
+            self._cache["identifier"] = identifier
+
+        # Return cached value.
+        return self._cache["identifier"]
 
     @property
-    def _ordered_keywords(self):
-        """Return ordered keywords."""
-        return [
-            "identifier",
-            "definition",
-            "variant-name",
-            "version",
-            "namespace",
-            "description",
-            "registry",
-            "definition-location",
-            "install-root",
-            "install-location",
-            "auto-use",
-            "system",
-            "command",
-            "environ",
-            "requirements",
-            "conditions"
-        ]
+    def variant(self):
+        """Return variant instance if applicable.
+
+        :return: Instance of :class:`wiz.definition.Variant` or None.
+
+        """
+        if self._variant_index is not None:
+            return self.definition.variants[self._variant_index]
+
+    @property
+    def variant_identifier(self):
+        """Return variant identifier if applicable.
+
+        :return: String value (e.g. "variant1") or None.
+
+        """
+        if self.variant is not None:
+            return self.variant.identifier
+
+    @property
+    def version(self):
+        """Return package version.
+
+        :return: Instance of :class:`packaging.version.Version` or None.
+
+        """
+        return self._definition.version
+
+    @property
+    def description(self):
+        """Return package description.
+
+        :return: String value or None.
+
+        """
+        return self._definition.description
+
+    @property
+    def namespace(self):
+        """Return package namespace.
+
+        :return: String value or None.
+
+        """
+        return self._definition.namespace
+
+    @property
+    def install_location(self):
+        """Return installation path.
+
+        If a variant is used and if it defines an installation path, this value
+        is returned. Otherwise, the installation path value from the initial
+        definition is returned.
+
+        :return: Directory path or None.
+
+        """
+        if self.variant is not None and self.variant.install_location:
+            return self.variant.install_location
+        return self._definition.install_location
+
+    @property
+    def environ(self):
+        """Return environment variable mapping.
+
+        If a variant is used and if it defines an environment variable mapping,
+        this value is :func:`combined <combine_environ_mapping>` with the
+        environment variable mapping defined in the initial definition.
+
+        :return: Dictionary value.
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        """
+        # Create cache value if necessary.
+        if self._cache.get("environ") is None:
+            if self.variant is not None and len(self.variant.environ) > 0:
+                self._cache["environ"] = combine_environ_mapping(
+                    self.identifier,
+                    self._definition.environ,
+                    self.variant.environ
+                )
+
+            else:
+                self._cache["environ"] = self._definition.environ
+
+        # Return cached value.
+        return self._cache.get("environ", {})
+
+    @property
+    def command(self):
+        """Return command mapping.
+
+        If a variant is used and if it defines a command mapping, this value is
+        :func:`combined <combine_command_mapping>` with the command mapping
+        defined in the initial definition.
+
+        :return: Dictionary value.
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        """
+        # Create cache value if necessary.
+        if self._cache.get("command") is None:
+            if self.variant is not None and len(self.variant.command) > 0:
+                self._cache["command"] = combine_command_mapping(
+                    self.identifier,
+                    self._definition.command,
+                    self.variant.command
+                )
+
+            else:
+                self._cache["command"] = self._definition.command
+
+        # Return cached value.
+        return self._cache.get("command", {})
+
+    @property
+    def requirements(self):
+        """Return list of requirements.
+
+        If a variant is used and if it defines a list of requirements, this
+        value is added to the requirement list defined in the initial
+        definition.
+
+        :return: List of :class:`packaging.requirements.Requirement` instances.
+
+        .. note::
+
+            The value is cached when accessed once to ensure faster access
+            afterwards.
+
+        """
+        # Create cache value if necessary.
+        if self._cache.get("requirements") is None:
+            if self.variant is not None and len(self.variant.requirements) > 0:
+                self._cache["requirements"] = (
+                    # To prevent mutating the the original requirement list.
+                    self._definition.requirements[:]
+                    + self.variant.requirements
+                )
+            else:
+                self._cache["requirements"] = self._definition.requirements
+
+        # Return cached value.
+        return self._cache.get("requirements", [])
+
+    @property
+    def conditions(self):
+        """Return list of conditions.
+
+        :return: List of :class:`packaging.requirements.Requirement` instances.
+
+        """
+        return self._definition.conditions
+
+    @property
+    def conditions_processed(self):
+        """Indicate whether the package conditions have been processed.
+
+        :return: Boolean value.
+
+        """
+        return self._conditions_processed
+
+    @conditions_processed.setter
+    def conditions_processed(self, value):
+        """Set whether the package conditions have been processed.
+
+        :param value: Boolean value.
+
+        """
+        self._conditions_processed = value
 
     def localized_environ(self):
-        """Return localized environ mapping."""
-        # Extract install location value.
-        _install_location = self.get("install-location")
+        """Return localized environ mapping.
 
-        if "install-root" in self.keys():
-            _install_location = wiz.environ.substitute(
-                self.get("install-location"),
-                {wiz.symbol.INSTALL_ROOT: self.get("install-root")}
+        The :envvar:`INSTALL_ROOT` and :envvar:`INSTALL_LOCATION` values within
+        the environment variable mapping will be replaced respectfully by the
+        values of the :ref:`install-root <definition/install_root>` and
+        :ref:`install-location <definition/install_location>` keywords.
+
+        :return: Dictionary value.
+
+        """
+        if not self.install_location:
+            return self.environ
+
+        path = self.install_location
+
+        if self._definition.install_root:
+            path = wiz.environ.substitute(
+                path, {wiz.symbol.INSTALL_ROOT: self._definition.install_root}
             )
 
         # Localize each environment variable.
@@ -384,11 +538,41 @@ class Package(wiz.mapping.Mapping):
         def _replace_location(mapping, item):
             """Replace install-location in *item* for *mapping*."""
             mapping[item[0]] = wiz.environ.substitute(
-                item[1], {wiz.symbol.INSTALL_LOCATION: _install_location}
+                item[1], {wiz.symbol.INSTALL_LOCATION: path}
             )
             return mapping
 
-        if "install-location" in self.keys():
-            _environ = functools.reduce(_replace_location, _environ.items(), {})
-
+        _environ = functools.reduce(_replace_location, _environ.items(), {})
         return _environ
+
+    def data(self):
+        """Return Mapping representing the package.
+
+        :return: Dictionary value.
+
+        """
+        data = self._definition.data()
+        data["identifier"] = self.identifier
+
+        if self.environ:
+            data["environ"] = self.environ
+
+        if self.command:
+            data["command"] = self.command
+
+        if self.install_location:
+            data["install-location"] = self.install_location
+
+        if self._variant_index is not None:
+            # Remove variants from data
+            variants = data.pop("variants")
+
+            # Add variant identifier to data.
+            data["variant-identifier"] = self.variant_identifier
+
+            # Update requirements if necessary
+            if len(data.get("requirements", [])):
+                variant_data = variants[self._variant_index]
+                data["requirements"] += variant_data.get("requirements", [])
+
+        return data

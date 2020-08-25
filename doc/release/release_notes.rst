@@ -17,6 +17,137 @@ Release Notes
         * :mod:`wiz.system`
         * :mod:`wiz.utility`
 
+    .. change:: changed
+
+        Updated :mod:`wiz.validator` to use custom definition validation instead
+        of the `jsonschema <https://pypi.org/project/jsonschema/>`_ library
+        which is based on `JSON Schema <https://json-schema.org/>`_ validation
+        as it is significantly hindering the performance when creating an
+        instance of :class:`wiz.definition.Definition`.
+
+        Removed :func:`wiz.validator.yield_definition_errors` and added
+        :func:`wiz.validator.validate_definition` to perform equivalent
+        tests in shorter time (90% speed improvement for loading complex
+        definitions).
+
+    .. change:: changed
+
+        Updated :class:`wiz.definition.Definition` construction to use
+        :func:`wiz.validator.validate_definition`.
+
+    .. change:: changed
+
+        Updated code to use `ujson <https://pypi.org/project/ujson/>`_ instead
+        of the built-in :mod:`json` module to optimize the loading of
+        :term:`JSON` files.
+
+    .. change:: changed
+
+        Updated :class:`wiz.definition.Definition` construction to provide an
+        option to prevent using :func:`copy.deepcopy` on input data mapping to
+        speed up instantiation whenever necessary::
+
+            >>> Definition({"identifier": "foo"}, copy_data=False)
+
+        By default, "copy_data" is set to True as it can cause unexpected issues
+        when input data is being mutated::
+
+            >>> data = {"identifier": "foo"}
+            >>> definition = wiz.definition.Definition(data, copy_data=False)
+            >>> print(definition.identifier)
+            "foo"
+
+            >>> del data["identifier"]
+            >>> print(definition.identifier)
+            KeyError: 'identifier'
+
+    .. change:: changed
+
+        Updated :func:`wiz.definition.load` to not copy input data mapping as it
+        hindered performance (46% speed improvement for loading complex
+        definitions).
+
+    .. change:: changed
+
+        Updated :class:`wiz.definition.Definition` and
+        :class:`wiz.package.Package` constructions to not perform the following
+        conversions as it hinder performances (94% speed improvement for loading
+        complex definitions):
+
+        * Convert :ref:`definition/version` value into
+          :class:`~packaging.version.Version` instance.
+        * Convert :ref:`definition/requirements` and
+          :ref:`definition/conditions` values into
+          :class:`~packaging.requirements.Requirement` instances.
+        * Convert :ref:`definition/requirements` and
+          :ref:`definition/conditions` values within :ref:`definition/variants`
+          into :class:`~packaging.requirements.Requirement` instances.
+
+        Instead, these attributes will be converted and cached the first time
+        they are accessed.
+
+    .. change:: changed
+
+        Updated :class:`wiz.definition.Definition` construction to simplify
+        logic. It does not inherit from :class:`collections.Mapping` anymore and
+        does not require from registry and definition location to be included in
+        the mapping.
+
+        .. extended-code-block:: python
+            :icon: ../image/avoid.png
+
+            >>> Definition({
+            ...    "identifier": "foo",
+            ...    "definition-location": "/path/to/definition.json",
+            ...    "registry": "/path/to/registry",
+            ... })
+
+        .. extended-code-block:: python
+            :icon: ../image/prefer.png
+
+            >>> Definition(
+            ...     {"identifier": "foo"},
+            ...     path="/path/to/definition.json",
+            ...     registry_path="/path/to/registry",
+            ... )
+
+    .. change:: changed
+
+        Removed :meth:`wiz.definition.Definition.sanitized` which was previously
+        used to remove the "registry" and "definition-location" keywords from
+        data definition as it is not necessary anymore.
+
+    .. change:: changed
+
+        Updated :class:`wiz.package.Package` construction to simplify logic
+        and optimize performance. It does not inherit from
+        :class:`collections.Mapping` anymore and uses
+        :class:`wiz.definition.Definition` keywords instead of copying data.
+
+        Instance of :class:`wiz.package.Package` does not have possibility to
+        mutate its content anymore for security.
+
+    .. change:: changed
+
+        Removed :mod:`wiz.mapping` as logic has been moved into
+        :class:`wiz.definition.Definition`.
+
+    .. change:: changed
+
+        Removed :meth:`wiz.package.Package.qualified_identifier` and prepend
+        :ref:`definition/namespace` to :meth:`wiz.package.Package.identifier`
+        to ensure that a unique identifier is always used.
+
+    .. change:: changed
+
+        Updated :meth:`wiz.graph.Graph.update_from_requirements` to raise a
+        palatable error when a dependent definition uses an invalid requirement
+        as :ref:`definition/requirements` or :ref:`definition/conditions`
+        attributes.
+
+        Previously, these attributes were sanitized when instantiating the
+        :class:`wiz.definition.Definition`.
+
     .. change:: fixed
 
         Fixed :class:`wiz.graph.Resolver` to ensure that conflicted nodes are
@@ -823,10 +954,10 @@ Release Notes
 
     .. change:: fixed
 
-        Changed :mod:`wiz.validator` to open the definition JSON schema once
-        the module is loaded, rather than once per validation.
-        Previously a "too many files opened" issue could be encountered when
-        creating multiple definitions in parallel.
+        Changed :mod:`wiz.validator` to open the definition `JSON Schema
+        <https://json-schema.org/>`_ once the module is loaded, rather than once
+        per validation. Previously a "too many files opened" issue could be
+        encountered when creating multiple definitions in parallel.
 
     .. change:: fixed
 
@@ -1373,8 +1504,8 @@ Release Notes
         :tags: API
 
         Added :func:`wiz.validator.yield_definition_errors` to identify and
-        yield potential errors in a definition data following a
-        :term:`JSON Schema`.
+        yield potential errors in a definition data following `JSON Schema
+        <https://json-schema.org/>`_.
 
     .. change:: changed
         :tags: API

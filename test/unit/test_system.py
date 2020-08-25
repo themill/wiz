@@ -236,7 +236,7 @@ def test_validate_for_centos73_64(definition_data, expected):
         }
     }
 
-    definition = wiz.definition.Definition(**definition_data)
+    definition = wiz.definition.Definition(definition_data)
     assert wiz.system.validate(definition, system_mapping) == expected
 
 
@@ -274,7 +274,7 @@ def test_validate_for_mac_64(definition_data, expected):
         }
     }
 
-    definition = wiz.definition.Definition(**definition_data)
+    definition = wiz.definition.Definition(definition_data)
     assert wiz.system.validate(definition, system_mapping) == expected
 
 
@@ -312,7 +312,7 @@ def test_validate_for_windows_amd64(definition_data, expected):
         }
     }
 
-    definition = wiz.definition.Definition(**definition_data)
+    definition = wiz.definition.Definition(definition_data)
     assert wiz.system.validate(definition, system_mapping) == expected
 
 

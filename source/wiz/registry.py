@@ -155,14 +155,16 @@ def install_to_path(definitions, registry_path, overwrite=False):
             _definition = wiz.fetch_definition(request, mapping)
 
         except wiz.exception.RequestNotFound:
-            _definitions.append(definition.sanitized())
+            _definitions.append(definition)
 
         else:
-            if definition.sanitized() == _definition.sanitized():
+            data1 = definition.data(copy_data=False)
+            data2 = _definition.data(copy_data=False)
+            if data1 == data2:
                 continue
 
             existing_definition_map[definition.identifier] = _definition
-            _definitions.append(definition.sanitized())
+            _definitions.append(definition)
 
     # If no content was released.
     if len(_definitions) == 0:
@@ -183,7 +185,7 @@ def install_to_path(definitions, registry_path, overwrite=False):
         # Replace existing definition if necessary.
         if identifier in existing_definition_map.keys():
             existing_definition_path = (
-                existing_definition_map[identifier].get("definition-location")
+                existing_definition_map[identifier].path
             )
             path = os.path.dirname(existing_definition_path)
             os.remove(existing_definition_path)

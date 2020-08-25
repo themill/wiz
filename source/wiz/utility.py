@@ -3,7 +3,6 @@
 import base64
 import collections
 import hashlib
-import json
 import pipes
 import re
 import zlib
@@ -11,9 +10,9 @@ import zlib
 import colorama
 from packaging.requirements import InvalidRequirement
 from packaging.version import Version, InvalidVersion
+import ujson
 
 import wiz.exception
-import wiz.mapping
 import wiz.symbol
 from ._requirement import Requirement
 
@@ -429,7 +428,7 @@ def encode(element):
     :raise: :exc:`TypeError` if *element* is not JSON serializable.
 
     """
-    return base64.b64encode(zlib.compress(json.dumps(element).encode("utf-8")))
+    return base64.b64encode(zlib.compress(ujson.dumps(element).encode("utf-8")))
 
 
 def decode(element):
@@ -442,7 +441,7 @@ def decode(element):
     :raise: :exc:`TypeError` if *element* cannot be decoded or deserialized.
 
     """
-    return json.loads(zlib.decompress(base64.b64decode(element)))
+    return ujson.loads(zlib.decompress(base64.b64decode(element)))
 
 
 def compute_label(definition):
@@ -462,10 +461,10 @@ def compute_label(definition):
     """
     label = "'{}'".format(definition.qualified_identifier)
 
-    if definition.get("version"):
+    if definition.version:
         label += " [{}]".format(definition.version)
 
-    if definition.get("system"):
+    if definition.system:
         system_identifier = compute_system_label(definition)
         label += " ({})".format(system_identifier)
 
@@ -512,15 +511,14 @@ def compute_file_name(definition):
     """
     name = definition.identifier
 
-    if definition.get("version"):
+    if definition.version:
         name += "-{}".format(definition.version)
 
-    if definition.get("system"):
+    if definition.system:
         system_identifier = wiz.utility.compute_system_label(definition)
-        encoded = base64.urlsafe_b64encode(
-            hashlib.sha1(re.sub(r"(\s+|:+)", "", system_identifier)).digest()
-        )
-        name += "-{}".format(encoded.rstrip("="))
+        data = re.sub(r"(\s+|:+)", "", system_identifier).encode("utf-8")
+        encoded = base64.urlsafe_b64encode(hashlib.sha1(data).digest())
+        name += "-{}".format(encoded.rstrip(b"=").decode("utf-8"))
 
     return "{}.json".format(name)
 
