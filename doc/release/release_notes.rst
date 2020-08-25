@@ -15,7 +15,7 @@ Release Notes
     .. change:: new
         :tags: command-line
 
-        Added shorter option ``-f`` to overwrite output when installing
+        Added short option ``-f`` to overwrite output when installing
         definitions and when editing a definition:
 
         * :option:`wiz install -f` for :option:`wiz install --overwrite`
