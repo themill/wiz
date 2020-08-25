@@ -34,10 +34,10 @@ def reset_configuration(mocker):
 
 @pytest.fixture()
 def mock_datetime_now(mocker):
-    """Return mocked 'wiz.fetch_definition_mapping' function."""
-    _date = mocker.Mock(**{"isoformat.return_value": "NOW"})
+    """Return mocked 'datetime.datetime.now' function."""
+    value = datetime.datetime(2020, 8, 24, 17, 49, 1, 985944)
     return mocker.patch.object(
-        datetime, "datetime", **{"now.return_value": _date}
+        datetime, "datetime", **{"now.return_value": value}
     )
 
 
@@ -568,7 +568,8 @@ def test_list_packages_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            "__HISTORY__",
             compressed=True
         )
 
@@ -735,7 +736,8 @@ def test_list_commands_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            "__HISTORY__",
             compressed=True
         )
 
@@ -898,7 +900,8 @@ def test_search_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            "__HISTORY__",
             compressed=True
         )
 
@@ -1277,7 +1280,8 @@ def test_view_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            "__HISTORY__",
             compressed=True
         )
 
@@ -1480,7 +1484,8 @@ def test_use_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            "__HISTORY__",
             compressed=True
         )
 
@@ -1827,7 +1832,8 @@ def test_run_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            "__HISTORY__",
             compressed=True
         )
 
@@ -2144,7 +2150,8 @@ def test_freeze_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            "__HISTORY__",
             compressed=True
         )
 
@@ -2514,7 +2521,8 @@ def test_install_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            "__HISTORY__",
             compressed=True
         )
 
@@ -2786,7 +2794,8 @@ def test_edit_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-NOW.dump", "__HISTORY__",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            "__HISTORY__",
             compressed=True
         )
 
