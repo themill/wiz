@@ -22,13 +22,25 @@ Release Notes
         Updated :mod:`wiz.validator` to use custom definition validation instead
         of the `jsonschema <https://pypi.org/project/jsonschema/>`_ library
         which is based on `JSON Schema <https://json-schema.org/>`_ validation
-        as it is significantly hindering the performance when creating an
-        instance of :class:`wiz.definition.Definition`.
+        as it was hindering the performance when creating an instance of
+        :class:`wiz.definition.Definition`.
 
         Removed :func:`wiz.validator.yield_definition_errors` and added
         :func:`wiz.validator.validate_definition` to perform equivalent
-        tests in shorter time (90% speed improvement for loading complex
-        definitions).
+        tests in shorter time.
+
+        Here is a benchmark with average speed when loading a definition:
+
+        ==================================  ==========  =================
+        Examples                            jsonschema  custom validation
+        ==================================  ==========  =================
+        minimal definition                  ~199us      ~63us
+        simple definition                   ~2ms        ~1.6ms
+        complex definition                  ~4.2s       ~3.3s
+        ==================================  ==========  =================
+
+        *(A complex definition contains 100 variants, 100 requirements and
+        100 environment variables.)*
 
     .. change:: changed
 
@@ -64,15 +76,26 @@ Release Notes
     .. change:: changed
 
         Updated :func:`wiz.definition.load` to not copy input data mapping as it
-        hindered performance (46% speed improvement for loading complex
-        definitions).
+        hindered performance.
+
+        Here is a benchmark with average speed when loading a definition:
+
+        ==================================  ==========  =============
+        Examples                            with copy    without copy
+        ==================================  ==========  =============
+        minimal definition                  ~199us      ~177us
+        simple definition                   ~2ms        ~1.8ms
+        complex definition                  ~4.2s       ~2.7s
+        ==================================  ==========  =============
+
+        *(A complex definition contains 100 variants, 100 requirements and
+        100 environment variables.)*
 
     .. change:: changed
 
         Updated :class:`wiz.definition.Definition` and
         :class:`wiz.package.Package` constructions to not perform the following
-        conversions as it hinder performances (94% speed improvement for loading
-        complex definitions):
+        conversions as it hindered performance:
 
         * Convert :ref:`definition/version` value into
           :class:`~packaging.version.Version` instance.
@@ -85,6 +108,19 @@ Release Notes
 
         Instead, these attributes will be converted and cached the first time
         they are accessed.
+
+        Here is a benchmark with average speed when loading a definition:
+
+        ==================================  ===============  ==================
+        Examples                            with conversion  without conversion
+        ==================================  ===============  ==================
+        minimal definition                  ~199us           ~180us
+        simple definition                   ~2ms             ~300us
+        complex definition                  ~4.2s            ~156ms
+        ==================================  ===============  ==================
+
+        *(A complex definition contains 100 variants, 100 requirements and
+        100 environment variables.)*
 
     .. change:: changed
 
@@ -111,6 +147,8 @@ Release Notes
             ...     registry_path="/path/to/registry",
             ... )
 
+        This prevents having to sanitize the definition data before exporting.
+
     .. change:: changed
 
         Removed :meth:`wiz.definition.Definition.sanitized` which was previously
@@ -124,8 +162,8 @@ Release Notes
         :class:`collections.Mapping` anymore and uses
         :class:`wiz.definition.Definition` keywords instead of copying data.
 
-        Instance of :class:`wiz.package.Package` does not have possibility to
-        mutate its content anymore for security.
+        Instance of :class:`wiz.package.Package` can not mutate its content
+        anymore.
 
     .. change:: changed
 
@@ -134,9 +172,10 @@ Release Notes
 
     .. change:: changed
 
-        Removed :meth:`wiz.package.Package.qualified_identifier` and prepend
-        :ref:`definition/namespace` to :meth:`wiz.package.Package.identifier`
-        to ensure that a unique identifier is always used.
+        Updated :meth:`wiz.package.Package.identifier` to prepend
+        :ref:`definition/namespace` to ensure that a unique identifier is always
+        used. As a result, :meth:`wiz.package.Package.qualified_identifier`
+        has been removed.
 
     .. change:: changed
 
