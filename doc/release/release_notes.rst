@@ -7,6 +7,12 @@ Release Notes
 .. release:: Upcoming
 
     .. change:: changed
+        :tags: command-line
+
+        Renamed ``wiz install --registry`` to :option:`wiz install --output` to
+        better differentiate the command from :option:`wiz --registry`.
+
+    .. change:: changed
 
         Updated the following modules to add compatibility with python 3.7 and
         3.8:
@@ -785,10 +791,9 @@ Release Notes
         :tags: command-line, backwards-incompatible
 
         Updated command line arguments to use the same option
-        :option:`--registry <wiz install --registry>` for installing to a
-        Local Registry and installing to a VCS Registry.
-        Previously the argument was split into `--registry-path` and
-        `--registry-id`.
+        ``--registry`` for installing to a Local Registry and installing to a
+        VCS Registry. Previously the argument was split into `--registry-path`
+        and `--registry-id`.
 
         Now definitions can be installed using the following commands syntax::
 
