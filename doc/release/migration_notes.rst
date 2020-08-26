@@ -18,8 +18,8 @@ The command ``wiz install --registry`` has been renamed to
 :option:`wiz install --output` to better differentiate the command from
 :option:`wiz --registry`.
 
-The followings commands have been modified to prevent confusions confusion as
-the short option ``-f`` is used for overwriting outputs
+The short option ``-f`` has added for ``--overrride``.
+As a result, the followings commands have been renamed to prevent confusion:
 
 * ``wiz freeze -f`` has been renamed to :option:`wiz freeze -F`
 * ``wiz analyze -f`` has been removed to set filters as non-required positional
