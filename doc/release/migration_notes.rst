@@ -112,7 +112,7 @@ incorrect :attr:`~wiz.definition.Definition.requirements` or
     InvalidRequirement: The requirement '!!!' is incorrect
 
 The :class:`wiz.definition.Definition` class is no longer inheriting from
-:class:`collections.Mapping` so attributes are only accessible from properties
+:class:`collections.Mapping`, so attributes are only accessible from properties
 as :meth:`~wiz.definition.Definition.get` is no longer available.
 
 .. rubric:: Package API
