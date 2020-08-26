@@ -6,8 +6,7 @@ import os
 import platform
 import time
 import traceback
-
-import ujson
+import json
 
 from wiz.utility import Requirement, Version
 from ._version import __version__
@@ -53,7 +52,7 @@ def get(serialized=False):
 
     """
     if serialized:
-        return ujson.dumps(_HISTORY, default=_json_default)
+        return json.dumps(_HISTORY, default=_json_default).encode("utf-8")
     return _HISTORY
 
 
@@ -132,12 +131,14 @@ def record_action(identifier, **kwargs):
 
 def _json_default(_object):
     """Override :func:`JSONEncoder.default` to serialize all objects."""
-    import wiz.graph
+    from wiz.definition import Definition
+    from wiz.package import Package
+    from wiz.graph import Graph
 
-    if isinstance(_object, wiz.graph.Graph):
+    if isinstance(_object, (Graph, Definition, Package)):
         return _object.data()
 
-    elif isinstance(_object, Requirement) or isinstance(_object, Version):
+    elif isinstance(_object, (Requirement, Version)):
         return str(_object)
 
     elif isinstance(_object, Exception):
