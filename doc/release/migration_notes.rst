@@ -84,8 +84,9 @@ exporting. Therefore, :meth:`wiz.definition.Definition.sanitized` has been
 removed.
 
 The :class:`wiz.definition.Definition` constructor is using the new custom
-validation function :func:`wiz.validator.validate_definition` previously
-described and does not perform the following conversions:
+validation function :func:`wiz.validator.validate_definition`.
+The following operations are now not performed during initialization, but 
+will instead be cached the first time they are accessed:
 
 * Convert :ref:`definition/version` value into
   :class:`~packaging.version.Version` instance.
@@ -96,9 +97,8 @@ described and does not perform the following conversions:
   :ref:`definition/conditions` values within :ref:`definition/variants`
   into :class:`~packaging.requirements.Requirement` instances.
 
-Instead, these attributes will be converted and cached the first time
-they are accessed. So an :exc:`wiz.exception.InvalidRequirement` error could
-now be raised when accessing :attr:`~wiz.definition.Definition.requirements` and
+An :exc:`wiz.exception.InvalidRequirement` error is raised when accessing 
+:attr:`~wiz.definition.Definition.requirements` and
 :attr:`~wiz.definition.Definition.conditions`.
 
 .. code-block:: python
