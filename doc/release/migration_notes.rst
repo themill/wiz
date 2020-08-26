@@ -139,6 +139,14 @@ The :meth:`wiz.package.Package.identifier` property has been updated to prepend
 used. As a result, :meth:`wiz.package.Package.qualified_identifier`
 has been removed.
 
+.. rubric:: API
+
+The following functions have been renamed to use American spelling for
+consistency:
+
+* :func:`wiz.environ.sanitise` → :func:`wiz.environ.sanitize`
+* :func:`wiz.filesystem.sanitise_value` → :func:`wiz.filesystem.sanitize_value`
+
 .. _release/migration/3.0.0:
 
 Migrate to 3.0.0
