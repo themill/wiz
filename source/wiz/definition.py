@@ -1271,3 +1271,16 @@ class Variant(object):
 
         # Return cached value.
         return self._cache.get("requirements", [])
+
+    def data(self, copy_data=True):
+        """Return variant data used to created the variant instance.
+
+        :param copy_data: Indicate whether definition data will be copied to
+            prevent mutating it. Default is True.
+
+        :return: Variant data mapping.
+
+        """
+        if not copy_data:
+            return self._data
+        return copy.deepcopy(self._data)
