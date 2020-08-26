@@ -21,9 +21,10 @@ The command ``wiz install --registry`` has been renamed to
 The short option ``-f`` has been added for ``--override``.
 As a result, the followings commands have been renamed to prevent confusion:
 
-* ``wiz freeze -f`` has been renamed to :option:`wiz freeze -F`
-* ``wiz analyze -f`` has been removed to set filters as non-required positional
-  option instead.
+* ``wiz freeze -f/--format`` has been renamed to
+  :option:`wiz freeze -F/--format <wiz freeze -F>`
+* ``wiz analyze -f/--filter`` has been removed to set filters as non-required
+  positional option instead.
 
 .. extended-code-block:: bash
     :icon: ../image/avoid.png

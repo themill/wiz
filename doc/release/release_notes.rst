@@ -24,13 +24,14 @@ Release Notes
     .. change:: changed
         :tags: command-line
 
-        Renamed ``wiz freeze -f`` to :option:`wiz freeze -F` to prevent
-        confusion as the short option ``-f`` is used for overwriting outputs.
+        Renamed ``wiz freeze -f/--format`` to :option:`wiz freeze -F/--format
+        <wiz freeze -F>` to prevent confusion as the short option ``-f`` is used
+        for overwriting outputs.
 
     .. change:: changed
         :tags: command-line
 
-        Removed the ``wiz analyze --filter`` options and make it into a
+        Removed the ``wiz analyze -f/--filter`` options and make it into a
         non-required positional option instead to prevent confusion as the short
         option ``-f`` is used for overwriting outputs.
 
