@@ -53,8 +53,8 @@ The :mod:`wiz.validator` module has been modified to prevent using the
 `JSON Schema <https://json-schema.org/>`_ validation as it was hindering the
 performance when creating an instance of :class:`wiz.definition.Definition`.
 
-Therefore, :func:`wiz.validator.yield_definition_errors` has been removed
-and is replaced by :func:`wiz.validator.validate_definition`.
+Therefore, :func:`wiz.validator.yield_definition_errors` has been replaced 
+by :func:`wiz.validator.validate_definition`.
 
 .. rubric:: Definition API
 
