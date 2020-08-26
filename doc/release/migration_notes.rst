@@ -53,7 +53,7 @@ The :mod:`wiz.validator` module has been modified to prevent using the
 `JSON Schema <https://json-schema.org/>`_ validation as it was hindering the
 performance when creating an instance of :class:`wiz.definition.Definition`.
 
-Therefore, :func:`wiz.validator.yield_definition_errors` has been replaced 
+Therefore, :func:`wiz.validator.yield_definition_errors` has been replaced
 by :func:`wiz.validator.validate_definition`.
 
 .. rubric:: Definition API
@@ -85,7 +85,7 @@ removed.
 
 The :class:`wiz.definition.Definition` constructor is using the new custom
 validation function :func:`wiz.validator.validate_definition`.
-The following operations are now not performed during initialization, but 
+The following operations are now not performed during initialization, but
 will instead be cached the first time they are accessed:
 
 * Convert :ref:`definition/version` value into
@@ -97,8 +97,8 @@ will instead be cached the first time they are accessed:
   :ref:`definition/conditions` values within :ref:`definition/variants`
   into :class:`~packaging.requirements.Requirement` instances.
 
-An :exc:`wiz.exception.InvalidRequirement` error is raised when accessing 
-:attr:`~wiz.definition.Definition.requirements` and
+An :exc:`wiz.exception.InvalidRequirement` error is raised when accessing
+incorrect :attr:`~wiz.definition.Definition.requirements` or
 :attr:`~wiz.definition.Definition.conditions`.
 
 .. code-block:: python
