@@ -4,7 +4,8 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 3.1.0
+    :date: 2020-08-26
 
     .. change:: changed
         :tags: command-line
