@@ -213,11 +213,12 @@ def test_fetch_with_plugin_error(logger, mocked_discover_plugins):
 
     wiz.config.fetch(refresh=True)
 
-    logger.warning.assert_called_once_with(
-        "Failed to register plugin from \"{0}\" ['module' object has no "
-        "attribute 'register']"
-        .format(wiz.__file__)
-    )
+    assert logger.warning.call_count == 1
+    args, _ = logger.warning.call_args
+    assert (
+       "Failed to register plugin from \"{0}\""
+       .format(wiz.__file__)
+    ) in args[0]
 
 
 def test_discover_plugins(mocker):

@@ -2,6 +2,8 @@
 
 import platform as _platform
 
+import distro
+
 import wiz.exception
 import wiz.history
 import wiz.symbol
@@ -27,19 +29,22 @@ def query(platform=None, architecture=None, os_name=None, os_version=None):
             }
         }
 
-    *platform* could indicate a platform identifier which would override the
-    platform identifier queried.
+    :param platform: Indicate a platform identifier which would override the
+        platform identifier queried. Default is None.
 
-    *architecture* could indicate an architecture identifier which would
-    override the architecture identifier queried.
+    :param architecture: Indicate an architecture identifier which would
+        override the architecture identifier queried. Default is None.
 
-    *os_name* could indicate an operating system identifier which would override
-    the operating system identifier queried.
+    :param os_name: Indicate an operating system identifier which would override
+        the operating system identifier queried. Default is None.
 
-    *os_version* could indicate an operating system version which would override
-    the operating system version queried.
+    :param os_version: Indicate an operating system version which would override
+        the operating system version queried. Default is None.
 
-    Raise :exc:`wiz.exception.UnsupportedPlatform` if platform is not supported.
+    :return: System mapping.
+
+    :raise: :exc:`wiz.exception.UnsupportedPlatform` if platform is not
+        supported.
 
     """
     name = _platform.system().lower()
@@ -81,8 +86,22 @@ def query(platform=None, architecture=None, os_name=None, os_version=None):
 
 
 def query_linux():
-    """Return Linux system mapping."""
-    distribution, version, _ = _platform.linux_distribution(
+    """Return Linux system mapping.
+
+    :return: Mapping in the form of
+        ::
+
+            {
+                "platform": "linux",
+                "arch": "x86_64",
+                "os": {
+                    "name": "centos",
+                    "version": "7.3.161"
+                }
+            }
+
+    """
+    distribution, version, _ = distro.linux_distribution(
         full_distribution_name=False
     )
 
@@ -97,7 +116,21 @@ def query_linux():
 
 
 def query_mac():
-    """Return mac system mapping."""
+    """Return mac system mapping.
+
+    :return: Mapping in the form of
+        ::
+
+            {
+                "platform": "mac",
+                "arch": "x86_64",
+                "os": {
+                    "name": "mac",
+                    "version": "10.15.5"
+                }
+            }
+
+    """
     return {
         "platform": "mac",
         "arch": _platform.machine(),
@@ -110,6 +143,18 @@ def query_mac():
 
 def query_windows():
     """Return windows system mapping.
+
+    :return: Mapping in the form of
+        ::
+
+            {
+                "platform": "windows",
+                "arch": "x86_64",
+                "os": {
+                    "name": "windows",
+                    "version": "10.0.10240"
+                }
+            }
 
     .. warning::
 
@@ -137,18 +182,11 @@ def query_windows():
 def validate(definition, system_mapping):
     """Validate *definition* against system *mapping*.
 
-    *definition* should be a :class:`wiz.definition.Definition` instances.
+    :param definition: Instance of :class:`wiz.definition.Definition`.
 
-    The *system_mapping* should be in the form of::
+    :param system_mapping: System mapping as returned by :func:`query`.
 
-        {
-            "platform": "linux",
-            "arch": "x86_64",
-            "os": {
-                "name": "centos",
-                "version": <Version(7.3.161)>
-            }
-        }
+    :return: Boolean value.
 
     """
     system = definition.system

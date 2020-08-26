@@ -99,9 +99,9 @@ def test_initiate_with_mapping():
     }
 
 
-def test_sanitise():
-    """Return sanitised environment mapping"""
-    assert wiz.environ.sanitise({
+def test_sanitize():
+    """Return sanitized environment mapping"""
+    assert wiz.environ.sanitize({
         "PLUGINS_A": "/path/to/plugin1:/path/to/plugin2:${PLUGINS_A}",
         "PLUGINS_B": "${PLUGINS_B}:/path/to/plugin1:/path/to/plugin2",
         "PLUGINS_C": "/path/to/plugin1:${PLUGINS_C}:/path/to/plugin2",
@@ -119,7 +119,7 @@ def test_sanitise():
         "KEY3": "${UNKNOWN}"
     }
 
-    assert wiz.environ.sanitise({
+    assert wiz.environ.sanitize({
         "PLUGINS_A": "/path/to/plugin1:/path/to/plugin2:$PLUGINS_A",
         "PLUGINS_B": "$PLUGINS_B:/path/to/plugin1:/path/to/plugin2",
         "PLUGINS_C": "/path/to/plugin1:$PLUGINS_C:/path/to/plugin2",

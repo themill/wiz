@@ -4,12 +4,14 @@ from __future__ import print_function
 
 import collections
 import datetime
-import itertools
-import json
 import os
 import time
+import textwrap
 
 import click
+import six
+import six.moves
+import ujson
 
 import wiz.config
 import wiz.definition
@@ -68,34 +70,34 @@ class _MainGroup(click.Group):
 @click.group(
     context_settings=CONTEXT_SETTINGS,
     cls=_MainGroup,
-    help=(
+    help=textwrap.dedent(
         """
         Wiz is an environment management framework which resolves an environment
         context or executes a command from one or several package requests.
 
-        Example::
+        Example:
 
-            \b
-            wiz use "app==2.*" my-plugin -- AppExe /path/to/script
+        \b
+        >>> wiz use "app==2.*" my-plugin -- AppExe /path/to/script
 
         A command can also be executed from a resolved context via a command
         alias which is extracted from its corresponding package.
 
-        Example::
+        Example:
 
-            \b
-            wiz run python
+        \b
+        >>> wiz run python
 
-        All available packages and command can be listed as follow::
+        All available packages and command can be listed as follow:
 
-            \b
-            wiz list package
-            wiz list command
+        \b
+        >>> wiz list package
+        >>> wiz list command
 
-        It is also possible to search a specific package or command as follow::
+        It is also possible to search a specific package or command as follow:
 
-            \b
-            wiz search python
+        \b
+        >>> wiz search python
 
         """
     ),
@@ -243,17 +245,17 @@ def main(click_context, **kwargs):
 
 @main.group(
     name="list",
-    help=(
+    help=textwrap.dedent(
         """
         Display all available commands or package definitions.
 
-        Example::
+        Example:
 
-            \b
-            wiz list command
-            wiz list package
-            wiz list command --all
-            wiz list package --all
+        \b
+        >>> wiz list command
+        >>> wiz list package
+        >>> wiz list command --all
+        >>> wiz list package --all
 
         """
     ),
@@ -269,15 +271,15 @@ def wiz_list_group(click_context):
 
 @wiz_list_group.command(
     name="package",
-    help=(
+    help=textwrap.dedent(
         """
         Display all available package definitions.
 
-        Example::
+        Example:
 
-            \b
-            wiz list package
-            wiz list package --all
+        \b
+        >>> wiz list package
+        >>> wiz list package --all
 
         """
     ),
@@ -332,15 +334,15 @@ def wiz_list_package(click_context, **kwargs):
 
 @wiz_list_group.command(
     name="command",
-    help=(
+    help=textwrap.dedent(
         """
         Display all available commands.
 
-        Example::
+        Example:
 
-            \b
-            wiz list command
-            wiz list command --all
+        \b
+        >>> wiz list command
+        >>> wiz list command --all
 
         """
     ),
@@ -401,17 +403,17 @@ def wiz_list_command(click_context, **kwargs):
 
 @main.command(
     name="search",
-    help=(
+    help=textwrap.dedent(
         """
         Search and display definitions from a list of filters.
 
-        Example::
+        Example:
 
-            \b
-            wiz search foo
-            wiz search foo --all
-            wiz search foo --no-arch
-            wiz search foo bar
+        \b
+        >>> wiz search foo
+        >>> wiz search foo --all
+        >>> wiz search foo --no-arch
+        >>> wiz search foo bar
 
         """
     ),
@@ -475,7 +477,7 @@ def wiz_search(click_context, **kwargs):
         system_mapping=system_mapping,
         max_depth=click_context.obj["registry_search_depth"]
     ):
-        values = [str(definition.get(keyword)) for keyword in keywords]
+        values = [str(getattr(definition, keyword)) for keyword in keywords]
         values += definition.command.keys()
 
         if any(_filter in value for value in values for _filter in _filters):
@@ -517,16 +519,16 @@ def wiz_search(click_context, **kwargs):
 
 @main.command(
     name="view",
-    help=(
+    help=textwrap.dedent(
         """
         Display content of a package definition from definition identifier or
         command.
 
-        Example::
+        Example:
 
-            \b
-            wiz view foo
-            wiz view foo --json
+        \b
+        >>> wiz view foo
+        >>> wiz view foo --json
 
         """
     ),
@@ -610,17 +612,17 @@ def wiz_view(click_context, **kwargs):
 
 @main.command(
     name="use",
-    help=(
+    help=textwrap.dedent(
         """
         Spawn shell with resolved context from requested packages, or run
         a command within the resolved context.
 
-        Example::
+        Example:
 
-            \b
-            wiz use package1>=1 package2==2.3.0 package3
-            wiz use package1>=1 package2==2.3.0 package3 -- app --option value
-            wiz use --view command
+        \b
+        >>> wiz use package1>=1 package2==2.3.0 package3
+        >>> wiz use package1>=1 package2==2.3.0 package3 -- app --option value
+        >>> wiz use --view command
 
         """
     ),
@@ -693,15 +695,15 @@ def wiz_use(click_context, **kwargs):
 
 @main.command(
     "run",
-    help=(
+    help=textwrap.dedent(
         """
         Run command from resolved context.
 
-        Example::
+        Example:
 
-            \b
-            wiz run command
-            wiz run command -- --option value /path/to/output
+        \b
+        >>> wiz run command
+        >>> wiz run command -- --option value /path/to/output
 
         """
     ),
@@ -776,16 +778,17 @@ def wiz_run(click_context, **kwargs):
 
 @main.command(
     "freeze",
-    help=(
+    help=textwrap.dedent(
         """
         Export resolved context into a package definition or a script.
 
-        Example::
+        Example:
 
-            \b
-            wiz freeze foo>=1 bar==2.3.0 baz -o /tmp
-            wiz freeze --format bash foo>=1 bar==2.3.0 baz -o /tmp
-            wiz freeze --format tcsh foo>=1 bar==2.3.0 baz -o /tmp
+        \b
+        >>> wiz freeze foo>=1 bar==2.3.0 baz -o /tmp
+        >>> wiz freeze --format bash foo>=1 bar==2.3.0 baz -o /tmp
+        >>> wiz freeze --format tcsh foo>=1 bar==2.3.0 baz -o /tmp
+
         """
     ),
     short_help="Export resolved context.",
@@ -798,7 +801,7 @@ def wiz_run(click_context, **kwargs):
     required=True
 )
 @click.option(
-    "-f", "--format",
+    "-F", "--format",
     help="Indicate the output format.",
     type=click.Choice(["wiz", "tcsh", "bash"]),
     default=_CONFIG.get("command", {}).get("freeze", {}).get("format", "wiz"),
@@ -885,15 +888,15 @@ def wiz_freeze(click_context, **kwargs):
 
 @main.command(
     "install",
-    help=(
+    help=textwrap.dedent(
         """
         Install a package definition to a registry.
 
-        Example::
+        Example:
 
-            \b
-            wiz install /path/to/foo.json --registry /path/to/registry
-            wiz install /all/definitions/* --registry /path/to/registry
+        \b
+        >>> wiz install /path/to/foo.json -o /path/to/registry
+        >>> wiz install /all/definitions/* -o /path/to/registry
 
         """
     ),
@@ -901,13 +904,13 @@ def wiz_freeze(click_context, **kwargs):
     context_settings=CONTEXT_SETTINGS
 )
 @click.option(
-    "-r", "--registry",
+    "-o", "--output",
     help="Registry target to install the package to.",
     type=click.Path(),
     required=True
 )
 @click.option(
-    "--overwrite",
+    "-f", "--overwrite",
     help="Always overwrite existing definitions.",
     is_flag=True,
     default=(
@@ -937,7 +940,7 @@ def wiz_install(click_context, **kwargs):
     while True:
         try:
             callback(
-                kwargs["definitions"], kwargs["registry"],
+                kwargs["definitions"], kwargs["output"],
                 overwrite=overwrite
             )
             break
@@ -974,7 +977,7 @@ def wiz_install(click_context, **kwargs):
 
 @main.command(
     "edit",
-    help=(
+    help=textwrap.dedent(
         """
         Edit one or several definitions with default editor or with operation
         option(s).
@@ -985,14 +988,14 @@ def wiz_install(click_context, **kwargs):
 
         The edited definition(s) will be validated before export.
 
-        Example::
+        Example:
 
-            \b
-            wiz edit foo.json
-            wiz edit foo.json --output /tmp/target
-            wiz edit foo.json --set install-location --value /path/data
-            wiz edit foo.json --update environ --value '{"KEY": "VALUE"}'
-            wiz edit * --extend requirements --value "bar > 0.1.0"
+        \b
+        >>> wiz edit foo.json
+        >>> wiz edit foo.json --output /tmp/target
+        >>> wiz edit foo.json --set install-location --value /path/data
+        >>> wiz edit foo.json --update environ --value '{"KEY": "VALUE"}'
+        >>> wiz edit * --extend requirements --value "bar > 0.1.0"
 
         """
     ),
@@ -1056,7 +1059,7 @@ def wiz_install(click_context, **kwargs):
     default=(None, None),
 )
 @click.option(
-    "--overwrite",
+    "-f", "--overwrite",
     help="Always overwrite existing definitions.",
     is_flag=True,
     default=_CONFIG.get("command", {}).get("edit", {}).get("overwrite", False)
@@ -1106,26 +1109,25 @@ def wiz_edit(click_context, **kwargs):
                     logger.warning("Skip edition for {}.".format(label))
                     continue
 
-                definition = wiz.definition.Definition(**json.loads(data))
+                definition = wiz.definition.Definition(
+                    ujson.loads(data), path=definition.path
+                )
 
             else:
                 for name in operations:
                     args = kwargs[name]
                     definition = getattr(definition, name)(*args)
 
-            path = definition["definition-location"]
+            path = definition.path
 
             if kwargs["output"] is not None:
-                name = os.path.basename(definition["definition-location"])
+                name = os.path.basename(definition.path)
                 path = os.path.join(kwargs["output"], name)
 
             overwrite = kwargs["overwrite"]
 
             while True:
                 try:
-                    # Sanitized definition before exporting it.
-                    definition = definition.sanitized()
-
                     wiz.filesystem.export(
                         path, definition.encode(), overwrite=overwrite
                     )
@@ -1152,19 +1154,19 @@ def wiz_edit(click_context, **kwargs):
 
 @main.command(
     "analyze",
-    help=(
+    help=textwrap.dedent(
         """
         Analyze reachable definitions and display corresponding errors and
         warnings. A filter can be set to target specific definitions.
 
-        Example::
+        Example:
 
-            \b
-            wiz analyze
-            wiz analyze --verbose
-            wiz analyze -f "foo"
-            wiz -r /path/to/registry analyze
-            wiz -add /path/to/additional/registry analyze
+        \b
+        >>> wiz analyze
+        >>> wiz analyze "foo" "bar"
+        >>> wiz analyze --verbose
+        >>> wiz -r /path/to/registry analyze
+        >>> wiz -add /path/to/additional/registry analyze
 
         """
     ),
@@ -1183,10 +1185,9 @@ def wiz_edit(click_context, **kwargs):
     is_flag=True,
     default=_CONFIG.get("command", {}).get("analyze", {}).get("verbose", False)
 )
-@click.option(
-    "-f", "--filter",
-    help="Target specific definitions matching this filter.",
-    multiple=True,
+@click.argument(
+    "filters",
+    nargs=-1,
 )
 @click.pass_context
 def wiz_analyze(click_context, **kwargs):
@@ -1208,17 +1209,17 @@ def wiz_analyze(click_context, **kwargs):
         system_mapping=system_mapping,
         max_depth=click_context.obj["registry_search_depth"]
     ):
-        if latest_registry != definition.get("registry"):
-            info = "\nRegistry: {}\n".format(definition.get("registry"))
+        if latest_registry != definition.registry_path:
+            info = "\nRegistry: {}\n".format(definition.registry_path)
             print(wiz.utility.colored_text(info, color="cyan"))
-            latest_registry = definition.get("registry")
+            latest_registry = definition.registry_path
 
         identifier = definition.qualified_version_identifier
 
         # Skip definition if not matching filters.
         if any(
             _filter.lower() not in identifier.lower()
-            for _filter in kwargs["filter"]
+            for _filter in kwargs["filters"]
         ):
             continue
 
@@ -1243,16 +1244,6 @@ def display_definition_analysis(
     definition, definition_mapping=None, verbose=False
 ):
     """Analyze *definition* and display results.
-
-    *definition* should be a :class:`wiz.definition.Definition` instance.
-
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
-    If no definition mapping is provided, a sensible one will be fetched from
-    :func:`default registries <wiz.registry.get_defaults>`.
-
-    *verbose* indicate whether time duration and history information should be
-    added to analysis.
 
     Example::
 
@@ -1288,6 +1279,16 @@ def display_definition_analysis(
         * IDENTIFY_VERSION_CONFLICTS: 1
         * RESOLUTION_ERROR: 10
         * REPLACE_NODES: 3
+
+    :param definition: Instance of :class:`wiz.definition.Definition`.
+
+    :param definition_mapping: Mapping regrouping all available definitions. It
+        could be fetched with :func:`wiz.fetch_definition_mapping`. If no
+        definition mapping is provided, a default one will be fetched from
+        :func:`default registries <wiz.registry.get_defaults>`.
+
+    :param verbose: Indicate whether time duration and history information
+        should be added to analysis.
 
     """
     if definition_mapping is None:
@@ -1350,6 +1351,8 @@ def display_registries(paths):
         [0] /path/to/registry-1
         [1] /path/to/registry-2
 
+    :param paths: List of registry paths.
+
     """
     columns = _create_columns(["Registries"])
 
@@ -1366,8 +1369,6 @@ def display_registries(paths):
 def display_definition(definition):
     """Display *definition*.
 
-    *definition* should be a :class:`wiz.definition.Definition` instance.
-
     Example::
 
         >>> display_definition(definition)
@@ -1375,8 +1376,6 @@ def display_definition(definition):
         identifier: Foo
         version: 0.1.0
         description: Description of Foo
-        registry: /path/to/registry
-        definition-location: /path/to/registry/foo-0.1.0.json
         install-location: /path/to/foo
         system:
             os: el >= 7, < 8
@@ -1387,6 +1386,8 @@ def display_definition(definition):
             PATH: ${INSTALL_LOCATION}/bin:${PATH}
             LD_LIBRARY_PATH: ${INSTALL_LOCATION}/lib:${LD_LIBRARY_PATH}
 
+    :param definition: Instance of :class:`wiz.definition.Definition`.
+
     """
 
     def _display(item, level=0):
@@ -1395,7 +1396,10 @@ def display_definition(definition):
 
         if isinstance(item, collections.OrderedDict) or isinstance(item, dict):
             for key, value in item.items():
-                if isinstance(value, basestring) or isinstance(value, int):
+                if (
+                    isinstance(value, six.string_types) or
+                    isinstance(value, int)
+                ):
                     click.echo("{}{}: {}".format(indent, key, value))
                 else:
                     click.echo("{}{}:".format(indent, key))
@@ -1414,7 +1418,7 @@ def display_definition(definition):
         else:
             click.echo("{}{}".format(indent, item))
 
-    _display(definition.to_ordered_dict(serialize_content=True))
+    _display(definition.ordered_data())
 
 
 def display_command_mapping(
@@ -1422,40 +1426,6 @@ def display_command_mapping(
     with_system=False
 ):
     """Display command mapping.
-
-    *command_mapping* should be a mapping which associates all available
-    commands with a package definition. It should be in the form of::
-
-        {
-            "fooExe": "foo",
-            ...
-        }
-
-    *package_mapping* should be a mapping which associates each package
-    definition with an identifier, a version and a system label. It should be in
-    the form of::
-
-        {
-            "foo": {
-                "1.1.0": {
-                    "linux : el >=6, <7": <Definition(identifier="foo")>,
-                    "linux : el >=7, <8": <Definition(identifier="foo")>,
-                "0.1.0": {
-                    "linux : el >=6, <7": <Definition(identifier="foo")>,
-                ...
-            },
-            ...
-        }
-
-    *registries* should be a list of registry paths from which definitions were
-    fetched.
-
-    *all_versions* indicate whether all package definition versions should be
-    displayed. Default is False, which means that only the latest version will
-    be displayed.
-
-    *with_system* indicate whether the package system should be displayed.
-    Default is False.
 
     Example::
 
@@ -1469,6 +1439,40 @@ def display_command_mapping(
         fooExe    0.1.0     noarch                0          Description of Foo
         python    3.6.6     linux : el >= 6, <7   1          Python interpreter
         python    2.7.4     linux : el >= 6, <7   1          Python interpreter
+
+    :param command_mapping: Mapping which associates all available commands with
+        a package definition. It should be in the form of::
+
+            {
+                "fooExe": "foo",
+                ...
+            }
+
+    :param package_mapping: Mapping which associates each package definition
+        with an identifier, a version and a system label. It should be in the
+        form of::
+
+            {
+                "foo": {
+                    "1.1.0": {
+                        "linux : el >=6, <7": <Definition(identifier="foo")>,
+                        "linux : el >=7, <8": <Definition(identifier="foo")>,
+                    "0.1.0": {
+                        "linux : el >=6, <7": <Definition(identifier="foo")>,
+                    ...
+                },
+                ...
+            }
+
+    :param registries: List of registry paths from which definitions were
+        fetched.
+
+    :param all_versions: Indicate whether all package definition versions should
+        be displayed. Default is False, which means that only the latest version
+        will be displayed.
+
+    :param with_system: Indicate whether the package system should be displayed.
+        Default is False.
 
     """
     headers = ["Command", "Version", "Registry", "Description"]
@@ -1501,7 +1505,7 @@ def display_command_mapping(
                     rows = [
                         _identifier,
                         definition.version,
-                        registries.index(definition.get("registry")),
+                        registries.index(definition.registry_path),
                         definition.description
                     ]
 
@@ -1525,32 +1529,6 @@ def display_package_mapping(
 ):
     """Display package mapping
 
-    *package_mapping* should be a mapping which associates each package
-    definition with an identifier, a version and a system label. It should be in
-    the form of::
-
-        {
-            "foo": {
-                "1.1.0": {
-                    "linux : el >=6, <7": <Definition(identifier="foo")>,
-                    "linux : el >=7, <8": <Definition(identifier="foo")>,
-                "0.1.0": {
-                    "linux : el >=6, <7": <Definition(identifier="foo")>,
-                ...
-            },
-            ...
-        }
-
-    *registries* should be a list of registry paths from which definitions were
-    fetched.
-
-    *all_versions* indicate whether all package definition versions should be
-    displayed. Default is False, which means that only the latest version will
-    be displayed.
-
-    *with_system* indicate whether the package system should be displayed.
-    Default is False.
-
     Example::
 
         >>> display_command_mapping(
@@ -1566,6 +1544,32 @@ def display_package_mapping(
         bar [V3]   0.1.0     linux                 0          Description of Bar
         python     3.6.6     linux : el >= 6, <7   0          Python interpreter
         python     2.7.4     linux : el >= 6, <7   0          Python interpreter
+
+    :param package_mapping: Mapping which associates each package definition
+        with an identifier, a version and a system label. It should be in the
+        form of::
+
+            {
+                "foo": {
+                    "1.1.0": {
+                        "linux : el >=6, <7": <Definition(identifier="foo")>,
+                        "linux : el >=7, <8": <Definition(identifier="foo")>,
+                    "0.1.0": {
+                        "linux : el >=6, <7": <Definition(identifier="foo")>,
+                    ...
+                },
+                ...
+            }
+
+    :param registries: List of registry paths from which definitions were
+        fetched.
+
+    :param all_versions: Indicate whether all package definition versions should
+        be displayed. Default is False, which means that only the latest version
+        will be displayed.
+
+    :param with_system: Indicate whether the package system should be displayed.
+        Default is False.
 
     """
     headers = ["Package", "Version", "Registry", "Description"]
@@ -1598,7 +1602,7 @@ def display_package_mapping(
                     rows = [
                         _identifier,
                         definition.version,
-                        registries.index(definition.get("registry")),
+                        registries.index(definition.registry_path),
                         definition.description
                     ]
 
@@ -1649,6 +1653,8 @@ def display_resolved_context(context):
                                /bin
         USER                   john-doe
 
+    :param context: Context mapping as resolved by :func:`wiz.resolve_context`.
+
     """
     _display_packages_from_context(context)
     _display_command_from_context(context)
@@ -1656,11 +1662,9 @@ def display_resolved_context(context):
 
 
 def _display_packages_from_context(context):
-    """Display *packages*.
+    """Display packages contained in *context* mapping.
 
-    *packages* should be a list of :class:`wiz.package.Package` instances.
-
-    *registries* should be a list of available registry paths.
+    :param context: Context mapping as resolved by :func:`wiz.resolve_context`.
 
     """
     columns = _create_columns(["Package", "Version", "Registry", "Description"])
@@ -1670,13 +1674,13 @@ def _display_packages_from_context(context):
 
     for package in context.get("packages", []):
         _identifier = package.definition.qualified_identifier
-        if package.variant_name is not None:
-            _identifier += " [{}]".format(package.variant_name)
+        if package.variant_identifier is not None:
+            _identifier += " [{}]".format(package.variant_identifier)
 
         rows = [
             _identifier,
             package.version,
-            registries.index(package.get("registry")),
+            registries.index(package.definition.registry_path),
             package.description
         ]
 
@@ -1693,14 +1697,9 @@ def _display_packages_from_context(context):
 
 
 def _display_command_from_context(context):
-    """Display commands contained in *mapping*.
+    """Display commands contained in *context* mapping.
 
-    *mapping* should be in the form of::
-
-        {
-            "app": "App0.1.0",
-            "appX": "App0.1.0 --option value"
-        }
+    :param context: Context mapping as resolved by :func:`wiz.resolve_context`.
 
     """
     columns = _create_columns(["Command", "Value"])
@@ -1723,14 +1722,9 @@ def _display_command_from_context(context):
 
 
 def _display_environ_from_context(context):
-    """Display environment variables contained in *mapping*.
+    """Display environment variables contained in *context* mapping.
 
-    *mapping* should be in the form of::
-
-        {
-            "KEY1": "VALUE1",
-            "KEY2": "VALUE2"
-        }
+    :param context: Context mapping as resolved by :func:`wiz.resolve_context`.
 
     """
     columns = _create_columns(["Environment Variable", "Environment Value"])
@@ -1748,7 +1742,7 @@ def _display_environ_from_context(context):
     success = False
 
     for variable in sorted(environ_mapping.keys()):
-        for key, _value in itertools.izip_longest(
+        for key, _value in six.moves.zip_longest(
             [variable], _compute_value(variable, environ_mapping[variable])
         ):
             _create_row(key or "", columns[0])
@@ -1769,7 +1763,7 @@ def _casted_argument(argument):
     argument = argument.replace("True", "true").replace("False", "false")
 
     try:
-        return json.loads(argument)
+        return ujson.loads(argument)
     except ValueError:
         return argument
 
@@ -1780,7 +1774,7 @@ def _query_identifier():
 
     while True:
         value = click.prompt("Please enter a definition identifier")
-        identifier = wiz.filesystem.sanitise_value(value.strip())
+        identifier = wiz.filesystem.sanitize_value(value.strip())
         if len(identifier) > 2:
             return identifier
 
@@ -1827,7 +1821,7 @@ def _query_command(aliases=None):
     """Query the commands to run within the exported wrapper."""
     if aliases is not None and len(aliases) > 0:
         click.echo("Available aliases:")
-        for _command in aliases:
+        for _command in sorted(aliases):
             click.echo("- {}".format(_command))
 
     return click.prompt(
@@ -1875,7 +1869,7 @@ def _display_table(columns):
     )
 
     # Print elements.
-    for row in itertools.izip_longest(*[column["rows"] for column in columns]):
+    for row in six.moves.zip_longest(*[column["rows"] for column in columns]):
         click.echo(
             "   ".join([
                 row[i] + " " * (columns[i]["size"] - len(row[i]))
@@ -1910,6 +1904,10 @@ def _add_to_mapping(definition, mapping):
             },
             ...
         }
+
+    :param definition: Instance of :class:`wiz.definition.Definition`.
+
+    :param mapping: Mapping to mutate.
 
     """
     identifier = definition.qualified_identifier

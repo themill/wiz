@@ -133,18 +133,17 @@ def test_ensure_directory(temporary_directory, temporary_file):
         wiz.filesystem.ensure_directory("/incorrect")
 
 
-
-def test_sanitise_value():
+def test_sanitize_value():
     """Sanitize value."""
     value = "/path/to/a-file/with: A F@#%ing Name!!!"
-    assert wiz.filesystem.sanitise_value(value) == (
+    assert wiz.filesystem.sanitize_value(value) == (
         "/path/to/a-file/with:_A_F__%ing_Name___"
     )
 
-    assert wiz.filesystem.sanitise_value(value, substitution_character="-") == (
+    assert wiz.filesystem.sanitize_value(value, substitution_character="-") == (
         "/path/to/a-file/with:-A-F--%ing-Name---"
     )
 
-    assert wiz.filesystem.sanitise_value(value, case_sensitive=False) == (
+    assert wiz.filesystem.sanitize_value(value, case_sensitive=False) == (
         "/path/to/a-file/with:_a_f__%ing_name___"
     )

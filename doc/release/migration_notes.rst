@@ -7,6 +7,147 @@ Migration notes
 This section will show more detailed information when relevant for switching to
 a new version, such as when upgrading involves backwards incompatibilities.
 
+.. _release/migration/3.1.0:
+
+Migrate to 3.1.0
+================
+
+.. rubric:: Command line
+
+The command ``wiz install --registry`` has been renamed to
+:option:`wiz install --output` to better differentiate the command from
+:option:`wiz --registry`.
+
+The short option ``-f`` has been added for ``--override``.
+As a result, the followings commands have been renamed to prevent confusion:
+
+* ``wiz freeze -f/--format`` has been renamed to
+  :option:`wiz freeze -F/--format <wiz freeze -F>`
+* ``wiz analyze -f/--filter`` has been removed to set filters as non-required
+  positional option instead.
+
+.. extended-code-block:: bash
+    :icon: ../image/avoid.png
+
+    # Analyze all definitions whose identifiers matched "foo" or "bar"
+    >>> wiz analyze -f "foo" -f "bar"
+
+.. extended-code-block:: bash
+    :icon: ../image/prefer.png
+
+    # Analyze all definitions whose identifiers matched "foo" or "bar"
+    >>> wiz analyze "foo" "bar"
+
+.. rubric:: API
+
+The following functions have been renamed to use American spelling for
+consistency:
+
+* :func:`wiz.environ.sanitise` → :func:`wiz.environ.sanitize`
+* :func:`wiz.filesystem.sanitise_value` → :func:`wiz.filesystem.sanitize_value`
+
+.. rubric:: Validation API
+
+The :mod:`wiz.validator` module has been modified to prevent using the
+`jsonschema <https://pypi.org/project/jsonschema/>`_ library which is based on
+`JSON Schema <https://json-schema.org/>`_ validation as it was hindering the
+performance when creating an instance of :class:`wiz.definition.Definition`.
+
+Therefore, :func:`wiz.validator.yield_definition_errors` has been replaced
+by :func:`wiz.validator.validate_definition`.
+
+.. rubric:: Definition API
+
+The :class:`wiz.definition.Definition` construction has been modified to
+simplify its usage and improve its instantiation speed.
+
+.. extended-code-block:: python
+    :icon: ../image/avoid.png
+
+    >>> Definition({
+    ...    "identifier": "foo",
+    ...    "definition-location": "/path/to/definition.json",
+    ...    "registry": "/path/to/registry",
+    ... })
+
+.. extended-code-block:: python
+    :icon: ../image/prefer.png
+
+    >>> Definition(
+    ...     {"identifier": "foo"},
+    ...     path="/path/to/definition.json",
+    ...     registry_path="/path/to/registry",
+    ... )
+
+This change eliminates the need to sanitize the definition data before
+exporting. Therefore, :meth:`wiz.definition.Definition.sanitized` has been
+removed.
+
+The :class:`wiz.definition.Definition` constructor is using the new custom
+validation function :func:`wiz.validator.validate_definition`.
+The following operations are now not performed during initialization, but
+will instead be cached the first time they are accessed:
+
+* Convert :ref:`definition/version` value into
+  :class:`~packaging.version.Version` instance.
+* Convert :ref:`definition/requirements` and
+  :ref:`definition/conditions` values into
+  :class:`~packaging.requirements.Requirement` instances.
+* Convert :ref:`definition/requirements` and
+  :ref:`definition/conditions` values within :ref:`definition/variants`
+  into :class:`~packaging.requirements.Requirement` instances.
+
+An :exc:`wiz.exception.InvalidRequirement` error is raised when accessing
+incorrect :attr:`~wiz.definition.Definition.requirements` or
+:attr:`~wiz.definition.Definition.conditions`.
+
+.. code-block:: python
+
+    >>> definition = Definition({
+    ...    "identifier": "foo",
+    ...    "requirements": ["!!!"],
+    ... })
+    >>> definition.requirements
+
+    InvalidRequirement: The requirement '!!!' is incorrect
+
+The :class:`wiz.definition.Definition` class is no longer inheriting from
+:class:`collections.Mapping`, so attributes are only accessible from properties
+as :meth:`~wiz.definition.Definition.get` is no longer available.
+
+.. rubric:: Package API
+
+The :class:`wiz.package.Package` construction has been modified to
+simplify its usage and improve its instantiation speed. It does not inherit from
+:class:`collections.Mapping` anymore and uses :class:`wiz.definition.Definition`
+keywords instead of copying data.
+
+.. extended-code-block:: python
+    :icon: ../image/avoid.png
+
+    >>> Package({
+    ...    "identifier": "foo[V1]==0.1.0",
+    ...    "version": "0.1.0",
+    ...    "variant-name": "V1",
+    ... })
+
+.. extended-code-block:: python
+    :icon: ../image/prefer.png
+
+    >>> definition = Definition({
+    ...    "identifier": "foo",
+    ...    "version": "0.1.0",
+    ...    "variants": [
+    ...        {"identifier": "V1"}
+    ...    ]
+    ... })
+    >>> Package(definition, variant_index=0)
+
+The :meth:`wiz.package.Package.identifier` property has been updated to prepend
+:ref:`definition/namespace` to ensure that a unique identifier is always
+used. As a result, :meth:`wiz.package.Package.qualified_identifier`
+has been removed.
+
 .. _release/migration/3.0.0:
 
 Migrate to 3.0.0
@@ -78,8 +219,7 @@ order to prepend a registry in front of discovered registries.
 
 The ``wiz install`` sub-command has been modified to regroup the
 `--registry-path` and `--registry-id` options into one
-:option:`--registry <wiz install --registry>` option which can be used as
-follow::
+`--registry` option which can be used as follow::
 
         # For local registries
         >>> wiz install foo.json --registry /path/to/registry

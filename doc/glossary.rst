@@ -31,12 +31,6 @@ Glossary
 
         .. seealso:: http://www.json.org/
 
-    JSON Schema
-        A vocabulary that allows you to annotate and validate :term:`JSON`
-        documents. Useful in defining data contracts.
-
-        .. seealso:: http://json-schema.org/
-
     Mustache
         Simple web template system with implementations available for multiple
         languages

@@ -4,6 +4,271 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: command-line
+
+        Renamed ``wiz install --registry`` to :option:`wiz install --output` to
+        better differentiate the command from :option:`wiz --registry`.
+
+    .. change:: new
+        :tags: command-line
+
+        Added short option ``-f`` to overwrite output when installing
+        definitions and when editing a definition:
+
+        * :option:`wiz install -f` for :option:`wiz install --overwrite`
+        * :option:`wiz edit -f` for :option:`wiz edit --overwrite`
+
+    .. change:: changed
+        :tags: command-line
+
+        Renamed ``wiz freeze -f/--format`` to :option:`wiz freeze -F/--format
+        <wiz freeze -F>` to prevent confusion as the short option ``-f`` is used
+        for overwriting outputs.
+
+    .. change:: changed
+        :tags: command-line
+
+        Removed the ``wiz analyze -f/--filter`` options and make it into a
+        non-required positional option instead to prevent confusion as the short
+        option ``-f`` is used for overwriting outputs.
+
+        .. extended-code-block:: bash
+            :icon: ../image/avoid.png
+
+            # Analyze all definitions whose identifiers matched "foo" or "bar"
+            >>> wiz analyze -f "foo" -f "bar"
+
+        .. extended-code-block:: bash
+            :icon: ../image/prefer.png
+
+            # Analyze all definitions whose identifiers matched "foo" or "bar"
+            >>> wiz analyze "foo" "bar"
+
+    .. change:: changed
+
+        Updated the following modules to add compatibility with python 3.7 and
+        3.8:
+
+        * :mod:`wiz.command_line`
+        * :mod:`wiz.filesystem`
+        * :mod:`wiz.package`
+        * :mod:`wiz.system`
+        * :mod:`wiz.utility`
+
+    .. change:: changed
+
+        Updated :mod:`wiz.validator` to use custom definition validation instead
+        of the `jsonschema <https://pypi.org/project/jsonschema/>`_ library
+        which is based on `JSON Schema <https://json-schema.org/>`_ validation
+        as it was hindering the performance when creating an instance of
+        :class:`wiz.definition.Definition`.
+
+        Removed :func:`wiz.validator.yield_definition_errors` and added
+        :func:`wiz.validator.validate_definition` to perform equivalent
+        tests in shorter time.
+
+        Here is a benchmark with average speed when loading a definition:
+
+        ==================================  ==========  =================
+        Examples                            jsonschema  custom validation
+        ==================================  ==========  =================
+        minimal definition                  ~199us      ~63us
+        simple definition                   ~2ms        ~1.6ms
+        complex definition                  ~4.2s       ~3.3s
+        ==================================  ==========  =================
+
+        *(A complex definition contains 100 variants, 100 requirements and
+        100 environment variables.)*
+
+    .. change:: changed
+
+        Updated :class:`wiz.definition.Definition` construction to use
+        :func:`wiz.validator.validate_definition`.
+
+    .. change:: changed
+
+        Updated code to use `ujson <https://pypi.org/project/ujson/>`_ instead
+        of the built-in :mod:`json` module to optimize the loading of
+        :term:`JSON` files.
+
+    .. change:: changed
+
+        Updated :class:`wiz.definition.Definition` construction to provide an
+        option to prevent using :func:`copy.deepcopy` on input data mapping to
+        speed up instantiation whenever necessary::
+
+            >>> Definition({"identifier": "foo"}, copy_data=False)
+
+        By default, "copy_data" is set to True as it can cause unexpected issues
+        when input data is being mutated::
+
+            >>> data = {"identifier": "foo"}
+            >>> definition = wiz.definition.Definition(data, copy_data=False)
+            >>> print(definition.identifier)
+            "foo"
+
+            >>> del data["identifier"]
+            >>> print(definition.identifier)
+            KeyError: 'identifier'
+
+    .. change:: changed
+
+        Updated :func:`wiz.definition.load` to not copy input data mapping as it
+        hindered performance.
+
+        Here is a benchmark with average speed when loading a definition:
+
+        ==================================  ==========  =============
+        Examples                            with copy    without copy
+        ==================================  ==========  =============
+        minimal definition                  ~199us      ~177us
+        simple definition                   ~2ms        ~1.8ms
+        complex definition                  ~4.2s       ~2.7s
+        ==================================  ==========  =============
+
+        *(A complex definition contains 100 variants, 100 requirements and
+        100 environment variables.)*
+
+    .. change:: changed
+
+        Updated :class:`wiz.definition.Definition` and
+        :class:`wiz.package.Package` constructions to not perform the following
+        conversions as it hindered performance:
+
+        * Convert :ref:`definition/version` value into
+          :class:`~packaging.version.Version` instance.
+        * Convert :ref:`definition/requirements` and
+          :ref:`definition/conditions` values into
+          :class:`~packaging.requirements.Requirement` instances.
+        * Convert :ref:`definition/requirements` and
+          :ref:`definition/conditions` values within :ref:`definition/variants`
+          into :class:`~packaging.requirements.Requirement` instances.
+
+        Instead, these attributes will be converted and cached the first time
+        they are accessed.
+
+        Here is a benchmark with average speed when loading a definition:
+
+        ==================================  ===============  ==================
+        Examples                            with conversion  without conversion
+        ==================================  ===============  ==================
+        minimal definition                  ~199us           ~180us
+        simple definition                   ~2ms             ~300us
+        complex definition                  ~4.2s            ~156ms
+        ==================================  ===============  ==================
+
+        *(A complex definition contains 100 variants, 100 requirements and
+        100 environment variables.)*
+
+    .. change:: changed
+
+        Updated :class:`wiz.definition.Definition` construction to simplify
+        logic. It does not inherit from :class:`collections.Mapping` anymore and
+        does not require from registry and definition location to be included in
+        the mapping.
+
+        .. extended-code-block:: python
+            :icon: ../image/avoid.png
+
+            >>> Definition({
+            ...    "identifier": "foo",
+            ...    "definition-location": "/path/to/definition.json",
+            ...    "registry": "/path/to/registry",
+            ... })
+
+        .. extended-code-block:: python
+            :icon: ../image/prefer.png
+
+            >>> Definition(
+            ...     {"identifier": "foo"},
+            ...     path="/path/to/definition.json",
+            ...     registry_path="/path/to/registry",
+            ... )
+
+        This prevents having to sanitize the definition data before exporting.
+
+    .. change:: changed
+
+        Removed :meth:`wiz.definition.Definition.sanitized` which was previously
+        used to remove the "registry" and "definition-location" keywords from
+        data definition as it is not necessary anymore.
+
+    .. change:: changed
+
+        Updated :class:`wiz.package.Package` construction to simplify logic
+        and optimize performance. It does not inherit from
+        :class:`collections.Mapping` anymore and uses
+        :class:`wiz.definition.Definition` keywords instead of copying data.
+
+        Instance of :class:`wiz.package.Package` can not mutate its content
+        anymore.
+
+    .. change:: changed
+
+        Removed :mod:`wiz.mapping` as logic has been moved into
+        :class:`wiz.definition.Definition`.
+
+    .. change:: changed
+
+        Updated :meth:`wiz.package.Package.identifier` to prepend
+        :ref:`definition/namespace` to ensure that a unique identifier is always
+        used. As a result, :meth:`wiz.package.Package.qualified_identifier`
+        has been removed.
+
+    .. change:: changed
+
+        Updated :meth:`wiz.graph.Graph.update_from_requirements` to raise a
+        palatable error when a dependent definition uses an invalid requirement
+        as :ref:`definition/requirements` or :ref:`definition/conditions`
+        attributes.
+
+        Previously, these attributes were sanitized when instantiating the
+        :class:`wiz.definition.Definition`.
+
+    .. change:: fixed
+
+        Fixed :class:`wiz.graph.Resolver` to ensure that conflicted nodes are
+        always sorted in ascending order of distance from the :attr:`root
+        <wiz.graph.Graph.ROOT>` level of the graph.
+
+        Previously, conflicting nodes would not be sorted properly when new
+        packages are added to the graph during the conflict resolution process,
+        resulting in potentially unresolvable conflicts of packages that should
+        have been removed before.
+
+    .. change:: fixed
+
+        Fixed :func:`wiz.utility.extract_version_ranges` to sort specifiers
+        properly for deterministic results.
+
+        Previously, it would sometimes fail to update minimal and maximum
+        versions of the range in particular conditions.
+
+    .. change:: changed
+
+        Updated :func:`wiz.utility.compute_file_name` to prepend the
+        :ref:`definition/namespace` value when creating a :term:`JSON` file name
+        from an instance of :class:`wiz.definition.Definition`. Previously, name
+        clashes were possible when exporting two definitions with the same
+        :ref:`definition/identifier`, :ref:`definition/version` and
+        :ref:`System Constraint <definition/system>` into the same registry.
+
+    .. change:: changed
+
+        Renamed following functions to use American spelling for consistency:
+
+        * :func:`wiz.environ.sanitise` → :func:`wiz.environ.sanitize`
+        * :func:`wiz.filesystem.sanitise_value` →
+          :func:`wiz.filesystem.sanitize_value`
+
+    .. change:: changed
+
+        Updated all docstrings to use `Sphinx format
+        <https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html#the-sphinx-docstring-format>`_.
+
 .. release:: 3.0.0
     :date: 2020-08-05
 
@@ -208,8 +473,8 @@ Release Notes
     .. change:: new
         :tags: command-line
 
-        Added :option:`wiz analyze --filter` to only display targeted
-        definitions. The :attr:`qualified version identifier
+        Added `wiz analyze --filter` to only display targeted definitions. The
+        :attr:`qualified version identifier
         <wiz.definition.Definition.qualified_version_identifier>` should match
         all filters for each definition displayed.
 
@@ -561,10 +826,9 @@ Release Notes
         :tags: command-line, backwards-incompatible
 
         Updated command line arguments to use the same option
-        :option:`--registry <wiz install --registry>` for installing to a
-        Local Registry and installing to a VCS Registry.
-        Previously the argument was split into `--registry-path` and
-        `--registry-id`.
+        ``--registry`` for installing to a Local Registry and installing to a
+        VCS Registry. Previously the argument was split into `--registry-path`
+        and `--registry-id`.
 
         Now definitions can be installed using the following commands syntax::
 
@@ -778,10 +1042,10 @@ Release Notes
 
     .. change:: fixed
 
-        Changed :mod:`wiz.validator` to open the definition JSON schema once
-        the module is loaded, rather than once per validation.
-        Previously a "too many files opened" issue could be encountered when
-        creating multiple definitions in parallel.
+        Changed :mod:`wiz.validator` to open the definition `JSON Schema
+        <https://json-schema.org/>`_ once the module is loaded, rather than once
+        per validation. Previously a "too many files opened" issue could be
+        encountered when creating multiple definitions in parallel.
 
     .. change:: fixed
 
@@ -1328,8 +1592,8 @@ Release Notes
         :tags: API
 
         Added :func:`wiz.validator.yield_definition_errors` to identify and
-        yield potential errors in a definition data following a
-        :term:`JSON Schema`.
+        yield potential errors in a definition data following `JSON Schema
+        <https://json-schema.org/>`_.
 
     .. change:: changed
         :tags: API

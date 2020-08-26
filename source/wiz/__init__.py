@@ -19,39 +19,46 @@ from ._version import __version__
 
 
 def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
-    """Return mapping from all definitions available under *paths*.
+    """Return mapping including all definitions available under *paths*.
 
-    Discover all available definitions under *paths*, searching recursively
-    up to *max_depth*.
-
-    definition are :class:`wiz.definition.Definition` instances.
-
-    A definition mapping should be in the form of::
+    Mapping returned should be in the form of::
 
         {
             "command": {
-                "app": "my-app",
+                "foo-app": "foo",
                 ...
             },
             "package": {
-                "my-app": {
-                    "1.1.0": Definition(identifier="my-app", version="1.1.0"),
-                    "1.0.0": Definition(identifier="my-app", version="1.0.0"),
-                    "0.1.0": Definition(identifier="my-app", version="0.1.0"),
+                "foo": {
+                    "1.1.0": Definition(identifier="foo", version="1.1.0"),
+                    "1.0.0": Definition(identifier="foo", version="1.0.0"),
+                    "0.1.0": Definition(identifier="foo", version="0.1.0"),
                     ...
                 },
                 ...
             },
             "implicit-packages": [
-                "foo==0.1.0", ...
+                "bar==0.1.0",
+                ...
             ]
             "registries": [
+                "/path/to/registry",
                 ...
             ]
         }
 
-    *system_mapping* could be a mapping of the current system. By default, the
-    current system mapping will be :func:`queried <wiz.system.query>`.
+    :param paths: List of registry paths to recursively fetch
+        :class:`definitions <wiz.definition.Definition>` from.
+
+    :param max_depth: Limited recursion value to search for :class:`definitions
+        <wiz.definition.Definition>`. Default is None, which means that all
+        sub-trees will be visited.
+
+    :param system_mapping: Mapping defining the current system to filter
+        out non compatible definitions. Default is None, which means that the
+        current system mapping will be :func:`queried <wiz.system.query>`.
+
+    :return: Definition mapping.
 
     """
     if system_mapping is None:
@@ -68,14 +75,16 @@ def fetch_definition_mapping(paths, max_depth=None, system_mapping=None):
 def fetch_definition(request, definition_mapping):
     """Return :class:`~wiz.definition.Definition` instance from request.
 
-    *request* should be a string indicating the definition requested
-    (e.g. "definition" or "definition >= 1.0.0, < 2").
+    :param request: String indicating which definition should be fetched.
+        (e.g. "definition", "definition >= 1.0.0, < 2", etc.).
 
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
+    :param definition_mapping: Mapping regrouping all available definitions. It
+        could be fetched with :func:`fetch_definition_mapping`.
 
-    Raises :exc:`wiz.exception.RequestNotFound` is the corresponding definition
-    cannot be found.
+    :return: Instance of :class:`~wiz.definition.Definition`.
+
+    :raise: :exc:`wiz.exception.RequestNotFound` is the corresponding definition
+        cannot be found.
 
     """
     requirement = wiz.utility.get_requirement(request)
@@ -87,17 +96,21 @@ def fetch_definition(request, definition_mapping):
 def fetch_package(request, definition_mapping):
     """Return best matching :class:`~wiz.package.Package` instance from request.
 
-    If several packages are extracted from *request*, only the first one will be
-    returned.
+    :param request: String indicating which package should be fetched.
+        (e.g. "package", "package[Variant] >= 1.0.0, < 2", etc.).
 
-    *request* should be a string indicating the package requested
-    (e.g. "package" or "package[Variant] >= 1.0.0, < 2").
+    :param definition_mapping: Mapping regrouping all available definitions. It
+        could be fetched with :func:`fetch_definition_mapping`.
 
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
+    :return: Instance of :class:`~wiz.package.Package`.
 
-    Raises :exc:`wiz.exception.RequestNotFound` is the corresponding definition
-    cannot be found.
+    :raise: :exc:`wiz.exception.RequestNotFound` is the corresponding definition
+        cannot be found.
+
+    .. note::
+
+        If several packages are extracted from *request*, only the first one
+        will be returned.
 
     """
     requirement = wiz.utility.get_requirement(request)
@@ -121,13 +134,16 @@ def fetch_package_request_from_command(command_request, definition_mapping):
         ... )
         nuke==10.5.*
 
-    *command_request* should be a string indicating the command requested
-    (e.g. "command" or "command >= 1.0.0, < 2").
+    :param command_request: String indicating which command should be fetched.
+        (e.g. "command", "command >= 1.0.0, < 2", etc.).
 
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
+    :param definition_mapping: Mapping regrouping all available definitions. It
+        could be fetched with :func:`fetch_definition_mapping`.
 
-    Raises :exc:`wiz.exception.RequestNotFound` is the command cannot be found.
+    :return: Package requests string.
+
+    :raise: :exc:`wiz.exception.RequestNotFound` is the corresponding command
+        cannot be found.
 
     """
     requirement = wiz.utility.get_requirement(command_request)
@@ -174,26 +190,29 @@ def resolve_context(
                 ...
             ],
             "registries": [
+                "/path/to/registry",
                 ...
             ]
         }
 
-    *requests* should be a list of string indicating the package version
-    requested to build the context (e.g. ["package >= 1.0.0, < 2"])
+    :param requests: List of strings indicating the package version requested to
+        build the context (e.g. ["package >= 1.0.0, < 2"])
 
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
-    If no definition mapping is provided, a sensible one will be fetched from
-    :func:`default registries <wiz.registry.get_defaults>`.
+    :param definition_mapping: Mapping regrouping all available definitions. It
+        could be fetched with :func:`fetch_definition_mapping`. If no definition
+        mapping is provided, a default one will be fetched from
+        :func:`default registries <wiz.registry.get_defaults>`.
 
-    *ignore_implicit* indicates whether implicit packages should not be
-    included in context. Default is False.
+    :param ignore_implicit: Indicates whether implicit packages should not be
+        included in context. Default is False.
 
-    *environ_mapping* can be a mapping of environment variables which would
-    be augmented by the resolved environment.
+    :param environ_mapping: Mapping of environment variables which would be
+        augmented by the resolved environment. Default is None.
 
-    Raises :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
-    resolved in time.
+    :return: Context mapping.
+
+    :raise: :exc:`wiz.exception.GraphResolutionError` if the resolution graph
+        cannot be resolved in time.
 
     """
     # To prevent mutating input list.
@@ -210,7 +229,7 @@ def resolve_context(
             definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, []) + _requests
         )
 
-    requirements = map(wiz.utility.get_requirement, _requests)
+    requirements = [wiz.utility.get_requirement(r) for r in _requests]
 
     registries = definition_mapping["registries"]
     resolver = wiz.graph.Resolver(
@@ -230,7 +249,7 @@ def resolve_context(
     context["environ"].update({
         "WIZ_VERSION": __version__,
         "WIZ_CONTEXT": wiz.utility.encode([
-            [_package.qualified_identifier for _package in packages],
+            [_package.identifier for _package in packages],
             registries
         ])
     })
@@ -240,14 +259,6 @@ def resolve_context(
 def resolve_command(elements, command_mapping):
     """Return resolved command elements from *elements* and *command_mapping*.
 
-    *elements* should include all command line elements in the form off::
-
-        ["app_exe"]
-        ["app_exe", "--option", "value"]
-        ["app_exe", "--option", "value", "/path/to/script"]
-
-    *command_mapping* should associate command aliases to real command.
-
     Example::
 
         >>> resolve_command(
@@ -256,6 +267,14 @@ def resolve_command(elements, command_mapping):
         ... )
 
         ["App0.1", "--modeX", "--option", "value", "/path/to/script"]
+
+    :param elements: List of strings constituting the command line to resolve
+        (e.g. ["app_exe", "--option", "value"])
+
+    :param command_mapping: Mapping associating command aliased to real
+        commands.
+
+    :return: List of strings constituting the resolved command line.
 
     """
     if elements[0] in command_mapping.keys():
@@ -285,6 +304,7 @@ def discover_context():
                 ...
             ],
             "registries": [
+                "/path/to/registry",
                 ...
             ]
         }
@@ -298,8 +318,10 @@ def discover_context():
         The context cannot be retrieved if this function is called
         outside of a resolved environment.
 
-    :exc:`~wiz.exception.RequestNotFound` is raised if the
-    :envvar:`WIZ_CONTEXT` environment variable is not found.
+    :return: Context mapping.
+
+    :raise: :exc:`~wiz.exception.RequestNotFound` if the :envvar:`WIZ_CONTEXT`
+        environment variable is not found.
 
     """
     encoded_context = os.environ.get("WIZ_CONTEXT")
@@ -332,10 +354,10 @@ def discover_context():
 def load_definition(path):
     """Return :class:`~wiz.definition.Definition` instance from file *path*.
 
-    *path* should be a valid :term:`JSON` file path which contains a definition.
+    :param path: :term:`JSON` file path which contains a definition.
 
-    A :exc:`wiz.exception.IncorrectDefinition` exception will be raised
-    if the definition is incorrect.
+    :raise: :exc:`wiz.exception.IncorrectDefinition` if the definition is
+        incorrect.
 
     """
     return wiz.definition.load(path)
@@ -344,41 +366,51 @@ def load_definition(path):
 def export_definition(path, data, overwrite=False):
     """Export definition *data* as a :term:`JSON` file in directory *path*.
 
-    *path* should be a valid directory to save the exported definition.
+    :param path: Target path to save the exported definition into.
 
-    *data* could be an instance of :class:`wiz.definition.Definition` or
-    a mapping in the form of::
+    :param data: Instance of :class:`wiz.definition.Definition` or a mapping in
+        the form of::
 
-        {
-            "identifier": "foo",
-            "description": "This is my package",
-            "version": "0.1.0",
-            "command": {
-                "app": "AppExe",
-                "appX": "AppExe --mode X"
-            },
-            "environ": {
-                "KEY1": "value1",
-                "KEY2": "value2"
-            },
-            "requirements": [
-                "package1 >=1, <2",
-                "package2"
-            ]
-        }
+            {
+                "identifier": "foo",
+                "description": "This is my package",
+                "version": "0.1.0",
+                "command": {
+                    "app": "AppExe",
+                    "appX": "AppExe --mode X"
+                },
+                "environ": {
+                    "KEY1": "value1",
+                    "KEY2": "value2"
+                },
+                "requirements": [
+                    "package1 >=1, <2",
+                    "package2"
+                ]
+            }
 
-    *overwrite* indicate whether existing definitions in the target path
-    will be overwritten. Default is False.
+    :param overwrite: Indicate whether existing definitions in the target path
+        will be overwritten. Default is False.
 
-    Raises :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
-    cannot create a valid instance of :class:`wiz.definition.Definition`.
+    :return: Path to exported definition.
 
-    Raises :exc:`wiz.exception.FileExists` if definition already exists in
-    *path* and overwrite is False.
+    :raise: :exc:`wiz.exception.IncorrectDefinition` if *data* is a mapping that
+        cannot create a valid instance of :class:`wiz.definition.Definition`.
 
-    Raises :exc:`OSError` if the definition can not be exported in *path*.
+    :raise: :exc:`wiz.exception.FileExists` if definition already exists in
+        *path* and overwrite is False.
 
-    The command identifier must also be unique in the registry.
+    :raise: :exc:`OSError` if the definition can not be exported in *path*.
+
+    .. warning::
+
+        Ensure that the *data* :ref:`identifier <definition/identifier>`,
+        :ref:`namespace <definition/namespace>`, :ref:`version
+        <definition/version>` and :ref:`system requirement <definition/system>`
+        are unique in the registry.
+
+        Each :ref:`command <definition/command>` must also be unique in the
+        registry.
 
     """
     return wiz.definition.export(path, data, overwrite=overwrite)
@@ -387,34 +419,36 @@ def export_definition(path, data, overwrite=False):
 def export_script(
     path, script_type, identifier, environ, command=None, packages=None,
 ):
-    """Export context as :term:`Bash` or :term:`C-Shell` wrapper in *path*.
+    """Export environment as :term:`Bash` or :term:`C-Shell` script in *path*.
 
-    Return the path to the bash wrapper created.
+    :param path: Target path to save the exported script into.
 
-    *path* should be a valid directory to save the exported wrapper.
+    :param script_type: Should be either :term:`tcsh <C-Shell>` or
+        :term:`bash <Bash>`.
 
-    *script_type* should be either "tcsh" or "bash".
+    :param identifier: File name of the exported script.
 
-    *identifier* should define the name of the exported wrapper.
+    :param environ: Mapping of all environment variables that will be set by the
+        exported definition. It should be in the form of::
 
-    *environ* should be a mapping of all environment variable that will
-    be set by the exported definition. It should be in the form of::
+            {
+                "KEY1": "value1",
+                "KEY2": "value2",
+            }
 
-        {
-            "KEY1": "value1",
-            "KEY2": "value2",
-        }
+    :param command: Define a command to run within the exported wrapper. Default
+        is None.
 
-    *command* could define a command to run within the exported wrapper.
+    :param packages: Indicate a list of :class:`wiz.package.Package` instances
+        which helped creating the context.
 
-    *packages* could indicate a list of :class:`wiz.package.Package` instances
-    which helped creating the context.
+    :return: Path to the exported script.
 
-    Raises :exc:`ValueError` if the *script_type* is incorrect.
+    :raise: :exc:`ValueError` if the *script_type* is incorrect.
 
-    Raises :exc:`ValueError` if *environ* mapping is empty.
+    :raise: :exc:`ValueError` if *environ* mapping is empty.
 
-    Raises :exc:`OSError` if the wrapper can not be exported in *path*.
+    :raise: :exc:`OSError` if the wrapper can not be exported in *path*.
 
     """
     file_path = os.path.join(os.path.abspath(path), identifier)
@@ -460,19 +494,20 @@ def export_script(
 def validate_definition(definition, definition_mapping=None):
     """Return validation mapping for *definition*.
 
-     Return a mapping in the form of::
+    :param definition: Instance of :class:`wiz.definition.Definition`.
 
-        {
-            "errors": [],
-            "warnings": []
-        }
+    :param definition_mapping: Mapping regrouping all available definitions. It
+        could be fetched with :func:`fetch_definition_mapping`. If no definition
+        mapping is provided, a default one will be fetched from
+        :func:`default registries <wiz.registry.get_defaults>`.
 
-    *definition* is an instance of :class:`wiz.definition.Definition`.
+    :return: Mapping in the form of
+        ::
 
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
-    If no definition mapping is provided, a sensible one will be fetched from
-    :func:`default registries <wiz.registry.get_defaults>`.
+            {
+                "errors": [],
+                "warnings": []
+            }
 
     """
     if definition_mapping is None:
@@ -502,21 +537,28 @@ def _fetch_validation_mapping(
 ):
     """Fetch errors and warnings from definition for *definition*.
 
-     Return a mapping in the form of::
+    :param log_error: instances of :class:`io.StringIO` such as
+        the instance returned by :func:`wiz.logging.configure_for_debug`. It
+        will receive possible error logged during the context resolution
+        process.
 
-        {
-            "errors": [],
-            "warnings": []
-        }
+    :param log_warning: instances of :class:`io.StringIO` such as
+        the instance returned by :func:`wiz.logging.configure_for_debug`. It
+        will receive possible warning logged during the context resolution
+        process.
 
-    *log_error* and *log_warning* are instances of :class:`io.StringIO` such as
-    those returned by :func:`wiz.logging.configure_for_debug`. They will receive
-    possible error and warning logged during the context resolution process.
+    :param definition: instance of :class:`wiz.definition.Definition`.
 
-    *definition* is an instance of :class:`wiz.definition.Definition`.
+    :param definition_mapping: Mapping regrouping all available definitions. It
+        could be fetched with :func:`fetch_definition_mapping`.
 
-    *definition_mapping* is a mapping regrouping all available definitions
-    available. It could be fetched with :func:`fetch_definition_mapping`.
+    :return: Mapping in the form of
+        ::
+
+            {
+                "errors": [],
+                "warnings": []
+            }
 
     .. warning::
 

@@ -2,11 +2,11 @@
 
 import copy
 import datetime
-import json
 import os
 import platform
 import time
 import traceback
+import json
 
 from wiz.utility import Requirement, Version
 from ._version import __version__
@@ -32,12 +32,27 @@ _HISTORY = {
 def get(serialized=False):
     """Return recorded history mapping.
 
-    *serialized* indicate whether the returned history should be serialized as
-    a :term:`JSON` string.
+    :param serialized: Indicate whether the returned history should be
+        serialized as a :term:`JSON` string. Default is False.
+
+    :return: History mapping - serialized or not - in the form of
+        ::
+
+            {
+                "version": "3.0.0",
+                "user": "john-doe",
+                "hostname": "ws123",
+                "timestamp": "2020-08-14T10:56:58.529201",
+                "timezone": "PDT",
+                "command": "wiz --record /tmp use foo --view",
+                "actions": [
+                    ...
+                ]
+            }
 
     """
     if serialized:
-        return json.dumps(_HISTORY, default=_json_default)
+        return json.dumps(_HISTORY, default=_json_default).encode("utf-8")
     return _HISTORY
 
 
@@ -48,12 +63,13 @@ def start_recording(command=None, minimal_actions=False):
     mapping (username, hostname, time, timezone) and activate the recording
     of actions via :func:`record_action`.
 
-    *command* can indicate the command line which is being executed.
+    :param command: Indicate the command line which is being executed. Default
+        is None.
 
-    *minimal_actions* indicate whether actions should only include the
-    'identifier' keyword and discard all other elements passed to
-    :func:`record_action`. If False, the execution time will be longer when
-    history is being recorded. Default is False.
+    :param minimal_actions: Indicate whether actions should only include the
+        'identifier' keyword and discard all other elements passed to
+        :func:`record_action`. If False, the execution time will be longer when
+        history is being recorded. Default is False.
 
     """
     global _IS_HISTORY_RECORDED
@@ -90,7 +106,7 @@ def record_action(identifier, **kwargs):
     arguments which will be serialized to provide an accurate snapshot of the
     execution context.
 
-    *identifier* should be the identifier of the action.
+    :param identifier: Unique identifier of the action.
 
     .. warning::
 
@@ -115,16 +131,14 @@ def record_action(identifier, **kwargs):
 
 def _json_default(_object):
     """Override :func:`JSONEncoder.default` to serialize all objects."""
-    import wiz.mapping
-    import wiz.graph
+    from wiz.definition import Definition
+    from wiz.package import Package
+    from wiz.graph import Graph
 
-    if isinstance(_object, wiz.graph.Graph):
-        return _object.to_dict()
+    if isinstance(_object, (Graph, Definition, Package)):
+        return _object.data()
 
-    elif isinstance(_object, wiz.mapping.Mapping):
-        return _object.to_dict(serialize_content=True)
-
-    elif isinstance(_object, Requirement) or isinstance(_object, Version):
+    elif isinstance(_object, (Requirement, Version)):
         return str(_object)
 
     elif isinstance(_object, Exception):

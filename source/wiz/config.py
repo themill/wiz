@@ -20,7 +20,11 @@ def fetch(refresh=False):
     The configuration created is cached for future usage so that configuration
     previously fetched will be returned.
 
-    If *refresh* is set to True, the configuration will be re-created.
+    :param refresh: Indicate whether the configuration should be re-created
+        instead of using configuration previously created whenever possible.
+        Default is False.
+
+    :return: Configuration mapping.
 
     """
     logger = wiz.logging.Logger(__name__ + ".fetch")
@@ -67,6 +71,9 @@ def fetch(refresh=False):
 
 def _discover_plugins():
     """Discover and return plugins.
+
+    :return: List of plugins discovered.
+
     """
     logger = wiz.logging.Logger(__name__ + "._discover_plugins")
 

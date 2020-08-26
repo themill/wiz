@@ -26,11 +26,13 @@ with open(
 INSTALL_REQUIRES = [
     "click >= 7, < 8",
     "colorama >= 0.3.9, < 1",
-    "jsonschema >= 2.5, < 3",
+    "distro >= 1.5.0, < 2",
     "packaging >= 17.1, < 18",
     "pystache >= 0.5.4, < 1",
     "sawmill >= 0.2.1, < 1",
-    "toml >= 0.10.1, < 1"
+    "six >= 1.15.0, < 2",
+    "toml >= 0.10.1, < 1",
+    "ujson >= 2.0.3, < 4"
 ]
 
 DOC_REQUIRES = [
@@ -41,12 +43,12 @@ DOC_REQUIRES = [
 ]
 
 TEST_REQUIRES = [
-    "mock >= 2, < 3",
-    "pytest-runner >= 2.7, < 3",
-    "pytest >= 3.2.2, < 4",
-    "pytest-mock >= 0.11, < 1",
-    "pytest-xdist >= 1.1, < 2",
+    "pytest >= 4, < 5",
+    "pytest-benchmark >= 3.2.3, < 4",
     "pytest-cov >= 2, < 3",
+    "pytest-mock >= 0.11, < 1",
+    "pytest-runner >= 2.7, < 3",
+    "pytest-xdist >= 1.18, < 2"
 ]
 
 
@@ -117,4 +119,17 @@ setup(
     cmdclass={
         "build_py": BuildExtended,
     },
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: GNU Lesser General Public License v3 "
+        "(LGPLv3)",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Topic :: Software Development",
+    ],
 )

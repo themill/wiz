@@ -393,15 +393,11 @@ def test_install_to_path_error_definition_exists(
         wiz.exception.RequestNotFound(),
         wiz.definition.Definition({
             "identifier": "bar",
-            "definition-location": "/path/to/registry/bar/bar.json",
-            "registry": "/path/to/registry"
         }),
         wiz.definition.Definition({
             "identifier": "baz",
             "version": "2.5.1",
             "description": "test",
-            "definition-location": "/path/to/registry/baz/baz-2.5.1.json",
-            "registry": "/path/to/registry"
         }),
     ]
 
@@ -434,18 +430,18 @@ def test_install_to_path_overwrite(
     mocked_fetch_definition_mapping.return_value = "__MAPPING__"
     mocked_fetch_definition.side_effect = [
         wiz.exception.RequestNotFound(),
-        wiz.definition.Definition({
-            "identifier": "bar",
-            "definition-location": "/path/to/registry/bar/bar.json",
-            "registry": "/path/to/registry"
-        }),
-        wiz.definition.Definition({
-            "identifier": "baz",
-            "version": "2.5.1",
-            "description": "test",
-            "definition-location": "/path/to/registry/baz/baz-2.5.1.json",
-            "registry": "/path/to/registry"
-        }),
+        wiz.definition.Definition(
+            {"identifier": "bar"},
+            path="/path/to/registry/bar/bar.json"
+        ),
+        wiz.definition.Definition(
+            {
+                "identifier": "baz",
+                "version": "2.5.1",
+                "description": "test",
+            },
+            path="/path/to/registry/baz/baz-2.5.1.json"
+        ),
     ]
 
     wiz.registry.install_to_path(
