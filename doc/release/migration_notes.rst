@@ -79,7 +79,7 @@ simplify its usage and improve its instantiation speed.
     ...     registry_path="/path/to/registry",
     ... )
 
-This change prevents the need to sanitize the definition data before
+This change eliminates the need to sanitize the definition data before
 exporting. Therefore, :meth:`wiz.definition.Definition.sanitized` has been
 removed.
 
