@@ -12,7 +12,7 @@ a new version, such as when upgrading involves backwards incompatibilities.
 Migrate to 3.1.0
 ================
 
-.. rubric:: command line
+.. rubric:: Command line
 
 The command ``wiz install --registry`` has been renamed to
 :option:`wiz install --output` to better differentiate the command from
@@ -37,7 +37,15 @@ the short option ``-f`` is used for overwriting outputs
     # Analyze all definitions whose identifiers matched "foo" or "bar"
     >>> wiz analyze "foo" "bar"
 
-.. rubric:: definition validation
+.. rubric:: API
+
+The following functions have been renamed to use American spelling for
+consistency:
+
+* :func:`wiz.environ.sanitise` → :func:`wiz.environ.sanitize`
+* :func:`wiz.filesystem.sanitise_value` → :func:`wiz.filesystem.sanitize_value`
+
+.. rubric:: Validation API
 
 The :mod:`wiz.validator` module has been modified to prevent using the
 `jsonschema <https://pypi.org/project/jsonschema/>`_ library which is based on
@@ -47,7 +55,7 @@ performance when creating an instance of :class:`wiz.definition.Definition`.
 Therefore, :func:`wiz.validator.yield_definition_errors` has been removed
 and is replaced by :func:`wiz.validator.validate_definition`.
 
-.. rubric:: definition
+.. rubric:: Definition API
 
 The :class:`wiz.definition.Definition` construction has been modified to
 simplify its usage and improve its instantiation speed.
@@ -106,7 +114,7 @@ The :class:`wiz.definition.Definition` class is no longer inheriting from
 :class:`collections.Mapping` so attributes are only accessible from properties
 as :meth:`~wiz.definition.Definition.get` is no longer available.
 
-.. rubric:: package
+.. rubric:: Package API
 
 The :class:`wiz.package.Package` construction has been modified to
 simplify its usage and improve its instantiation speed. It does not inherit from
@@ -138,14 +146,6 @@ The :meth:`wiz.package.Package.identifier` property has been updated to prepend
 :ref:`definition/namespace` to ensure that a unique identifier is always
 used. As a result, :meth:`wiz.package.Package.qualified_identifier`
 has been removed.
-
-.. rubric:: API
-
-The following functions have been renamed to use American spelling for
-consistency:
-
-* :func:`wiz.environ.sanitise` → :func:`wiz.environ.sanitize`
-* :func:`wiz.filesystem.sanitise_value` → :func:`wiz.filesystem.sanitize_value`
 
 .. _release/migration/3.0.0:
 
