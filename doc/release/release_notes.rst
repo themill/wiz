@@ -4,6 +4,17 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Updated :func:`wiz.spawn.shell` to encode strings into "utf-8" before
+        writing into the temporary file used for shell aliases. Previously, it
+        would raise an error on Python 3.7 as
+        :func:`tempfile.NamedTemporaryFile` only accept byte-like objects.
+
+        .. seealso:: https://bugs.python.org/issue29245
+
 .. release:: 3.1.0
     :date: 2020-08-26
 
