@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Updated :func:`wiz.command_line._display_environ_from_context` to
+        stringify truncated :envvar:`WIZ_CONTEXT` value in order to prevent
+        error when displaying environment variables.
+
 .. release:: 3.1.1
     :date: 2020-08-27
 

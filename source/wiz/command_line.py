@@ -1736,7 +1736,7 @@ def _display_environ_from_context(context):
         if _variable == "DISPLAY":
             return [value]
         if _variable == "WIZ_CONTEXT":
-            return [value[:50] + "..."]
+            return [str(value[:50]) + "..."]
         return str(value).split(os.pathsep)
 
     success = False
