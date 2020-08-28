@@ -15,7 +15,7 @@ import wiz.shell
 IDENTIFIER = "bash"
 
 # Path to the git bash executable on the file system.
-EXECUTABLE = "C:\Program Files\Git\git-bash.exe"
+EXECUTABLE = "C:\\Program Files\\Git\\git-bash.exe"
 
 
 def shell(environment, command=None):

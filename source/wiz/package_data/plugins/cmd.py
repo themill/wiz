@@ -15,7 +15,7 @@ import wiz.shell
 IDENTIFIER = "cmd"
 
 # Path to the bash executable on the file system.
-EXECUTABLE = "C:\Windows\System32\cmd.exe"
+EXECUTABLE = "C:\\Windows\\System32\\cmd.exe"
 
 
 def shell(environment, command=None):
