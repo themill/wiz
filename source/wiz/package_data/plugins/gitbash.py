@@ -26,14 +26,15 @@ def shell(environment, command=None):
     :param command: Mapping of command aliases which should be available in the
         shell.
 
-        .. important:
-            Since git-bash does not support handing in a bashrc file into a new
-            shell, the global .bashrc needs to be modified to contain these
-            lines::
+    .. important:
 
-                if [ -f "$BASHRC" ]; then
-                    source "$BASHRC"
-                fi
+        Since git-bash does not support handing in a bashrc file into a new
+        shell, the global .bashrc needs to be modified to contain these
+        lines::
+
+            if [ -f "$BASHRC" ]; then
+                source "$BASHRC"
+            fi
 
     """
     logger = wiz.logging.Logger(__name__ + ".shell")
