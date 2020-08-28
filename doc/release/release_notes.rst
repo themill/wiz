@@ -15,6 +15,25 @@ Release Notes
 
         Added windows requirement to :file:`setup.py`.
 
+    .. change:: changed
+
+        Removed ``wiz.spawn`` module and instead use plugins to spawn a shell
+        or execute a command.
+
+    .. change:: changed
+
+        Updated :mod:`wiz.command_line` to use shell plugins instead of
+        ``wiz.spawn`` module to allow for the support of more shell types on
+        several operating systems.
+
+    .. change:: new
+
+        Added default shell plugins for:
+
+        - :download:`bash shell <../../source/wiz/package_data/plugins/bash.py>`
+        - :download:`git-bash shell <../../source/wiz/package_data/plugins/gitbash.py>`
+        - :download:`cmd shell <../../source/wiz/package_data/plugins/cmd.py>`
+
 .. release:: 3.1.2
     :date: 2020-08-27
 

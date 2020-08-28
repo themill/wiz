@@ -45,6 +45,45 @@ indicate how a definition can be installed using ``wiz install``.
 .. literalinclude:: ../source/wiz/package_data/plugins/installer.py
    :language: python
 
+.. _plugins/shell:
+
+shell
+~~~~~
+
+There are several default shell plugins that can be used or modified.
+The plugins are only registered on the appropriate operating system and if
+the application path exists.
+
+.. _plugins/shell/bash:
+
+bash
+^^^^
+
+Bash is the default shell on Linux.
+
+.. literalinclude:: ../source/wiz/package_data/plugins/bash.py
+   :language: python
+
+.. _plugins/shell/gitbash:
+
+gitbash
+^^^^^^^
+
+`Git-Bash <https://gitforwindows.org/>`_ is a very popular bash shell for
+Windows. It is the default shell for Wiz on Windows.
+
+.. literalinclude:: ../source/wiz/package_data/plugins/gitbash.py
+   :language: python
+
+cmd
+^^^
+
+`CMD <https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/windows-commands>`_
+is the native DOS shell on Windows.
+
+.. literalinclude:: ../source/wiz/package_data/plugins/cmd.py
+   :language: python
+
 .. _plugins/new:
 
 Adding new plugins
@@ -61,3 +100,9 @@ Therefore, you can overwrite a plugin by re-using the same identifier.
     It is highly recommended to deploy custom plugins when :ref:`installing
     <installing/source/options>` the package instead of using it from the
     personal plugin path as it can be error prone.
+
+Adding new shells
+~~~~~~~~~~~~~~~~~
+
+Shells are just plugins that can be added. To select a different shell, edit the
+``shell / type`` in the :ref:`configuration file <configuration>`.
