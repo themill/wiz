@@ -136,7 +136,7 @@ def _cleanup(signum, frame):
 
 def register(config):
     """Register shell callbacks."""
-    print('REGISTER', os.path.exists(EXECUTABLE))
+
     # Only register for Unix.
     if os.name == 'nt':
         return
