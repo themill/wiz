@@ -72,7 +72,37 @@ def execute(elements, environment):
         new shell.
 
     """
-    print("execute")
+    logger = wiz.logging.Logger(__name__ + ".execute")
+    logger.info(
+        "Start command: {}".format(wiz.utility.combine_command(elements))
+    )
+
+    # Convert entries of environment from unicode to string.
+    environment = convert(environment)
+
+    # Substitute environment variables from command line elements.
+    elements = [
+        wiz.environ.substitute(element, environment) for element in elements
+    ]
+
+    # Register the cleanup function as handler for SIGINT and SIGTERM.
+    signal.signal(signal.SIGINT, _cleanup)
+    signal.signal(signal.SIGTERM, _cleanup)
+
+    try:
+        # Creationflags only exist on windows, explained here:
+        # https://docs.python.org/2/library/subprocess.html
+        subprocess.call(
+            [EXECUTABLE, "/K"] + elements,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            env=environment
+        )
+    except OSError:
+        logger.error(
+            "Executable can not be found within resolved "
+            "environment [{}]".format(elements[0])
+        )
+        logger.debug_traceback()
 
 
 def popen(args, **kwargs):
