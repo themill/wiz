@@ -28,8 +28,8 @@ EXECUTABLE = "/bin/bash"
 def shell(environment, command=None):
     """Spawn a sub-shell with an *environment* mapping.
 
-    :param environment: Mapping containing environment variables to set in the
-        new shell.
+    :param environment: Environment mapping to spawn the shell with.
+
     :param command: Mapping of command aliases which should be available in the
         shell.
 
@@ -51,7 +51,8 @@ def shell(environment, command=None):
     # Create temporary rc file for shell aliases for commands
     rcfile = tempfile.NamedTemporaryFile()
     for alias, value in command.items():
-        rcfile.write("alias {0}='{1}'\n".format(alias, value))
+        line = "alias {0}='{1}'\n".format(alias, value)
+        rcfile.write(line.encode("utf-8"))
         rcfile.seek(0)
         rcfile.read()
 
@@ -97,9 +98,10 @@ def shell(environment, command=None):
 def execute(elements, environment):
     """Run command *elements* within a specific *environment*.
 
-    :param elements: List of command elements to run in the new shell.
-    :param environment: Mapping containing environment variables to set in the
-        new shell.
+    :param elements: List of strings constituting the command line to execute
+        (e.g. ["app_exe", "--option", "value"])
+
+    :param environment: Environment mapping to execute command with.
 
     """
     logger = wiz.logging.Logger(__name__ + ".shell")

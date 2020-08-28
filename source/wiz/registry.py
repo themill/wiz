@@ -10,14 +10,24 @@ import wiz.utility
 
 
 def get_local():
-    """Return the local registry if available."""
+    """Return the local registry if available.
+
+    :return: :file:`~/.wiz/registry` or None.
+
+    """
     registry_path = os.path.join(os.path.expanduser("~"), ".wiz", "registry")
     if os.path.isdir(registry_path) and os.access(registry_path, os.R_OK):
         return registry_path
 
 
 def get_defaults():
-    """Return the default registries."""
+    """Return the default registries.
+
+    :return: List of default registry paths.
+
+    .. seealso:: :ref:`configuration/registry_paths`
+
+    """
     config = wiz.config.fetch()
     return config.get("registry", {}).get("paths", [])
 
@@ -25,10 +35,15 @@ def get_defaults():
 def fetch(paths, include_local=True, include_working_directory=True):
     """Fetch all registries from *paths*.
 
-    *include_local* indicates whether the local registry should be included.
+    :param paths: List of paths to consider as registry paths if available.
 
-    *include_working_directory* indicates whether the current working directory
-    should be parsed to discover registry folders.
+    :param include_local: Indicate whether the local registry should be
+        included.
+
+    :param include_working_directory: Indicate whether the current working
+        directory should be parsed to discover registry folders.
+
+    :return: List of valid registry paths.
 
     """
     registries = []
@@ -66,6 +81,10 @@ def discover(path):
             "/jobs/ads/project/identity/shot/.wiz/registry"
         ]
 
+    :param path: Path to discover registries from.
+
+    :return: List of valid registry paths.
+
     .. seealso:: :ref:`registry/discover-implicit`
 
     """
@@ -91,24 +110,24 @@ def discover(path):
 def install_to_path(definitions, registry_path, overwrite=False):
     """Install a list of definitions to a registry on the file system.
 
-    *definitions* must be a list of valid :class:`~wiz.definition.Definition`
-    instances.
+    :param definitions: List of :class:`wiz.definition.Definition` instances.
 
-    *registry_path* is the target registry path to install to.
+    :param registry_path: Targeted registry path to install to
 
-    If *overwrite* is True, any existing definitions in the target registry
-    will be overwritten.
+    :param overwrite: Indicate whether existing definitions in the target
+        registry should be overwritten. Default is False.
 
-    Raises :exc:`wiz.exception.DefinitionsExist` if definitions already exist in
-    the target registry and overwrite is False.
+    :raise: :exc:`wiz.exception.DefinitionsExist` if definitions already exist
+        in the target registry and overwrite is False.
 
-    Raises :exc:`wiz.exception.InstallNoChanges` if definitions already exists
-    in the target registry and no changes is detected.
+    :raise: :exc:`wiz.exception.InstallNoChanges` if definitions already exists
+        in the target registry and no changes is detected.
 
-    Raises :exc:`wiz.exception.InstallError` if the target registry path is not
-    a valid directory.
+    :raise: :exc:`wiz.exception.InstallError` if the target registry path is not
+        a valid directory.
 
-    Raises :exc:`OSError` if definitions can not be exported in *registry_path*.
+    :raise: :exc:`OSError` if definitions can not be exported in
+        *registry_path*.
 
     """
     logger = wiz.logging.Logger(__name__ + ".install_to_path")
@@ -136,14 +155,16 @@ def install_to_path(definitions, registry_path, overwrite=False):
             _definition = wiz.fetch_definition(request, mapping)
 
         except wiz.exception.RequestNotFound:
-            _definitions.append(definition.sanitized())
+            _definitions.append(definition)
 
         else:
-            if definition.sanitized() == _definition.sanitized():
+            data1 = definition.data(copy_data=False)
+            data2 = _definition.data(copy_data=False)
+            if data1 == data2:
                 continue
 
             existing_definition_map[definition.identifier] = _definition
-            _definitions.append(definition.sanitized())
+            _definitions.append(definition)
 
     # If no content was released.
     if len(_definitions) == 0:
@@ -164,7 +185,7 @@ def install_to_path(definitions, registry_path, overwrite=False):
         # Replace existing definition if necessary.
         if identifier in existing_definition_map.keys():
             existing_definition_path = (
-                existing_definition_map[identifier].get("definition-location")
+                existing_definition_map[identifier].path
             )
             path = os.path.dirname(existing_definition_path)
             os.remove(existing_definition_path)
