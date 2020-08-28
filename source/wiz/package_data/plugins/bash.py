@@ -57,13 +57,13 @@ def shell(environment, command=None):
         rcfile.read()
 
     if os.path.exists(rcfile.name):
-        EXECUTABLE = [EXECUTABLE, "--rcfile", rcfile.name]
+        executable = [EXECUTABLE, "--rcfile", rcfile.name]
     else:
-        EXECUTABLE = [EXECUTABLE]
+        executable = [EXECUTABLE]
 
     # Run in a new process group to enable job control
     process = subprocess.Popen(
-        EXECUTABLE,
+        executable,
         preexec_fn=os.setsid,
         stdin=slave_fd,
         stdout=slave_fd,
