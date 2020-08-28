@@ -21,8 +21,8 @@ EXECUTABLE = "C:\Program Files\Git\git-bash.exe"
 def shell(environment, command=None):
     """Spawn a sub-shell with an *environment* mapping.
 
-    :param environment: Mapping containing environment variables to set in the
-        new shell.
+    :param environment: Environment mapping to spawn the shell with.
+
     :param command: Mapping of command aliases which should be available in the
         shell.
 
@@ -77,12 +77,14 @@ def shell(environment, command=None):
 def execute(elements, environment):
     """Run command *elements* within a specific *environment*.
 
-    :param elements: List of command elements to run in the new shell.
+    :param elements: List of strings constituting the command line to execute
+        (e.g. ["app_exe", "--option", "value"])
+
     :param environment: Mapping containing environment variables to set in the
         new shell.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".shell")
+    logger = wiz.logging.Logger(__name__ + ".execute")
     logger.info(
         "Start command: {}".format(wiz.utility.combine_command(elements))
     )
