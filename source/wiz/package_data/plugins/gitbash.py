@@ -12,7 +12,7 @@ import wiz.logging
 import wiz.shell
 
 #: Unique identifier of the plugin.
-IDENTIFIER = "bash"
+IDENTIFIER = "gitbash"
 
 # Path to the git bash executable on the file system.
 EXECUTABLE = "C:\\Program Files\\Git\\git-bash.exe"

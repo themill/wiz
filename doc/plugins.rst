@@ -70,7 +70,7 @@ gitbash
 ^^^^^^^
 
 `Git-Bash <https://gitforwindows.org/>`_ is a very popular bash shell for
-Windows. It is the default shell for Wiz on Windows.
+Windows.
 
 .. literalinclude:: ../source/wiz/package_data/plugins/gitbash.py
    :language: python

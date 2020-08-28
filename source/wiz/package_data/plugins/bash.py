@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import signal
 
+import wiz.environ
 import wiz.logging
 import wiz.utility
 import wiz.symbol
@@ -135,6 +136,7 @@ def _cleanup(signum, frame):
 
 def register(config):
     """Register shell callbacks."""
+    print('REGISTER', os.path.exists(EXECUTABLE))
     # Only register for Unix.
     if os.name == 'nt':
         return
