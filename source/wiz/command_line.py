@@ -656,6 +656,7 @@ def wiz_use(click_context, **kwargs):
 
     # Get shell callbacks.
     shell_callback, execute_callback = wiz.utility.get_shell_callbacks(_CONFIG)
+    shell_executable = _CONFIG.get("shell", {}).get("executable")
     if None in (shell_callback, execute_callback):
         return
 
@@ -674,14 +675,18 @@ def wiz_use(click_context, **kwargs):
 
         # If no commands are indicated, spawn a shell.
         elif len(extra_arguments) == 0:
-            shell_callback(wiz_context["environ"], wiz_context["command"])
+            shell_callback(
+                shell_executable, wiz_context["environ"], wiz_context["command"]
+            )
 
         # Otherwise, resolve the command and run it within the resolved context.
         else:
             command_elements = wiz.resolve_command(
                 extra_arguments, wiz_context.get("command", {})
             )
-            execute_callback(command_elements, wiz_context["environ"])
+            execute_callback(
+                shell_executable, command_elements, wiz_context["environ"]
+            )
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
@@ -743,6 +748,7 @@ def wiz_run(click_context, **kwargs):
 
     # Get shell callbacks.
     shell_callback, execute_callback = wiz.utility.get_shell_callbacks(_CONFIG)
+    shell_executable = _CONFIG.get("shell", {}).get("executable")
     if None in (shell_callback, execute_callback):
         return
 
@@ -769,7 +775,9 @@ def wiz_run(click_context, **kwargs):
                 [requirement.name] + extra_arguments,
                 wiz_context.get("command", {})
             )
-            execute_callback(command_elements, wiz_context["environ"])
+            execute_callback(
+                shell_executable, command_elements, wiz_context["environ"]
+            )
 
     except wiz.exception.WizError as error:
         logger.error(str(error))

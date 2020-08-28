@@ -15,10 +15,10 @@ import wiz.logging
 IDENTIFIER = "cmd"
 
 # Path to the bash executable on the file system.
-EXECUTABLE = "C:\Windows\System32\cmd.exe"
+DEFAULT_EXECUTABLE = "C:\Windows\System32\cmd.exe"
 
 
-def shell(environment, command=None):
+def shell(executable, environment, command=None):
     """Spawn a sub-shell with an *environment* mapping.
 
     :param environment: Mapping containing environment variables to set in the
@@ -28,6 +28,9 @@ def shell(environment, command=None):
 
     """
     logger = wiz.logging.Logger(__name__ + ".shell")
+
+    if executable is None:
+        executable = DEFAULT_EXECUTABLE
 
     # Convert entries of environment from unicode to string.
     environment = convert(environment)
@@ -41,9 +44,9 @@ def shell(environment, command=None):
 
     if os.path.exists(rcfile.name):
         environment["CMDRC"] = rcfile.name
-        executable = ["start", EXECUTABLE, "/K", rcfile.name]
+        executable = ["start", executable, "/K", rcfile.name]
     else:
-        executable = ["start", EXECUTABLE, "/K"]
+        executable = ["start", executable, "/K"]
 
     logger.info("Spawn shell: {}".format(executable))
 
@@ -64,7 +67,7 @@ def shell(environment, command=None):
     return p.returncode, stdout, stderr
 
 
-def execute(elements, environment):
+def execute(executable, elements, environment):
     """Run command *elements* within a specific *environment*.
 
     :param elements: List of command elements to run in the new shell.
@@ -76,6 +79,9 @@ def execute(elements, environment):
     logger.info(
         "Start command: {}".format(wiz.utility.combine_command(elements))
     )
+
+    if executable is None:
+        executable = DEFAULT_EXECUTABLE
 
     # Convert entries of environment from unicode to string.
     environment = convert(environment)
@@ -93,7 +99,7 @@ def execute(elements, environment):
         # Creationflags only exist on windows, explained here:
         # https://docs.python.org/2/library/subprocess.html
         subprocess.call(
-            [EXECUTABLE, "/K"] + elements,
+            [executable, "/K"] + elements,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
             env=environment
         )
