@@ -40,7 +40,6 @@ def shell(environment, command=None):
         rcfile.flush()
 
     if os.path.exists(rcfile.name):
-        environment["CMDRC"] = rcfile.name
         executable = ["start", EXECUTABLE, "/K", rcfile.name]
     else:
         executable = ["start", EXECUTABLE, "/K"]
@@ -62,7 +61,6 @@ def shell(environment, command=None):
 
     stdout, stderr = p.communicate()
     return p.returncode, stdout, stderr
-
 
 def execute(elements, environment):
     """Run command *elements* within a specific *environment*.
