@@ -22,10 +22,10 @@ if not os.name == 'nt':
 IDENTIFIER = "bash"
 
 # Path to the bash executable on the file system.
-DEFAULT_EXECUTABLE = "/bin/bash"
+EXECUTABLE = "/bin/bash"
 
 
-def shell(executable, environment, command=None):
+def shell(environment, command=None):
     """Spawn a sub-shell with an *environment* mapping.
 
     :param environment: Environment mapping to spawn the shell with.
@@ -39,10 +39,7 @@ def shell(executable, environment, command=None):
     if command is None:
         command = {}
 
-    if executable is None:
-        executable = DEFAULT_EXECUTABLE
-
-    logger.info("Spawn shell: {}".format(executable))
+    logger.info("Spawn shell: {}".format(EXECUTABLE))
 
     # save original tty setting then set it to raw mode
     old_tty = termios.tcgetattr(sys.stdin)
@@ -60,9 +57,9 @@ def shell(executable, environment, command=None):
         rcfile.read()
 
     if os.path.exists(rcfile.name):
-        executable = [executable, "--rcfile", rcfile.name]
+        executable = [EXECUTABLE, "--rcfile", rcfile.name]
     else:
-        executable = [executable]
+        executable = [EXECUTABLE]
 
     # Run in a new process group to enable job control
     process = subprocess.Popen(
@@ -98,7 +95,7 @@ def shell(executable, environment, command=None):
     rcfile.close()
 
 
-def execute(executable, elements, environment):
+def execute(elements, environment):
     """Run command *elements* within a specific *environment*.
 
     :param elements: List of strings constituting the command line to execute
@@ -140,6 +137,10 @@ def register(config):
     """Register shell callbacks."""
     # Only register for Unix.
     if os.name == 'nt':
+        return
+
+    # Only register if executable path exists.
+    if not os.path.exists(EXECUTABLE):
         return
 
     config.setdefault("callback", {})

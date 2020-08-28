@@ -10,16 +10,15 @@ import collections
 import tempfile
 
 import wiz.logging
-import wiz.config
 
 #: Unique identifier of the plugin.
 IDENTIFIER = "bash"
 
 # Path to the git bash executable on the file system.
-DEFAULT_EXECUTABLE = "C:\Program Files\Git\git-bash.exe"
+EXECUTABLE = "C:\Program Files\Git\git-bash.exe"
 
 
-def shell(executable, environment, command=None):
+def shell(environment, command=None):
     """Spawn a sub-shell with an *environment* mapping.
 
     :param environment: Environment mapping to spawn the shell with.
@@ -42,13 +41,10 @@ def shell(executable, environment, command=None):
     if command is None:
         command = {}
 
-    if executable is None:
-        executable = DEFAULT_EXECUTABLE
-
     # Convert entries of environment from unicode to string.
     environment = convert(environment)
 
-    logger.info("Spawn shell: {}".format(executable))
+    logger.info("Spawn shell: {}".format(EXECUTABLE))
 
     # NamedTemporaryFile on windows varies from the linux implementation:
     # https://docs.python.org/2/library/tempfile.html
@@ -61,7 +57,7 @@ def shell(executable, environment, command=None):
         environment["BASHRC"] = rcfile.name
 
     p = popen(
-        [executable],
+        [EXECUTABLE],
         env=environment,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -78,7 +74,7 @@ def shell(executable, environment, command=None):
     return p.returncode, stdout, stderr
 
 
-def execute(executable, elements, environment):
+def execute(elements, environment):
     """Run command *elements* within a specific *environment*.
 
     :param elements: List of strings constituting the command line to execute
@@ -92,9 +88,6 @@ def execute(executable, elements, environment):
     logger.info(
         "Start command: {}".format(wiz.utility.combine_command(elements))
     )
-
-    if executable is None:
-        executable = DEFAULT_EXECUTABLE
 
     # Convert entries of environment from unicode to string.
     environment = convert(environment)
@@ -112,7 +105,7 @@ def execute(executable, elements, environment):
         # Creationflags only exist on windows, explained here:
         # https://docs.python.org/2/library/subprocess.html
         subprocess.call(
-            [executable, "-c"] + elements,
+            [EXECUTABLE, "-c"] + elements,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
             env=environment
         )
@@ -174,6 +167,10 @@ def register(config):
     """Register shell callbacks."""
     # Only register for Windows.
     if not os.name == 'nt':
+        return
+
+    # Only register if executable path exists.
+    if not os.path.exists(EXECUTABLE):
         return
 
     config.setdefault("callback", {})
