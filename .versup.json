@@ -1,0 +1,16 @@
+{
+    "files": {
+        "source/wiz/_version.py": [
+            ["__version__ = \"([\\d\\.]+)\"", "__version__ = \"[version]\""]
+        ],
+        "doc/release/release_notes.rst": [
+            [
+                ".. release:: Upcoming",
+                ".. release:: [version]\n    :date: [version_date]"
+            ]
+        ]
+    },
+    "changelog": {
+        "create": "False"
+    }
+}
