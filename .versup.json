@@ -11,6 +11,6 @@
         ]
     },
     "changelog": {
-        "create": false
+        "enabled": false
     }
 }
