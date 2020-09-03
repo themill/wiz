@@ -51,6 +51,10 @@ TEST_REQUIRES = [
     "pytest-xdist >= 1.18, < 2"
 ]
 
+DEV_REQUIRES = [
+    "versup >= 1.0.1",
+]
+
 
 class BuildExtended(build_py):
     """Custom command to build package with custom configuration and plugins."""
@@ -108,7 +112,7 @@ setup(
     extras_require={
         "doc": DOC_REQUIRES,
         "test": TEST_REQUIRES,
-        "dev": DOC_REQUIRES + TEST_REQUIRES
+        "dev": DOC_REQUIRES + TEST_REQUIRES + DEV_REQUIRES
     },
     zip_safe=False,
     entry_points={
