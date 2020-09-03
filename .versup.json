@@ -1,7 +1,8 @@
 {
     "files": {
         "source/wiz/_version.py": [
-            ["__version__ = \"([\\d\\.]+)\"", "__version__ = \"[version]\""]
+            ["__version__ = \"([\\d\\.]+)\"", 
+             "__version__ = \"[version]\""]
         ],
         "doc/release/release_notes.rst": [
             [
