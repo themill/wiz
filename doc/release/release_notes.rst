@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+
+        Updated repository to use `versup
+        <https://versup.readthedocs.io/en/latest/>`_ the help with the release
+        process.
+
 .. release:: 3.1.2
     :date: 2020-08-27
 
