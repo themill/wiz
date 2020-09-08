@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Updated :func:`wiz.utility.compute_file_name` to prevent including colons in the
+        file name if the definition contains multiple namespaces (e.g. "foo::bar").
+        Namespace separator symbols (``::``) are now replaced by hyphens.
+
 .. release:: 3.2.0
     :date: 2020-09-03
 

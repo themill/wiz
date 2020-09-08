@@ -513,7 +513,9 @@ def compute_file_name(definition):
     name = definition.identifier
 
     if definition.namespace:
-        name = "{}-{}".format(definition.namespace, name)
+        name = "{}-{}".format(
+            "-".join(definition.namespace.split(wiz.symbol.NAMESPACE_SEPARATOR)), name
+        )
 
     if definition.version:
         name += "-{}".format(definition.version)
