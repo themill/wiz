@@ -492,13 +492,20 @@ def test_compute_label(definition, expected):
     (
         wiz.definition.Definition({
             "identifier": "test",
+            "namespace": "foo::bar::bim"
+        }),
+        "foo-bar-bim-test.json"
+    ),
+    (
+        wiz.definition.Definition({
+            "identifier": "test",
             "system": {
                 "platform": "linux"
             }
         }),
         "test-{}.json".format(
             base64.urlsafe_b64encode(
-                hashlib.sha1("linux").digest()
+                hashlib.sha1(b"linux").digest()
             ).rstrip(b"=").decode("utf-8")
         )
     ),
@@ -506,14 +513,14 @@ def test_compute_label(definition, expected):
         wiz.definition.Definition({
             "identifier": "test",
             "version": "0.1.0",
-            "namespace": "foo",
+            "namespace": "bar::foo",
             "system": {
                 "platform": "linux"
             }
         }),
-        "foo-test-0.1.0-{}.json".format(
+        "bar-foo-test-0.1.0-{}.json".format(
             base64.urlsafe_b64encode(
-                hashlib.sha1("linux").digest()
+                hashlib.sha1(b"linux").digest()
             ).rstrip(b"=").decode("utf-8")
         )
     )
@@ -521,6 +528,7 @@ def test_compute_label(definition, expected):
     "simple",
     "with-version",
     "with-namespace",
+    "with-multiple-namespaces",
     "with-system",
     "with-all",
 ])
