@@ -1129,6 +1129,11 @@ class Definition(object):
                         for variant in mapping["variants"]
                     ]
 
+                elif isinstance(mapping[keyword], dict):
+                    content[keyword] = collections.OrderedDict(
+                        sorted(mapping[keyword].items())
+                    )
+
                 else:
                     content[keyword] = mapping[keyword]
 
