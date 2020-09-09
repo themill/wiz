@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Updated :meth:`wiz.definition.Definition.ordered_data` to sort all dictionaries
+        as :class:`collections.OrderedDict` instances in order to get consistent
+        results.
+
 .. release:: 3.2.1
     :date: 2020-09-08
 

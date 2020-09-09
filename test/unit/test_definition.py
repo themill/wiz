@@ -1437,10 +1437,10 @@ def test_definition_with_system():
     assert definition.data() == data
     assert definition.ordered_data() == OrderedDict([
         ("identifier", "test"),
-        ("system", {
-            "arch": "x86_64",
-            "platform": "linux"
-        })
+        ("system", OrderedDict([
+            ("platform", "linux"),
+            ("arch", "x86_64"),
+        ]))
     ])
     assert definition.encode() == (
         "{\n"
@@ -1458,7 +1458,9 @@ def test_definition_with_command():
     data = {
         "identifier": "test",
         "command": {
-            "app": "App0.1",
+            "app1": "App1",
+            "app3": "App3",
+            "app2": "App2",
         }
     }
 
@@ -1477,7 +1479,11 @@ def test_definition_with_command():
     assert definition.install_root is None
     assert definition.install_location is None
     assert definition.environ == {}
-    assert definition.command == {"app": "App0.1"}
+    assert definition.command == {
+        "app1": "App1",
+        "app3": "App3",
+        "app2": "App2",
+    }
     assert definition.system == {}
     assert definition.requirements == []
     assert definition.conditions == []
@@ -1486,13 +1492,19 @@ def test_definition_with_command():
     assert definition.data() == data
     assert definition.ordered_data() == OrderedDict([
         ("identifier", "test"),
-        ("command", {"app": "App0.1"})
+        ("command", OrderedDict([
+            ("app1", "App1"),
+            ("app2", "App2"),
+            ("app3", "App3"),
+        ]))
     ])
     assert definition.encode() == (
         "{\n"
         "    \"identifier\": \"test\",\n"
         "    \"command\": {\n"
-        "        \"app\": \"App0.1\"\n"
+        "        \"app1\": \"App1\",\n"
+        "        \"app2\": \"App2\",\n"
+        "        \"app3\": \"App3\"\n"
         "    }\n"
         "}"
     )
@@ -1504,6 +1516,8 @@ def test_definition_with_environ():
         "identifier": "test",
         "environ": {
             "KEY1": "VALUE1",
+            "KEY3": "VALUE3",
+            "KEY2": "VALUE2",
         }
     }
 
@@ -1521,7 +1535,11 @@ def test_definition_with_environ():
     assert definition.disabled is False
     assert definition.install_root is None
     assert definition.install_location is None
-    assert definition.environ == {"KEY1": "VALUE1"}
+    assert definition.environ == {
+        "KEY1": "VALUE1",
+        "KEY3": "VALUE3",
+        "KEY2": "VALUE2",
+    }
     assert definition.command == {}
     assert definition.system == {}
     assert definition.requirements == []
@@ -1531,13 +1549,19 @@ def test_definition_with_environ():
     assert definition.data() == data
     assert definition.ordered_data() == OrderedDict([
         ("identifier", "test"),
-        ("environ", {"KEY1": "VALUE1"})
+        ("environ", OrderedDict([
+            ("KEY1", "VALUE1"),
+            ("KEY2", "VALUE2"),
+            ("KEY3", "VALUE3"),
+        ]))
     ])
     assert definition.encode() == (
         "{\n"
         "    \"identifier\": \"test\",\n"
         "    \"environ\": {\n"
-        "        \"KEY1\": \"VALUE1\"\n"
+        "        \"KEY1\": \"VALUE1\",\n"
+        "        \"KEY2\": \"VALUE2\",\n"
+        "        \"KEY3\": \"VALUE3\"\n"
         "    }\n"
         "}"
     )
@@ -1665,8 +1689,15 @@ def test_definition_with_variants():
             {
                 "identifier": "V2",
                 "install-location": "/path/to/V2",
-                "environ": {"KEY2": "VALUE2"},
-                "command": {"appV2": "AppV2"},
+                "environ": {
+                    "KEY21": "VALUE21",
+                    "KEY23": "VALUE23",
+                    "KEY22": "VALUE22",
+                },
+                "command": {
+                    "appXV2": "AppXV2",
+                    "appV2": "AppV2",
+                },
                 "requirements": [
                     "envA >= 2, < 3"
                 ]
@@ -1674,8 +1705,15 @@ def test_definition_with_variants():
             {
                 "identifier": "V1",
                 "install-location": "/path/to/V1",
-                "environ": {"KEY1": "VALUE1"},
-                "command": {"appV1": "AppV1"},
+                "environ": {
+                    "KEY11": "VALUE11",
+                    "KEY13": "VALUE13",
+                    "KEY12": "VALUE12",
+                },
+                "command": {
+                    "appXV1": "AppXV1",
+                    "appV1": "AppV1",
+                },
                 "requirements": [
                     "envA >= 1, < 2"
                 ]
@@ -1707,15 +1745,29 @@ def test_definition_with_variants():
     assert definition.variants[0].definition_identifier == "test"
     assert definition.variants[0].identifier == "V2"
     assert definition.variants[0].install_location == "/path/to/V2"
-    assert definition.variants[0].environ == {"KEY2": "VALUE2"}
-    assert definition.variants[0].command == {"appV2": "AppV2"}
+    assert definition.variants[0].environ == {
+        "KEY21": "VALUE21",
+        "KEY23": "VALUE23",
+        "KEY22": "VALUE22",
+    }
+    assert definition.variants[0].command == {
+        "appXV2": "AppXV2",
+        "appV2": "AppV2",
+    }
     assert definition.variants[0].requirements == [Requirement("envA >=2, <3")]
 
     assert definition.variants[1].definition_identifier == "test"
     assert definition.variants[1].identifier == "V1"
     assert definition.variants[1].install_location == "/path/to/V1"
-    assert definition.variants[1].environ == {"KEY1": "VALUE1"}
-    assert definition.variants[1].command == {"appV1": "AppV1"}
+    assert definition.variants[1].environ == {
+        "KEY11": "VALUE11",
+        "KEY13": "VALUE13",
+        "KEY12": "VALUE12",
+    }
+    assert definition.variants[1].command == {
+        "appXV1": "AppXV1",
+        "appV1": "AppV1",
+    }
     assert definition.variants[1].requirements == [Requirement("envA >=1, <2")]
 
     assert definition.data() == data
@@ -1725,15 +1777,29 @@ def test_definition_with_variants():
             OrderedDict([
                 ("identifier", "V2"),
                 ("install-location", "/path/to/V2"),
-                ("command", {"appV2": "AppV2"}),
-                ("environ", {"KEY2": "VALUE2"}),
+                ("command", OrderedDict([
+                    ("appV2", "AppV2"),
+                    ("appXV2", "AppXV2"),
+                 ])),
+                ("environ", OrderedDict([
+                    ("KEY21", "VALUE21"),
+                    ("KEY22", "VALUE22"),
+                    ("KEY23", "VALUE23"),
+                 ])),
                 ("requirements", ["envA >= 2, < 3"])
             ]),
             OrderedDict([
                 ("identifier", "V1"),
                 ("install-location", "/path/to/V1"),
-                ("command", {"appV1": "AppV1"}),
-                ("environ", {"KEY1": "VALUE1"}),
+                ("command", OrderedDict([
+                    ("appV1", "AppV1"),
+                    ("appXV1", "AppXV1"),
+                 ])),
+                ("environ", OrderedDict([
+                    ("KEY11", "VALUE11"),
+                    ("KEY12", "VALUE12"),
+                    ("KEY13", "VALUE13"),
+                ])),
                 ("requirements", ["envA >= 1, < 2"])
             ])
         ])
@@ -1746,10 +1812,13 @@ def test_definition_with_variants():
         "            \"identifier\": \"V2\",\n"
         "            \"install-location\": \"/path/to/V2\",\n"
         "            \"command\": {\n"
-        "                \"appV2\": \"AppV2\"\n"
+        "                \"appV2\": \"AppV2\",\n"
+        "                \"appXV2\": \"AppXV2\"\n"
         "            },\n"
         "            \"environ\": {\n"
-        "                \"KEY2\": \"VALUE2\"\n"
+        "                \"KEY21\": \"VALUE21\",\n"
+        "                \"KEY22\": \"VALUE22\",\n"
+        "                \"KEY23\": \"VALUE23\"\n"
         "            },\n"
         "            \"requirements\": [\n"
         "                \"envA >= 2, < 3\"\n"
@@ -1759,10 +1828,13 @@ def test_definition_with_variants():
         "            \"identifier\": \"V1\",\n"
         "            \"install-location\": \"/path/to/V1\",\n"
         "            \"command\": {\n"
-        "                \"appV1\": \"AppV1\"\n"
+        "                \"appV1\": \"AppV1\",\n"
+        "                \"appXV1\": \"AppXV1\"\n"
         "            },\n"
         "            \"environ\": {\n"
-        "                \"KEY1\": \"VALUE1\"\n"
+        "                \"KEY11\": \"VALUE11\",\n"
+        "                \"KEY12\": \"VALUE12\",\n"
+        "                \"KEY13\": \"VALUE13\"\n"
         "            },\n"
         "            \"requirements\": [\n"
         "                \"envA >= 1, < 2\"\n"
