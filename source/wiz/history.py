@@ -135,7 +135,13 @@ def _json_default(_object):
     from wiz.package import Package
     from wiz.graph import Graph
 
-    if isinstance(_object, (Graph, Definition, Package)):
+    if isinstance(_object, Definition):
+        data = _object.data()
+        data["path"] = _object.path
+        data["registry_path"] = _object.registry_path
+        return data
+
+    if isinstance(_object, (Graph, Package)):
         return _object.data()
 
     elif isinstance(_object, (Requirement, Version)):
