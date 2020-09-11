@@ -11,7 +11,6 @@ import wiz.graph
 import wiz.logging
 import wiz.package
 import wiz.registry
-import wiz.spawn
 import wiz.symbol
 import wiz.system
 import wiz.utility

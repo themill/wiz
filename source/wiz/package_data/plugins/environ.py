@@ -23,7 +23,18 @@ def register(config):
         "USER": getpass.getuser(),
         "HOME": os.path.expanduser("~"),
         "HOSTNAME": socket.gethostname(),
-        "PATH": os.pathsep.join([
+    }
+
+    # Add default paths for Windows environment.
+    if os.name == 'nt':
+        environ["PATH"] = os.pathsep.join([
+            "C:\Windows\system32",
+            "C:\Windows",
+        ])
+
+    # Add default paths for unix environment.
+    else:
+        environ["PATH"] = os.pathsep.join([
             "/usr/local/sbin",
             "/usr/local/bin",
             "/usr/sbin",
@@ -31,7 +42,6 @@ def register(config):
             "/sbin",
             "/bin",
         ])
-    }
 
     config.setdefault("environ", {})
     config["environ"].setdefault("initial", {})

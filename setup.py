@@ -32,8 +32,13 @@ INSTALL_REQUIRES = [
     "sawmill >= 0.2.1, < 1",
     "six >= 1.15.0, < 2",
     "toml >= 0.10.1, < 1",
-    "ujson >= 2.0.3, < 4"
+    "ujson >= 2.0.3, < 4",
 ]
+
+if os.name == 'nt':
+    INSTALL_REQUIRES.extend([
+        "pywin32",
+    ])
 
 DOC_REQUIRES = [
     "sphinx >= 1.8, < 2",

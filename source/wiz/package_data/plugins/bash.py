@@ -7,14 +7,23 @@ import sys
 import select
 import subprocess
 import tempfile
-import termios
-import tty
-import pty
 import signal
 
+import wiz.environ
 import wiz.logging
 import wiz.utility
 import wiz.symbol
+
+if not os.name == 'nt':
+    import termios
+    import tty
+    import pty
+
+#: Unique identifier of the plugin.
+IDENTIFIER = "bash"
+
+# Path to the bash executable on the file system.
+EXECUTABLE = "/bin/bash"
 
 
 def shell(environment, command=None):
@@ -25,19 +34,13 @@ def shell(environment, command=None):
     :param command: Mapping of command aliases which should be available in the
         shell.
 
-    .. note::
-
-        Default shell is :term:`Bash`.
-
     """
     logger = wiz.logging.Logger(__name__ + ".shell")
 
     if command is None:
         command = {}
 
-    # TODO: Improve default shell to make it cross platform...
-    executable = "/bin/bash"
-    logger.info("Spawn shell: {}".format(executable))
+    logger.info("Spawn shell: {}".format(EXECUTABLE))
 
     # save original tty setting then set it to raw mode
     old_tty = termios.tcgetattr(sys.stdin)
@@ -55,7 +58,9 @@ def shell(environment, command=None):
         rcfile.read()
 
     if os.path.exists(rcfile.name):
-        executable = [executable, "--rcfile", rcfile.name]
+        executable = [EXECUTABLE, "--rcfile", rcfile.name]
+    else:
+        executable = [EXECUTABLE]
 
     # Run in a new process group to enable job control
     process = subprocess.Popen(
@@ -127,3 +132,21 @@ def execute(elements, environment):
 def _cleanup(signum, frame):
     """Exit from python if a process is terminated or interrupted."""
     sys.exit(0)
+
+
+def register(config):
+    """Register shell callbacks."""
+
+    # Only register for Unix.
+    if os.name == 'nt':
+        return
+
+    # Only register if executable path exists.
+    if not os.path.exists(EXECUTABLE):
+        return
+
+    config.setdefault("callback", {})
+    config["callback"].setdefault("shell", {})
+    config["callback"]["shell"].setdefault(IDENTIFIER, {})
+    config["callback"]["shell"][IDENTIFIER]["shell"] = shell
+    config["callback"]["shell"][IDENTIFIER]["execute"] = execute

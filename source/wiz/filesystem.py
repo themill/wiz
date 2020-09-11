@@ -6,7 +6,6 @@ import io
 import unicodedata
 import re
 import gzip
-import pwd
 import getpass
 
 import six
@@ -20,10 +19,15 @@ def get_name():
     :return: User name of None if name cannot be returned.
 
     """
-    try:
-        return pwd.getpwnam(getpass.getuser()).pw_gecos
-    except KeyError:
-        return
+    if os.name == 'nt':
+        import win32api
+        return win32api.GetUserNameEx(3)
+    else:
+        try:
+            import pwd
+            return pwd.getpwnam(getpass.getuser()).pw_gecos
+        except KeyError:
+            return
 
 
 def export(path, content, compressed=False, overwrite=False):
