@@ -10,7 +10,7 @@ import wiz.graph
 from wiz.utility import Requirement
 
 #: Indicate whether spied call should be tested.
-_CHECK_SPIED_CALL = True
+_CHECK_SPIED_CALL = False
 
 
 @pytest.fixture(autouse=True)
@@ -2075,7 +2075,7 @@ def test_scenario_17(
          |
          `--(C > 0.1.0): C==0.5.0
 
-    Expected: A==0.2.0
+    Expected: A==1.1.0
 
     """
     definition_mapping = {
@@ -2162,7 +2162,7 @@ def test_scenario_18(
          |
          `--(C > 0.1.0): C==0.5.0
 
-    Expected: A==0.2.0, B==1.0.0, C==0.5.0
+    Expected: A==1.1.0, B==1.0.0, C==0.5.0
 
     """
     definition_mapping = {
