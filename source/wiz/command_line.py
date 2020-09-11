@@ -1373,6 +1373,8 @@ def display_definition(definition):
 
         >>> display_definition(definition)
 
+        path: /path/to/foo.json
+        registry: /path/to/registry
         identifier: Foo
         version: 0.1.0
         description: Description of Foo
@@ -1418,6 +1420,8 @@ def display_definition(definition):
         else:
             click.echo("{}{}".format(indent, item))
 
+    click.echo("path: {}".format(definition.path))
+    click.echo("registry: {}".format(definition.registry_path))
     _display(definition.ordered_data())
 
 

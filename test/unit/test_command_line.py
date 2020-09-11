@@ -291,7 +291,8 @@ def definition_mapping():
                         "version": "0.2.0",
                         "description": "This is Foo 0.2.0.",
                     },
-                    registry_path="/registry1"
+                    path="/registry1/foo-0.2.0.json",
+                    registry_path="/registry1",
                 ),
                 "0.1.0": wiz.definition.Definition(
                     {
@@ -306,7 +307,8 @@ def definition_mapping():
                             "bim >= 0.1.0, < 1"
                         ]
                     },
-                    registry_path="/registry1"
+                    path="/registry1/foo-0.1.0.json",
+                    registry_path="/registry1",
                 ),
             },
             "bar": {
@@ -340,7 +342,8 @@ def definition_mapping():
                             "bim >= 0.1.0, < 1"
                         ]
                     },
-                    registry_path="/registry2"
+                    path="/registry1/bar-0.1.0.json",
+                    registry_path="/registry2",
                 ),
             },
             "bim": {
@@ -360,7 +363,8 @@ def definition_mapping():
                             },
                         ],
                     },
-                    registry_path="/registry2"
+                    path="/registry1/bim-0.1.1.json",
+                    registry_path="/registry2",
                 ),
                 "0.1.0": wiz.definition.Definition(
                     {
@@ -368,7 +372,8 @@ def definition_mapping():
                         "version": "0.1.0",
                         "description": "This is Bim 0.1.0.",
                     },
-                    registry_path="/registry2"
+                    path="/registry1/bim-0.1.0.json",
+                    registry_path="/registry2",
                 ),
             }
         },
@@ -1327,6 +1332,8 @@ def test_view_definition(
     assert not result.exception
     assert result.exit_code == 0
     assert result.output == (
+        "path: /registry1/bar-0.1.0.json\n"
+        "registry: /registry2\n"
         "identifier: bar\n"
         "version: 0.1.0\n"
         "description: This is Bar 0.1.0.\n"

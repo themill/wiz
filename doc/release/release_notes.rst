@@ -4,6 +4,19 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Updated :func:`wiz.command_line.display_definition` to display
+        definition path and registry path when using ``wiz view`` command.
+
+    .. change:: fixed
+
+        Updated :mod:`wiz.history` to include definition path and registry
+        path to history dump when serializing instances of
+        :class:`~wiz.definition.Definition`.
+
 .. release:: 3.2.2
     :date: 2020-09-09
 
