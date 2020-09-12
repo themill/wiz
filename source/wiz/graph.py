@@ -105,9 +105,6 @@ class Resolver(object):
         # used as it is a FIFO queue.
         self._conflicts = collections.deque()
 
-        # Keep track of whether one or several packages are added to the graph
-        # during conflict resolution loop.
-
         # Keep track of whether the conflict list needs to be sorted according
         # to the latest distance mapping computed. It should always be true for
         # the first conflict resolution loop, and be updated depending on
@@ -182,7 +179,8 @@ class Resolver(object):
                 self._node_errors.update(graph.error_identifiers())
 
                 # Extract conflicting identifiers and requirements if possible.
-                self._update_conflicts(error)
+                if isinstance(error, wiz.exception.GraphResolutionError):
+                    self._update_conflicts(error)
 
                 self._logger.debug("Failed to resolve graph: {}".format(error))
                 latest_error = error
@@ -191,15 +189,9 @@ class Resolver(object):
     def _update_conflicts(self, exception):
         """Extract and record conflicts from *exception* if possible.
 
-        Conflicts are only recorded in :exc:`wiz.exception.GraphResolutionError`
-        exceptions.
-
-        :param exception: Instance of :exc:`wiz.exception.WizError`.
+        :param exception: Instance of :exc:`wiz.exception.GraphResolutionError`.
 
         """
-        if not isinstance(exception, wiz.exception.GraphResolutionError):
-            return
-
         for mapping in exception.conflicts:
             graph = mapping["graph"]
             identifiers = mapping["identifiers"]
