@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: 3.2.4
+    :date: 2020-09-12
+
+    .. change:: new
+
+        Added link to `Google Group discussion page
+        <https://groups.google.com/g/wiz-framework>`_.
+
 .. release:: 3.2.3
     :date: 2020-09-11
 
