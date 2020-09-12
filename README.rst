@@ -12,7 +12,7 @@ Wiz
     :target: https://wiz.readthedocs.io/en/stable/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://img.shields.io/badge/Google%20Group-Join%20Discussion-blue
+.. image:: https://img.shields.io/badge/group-join%20discussion-blue
     :target: https://groups.google.com/g/wiz-framework
     :alt: Google Group Page
 
