@@ -12,6 +12,10 @@ Wiz
     :target: https://wiz.readthedocs.io/en/stable/?badge=latest
     :alt: Documentation Status
 
+.. image:: https://img.shields.io/badge/Google%20Group-Join%20Discussion-blue
+    :target: https://groups.google.com/g/wiz-framework
+    :alt: Google Group Page
+
 Wiz is an environment management framework which consists of a Python API and a
 command line tool. It can be used to run a command within a deterministic
 environment resolved from one or several package requests.
