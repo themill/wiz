@@ -1573,10 +1573,18 @@ class Graph(object):
         identifiers = []
 
         for node in self.nodes():
+            # Ignore if node identifier doesn't match requirement name.
             qualified_name = node.definition.qualified_identifier
             name = qualified_name.split(wiz.symbol.NAMESPACE_SEPARATOR, 1)[-1]
             if requirement.name not in [qualified_name, name]:
                 continue
+
+            # Ignore if node variant doesn't match requirement extras.
+            variant_identifier = node.package.variant_identifier
+            variant_requested = list(requirement.extras)
+            if len(variant_requested) > 0 and variant_identifier is not None:
+                if variant_requested[0] != variant_identifier:
+                    break
 
             # Node is matching if package has no version.
             if node.package.version is None:
