@@ -1279,22 +1279,22 @@ def extract_conflicting_requirements(graph, nodes):
     return conflicts
 
 
-def relink_parents(graph, node, requirement=None):
-    """Relink *node*'s parents to *identifiers*.
+def relink_parents(graph, node_removed, requirement=None):
+    """Relink node's parents after removing it from the *graph*.
 
-    When creating the new links, the same weight connecting the *node* to its
-    parents is being used. *requirement* will be used for each new link if
-    given, otherwise the same requirement connecting the *node* to its parents
-    is being used
+    When creating the new links, the same weight connecting the node removed to
+    its parents is being used. *requirement* will be used for each new link if
+    given, otherwise the same requirement connecting the node removed to its
+    parents is being used
 
     :param graph: Instance of :class:`Graph`.
 
-    :param node: Instance of :class:`Node`.
+    :param node_removed: Instance of :class:`Node`.
 
     :param requirement: Instance of :class:`packaging.requirements.Requirement`
         which can be used. Default is None.
 
-    :raise: :exc:`wiz.exception.GraphResolutionError` if one *node* parent
+    :raise: :exc:`wiz.exception.GraphResolutionError` if one parent
         cannot be re-linked to any existing node in the graph.
 
     """
@@ -1306,16 +1306,16 @@ def relink_parents(graph, node, requirement=None):
             if graph.exists(identifier)
         ]
 
-    for parent_identifier in node.parent_identifiers:
+    for parent_identifier in node_removed.parent_identifiers:
         if (
             not graph.exists(parent_identifier) and
             not parent_identifier == graph.ROOT
         ):
             continue
 
-        weight = graph.link_weight(node.identifier, parent_identifier)
+        weight = graph.link_weight(node_removed.identifier, parent_identifier)
         _requirement = requirement or graph.link_requirement(
-            node.identifier, parent_identifier
+            node_removed.identifier, parent_identifier
         )
 
         _nodes = nodes or [
@@ -1325,9 +1325,11 @@ def relink_parents(graph, node, requirement=None):
 
         if not len(_nodes):
             raise wiz.exception.GraphResolutionError(
-                "'{}' can not be linked to any existing node in graph with "
-                "requirement '{}'".format(
-                    parent_identifier, _requirement
+                "Requirement '{}' from '{}' is incompatible with any other "
+                "packages in the graph once '{}' has been removed.".format(
+                    _requirement,
+                    parent_identifier,
+                    node_removed.identifier
                 )
             )
 
