@@ -1657,9 +1657,9 @@ class Graph(object):
 
         """
         return [
-            identifier for identifier
+            _identifier for _identifier
             in self._link_mapping.get(identifier, {}).keys()
-            if self.exists(identifier)
+            if self.exists(_identifier)
         ]
 
     def link_weight(self, identifier, parent_identifier):
