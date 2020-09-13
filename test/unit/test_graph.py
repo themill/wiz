@@ -770,8 +770,9 @@ def test_relink_parents_error(mocker, mocked_graph):
         wiz.graph.relink_parents(mocked_graph, node)
 
     assert (
-        "GraphResolutionError: 'parent3' can not be linked to any existing "
-        "node in graph with requirement '__REQ2__'"
+        "GraphResolutionError: Requirement '__REQ2__' from 'parent3' is "
+        "incompatible with any other packages in the graph once 'foo' has "
+        "been removed."
     ) in str(error)
 
     assert mocked_graph.find.call_count == 2
