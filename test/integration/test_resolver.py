@@ -3826,6 +3826,106 @@ def test_scenario_34(
 
     Root
      |
+     |--(A[V3]): A[V3]==1.0.0
+     |   |
+     |   `--(B >=3, <4): B==3.0.0
+     |
+     `--(C): C
+         |
+         `--(A[V2]): A[V2]==1.0.0
+             |
+             `--(B >=1, <2): B==1.0.0
+
+    Expected: Unable to compute due to requirement compatibility between
+    'A[V2]' and 'A[V3]'.
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    }
+                ]
+            })
+        },
+        "B": {
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+        },
+        "C": {
+            "-": wiz.definition.Definition({
+                "identifier": "C",
+                "requirements": ["A[V2]"]
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        resolver.compute_packages([Requirement("A[V3]"), Requirement("C")])
+
+    assert (
+        "Impossible to compute graph combination due to "
+        "incompatible requirements within variant group:\n"
+        "  * A[V2] \t[C]\n"
+        "  * A[V3] \t[root]"
+    ) in str(error.value)
+
+    # Check spied functions / methods
+    if _CHECK_SPIED_CALL:
+        assert spied_fetch_next_combination.call_count == 3
+        assert spied_compute_combination.call_count == 2
+        assert spied_fetch_distance_mapping.call_count == 1
+        assert spied_extract_combinations.call_count == 1
+        assert spied_resolve_conflicts.call_count == 0
+        assert spied_compute_distance_mapping.call_count == 1
+        assert spied_generate_variant_combinations.call_count == 1
+        assert spied_trim_unreachable_from_graph.call_count == 0
+        assert spied_trim_invalid_from_graph.call_count == 0
+        assert spied_updated_by_distance.call_count == 0
+        assert spied_extract_conflicting_nodes.call_count == 0
+        assert spied_combined_requirements.call_count == 0
+        assert spied_extract_conflicting_requirements.call_count == 0
+        assert spied_relink_parents.call_count == 2
+        assert spied_extract_ordered_packages.call_count == 0
+
+
+def test_scenario_35(
+    spied_fetch_next_combination,
+    spied_compute_combination,
+    spied_fetch_distance_mapping,
+    spied_extract_combinations,
+    spied_resolve_conflicts,
+    spied_compute_distance_mapping,
+    spied_generate_variant_combinations,
+    spied_trim_unreachable_from_graph,
+    spied_trim_invalid_from_graph,
+    spied_updated_by_distance,
+    spied_extract_conflicting_nodes,
+    spied_combined_requirements,
+    spied_extract_conflicting_requirements,
+    spied_relink_parents,
+    spied_extract_ordered_packages
+):
+    """Compute packages for the following graph.
+
+    Like scenario 34, two requirements are explicitly requesting conflicting
+    variants: "A[V2]" and "A[V3]".
+
+    Root
+     |
      |--(A): A[V1]==1.0.0
      |   |
      |   `--(B >=1, <2): B==1.0.0
@@ -3847,7 +3947,6 @@ def test_scenario_34(
      `--(D): D==0.1.0
          |
          `--(A[V3]): A[V3]==1.0.0
-
 
     Expected: Unable to compute due to requirement compatibility between
     'A[V2]' and 'A[V3]'.
@@ -3911,8 +4010,11 @@ def test_scenario_34(
         ])
 
     assert (
-        "'D==0.1.0' can not be linked to any existing node in graph with "
-        "requirement 'A[V3]'"
+        "Impossible to compute graph combination due to "
+        "incompatible requirements within variant group:\n"
+        "  * A \t[root]\n"
+        "  * A[V2] \t[C]\n"
+        "  * A[V3] \t[D==0.1.0]"
     ) in str(error.value)
 
     # Check spied functions / methods

@@ -337,7 +337,7 @@ class Resolver(object):
             * foo==3.2.1
             * bar==1.1.1
 
-        A new graph will be created with other versions for these two node if
+        A new graph will be created with other versions for these two nodes if
         possible.
 
         :return: Boolean value indicating whether iterator has been
@@ -477,7 +477,13 @@ class Resolver(object):
             removed_nodes.append(node)
 
         for node in removed_nodes:
-            relink_parents(graph, node)
+            try:
+                relink_parents(graph, node)
+
+            except wiz.exception.GraphResolutionError:
+                # Raise more palatable error message to indicate that graph
+                # combination could not be computed.
+                _raise_variant_conflicts(graph, node, removed_nodes)
 
         # Prune unreachable and invalid nodes if necessary.
         if len(removed_nodes) > 0:
@@ -848,6 +854,70 @@ def _raise_node_conflicts(mappings, record_conflicts=True):
         "following requirement conflicts:\n"
         "{}\n".format("\n".join([_format(m) for m in mappings])),
         conflicts=mappings if record_conflicts else []
+    )
+
+
+def _raise_variant_conflicts(graph, node, removed_nodes):
+    """Raise exception when variant of *node* have incompatible requirements.
+
+    When a *graph* combination is processed, only one node from each variant
+    group is kept, but each node from one variant group must have compatible
+    requirements as parents from removed nodes must be relinked to the
+    remaining node.
+
+    :param graph: Instance of :class:`Graph`.
+
+    :param node: Instance of :class:`Node`.
+
+    :param removed_nodes: List of :class:`Node` instances removed from the
+        *graph* while processing the *graph* combination.
+
+    :raise: :exc:`wiz.exception.GraphResolutionError`.
+
+    """
+    definition_id = node.definition.qualified_identifier
+
+    # Check node from the same variant group within removed nodes.
+    variant_nodes = [
+        _node for _node in removed_nodes
+        if _node.definition.qualified_identifier == definition_id
+    ]
+
+    # Extend group to existing variant node in graph.
+    variant_nodes += [
+        graph.node(identifier) for identifier
+        in graph.variant_identifiers(definition_id)
+        if graph.exists(identifier)
+    ]
+
+    # Extract requirements mapping.
+    mapping = {}
+
+    for _node in variant_nodes:
+        for _identifier in _node.parent_identifiers:
+            key = str(graph.link_requirement(_node.identifier, _identifier))
+            mapping.setdefault(key, set())
+            mapping[key].add(_identifier)
+
+    def _format(_requirement):
+        """Display conflicting requirement."""
+        parent_identifiers = sorted(mapping[_requirement])
+        identifiers = list(parent_identifiers)[:3]
+        if len(parent_identifiers) > 3:
+            others = len(parent_identifiers) - 3
+            identifiers += ["+{} packages...".format(others)]
+
+        return "  * {requirement} \t[{identifiers}]".format(
+            requirement=_requirement,
+            identifiers=", ".join(identifiers)
+        )
+
+    raise wiz.exception.GraphResolutionError(
+        "Impossible to compute graph combination due to "
+        "incompatible requirements within variant group:\n"
+        "{}\n".format("\n".join([
+            _format(requirement) for requirement in sorted(mapping.keys())
+        ])),
     )
 
 
@@ -1505,7 +1575,7 @@ class Graph(object):
     def data(self):
         """Return corresponding dictionary.
 
-        :return Mapping containing all information about the graph.
+        :return: Mapping containing all information about the graph.
 
         """
         return {
@@ -1535,7 +1605,7 @@ class Graph(object):
 
         :param identifier: Unique identifier of the targeted node.
 
-        :return Instance of :class:`Node`.
+        :return: Instance of :class:`Node`.
 
         """
         return self._node_mapping.get(identifier)
@@ -1543,7 +1613,7 @@ class Graph(object):
     def nodes(self):
         """Return all nodes in the graph.
 
-        :return List of :class:`Node` instances.
+        :return: List of :class:`Node` instances.
 
         """
         return list(self._node_mapping.values())
@@ -1647,6 +1717,16 @@ class Graph(object):
             groups.append([node.identifier for node in nodes])
 
         return groups
+
+    def variant_identifiers(self, definition_identifier):
+        """Return variant identifiers corresponding to definition identifier.
+
+        :param definition_identifier: Qualified identifier of definition.
+
+        :return: List of :class:`Node` instances.
+
+        """
+        return self._variants_per_definition.get(definition_identifier, [])
 
     def outcoming(self, identifier):
         """Return outcoming node identifiers for node *identifier*.
