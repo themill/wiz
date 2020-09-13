@@ -2491,3 +2491,167 @@ def test_scenario_33(benchmark):
         resolver.compute_packages([Requirement("A"), Requirement("G")])
 
     benchmark(_resolve)
+
+
+def test_scenario_34(benchmark):
+    """Compute packages for the following graph.
+
+    Like scenario 13, parents are relinked when computing a graph combination
+    to ensure that all requirements are still respected.
+
+    But in this example, two requirements are explicitly requesting conflicting
+    variants: "A[V2]" and "A[V3]".
+
+    Root
+     |
+     |--(A[V3]): A[V3]==1.0.0
+     |   |
+     |   `--(B >=3, <4): B==3.0.0
+     |
+     `--(C): C
+         |
+         `--(A[V2]): A[V2]==1.0.0
+             |
+             `--(B >=1, <2): B==1.0.0
+
+    Expected: Unable to compute due to requirement compatibility between
+    'A[V2]' and 'A[V3]'.
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    }
+                ]
+            })
+        },
+        "B": {
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+        },
+        "C": {
+            "-": wiz.definition.Definition({
+                "identifier": "C",
+                "requirements": ["A[V2]"]
+            })
+        }
+    }
+
+    def _resolve():
+        """Resolve context."""
+        try:
+            resolver = wiz.graph.Resolver(definition_mapping)
+            resolver.compute_packages([Requirement("A[V3]"), Requirement("C")])
+        except wiz.exception.GraphResolutionError:
+            pass
+
+    benchmark(_resolve)
+
+
+def test_scenario_35(benchmark):
+    """Compute packages for the following graph.
+
+    Like scenario 34, two requirements are explicitly requesting conflicting
+    variants: "A[V2]" and "A[V3]".
+
+    Root
+     |
+     |--(A): A[V1]==1.0.0
+     |   |
+     |   `--(B >=1, <2): B==1.0.0
+     |
+     |--(A): A[V2]==1.0.0
+     |   |
+     |   `--(B >=2, <3): B==2.0.0
+     |
+     |--(A): A[V3]==1.0.0
+     |   |
+     |   `--(B >=3, <4): B==3.0.0
+     |
+     |--(C): C
+     |   |
+     |   `--(A[V2]): A[V2]==1.0.0
+     |       |
+     |       `--(B >=1, <2): B==1.0.0
+     |
+     `--(D): D==0.1.0
+         |
+         `--(A[V3]): A[V3]==1.0.0
+
+    Expected: Unable to compute due to requirement compatibility between
+    'A[V2]' and 'A[V3]'.
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["B >=1, <2"]
+                    }
+                ]
+            })
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0"
+            }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+        },
+        "C": {
+            "-": wiz.definition.Definition({
+                "identifier": "C",
+                "requirements": ["A[V2]"]
+            })
+        },
+        "D": {
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "D",
+                "version": "0.1.0",
+                "requirements": ["A[V3]"]
+            })
+        }
+    }
+
+    def _resolve():
+        """Resolve context."""
+        try:
+            resolver = wiz.graph.Resolver(definition_mapping)
+            resolver.compute_packages([
+                Requirement("A"), Requirement("C"), Requirement("D")
+            ])
+        except wiz.exception.GraphResolutionError:
+            pass
+
+    benchmark(_resolve)
