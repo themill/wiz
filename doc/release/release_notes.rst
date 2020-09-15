@@ -4,6 +4,26 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Fixed :meth:`wiz.graph.Graph.find` to prevent returning nodes with
+        a variant identifier not matching the
+        :attr:`~packaging.requirements.Requirement.extras` attribute of the
+        incoming requirement.
+
+    .. change:: fixed
+
+        Updated :class:`wiz.graph.Resolver` to raise a more palatable exception
+        message when graph combination cannot be resolved because packages from
+        a single variant group have requirement conflicts.
+
+    .. change:: new
+
+        Added :meth:`wiz.graph.Graph.variant_identifiers` to return all variant
+        identifiers from the same definition identifier within the graph.
+
 .. release:: 3.2.4
     :date: 2020-09-12
 

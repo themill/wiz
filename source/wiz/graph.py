@@ -105,9 +105,6 @@ class Resolver(object):
         # used as it is a FIFO queue.
         self._conflicts = collections.deque()
 
-        # Keep track of whether one or several packages are added to the graph
-        # during conflict resolution loop.
-
         # Keep track of whether the conflict list needs to be sorted according
         # to the latest distance mapping computed. It should always be true for
         # the first conflict resolution loop, and be updated depending on
@@ -182,7 +179,8 @@ class Resolver(object):
                 self._node_errors.update(graph.error_identifiers())
 
                 # Extract conflicting identifiers and requirements if possible.
-                self._update_conflicts(error)
+                if isinstance(error, wiz.exception.GraphResolutionError):
+                    self._update_conflicts(error)
 
                 self._logger.debug("Failed to resolve graph: {}".format(error))
                 latest_error = error
@@ -191,15 +189,9 @@ class Resolver(object):
     def _update_conflicts(self, exception):
         """Extract and record conflicts from *exception* if possible.
 
-        Conflicts are only recorded in :exc:`wiz.exception.GraphResolutionError`
-        exceptions.
-
-        :param exception: Instance of :exc:`wiz.exception.WizError`.
+        :param exception: Instance of :exc:`wiz.exception.GraphResolutionError`.
 
         """
-        if not isinstance(exception, wiz.exception.GraphResolutionError):
-            return
-
         for mapping in exception.conflicts:
             graph = mapping["graph"]
             identifiers = mapping["identifiers"]
@@ -345,7 +337,7 @@ class Resolver(object):
             * foo==3.2.1
             * bar==1.1.1
 
-        A new graph will be created with other versions for these two node if
+        A new graph will be created with other versions for these two nodes if
         possible.
 
         :return: Boolean value indicating whether iterator has been
@@ -485,7 +477,13 @@ class Resolver(object):
             removed_nodes.append(node)
 
         for node in removed_nodes:
-            relink_parents(graph, node)
+            try:
+                relink_parents(graph, node)
+
+            except wiz.exception.GraphResolutionError:
+                # Raise more palatable error message to indicate that graph
+                # combination could not be computed.
+                _raise_variant_conflicts(graph, node, removed_nodes)
 
         # Prune unreachable and invalid nodes if necessary.
         if len(removed_nodes) > 0:
@@ -856,6 +854,70 @@ def _raise_node_conflicts(mappings, record_conflicts=True):
         "following requirement conflicts:\n"
         "{}\n".format("\n".join([_format(m) for m in mappings])),
         conflicts=mappings if record_conflicts else []
+    )
+
+
+def _raise_variant_conflicts(graph, node, removed_nodes):
+    """Raise exception when variant of *node* have incompatible requirements.
+
+    When a *graph* combination is processed, only one node from each variant
+    group is kept, but each node from one variant group must have compatible
+    requirements as parents from removed nodes must be relinked to the
+    remaining node.
+
+    :param graph: Instance of :class:`Graph`.
+
+    :param node: Instance of :class:`Node`.
+
+    :param removed_nodes: List of :class:`Node` instances removed from the
+        *graph* while processing the *graph* combination.
+
+    :raise: :exc:`wiz.exception.GraphResolutionError`.
+
+    """
+    definition_id = node.definition.qualified_identifier
+
+    # Check node from the same variant group within removed nodes.
+    variant_nodes = [
+        _node for _node in removed_nodes
+        if _node.definition.qualified_identifier == definition_id
+    ]
+
+    # Extend group to existing variant node in graph.
+    variant_nodes += [
+        graph.node(identifier) for identifier
+        in graph.variant_identifiers(definition_id)
+        if graph.exists(identifier)
+    ]
+
+    # Extract requirements mapping.
+    mapping = {}
+
+    for _node in variant_nodes:
+        for _identifier in _node.parent_identifiers:
+            key = str(graph.link_requirement(_node.identifier, _identifier))
+            mapping.setdefault(key, set())
+            mapping[key].add(_identifier)
+
+    def _format(_requirement):
+        """Display conflicting requirement."""
+        parent_identifiers = sorted(mapping[_requirement])
+        identifiers = list(parent_identifiers)[:3]
+        if len(parent_identifiers) > 3:
+            others = len(parent_identifiers) - 3
+            identifiers += ["+{} packages...".format(others)]
+
+        return "  * {requirement} \t[{identifiers}]".format(
+            requirement=_requirement,
+            identifiers=", ".join(identifiers)
+        )
+
+    raise wiz.exception.GraphResolutionError(
+        "Impossible to compute graph combination due to "
+        "incompatible requirements within variant group:\n"
+        "{}\n".format("\n".join([
+            _format(requirement) for requirement in sorted(mapping.keys())
+        ])),
     )
 
 
@@ -1287,22 +1349,22 @@ def extract_conflicting_requirements(graph, nodes):
     return conflicts
 
 
-def relink_parents(graph, node, requirement=None):
-    """Relink *node*'s parents to *identifiers*.
+def relink_parents(graph, node_removed, requirement=None):
+    """Relink node's parents after removing it from the *graph*.
 
-    When creating the new links, the same weight connecting the *node* to its
-    parents is being used. *requirement* will be used for each new link if
-    given, otherwise the same requirement connecting the *node* to its parents
-    is being used
+    When creating the new links, the same weight connecting the node removed to
+    its parents is being used. *requirement* will be used for each new link if
+    given, otherwise the same requirement connecting the node removed to its
+    parents is being used
 
     :param graph: Instance of :class:`Graph`.
 
-    :param node: Instance of :class:`Node`.
+    :param node_removed: Instance of :class:`Node`.
 
     :param requirement: Instance of :class:`packaging.requirements.Requirement`
         which can be used. Default is None.
 
-    :raise: :exc:`wiz.exception.GraphResolutionError` if one *node* parent
+    :raise: :exc:`wiz.exception.GraphResolutionError` if one parent
         cannot be re-linked to any existing node in the graph.
 
     """
@@ -1314,16 +1376,16 @@ def relink_parents(graph, node, requirement=None):
             if graph.exists(identifier)
         ]
 
-    for parent_identifier in node.parent_identifiers:
+    for parent_identifier in node_removed.parent_identifiers:
         if (
             not graph.exists(parent_identifier) and
             not parent_identifier == graph.ROOT
         ):
             continue
 
-        weight = graph.link_weight(node.identifier, parent_identifier)
+        weight = graph.link_weight(node_removed.identifier, parent_identifier)
         _requirement = requirement or graph.link_requirement(
-            node.identifier, parent_identifier
+            node_removed.identifier, parent_identifier
         )
 
         _nodes = nodes or [
@@ -1333,9 +1395,11 @@ def relink_parents(graph, node, requirement=None):
 
         if not len(_nodes):
             raise wiz.exception.GraphResolutionError(
-                "'{}' can not be linked to any existing node in graph with "
-                "requirement '{}'".format(
-                    parent_identifier, _requirement
+                "Requirement '{}' from '{}' is incompatible with any other "
+                "packages in the graph once '{}' has been removed.".format(
+                    _requirement,
+                    parent_identifier,
+                    node_removed.identifier
                 )
             )
 
@@ -1511,7 +1575,7 @@ class Graph(object):
     def data(self):
         """Return corresponding dictionary.
 
-        :return Mapping containing all information about the graph.
+        :return: Mapping containing all information about the graph.
 
         """
         return {
@@ -1541,7 +1605,7 @@ class Graph(object):
 
         :param identifier: Unique identifier of the targeted node.
 
-        :return Instance of :class:`Node`.
+        :return: Instance of :class:`Node`.
 
         """
         return self._node_mapping.get(identifier)
@@ -1549,7 +1613,7 @@ class Graph(object):
     def nodes(self):
         """Return all nodes in the graph.
 
-        :return List of :class:`Node` instances.
+        :return: List of :class:`Node` instances.
 
         """
         return list(self._node_mapping.values())
@@ -1581,10 +1645,18 @@ class Graph(object):
         identifiers = []
 
         for node in self.nodes():
+            # Ignore if node identifier doesn't match requirement name.
             qualified_name = node.definition.qualified_identifier
             name = qualified_name.split(wiz.symbol.NAMESPACE_SEPARATOR, 1)[-1]
             if requirement.name not in [qualified_name, name]:
                 continue
+
+            # Ignore if node variant doesn't match requirement extras.
+            variant_identifier = node.package.variant_identifier
+            variant_requested = list(requirement.extras)
+            if len(variant_requested) > 0 and variant_identifier is not None:
+                if variant_requested[0] != variant_identifier:
+                    break
 
             # Node is matching if package has no version.
             if node.package.version is None:
@@ -1646,6 +1718,16 @@ class Graph(object):
 
         return groups
 
+    def variant_identifiers(self, definition_identifier):
+        """Return variant identifiers corresponding to definition identifier.
+
+        :param definition_identifier: Qualified identifier of definition.
+
+        :return: List of :class:`Node` instances.
+
+        """
+        return self._variants_per_definition.get(definition_identifier, [])
+
     def outcoming(self, identifier):
         """Return outcoming node identifiers for node *identifier*.
 
@@ -1655,9 +1737,9 @@ class Graph(object):
 
         """
         return [
-            identifier for identifier
+            _identifier for _identifier
             in self._link_mapping.get(identifier, {}).keys()
-            if self.exists(identifier)
+            if self.exists(_identifier)
         ]
 
     def link_weight(self, identifier, parent_identifier):
