@@ -11,8 +11,8 @@ Wiz
 .. image:: https://travis-ci.org/themill/wiz.svg?branch=master
     :target: https://travis-ci.org/themill/wiz
 
-.. image:: https://readthedocs.org/projects/wiz/badge/?version=latest
-    :target: https://wiz.readthedocs.io/en/stable/?badge=latest
+.. image:: https://readthedocs.org/projects/wiz/badge/?version=stable
+    :target: https://wiz.readthedocs.io/en/stable/
     :alt: Documentation Status
 
 .. image:: https://img.shields.io/badge/group-join%20discussion-blue
