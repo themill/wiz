@@ -501,6 +501,7 @@ def compute_file_name(definition):
     The file name should be in the form of::
 
         "foo.json"
+        "namespace-foo-0.1.0.json"
         "foo-0.1.0.json"
         "foo-0.1.0-M2Uq9Esezm-m00VeWkTzkQIu3T4.json"
 
@@ -510,6 +511,11 @@ def compute_file_name(definition):
 
     """
     name = definition.identifier
+
+    if definition.namespace:
+        name = "{}-{}".format(
+            "-".join(definition.namespace.split(wiz.symbol.NAMESPACE_SEPARATOR)), name
+        )
 
     if definition.version:
         name += "-{}".format(definition.version)

@@ -131,14 +131,17 @@ def record_action(identifier, **kwargs):
 
 def _json_default(_object):
     """Override :func:`JSONEncoder.default` to serialize all objects."""
-    import wiz.graph
+    from wiz.definition import Definition
+    from wiz.package import Package
+    from wiz.graph import Graph
 
-    data_types = (
-        wiz.graph.Graph,
-        wiz.definition.Definition,
-        wiz.package.Package
-    )
-    if isinstance(_object, data_types):
+    if isinstance(_object, Definition):
+        data = _object.data()
+        data["path"] = _object.path
+        data["registry_path"] = _object.registry_path
+        return data
+
+    if isinstance(_object, (Graph, Package)):
         return _object.data()
 
     elif isinstance(_object, (Requirement, Version)):

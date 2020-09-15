@@ -49,7 +49,8 @@ def shell(environment, command=None):
     # Create temporary rc file for shell aliases for commands
     rcfile = tempfile.NamedTemporaryFile()
     for alias, value in command.items():
-        rcfile.write("alias {0}='{1}'\n".format(alias, value))
+        line = "alias {0}='{1}'\n".format(alias, value)
+        rcfile.write(line.encode("utf-8"))
         rcfile.seek(0)
         rcfile.read()
 

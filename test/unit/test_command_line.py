@@ -291,7 +291,8 @@ def definition_mapping():
                         "version": "0.2.0",
                         "description": "This is Foo 0.2.0.",
                     },
-                    registry_path="/registry1"
+                    path="/registry1/foo-0.2.0.json",
+                    registry_path="/registry1",
                 ),
                 "0.1.0": wiz.definition.Definition(
                     {
@@ -306,7 +307,8 @@ def definition_mapping():
                             "bim >= 0.1.0, < 1"
                         ]
                     },
-                    registry_path="/registry1"
+                    path="/registry1/foo-0.1.0.json",
+                    registry_path="/registry1",
                 ),
             },
             "bar": {
@@ -340,7 +342,8 @@ def definition_mapping():
                             "bim >= 0.1.0, < 1"
                         ]
                     },
-                    registry_path="/registry2"
+                    path="/registry1/bar-0.1.0.json",
+                    registry_path="/registry2",
                 ),
             },
             "bim": {
@@ -360,7 +363,8 @@ def definition_mapping():
                             },
                         ],
                     },
-                    registry_path="/registry2"
+                    path="/registry1/bim-0.1.1.json",
+                    registry_path="/registry2",
                 ),
                 "0.1.0": wiz.definition.Definition(
                     {
@@ -368,7 +372,8 @@ def definition_mapping():
                         "version": "0.1.0",
                         "description": "This is Bim 0.1.0.",
                     },
-                    registry_path="/registry2"
+                    path="/registry1/bim-0.1.0.json",
+                    registry_path="/registry2",
                 ),
             }
         },
@@ -1331,6 +1336,8 @@ def test_view_definition(
     assert not result.exception
     assert result.exit_code == 0
     assert result.output == (
+        "path: /registry1/bar-0.1.0.json\n"
+        "registry: /registry2\n"
         "identifier: bar\n"
         "version: 0.1.0\n"
         "description: This is Bar 0.1.0.\n"
@@ -2505,7 +2512,7 @@ def test_install_recorded(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        options + ["install", "/path/to/foo.json", "-r", "/somewhere"],
+        options + ["install", "/path/to/foo.json", "-o", "/somewhere"],
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -2515,7 +2522,7 @@ def test_install_recorded(
         mocked_history_start_recording.assert_called_once_with(
             command=" ".join(
                 ["wiz"] + options + [
-                    "install", "/path/to/foo.json", "-r", "/somewhere"
+                    "install", "/path/to/foo.json", "-o", "/somewhere"
                 ]
             )
         )
@@ -2552,7 +2559,7 @@ def test_install_to_path(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install"] + options + ["--registry", "/registry"],
+        ["install"] + options + ["--output", "/registry"],
     )
     assert not result.exception
     assert result.exit_code == 0
@@ -2589,7 +2596,7 @@ def test_install_overwrite_existing(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry", "/registry"],
+        ["install", "/foo.json", "--output", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -2635,7 +2642,7 @@ def test_install_skip_existing(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry", "/registry"],
+        ["install", "/foo.json", "--output", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -2674,7 +2681,7 @@ def test_install_no_change(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry", "/registry"],
+        ["install", "/foo.json", "--output", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -2708,7 +2715,7 @@ def test_install_local_error(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install", "/foo.json", "--registry", "/registry"],
+        ["install", "/foo.json", "--output", "/registry"],
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -2750,7 +2757,7 @@ def test_install_local_command_error(options):
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["install"] + options + ["/foo.json", "--registry-path", "/registry"],
+        ["install"] + options + ["/foo.json", "--output", "/registry"],
     )
     assert result.exit_code == 2
     assert result.exception
