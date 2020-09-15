@@ -2,6 +2,9 @@
 Wiz
 ###
 
+.. image:: https://img.shields.io/badge/License-LGPL%20v3-blue.svg
+    :target: https://www.gnu.org/licenses/lgpl-3.0
+
 .. image:: https://img.shields.io/pypi/v/wiz-env.svg
     :target: https://pypi.python.org/pypi/wiz-env
 
