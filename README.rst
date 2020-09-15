@@ -2,14 +2,13 @@
 Wiz
 ###
 
-.. image:: https://img.shields.io/badge/License-LGPL%20v3-blue.svg
-    :target: https://www.gnu.org/licenses/lgpl-3.0
-
 .. image:: https://img.shields.io/pypi/v/wiz-env.svg
     :target: https://pypi.python.org/pypi/wiz-env
+    :alt: PyPi Package Link
 
 .. image:: https://travis-ci.org/themill/wiz.svg?branch=master
     :target: https://travis-ci.org/themill/wiz
+    :alt: Continuous Integration
 
 .. image:: https://readthedocs.org/projects/wiz/badge/?version=stable
     :target: https://wiz.readthedocs.io/en/stable/
@@ -18,6 +17,10 @@ Wiz
 .. image:: https://img.shields.io/badge/group-join%20discussion-blue
     :target: https://groups.google.com/g/wiz-framework
     :alt: Google Group Page
+
+.. image:: https://img.shields.io/badge/License-LGPL%20v3-blue.svg
+    :target: https://www.gnu.org/licenses/lgpl-3.0
+    :alt: License Link
 
 Wiz is an environment management framework which consists of a Python API and a
 command line tool. It can be used to run a command within a deterministic
