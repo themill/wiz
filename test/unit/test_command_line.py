@@ -573,7 +573,7 @@ def test_list_packages_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.gz",
             "__HISTORY__",
             compressed=True
         )
@@ -741,7 +741,7 @@ def test_list_commands_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.gz",
             "__HISTORY__",
             compressed=True
         )
@@ -905,7 +905,7 @@ def test_search_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.gz",
             "__HISTORY__",
             compressed=True
         )
@@ -1285,7 +1285,7 @@ def test_view_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.gz",
             "__HISTORY__",
             compressed=True
         )
@@ -1491,7 +1491,7 @@ def test_use_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.gz",
             "__HISTORY__",
             compressed=True
         )
@@ -1839,7 +1839,7 @@ def test_run_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.gz",
             "__HISTORY__",
             compressed=True
         )
@@ -2157,7 +2157,7 @@ def test_freeze_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.gz",
             "__HISTORY__",
             compressed=True
         )
@@ -2528,7 +2528,7 @@ def test_install_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.gz",
             "__HISTORY__",
             compressed=True
         )
@@ -2801,7 +2801,7 @@ def test_edit_recorded(
         )
         mocked_history_get.assert_called_once_with(serialized=True)
         mocked_filesystem_export.assert_called_once_with(
-            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.zip",
+            tempfile.gettempdir() + "/wiz-2020-08-24-17-49-01-985944.gz",
             "__HISTORY__",
             compressed=True
         )

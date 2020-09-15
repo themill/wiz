@@ -1962,7 +1962,7 @@ def _export_history_if_requested(click_context):
     history = wiz.history.get(serialized=True)
     path = os.path.join(
         os.path.abspath(click_context.obj["recording_path"]),
-        "wiz-{}.zip".format(
+        "wiz-{}.gz".format(
             datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
         )
     )
