@@ -274,6 +274,12 @@ With condition::
         ]
     }
 
+.. warning::
+
+    **Update:** It is not recommended to use :ref:`conditions
+    <definition/conditions>` to lock down a package version as it will end up
+    with an unsolvable graph most of the time.
+
 .. rubric:: implicit packages
 
 Implicit packages identified by the :ref:`auto-use <definition/auto-use>`
