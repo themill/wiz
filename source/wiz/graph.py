@@ -311,9 +311,6 @@ class Resolver(object):
                 return copy.deepcopy(graph), nodes_to_remove
 
             except StopIteration:
-                self._logger.debug(
-                    "No more combination in"
-                )
 
                 # If iterator is empty, check the requirement conflicts to find
                 # out if a new graph could be computed with different versions.
