@@ -529,21 +529,27 @@ class Resolver(object):
             conflicts = set(mapping.keys())
 
             # Check nodes with remaining conflicts.
-            identifiers = conflicts.intersection(all_identifiers)
+            remaining_conflicts = conflicts.intersection(all_identifiers)
 
-            if len(identifiers) > 0:
-                conflict_mappings = (
-                    (
-                        self._conflicts_mapping[identifier][_id],
-                        self._conflicts_mapping[_id][identifier]
-                    )
-                    for _id in identifiers
-                )
+            # Raise error if conflicts are found.
+            if len(remaining_conflicts) > 0:
+                mappings = []
+                requirements = []
 
-                _raise_node_conflicts(
-                    itertools.chain(*conflict_mappings),
-                    record_conflicts=False
-                )
+                for conflict in remaining_conflicts:
+                    data1 = self._conflicts_mapping[identifier][conflict]
+                    req1 = str(data1["requirement"])
+                    if req1 not in requirements:
+                        mappings.append(data1)
+
+                    data2 = self._conflicts_mapping[conflict][identifier]
+                    req2 = str(data2["requirement"])
+                    if req2 not in requirements:
+                        mappings.append(data2)
+
+                    requirements += [req1, req2]
+
+                _raise_node_conflicts(mappings, record_conflicts=False)
 
     def _resolve_conflicts(self, graph):
         """Attempt to resolve all conflicts in *graph*.
