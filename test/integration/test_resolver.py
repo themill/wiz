@@ -104,12 +104,6 @@ def spied_extract_conflicting_requirements(mocker):
 
 
 @pytest.fixture()
-def spied_relink_parents(mocker):
-    """Return spy mocker on 'wiz.graph.relink_parents'."""
-    return mocker.spy(wiz.graph, "relink_parents")
-
-
-@pytest.fixture()
 def spied_extract_ordered_packages(mocker):
     """Return spy mocker on 'wiz.graph.extract_ordered_packages'."""
     return mocker.spy(wiz.graph, "extract_ordered_packages")
@@ -129,7 +123,6 @@ def test_scenario_1(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -268,7 +261,6 @@ def test_scenario_1(
         assert spied_extract_conflicting_nodes.call_count == 2
         assert spied_combined_requirements.call_count == 1
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 1
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -286,7 +278,6 @@ def test_scenario_2(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Fail to compute packages for the following graph.
@@ -417,7 +408,6 @@ def test_scenario_2(
         assert spied_extract_conflicting_nodes.call_count == 1
         assert spied_combined_requirements.call_count == 3
         assert spied_extract_conflicting_requirements.call_count == 1
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 0
 
 
@@ -435,7 +425,6 @@ def test_scenario_3(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -503,7 +492,6 @@ def test_scenario_3(
         assert spied_extract_conflicting_nodes.call_count == 4
         assert spied_combined_requirements.call_count == 3
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 1
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -521,7 +509,6 @@ def test_scenario_4(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -619,7 +606,6 @@ def test_scenario_4(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 3
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -637,7 +623,6 @@ def test_scenario_5(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -721,7 +706,6 @@ def test_scenario_5(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -739,7 +723,6 @@ def test_scenario_6(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -840,7 +823,6 @@ def test_scenario_6(
         assert spied_extract_conflicting_nodes.call_count == 2
         assert spied_combined_requirements.call_count == 2
         assert spied_extract_conflicting_requirements.call_count == 2
-        assert spied_relink_parents.call_count == 9
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -858,7 +840,6 @@ def test_scenario_7(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -941,7 +922,6 @@ def test_scenario_7(
         assert spied_extract_conflicting_nodes.call_count == 4
         assert spied_combined_requirements.call_count == 4
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 3
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -959,7 +939,6 @@ def test_scenario_8(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1046,7 +1025,6 @@ def test_scenario_8(
         assert spied_extract_conflicting_nodes.call_count == 4
         assert spied_combined_requirements.call_count == 4
         assert spied_extract_conflicting_requirements.call_count == 2
-        assert spied_relink_parents.call_count == 1
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -1064,7 +1042,6 @@ def test_scenario_9(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1144,7 +1121,6 @@ def test_scenario_9(
         assert spied_extract_conflicting_nodes.call_count == 4
         assert spied_combined_requirements.call_count == 2
         assert spied_extract_conflicting_requirements.call_count == 1
-        assert spied_relink_parents.call_count == 1
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -1162,7 +1138,6 @@ def test_scenario_10(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1249,7 +1224,6 @@ def test_scenario_10(
         assert spied_extract_conflicting_nodes.call_count == 3
         assert spied_combined_requirements.call_count == 3
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 4
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -1267,7 +1241,6 @@ def test_scenario_11(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1366,7 +1339,6 @@ def test_scenario_11(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 2
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -1384,7 +1356,6 @@ def test_scenario_12(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1510,7 +1481,6 @@ def test_scenario_12(
         assert spied_extract_conflicting_nodes.call_count == 2
         assert spied_combined_requirements.call_count == 2
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 5
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -1528,7 +1498,6 @@ def test_scenario_13(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1644,7 +1613,6 @@ def test_scenario_13(
         assert spied_extract_conflicting_nodes.call_count == 2
         assert spied_combined_requirements.call_count == 2
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 9
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -1662,7 +1630,6 @@ def test_scenario_14(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1770,7 +1737,6 @@ def test_scenario_14(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 6
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -1788,7 +1754,6 @@ def test_scenario_15(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -1899,7 +1864,6 @@ def test_scenario_15(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 54
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -1917,7 +1881,6 @@ def test_scenario_16(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2041,7 +2004,6 @@ def test_scenario_16(
         assert spied_extract_conflicting_nodes.call_count == 1
         assert spied_combined_requirements.call_count == 1
         assert spied_extract_conflicting_requirements.call_count == 1
-        assert spied_relink_parents.call_count == 54
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -2059,7 +2021,6 @@ def test_scenario_17(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2128,7 +2089,6 @@ def test_scenario_17(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -2146,7 +2106,6 @@ def test_scenario_18(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2218,7 +2177,6 @@ def test_scenario_18(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -2236,7 +2194,6 @@ def test_scenario_19(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2339,7 +2296,6 @@ def test_scenario_19(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -2357,7 +2313,6 @@ def test_scenario_20(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2458,7 +2413,6 @@ def test_scenario_20(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -2476,7 +2430,6 @@ def test_scenario_21(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2608,7 +2561,6 @@ def test_scenario_21(
         assert spied_extract_conflicting_nodes.call_count == 2
         assert spied_combined_requirements.call_count == 1
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 1
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -2626,7 +2578,6 @@ def test_scenario_22(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Fail to compute packages for the following graph.
@@ -2685,7 +2636,6 @@ def test_scenario_22(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 0
 
 
@@ -2703,7 +2653,6 @@ def test_scenario_23(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2800,7 +2749,6 @@ def test_scenario_23(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -2818,7 +2766,6 @@ def test_scenario_24(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2874,7 +2821,6 @@ def test_scenario_24(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -2892,7 +2838,6 @@ def test_scenario_25(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -2960,7 +2905,6 @@ def test_scenario_25(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -2978,7 +2922,6 @@ def test_scenario_26(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -3045,7 +2988,6 @@ def test_scenario_26(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -3063,7 +3005,6 @@ def test_scenario_27(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -3128,7 +3069,6 @@ def test_scenario_27(
         assert spied_extract_conflicting_nodes.call_count == 2
         assert spied_combined_requirements.call_count == 2
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 1
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -3146,7 +3086,6 @@ def test_scenario_28(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -3204,7 +3143,6 @@ def test_scenario_28(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -3222,7 +3160,6 @@ def test_scenario_29(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -3335,7 +3272,6 @@ def test_scenario_29(
         assert spied_extract_conflicting_nodes.call_count == 1
         assert spied_combined_requirements.call_count == 1
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 7
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -3353,7 +3289,6 @@ def test_scenario_30(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Fail to compute packages for the following graph.
@@ -3414,7 +3349,6 @@ def test_scenario_30(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 0
         assert spied_extract_ordered_packages.call_count == 0
 
 
@@ -3432,7 +3366,6 @@ def test_scenario_31(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Fail to compute packages for the following graph.
@@ -3520,7 +3453,6 @@ def test_scenario_31(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 2
         assert spied_extract_ordered_packages.call_count == 0
 
 
@@ -3538,7 +3470,6 @@ def test_scenario_32(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Fail to compute packages for the following graph.
@@ -3631,7 +3562,6 @@ def test_scenario_32(
         assert spied_extract_conflicting_nodes.call_count == 1
         assert spied_combined_requirements.call_count == 2
         assert spied_extract_conflicting_requirements.call_count == 1
-        assert spied_relink_parents.call_count == 2
         assert spied_extract_ordered_packages.call_count == 0
 
 
@@ -3649,7 +3579,6 @@ def test_scenario_33(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -3795,7 +3724,6 @@ def test_scenario_33(
         assert spied_extract_conflicting_nodes.call_count == 2
         assert spied_combined_requirements.call_count == 4
         assert spied_extract_conflicting_requirements.call_count == 1
-        assert spied_relink_parents.call_count == 1
         assert spied_extract_ordered_packages.call_count == 1
 
 
@@ -3813,7 +3741,6 @@ def test_scenario_34(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -3877,10 +3804,10 @@ def test_scenario_34(
         resolver.compute_packages([Requirement("A[V3]"), Requirement("C")])
 
     assert (
-        "Impossible to compute graph combination due to "
-        "incompatible requirements within variant group:\n"
-        "  * A[V2] \t[C]\n"
-        "  * A[V3] \t[root]"
+        "The dependency graph could not be resolved due to the following "
+        "error(s):\n"
+        "  * root: Requirement 'A[V3]' can not be satisfied once "
+        "'A[V3]==1.0.0' is removed from the graph."
     ) in str(error.value)
 
     # Check spied functions / methods
@@ -3898,7 +3825,6 @@ def test_scenario_34(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 2
         assert spied_extract_ordered_packages.call_count == 0
 
 
@@ -3916,7 +3842,6 @@ def test_scenario_35(
     spied_extract_conflicting_nodes,
     spied_combined_requirements,
     spied_extract_conflicting_requirements,
-    spied_relink_parents,
     spied_extract_ordered_packages
 ):
     """Compute packages for the following graph.
@@ -4010,11 +3935,10 @@ def test_scenario_35(
         ])
 
     assert (
-        "Impossible to compute graph combination due to "
-        "incompatible requirements within variant group:\n"
-        "  * A \t[root]\n"
-        "  * A[V2] \t[C]\n"
-        "  * A[V3] \t[D==0.1.0]"
+        "The dependency graph could not be resolved due to the following "
+        "error(s):\n"
+        "  * C: Requirement 'A[V2]' can not be satisfied once 'A[V2]==1.0.0' "
+        "is removed from the graph."
     ) in str(error.value)
 
     # Check spied functions / methods
@@ -4032,5 +3956,4 @@ def test_scenario_35(
         assert spied_extract_conflicting_nodes.call_count == 0
         assert spied_combined_requirements.call_count == 0
         assert spied_extract_conflicting_requirements.call_count == 0
-        assert spied_relink_parents.call_count == 3
         assert spied_extract_ordered_packages.call_count == 0
