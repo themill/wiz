@@ -375,8 +375,8 @@ class Resolver(object):
             least one node cannot be replaced.
 
         """
-        # Record replacement mapping for debugging purposes.
         replacement = {}
+        operations = []
 
         for identifier in identifiers:
             self._logger.debug(
@@ -392,7 +392,7 @@ class Resolver(object):
                     "Impossible to fetch another version for conflicting "
                     "package '{}'".format(identifier)
                 )
-                return False
+                continue
 
             # Extract combined requirement to node and modify it to exclude
             # current package version.
@@ -412,20 +412,27 @@ class Resolver(object):
                     "package '{}' with following "
                     "request: '{}'".format(identifier, requirement)
                 )
-                return False
+                continue
 
-            # Remove conflicting node from graph.
-            graph.remove_node(identifier)
+            # Record resulting operation tuple to process replacement.
+            operations.append((node, packages, requirement))
 
-            # Add new node version to graph.
+            # Record replacement logic for debugging purposes.
+            replacement[identifier] = [p.identifier for p in packages]
+
+        # If no conflicting nodes could be replaced, give up now.
+        if len(operations) == 0:
+            return False
+
+        # Step 1: Add new node versions to graph.
+        for _, packages, requirement in operations:
             for package in packages:
                 graph.update_from_package(package, requirement)
 
-            # Relink nodes.
+        # Step 2: Remove conflicting nodes from graph.
+        for node, _, _ in operations:
+            graph.remove_node(node.identifier)
             graph.relink_parents(node)
-
-            # Record resulting replacement
-            replacement[identifier] = [p.identifier for p in packages]
 
         self._logger.debug(
             "Create new graph with new nodes:\n"
