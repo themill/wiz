@@ -610,7 +610,7 @@ class Resolver(object):
 
             # Query packages from combined requirement.
             packages = self._extract_packages(
-                requirement, graph, [node] + conflicting_nodes, conflicts
+                requirement, graph, [node] + conflicting_nodes
             )
             if packages is None:
                 continue
@@ -657,16 +657,8 @@ class Resolver(object):
 
             self._prune_graph(graph)
 
-    def _extract_packages(
-        self, requirement, graph, nodes, conflicting_identifiers
-    ):
+    def _extract_packages(self, requirement, graph, nodes):
         """Return packages extracted from combined *requirement*.
-
-        If no packages could be extracted, *nodes* parent identifiers are
-        extracted from *graph* to ensure that they are not listed as
-        *conflicts*. If this is the case, the error is discarded and None is
-        returned. Otherwise, :exc:`wiz.exception.GraphResolutionError` is
-        raised.
 
         :param requirement: Instance of
             :class:`packaging.requirements.Requirement`.
@@ -675,8 +667,8 @@ class Resolver(object):
 
         :param nodes: List of :class:`Node` instances.
 
-        :param conflicting_identifiers: List of node identifiers conflicting
-            in *graph*.
+        :raise: :exc:`wiz.exception.GraphResolutionError` if no packages have
+            been extracted.
 
         :return: List of :class:`~wiz.package.Package` instances, or None.
 
@@ -687,17 +679,6 @@ class Resolver(object):
             )
         except wiz.exception.RequestNotFound:
             conflict_mappings = extract_conflicting_requirements(graph, nodes)
-            parents = set(
-                identifier
-                for mapping in conflict_mappings
-                for identifier in mapping["identifiers"]
-            )
-
-            # Discard conflicting nodes if parents are themselves
-            # conflicting.
-            if len(parents.intersection(conflicting_identifiers)) > 0:
-                return
-
             _raise_node_conflicts(conflict_mappings)
 
         else:
