@@ -8,6 +8,7 @@ import os
 import time
 import textwrap
 import re
+import functools
 
 import click
 import six
@@ -1491,7 +1492,7 @@ def display_command_mapping(
     for command, identifier in sorted(command_mapping.items()):
         versions = sorted(
                         package_mapping[identifier].keys(),
-                        cmp=wiz.utility.compare_semver,
+                        key=functools.cmp_to_key(wiz.utility.compare_semver),
                         reverse=True
                    )
 
@@ -1592,7 +1593,7 @@ def display_package_mapping(
     for identifier in sorted(package_mapping.keys()):
         versions = sorted(
                         package_mapping[identifier].keys(),
-                        cmp=wiz.utility.compare_semver,
+                        key=functools.cmp_to_key(wiz.utility.compare_semver),
                         reverse=True
                    )
 
