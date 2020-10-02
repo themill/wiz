@@ -1489,9 +1489,11 @@ def display_command_mapping(
     success = False
 
     for command, identifier in sorted(command_mapping.items()):
-        versions = sorted(package_mapping[identifier].keys(),
-                          cmp=_compare_semver,
-                          reverse=True)
+        versions = sorted(
+                        package_mapping[identifier].keys(),
+                        cmp=wiz.utility.compare_semver,
+                        reverse=True
+                   )
 
         # Filter latest version if requested.
         if not all_versions:
@@ -1588,9 +1590,11 @@ def display_package_mapping(
     success = False
 
     for identifier in sorted(package_mapping.keys()):
-        versions = sorted(package_mapping[identifier].keys(),
-                          cmp=_compare_semver,
-                          reverse=True)
+        versions = sorted(
+                        package_mapping[identifier].keys(),
+                        cmp=wiz.utility.compare_semver,
+                        reverse=True
+                   )
 
         # Filter latest version if requested.
         if not all_versions:
@@ -1972,74 +1976,3 @@ def _export_history_if_requested(click_context):
     wiz.filesystem.export(path, history, compressed=True)
     logger.info("History recorded and exported in '{}'".format(path))
 
-
-def _compare_semver(left, right):
-    """
-    Compares two semantic versions as per https://semver.org/ with a small
-    adjustment. The regex allows for missing patch versions as well as custom
-    pre-release tags. Intended to be used with Python's `sorted` function.
-
-    :param left: First semantic version to compare
-    :type left: String
-    :param right: Second semantic version to compare
-    :type right: String
-
-    :return: Returns 0 if versions are equal, -1 if left < right,
-             or 1 if left > right
-    """
-    parse_semver = re.compile(
-        (
-            r"^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)(\.(?P<patch>0|[1-9]\d*)"
-            r"(?:-?(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\."
-            r"(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?"
-            r"(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?)?$"
-        )
-    )
-    left_match = parse_semver.search(left)
-    right_match = parse_semver.search(right)
-
-    if left_match.group("major") != right_match.group("major"):
-        return int(left_match.group("major")) - int(right_match.group("major"))
-    if left_match.group("minor") != right_match.group("minor"):
-        return int(left_match.group("minor")) - int(right_match.group("minor"))
-
-    # If patch missing, assume 0
-    left_patch = int(left_match.group("patch")) if left_match.group("patch") else 0
-    right_patch = int(right_match.group("patch")) if right_match.group("patch") else 0
-    if left_patch != right_patch:
-        return left_patch - right_patch
-
-    # Non pre-release is in front of a pre-release
-    if left_match.group("prerelease") and not right_match.group("prerelease"):
-        return -1
-
-    if not left_match.group("prerelease") and right_match.group("prerelease"):
-        return 1
-
-    if left_match.group("prerelease") and right_match.group("prerelease"):
-        prerelease_match = re.compile((r"^(?P<first>[a-zA-Z]+)"
-                                       r"\.?(?P<second>[a-z0-9]+)"))
-        left_prerelease = prerelease_match.search(left_match.group("prerelease"))
-        right_prerelease = prerelease_match.search(right_match.group("prerelease"))
-
-        # If names match, compare second part, else just compare names
-        if left_prerelease.group("first") == right_prerelease.group("first"):
-            if left_prerelease.group("second") and right_prerelease.group("second"):
-                # Handle case of "alpha.beta" or "alpha.11"
-                try:
-                    return (int(left_prerelease.group("second")) -
-                            int(right_prerelease.group("second")))
-                except ValueError:
-                    if (left_prerelease.group("second") <
-                        right_prerelease.group("second")):
-                        return -1
-                    elif (left_prerelease.group("second") >
-                          right_prerelease.group("second")):
-                        return 1
-        else:
-            if left_prerelease.group("first") < right_prerelease.group("first"):
-                return -1
-            elif left_prerelease.group("first") > right_prerelease.group("first"):
-                return 1
-
-    return 0
