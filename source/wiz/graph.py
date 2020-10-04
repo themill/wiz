@@ -87,24 +87,10 @@ class Resolver(object):
         # conflicting variant node identifiers to remove before instantiation.
         self._iterator = iter([])
 
-        # Record node identifiers with error to prevent it being used in more
-        # than one combination.
-        self._node_errors = set()
-
-        # Record mapping of all conflicting identifiers found during the
-        # graph resolution failed attempts.
-        self._conflicts_mapping = {}
-
         # Record all requirement conflict tuples which contains the
         # corresponding graph and a set of conflicting identifiers. A Deque is
         # used as it is a FIFO queue.
         self._conflicts = collections.deque()
-
-        # Keep track of whether the conflict list needs to be sorted according
-        # to the latest distance mapping computed. It should always be true for
-        # the first conflict resolution loop, and be updated depending on
-        # whether the conflict list is updated.
-        self._conflicts_needs_sorting = True
 
     @property
     def definition_mapping(self):
@@ -154,9 +140,6 @@ class Resolver(object):
                 raise latest_error
 
             try:
-                combination.check_known_errors(self._node_errors)
-                combination.check_known_conflicts(self._conflicts_mapping)
-
                 return combination.compute_packages()
 
             except wiz.exception.GraphResolutionError as error:
@@ -165,14 +148,12 @@ class Resolver(object):
                     graph=combination.graph, error=error
                 )
 
-                # Extract existing invalid nodes in the graph.
-                self._node_errors.update(
-                    combination.graph.invalid_identifiers()
-                )
-
                 # Extract conflicting identifiers and requirements if possible.
                 if isinstance(error, wiz.exception.GraphConflictsError):
-                    self._record_conflicts(error)
+                    self._conflicts.extend([
+                        (mapping["graph"], mapping["identifiers"])
+                        for mapping in error.conflicts
+                    ])
 
                 # Divide the graph into new combinations if necessary
                 if isinstance(error, wiz.exception.GraphVariantsError):
@@ -262,24 +243,6 @@ class Resolver(object):
                 "Impossible to reinitiate the iterator from previous "
                 "requirement conflicts"
             )
-
-    def _record_conflicts(self, exception):
-        """Extract and record conflicts from *exception* if possible.
-
-        :param exception: Instance of :exc:`wiz.exception.GraphConflictsError`.
-
-        """
-        for mapping in exception.conflicts:
-            graph = mapping["graph"]
-            identifiers = mapping["identifiers"]
-            conflicts = mapping["conflicts"]
-
-            self._conflicts.append((graph, identifiers))
-
-            for identifier in identifiers:
-                for conflict in conflicts:
-                    self._conflicts_mapping.setdefault(identifier, {})
-                    self._conflicts_mapping[identifier][conflict] = mapping
 
     def _reset_combinations_from_conflicts(self):
         """Re-initialize iterator from recorded requirement conflicts.
@@ -459,66 +422,6 @@ class GraphCombination(object):
         if len(removed_nodes) > 0:
             self._prune_graph()
 
-    def check_known_errors(self, errors):
-        """Check whether known invalid nodes are found in combination.
-
-        If so, a :exc:`wiz.exception.GraphResolutionError` is raised and the
-        combination is skipped.
-
-        """
-        # TODO: Is is actually required?
-
-        all_identifiers = [self._graph.ROOT] + self._graph.identifiers()
-
-        # Check nodes with remaining errors.
-        identifiers = errors.intersection(all_identifiers)
-
-        if len(errors.intersection(all_identifiers)) > 0:
-            raise wiz.exception.GraphInvalidNodesError({
-                identifier: self._graph.errors(identifier)
-                for identifier in identifiers
-            })
-
-    def check_known_conflicts(self, conflicts_mapping):
-        """Check whether known unsolvable conflicts are found in combination.
-
-        If so, a :exc:`wiz.exception.GraphResolutionError` is raised and the
-        combination is skipped.
-
-        """
-        # TODO: Is is actually required?
-
-        all_identifiers = [self._graph.ROOT] + self._graph.identifiers()
-
-        for identifier in all_identifiers:
-            mapping = conflicts_mapping.get(identifier, {})
-            conflicts = set(mapping.keys())
-
-            # Check nodes with remaining conflicts.
-            remaining_conflicts = conflicts.intersection(all_identifiers)
-
-            # Raise error if conflicts are found.
-            if len(remaining_conflicts) > 0:
-                _conflict_mappings = []
-                requirements = []
-
-                for conflict in remaining_conflicts:
-                    data1 = conflicts_mapping[identifier][conflict]
-                    req1 = str(data1["requirement"])
-                    if req1 not in requirements:
-                        _conflict_mappings.append(data1)
-
-                    data2 = conflicts_mapping[conflict][identifier]
-                    req2 = str(data2["requirement"])
-                    if req2 not in requirements:
-                        _conflict_mappings.append(data2)
-
-                    requirements += [req1, req2]
-
-                raise wiz.exception.GraphConflictsError(
-                    _conflict_mappings, latest=False
-                )
-
     def compute_packages(self):
         self.resolve_conflicts()
 
@@ -694,6 +597,7 @@ class GraphCombination(object):
                 for identifier in mapping["identifiers"]
             )
 
+            # TODO: Incorrect logic: https://github.com/themill/wiz/issues/55
             # Discard conflicting nodes if parents are themselves
             # conflicting.
             if len(parents.intersection(conflicting_identifiers)) > 0:
