@@ -90,7 +90,7 @@ class Resolver(object):
         # Record all requirement conflict tuples which contains the
         # corresponding graph and a set of conflicting identifiers. A Deque is
         # used as it is a FIFO queue.
-        self._conflicts = collections.deque()
+        self._conflicting_combinations = collections.deque()
 
     @property
     def definition_mapping(self):
@@ -150,8 +150,8 @@ class Resolver(object):
 
                 # Extract conflicting identifiers and requirements if possible.
                 if isinstance(error, wiz.exception.GraphConflictsError):
-                    self._conflicts.extend([
-                        (mapping["graph"], mapping["identifiers"])
+                    self._conflicting_combinations.extend([
+                        (combination.graph, mapping["identifiers"])
                         for mapping in error.conflicts
                     ])
 
@@ -265,20 +265,17 @@ class Resolver(object):
         """
         while True:
             try:
-                graph, identifiers = self._conflicts.popleft()
+                graph, identifiers = self._conflicting_combinations.popleft()
             except IndexError:
                 return False
 
-            # To prevent mutating any copy of the instance.
-            _graph = copy.deepcopy(graph)
-
             # Iterator can be initialized only if all identifiers can be
             # replaced with lower version.
-            if not self.downgrade_conflicting_versions(_graph, identifiers):
+            if not self.downgrade_conflicting_versions(graph, identifiers):
                 continue
 
             # Reset the iterator.
-            self.reset_combinations(_graph)
+            self.reset_combinations(graph)
 
             return True
 
