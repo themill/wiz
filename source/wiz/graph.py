@@ -236,15 +236,15 @@ class Resolver(object):
 
             # If iterator is empty, check the requirement conflicts to find
             # out if a new graph could be computed with different versions.
-            if self._reset_combinations_from_conflicts():
+            if self._fetch_new_combinations():
                 return next(self._iterator)
 
             self._logger.debug(
-                "Impossible to reinitiate the iterator from previous "
-                "requirement conflicts"
+                "Impossible to find new graph combinations by downgrading "
+                "conflicting versions"
             )
 
-    def _reset_combinations_from_conflicts(self):
+    def _fetch_new_combinations(self):
         """Re-initialize iterator from recorded requirement conflicts.
 
         After exhausting all graph combinations, the requirement conflicts
@@ -274,7 +274,7 @@ class Resolver(object):
 
             # Iterator can be initialized only if all identifiers can be
             # replaced with lower version.
-            if not self._replace_versions_in_graph(_graph, identifiers):
+            if not self._downgrade_conflicting_versions(_graph, identifiers):
                 continue
 
             # Reset the iterator.
@@ -282,7 +282,7 @@ class Resolver(object):
 
             return True
 
-    def _replace_versions_in_graph(self, graph, identifiers):
+    def _downgrade_conflicting_versions(self, graph, identifiers):
         """Replace all node *identifiers* in *graph* with different versions.
 
         :param graph: Instance of :class:`Graph`.
