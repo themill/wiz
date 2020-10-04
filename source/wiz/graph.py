@@ -83,11 +83,6 @@ class Resolver(object):
         # Set of node identifiers with variants which required graph division.
         self._variant_identifiers = set()
 
-        # Record mapping indicating the shortest possible distance of each node
-        # identifier from the root level of the graph with corresponding
-        # parent node identifier.
-        self._distance_mapping = None
-
         # Iterator which yield the next graph to resolve with a list of
         # conflicting variant node identifiers to remove before instantiation.
         self._iterator = iter([])
@@ -116,6 +111,11 @@ class Resolver(object):
         """Return mapping of all available definitions."""
         return self._definition_mapping
 
+    @property
+    def variant_identifiers(self):
+        """Return set of variant identifiers used to divide graph."""
+        return self._variant_identifiers
+
     def compute_packages(self, requirements):
         """Resolve requirements graphs and return list of packages.
 
@@ -136,7 +136,7 @@ class Resolver(object):
         # Update the graph.
         graph.update_from_requirements(requirements, graph.ROOT)
 
-        self._initiate_iterator(graph)
+        self.reset_combinations(graph)
 
         # Store latest exception to raise if necessary.
         latest_error = None
@@ -145,8 +145,8 @@ class Resolver(object):
         nb_failures = 0
 
         while True:
-            graph, nodes_to_remove = self._fetch_next_combination()
-            if graph is None:
+            combination = self.fetch_next_combination()
+            if combination is None:
                 latest_error.message = (
                     "Failed to resolve graph at combination #{}:\n\n"
                     "{}".format(nb_failures, latest_error.message)
@@ -154,57 +154,35 @@ class Resolver(object):
                 raise latest_error
 
             try:
-                # Compute new graph.
-                graph = self._compute_combination(graph, nodes_to_remove)
+                combination.check_known_errors(self._node_errors)
+                combination.check_known_conflicts(self._conflicts_mapping)
 
-                # Raise error if a conflict in graph cannot be solved.
-                self._resolve_conflicts(graph)
+                return combination.compute_packages()
 
-                # Compute distance mapping if necessary.
-                distance_mapping, _ = self._fetch_distance_mapping(graph)
-
-                # Raise remaining error found in graph if necessary.
-                validate(graph, distance_mapping)
-
-                # Extract packages ordered by descending order of distance.
-                return extract_ordered_packages(graph, distance_mapping)
-
-            except wiz.exception.WizError as error:
+            except wiz.exception.GraphResolutionError as error:
                 wiz.history.record_action(
                     wiz.symbol.GRAPH_RESOLUTION_FAILURE_ACTION,
-                    graph=graph, error=error
+                    graph=combination.graph, error=error
                 )
 
                 # Extract existing invalid nodes in the graph.
-                self._node_errors.update(graph.invalid_identifiers())
+                self._node_errors.update(
+                    combination.graph.invalid_identifiers()
+                )
 
                 # Extract conflicting identifiers and requirements if possible.
-                if isinstance(error, wiz.exception.GraphResolutionError):
-                    self._update_conflicts(error)
+                if isinstance(error, wiz.exception.GraphConflictsError):
+                    self._record_conflicts(error)
+
+                # Divide the graph into new combinations if necessary
+                if isinstance(error, wiz.exception.GraphVariantsError):
+                    self.extract_combinations(combination.graph)
 
                 self._logger.debug("Failed to resolve graph: {}".format(error))
                 latest_error = error
                 nb_failures += 1
 
-    def _update_conflicts(self, exception):
-        """Extract and record conflicts from *exception* if possible.
-
-        :param exception: Instance of :exc:`wiz.exception.GraphResolutionError`.
-
-        """
-        for mapping in exception.conflicts:
-            graph = mapping["graph"]
-            identifiers = mapping["identifiers"]
-            conflicts = mapping["conflicts"]
-
-            self._conflicts.append((graph, identifiers))
-
-            for identifier in identifiers:
-                for conflict in conflicts:
-                    self._conflicts_mapping.setdefault(identifier, {})
-                    self._conflicts_mapping[identifier][conflict] = mapping
-
-    def _initiate_iterator(self, graph):
+    def reset_combinations(self, graph):
         """Initialize iterator with a *graph*.
 
         :param graph: Instance of :class:`Graph`.
@@ -216,20 +194,10 @@ class Resolver(object):
         self._iterator = iter([])
 
         # Initialize combinations or simply add graph to iterator.
-        if not self._extract_combinations(graph):
-            self._iterator = iter([(graph, [])])
+        if not self.extract_combinations(graph):
+            self._iterator = iter([GraphCombination(graph, copy_data=False)])
 
-    def _extract_combinations(self, graph):
-        """Extract possible combinations from variant conflicts in *graph*.
-
-        Return a boolean value indicating whether combination generator has been
-        added to the iterator.
-
-        :param graph: Instance of :class:`Graph`.
-
-        :return: Boolean value.
-
-        """
+    def extract_combinations(self, graph):
         variant_groups = graph.variant_groups()
         if not variant_groups:
             self._logger.debug(
@@ -239,11 +207,11 @@ class Resolver(object):
 
         # Record node identifiers from all groups to prevent dividing the graph
         # twice with the same node.
-        for group in variant_groups:
-            for identifier in group:
-                self._variant_identifiers.add(identifier)
+        self._variant_identifiers.update([
+            identifier for group in variant_groups for identifier in group
+        ])
 
-        distance_mapping, _ = self._fetch_distance_mapping(graph)
+        distance_mapping = compute_distance_mapping(graph)
 
         # Order the variant groups in ascending order of distance from the root
         # level of the graph.
@@ -272,27 +240,7 @@ class Resolver(object):
         )
         return True
 
-    def _fetch_distance_mapping(self, graph):
-        """Return tuple with distance mapping and boolean update indicator.
-
-        If no distance mapping is available, a new one is generated from
-        *graph*. The boolean update indicator is True only if a new distance
-        mapping is generated.
-
-        :param graph: Instance of :class:`Graph`.
-
-        :return: Tuple with distance mapping and boolean value.
-
-        """
-        updated = False
-
-        if self._distance_mapping is None:
-            self._distance_mapping = compute_distance_mapping(graph)
-            updated = True
-
-        return self._distance_mapping, updated
-
-    def _fetch_next_combination(self):
+    def fetch_next_combination(self):
         """Return next graph and nodes to remove from the combination iterator.
 
         :return: Next :class:`Graph` instance and list of nodes to remove from
@@ -300,29 +248,40 @@ class Resolver(object):
             as None and the node removal list will be empty.
 
         """
-        # Reset the distance mapping for new graph.
-        self._distance_mapping = None
+        try:
+            return next(self._iterator)
 
-        while True:
-            try:
-                graph, nodes_to_remove = next(self._iterator)
+        except StopIteration:
 
-                # To prevent mutating any copy of the instance.
-                return copy.deepcopy(graph), nodes_to_remove
+            # If iterator is empty, check the requirement conflicts to find
+            # out if a new graph could be computed with different versions.
+            if self._reset_combinations_from_conflicts():
+                return next(self._iterator)
 
-            except StopIteration:
+            self._logger.debug(
+                "Impossible to reinitiate the iterator from previous "
+                "requirement conflicts"
+            )
 
-                # If iterator is empty, check the requirement conflicts to find
-                # out if a new graph could be computed with different versions.
-                if not self._reset_from_conflicts():
-                    self._logger.debug(
-                        "Impossible to reinitiate the iterator from previous "
-                        "requirement conflicts"
-                    )
+    def _record_conflicts(self, exception):
+        """Extract and record conflicts from *exception* if possible.
 
-                    return None, []
+        :param exception: Instance of :exc:`wiz.exception.GraphConflictsError`.
 
-    def _reset_from_conflicts(self):
+        """
+        for mapping in exception.conflicts:
+            graph = mapping["graph"]
+            identifiers = mapping["identifiers"]
+            conflicts = mapping["conflicts"]
+
+            self._conflicts.append((graph, identifiers))
+
+            for identifier in identifiers:
+                for conflict in conflicts:
+                    self._conflicts_mapping.setdefault(identifier, {})
+                    self._conflicts_mapping[identifier][conflict] = mapping
+
+    def _reset_combinations_from_conflicts(self):
         """Re-initialize iterator from recorded requirement conflicts.
 
         After exhausting all graph combinations, the requirement conflicts
@@ -356,7 +315,7 @@ class Resolver(object):
                 continue
 
             # Reset the iterator.
-            self._initiate_iterator(_graph)
+            self.reset_combinations(_graph)
 
             return True
 
@@ -448,81 +407,91 @@ class Resolver(object):
 
         return True
 
-    def _compute_combination(self, graph, nodes_to_remove):
-        """Compute and return processed *graph* from combination.
 
-        :param graph: Instance of :class:`Graph`.
+class GraphCombination(object):
 
-        :param nodes_to_remove: List of node identifiers that should be
-            removed from the graph as part of this combination.
-
-        :raise: :exc:`wiz.exception.GraphResolutionError` if the parent of nodes
-            removed cannot be re-linked to any existing node in the graph.
-
-        :return: Processed instance of :class:`Graph`.
-
-        """
-        self._logger.debug(
-            "Generate graph without following nodes: {!r}".format(
-                nodes_to_remove
-            )
-        )
+    def __init__(self, graph, nodes_to_remove=None, copy_data=True):
+        self._logger = wiz.logging.Logger(__name__ + ".GraphCombination")
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_COMBINATION_EXTRACTION_ACTION,
-            graph=graph, nodes_to_remove=nodes_to_remove
+            combination=graph, nodes_to_remove=nodes_to_remove
         )
 
+        # Record mapping indicating the shortest possible distance of each node
+        # identifier from the root level of the graph with corresponding
+        # parent node identifier.
+        self._distance_mapping = None
+
+        # Keep track of whether the conflict list needs to be sorted according
+        # to the latest distance mapping computed. It should always be true for
+        # the first conflict resolution loop, and be updated depending on
+        # whether the conflict list is updated.
+        self._conflicts_needs_sorting = True
+
+        # Ensure that input data is not mutated if requested.
+        if copy_data:
+            graph = copy.deepcopy(graph)
+
+        # Record graph which will be used in this combination.
+        self._graph = graph
+
+        # Remove node identifiers from graph if required.
+        if nodes_to_remove is not None:
+            self._remove_nodes(nodes_to_remove)
+
+    @property
+    def graph(self):
+        return self._graph
+
+    def _remove_nodes(self, identifiers):
         removed_nodes = []
 
-        for identifier in nodes_to_remove:
-            node = graph.node(identifier)
-            graph.remove_node(identifier)
+        for identifier in identifiers:
+            node = self._graph.node(identifier)
+            self._graph.remove_node(identifier)
             removed_nodes.append(node)
 
         for node in removed_nodes:
-            graph.relink_parents(node)
+            self._graph.relink_parents(node)
 
         # Prune unreachable and invalid nodes if necessary.
         if len(removed_nodes) > 0:
-            self._prune_graph(graph)
+            self._prune_graph()
 
-        # Raise if combination contains known error or conflicts.
-        self._check_errors_in_combination(graph)
-        self._check_conflicts_in_combination(graph)
-
-        return graph
-
-    def _check_errors_in_combination(self, graph):
-        """Check whether known errors are found in *graph* combination.
+    def check_known_errors(self, errors):
+        """Check whether known invalid nodes are found in combination.
 
         If so, a :exc:`wiz.exception.GraphResolutionError` is raised and the
         combination is skipped.
 
-        :param graph: Instance of :class:`Graph`.
-
         """
-        all_identifiers = [graph.ROOT] + graph.identifiers()
+        # TODO: Is is actually required?
+
+        all_identifiers = [self._graph.ROOT] + self._graph.identifiers()
 
         # Check nodes with remaining errors.
-        identifiers = self._node_errors.intersection(all_identifiers)
+        identifiers = errors.intersection(all_identifiers)
 
-        if len(self._node_errors.intersection(all_identifiers)) > 0:
-            _raise_node_errors(graph, identifiers)
+        if len(errors.intersection(all_identifiers)) > 0:
+            raise wiz.exception.GraphInvalidNodesError({
+                identifier: self._graph.errors(identifier)
+                for identifier in identifiers
+            })
 
-    def _check_conflicts_in_combination(self, graph):
-        """Check whether known conflicts are found in *graph* combination.
+    def check_known_conflicts(self, conflicts_mapping):
+        """Check whether known unsolvable conflicts are found in combination.
 
         If so, a :exc:`wiz.exception.GraphResolutionError` is raised and the
         combination is skipped.
 
-        :param graph: Instance of :class:`Graph`.
-
         """
-        all_identifiers = [graph.ROOT] + graph.identifiers()
+        # TODO: Is is actually required?
+
+        all_identifiers = [self._graph.ROOT] + self._graph.identifiers()
 
         for identifier in all_identifiers:
-            mapping = self._conflicts_mapping.get(identifier, {})
+            mapping = conflicts_mapping.get(identifier, {})
             conflicts = set(mapping.keys())
 
             # Check nodes with remaining conflicts.
@@ -530,28 +499,40 @@ class Resolver(object):
 
             # Raise error if conflicts are found.
             if len(remaining_conflicts) > 0:
-                mappings = []
+                _conflict_mappings = []
                 requirements = []
 
                 for conflict in remaining_conflicts:
-                    data1 = self._conflicts_mapping[identifier][conflict]
+                    data1 = conflicts_mapping[identifier][conflict]
                     req1 = str(data1["requirement"])
                     if req1 not in requirements:
-                        mappings.append(data1)
+                        _conflict_mappings.append(data1)
 
-                    data2 = self._conflicts_mapping[conflict][identifier]
+                    data2 = conflicts_mapping[conflict][identifier]
                     req2 = str(data2["requirement"])
                     if req2 not in requirements:
-                        mappings.append(data2)
+                        _conflict_mappings.append(data2)
 
                     requirements += [req1, req2]
 
-                _raise_node_conflicts(mappings, record_conflicts=False)
+                raise wiz.exception.GraphConflictsError(
+                    _conflict_mappings, latest=False
+                )
 
-    def _resolve_conflicts(self, graph):
+    def compute_packages(self):
+        self.resolve_conflicts()
+
+        # Compute distance mapping if necessary.
+        distance_mapping, _ = self._fetch_distance_mapping()
+
+        # Raise remaining error found in graph if necessary.
+        validate(self._graph, distance_mapping)
+
+        # Extract packages ordered by descending order of distance.
+        return extract_ordered_packages(self._graph, distance_mapping)
+
+    def resolve_conflicts(self):
         """Attempt to resolve all conflicts in *graph*.
-
-        :param graph: Instance of :class:`Graph`.
 
         :raise: :exc:`wiz.exception.GraphResolutionError` if several node
             requirements are incompatible.
@@ -564,7 +545,7 @@ class Resolver(object):
             removed cannot be re-linked to any existing node in the graph.
 
         """
-        conflicts = graph.conflicting_identifiers()
+        conflicts = self._graph.conflicting_identifiers()
         if not conflicts:
             self._logger.debug("No conflicts in the graph.")
             return
@@ -573,7 +554,7 @@ class Resolver(object):
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_VERSION_CONFLICTS_IDENTIFICATION_ACTION,
-            graph=graph, conflicting=conflicts
+            graph=self._graph, conflicting=conflicts
         )
 
         while True:
@@ -583,7 +564,7 @@ class Resolver(object):
                 return
 
             # Sort conflicting nodes by distances.
-            distance_mapping, updated = self._fetch_distance_mapping(graph)
+            distance_mapping, updated = self._fetch_distance_mapping()
 
             if updated or self._conflicts_needs_sorting:
                 conflicts = updated_by_distance(conflicts, distance_mapping)
@@ -591,7 +572,7 @@ class Resolver(object):
             # Pick up the furthest conflicting node identifier so that nearest
             # node have priorities.
             identifier = conflicts.pop()
-            node = graph.node(identifier)
+            node = self._graph.node(identifier)
 
             # If node has already been removed from graph, ignore.
             if node is None:
@@ -599,20 +580,21 @@ class Resolver(object):
 
             # Identify nodes conflicting with this node. Return if none are
             # found.
-            conflicting_nodes = extract_conflicting_nodes(graph, node)
+            conflicting_nodes = extract_conflicting_nodes(self._graph, node)
             if len(conflicting_nodes) == 0:
                 continue
 
             # Compute valid node identifier from combined requirements.
             requirement = combined_requirements(
-                graph, [node] + conflicting_nodes
+                self._graph, [node] + conflicting_nodes
             )
 
             # Query packages from combined requirement.
             packages = self._extract_packages(
-                requirement, graph, [node] + conflicting_nodes
+                requirement, self._graph, [node] + conflicting_nodes, conflicts
             )
             if packages is None:
+                # remaining_conflicts.append(identifier)
                 continue
 
             # If current node is not part of the extracted packages, it will be
@@ -622,7 +604,7 @@ class Resolver(object):
                 for package in packages
             ):
                 self._logger.debug("Remove '{}'".format(node.identifier))
-                graph.remove_node(node.identifier)
+                self._graph.remove_node(node.identifier)
 
                 # The graph changed in a way that can affect the distances of
                 # other nodes, so the distance mapping cached is discarded.
@@ -630,7 +612,7 @@ class Resolver(object):
 
                 # Update the graph if necessary
                 updated = self._add_packages_to_graph(
-                    graph, packages, requirement, conflicting_nodes
+                    self._graph, packages, requirement, conflicting_nodes
                 )
 
                 # Indicate whether the conflict list order must be updated.
@@ -639,26 +621,50 @@ class Resolver(object):
                 # Relink node parents to package identifiers. It needs to be
                 # done before possible combination extraction otherwise newly
                 # added nodes will remained parent-less and will be discarded.
-                graph.relink_parents(node, requirement=requirement)
+                self._graph.relink_parents(node, requirement=requirement)
 
                 # Update conflict list if necessary.
                 if updated:
                     conflicts = list(
-                        set(conflicts + graph.conflicting_identifiers())
+                        set(conflicts + self._graph.conflicting_identifiers())
                     )
 
                     # If the updated graph contains conflicting variants, the
                     # relevant combination must be extracted, therefore the
                     # current graph combination cannot be resolved.
-                    if self._extract_combinations(graph):
-                        raise wiz.exception.GraphResolutionError(
-                            "The current graph has conflicting variants."
-                        )
+                    if len(self._graph.variant_groups()) > 0:
+                        raise wiz.exception.GraphVariantsError()
 
-            self._prune_graph(graph)
+            self._prune_graph()
 
-    def _extract_packages(self, requirement, graph, nodes):
+    def _fetch_distance_mapping(self):
+        """Return tuple with distance mapping and boolean update indicator.
+
+        If no distance mapping is available, a new one is generated from
+        *graph*. The boolean update indicator is True only if a new distance
+        mapping is generated.
+
+        :return: Tuple with distance mapping and boolean value.
+
+        """
+        updated = False
+
+        if self._distance_mapping is None:
+            self._distance_mapping = compute_distance_mapping(self._graph)
+            updated = True
+
+        return self._distance_mapping, updated
+
+    def _extract_packages(
+        self, requirement, graph, nodes, conflicting_identifiers
+    ):
         """Return packages extracted from combined *requirement*.
+
+        If no packages could be extracted, *nodes* parent identifiers are
+        extracted from *graph* to ensure that they are not listed as
+        *conflicts*. If this is the case, the error is discarded and None is
+        returned. Otherwise, :exc:`wiz.exception.GraphResolutionError` is
+        raised.
 
         :param requirement: Instance of
             :class:`packaging.requirements.Requirement`.
@@ -666,6 +672,9 @@ class Resolver(object):
         :param graph: Instance of :class:`Graph`.
 
         :param nodes: List of :class:`Node` instances.
+
+        :param conflicting_identifiers: List of node identifiers conflicting
+            in *graph*.
 
         :raise: :exc:`wiz.exception.GraphResolutionError` if no packages have
             been extracted.
@@ -675,11 +684,22 @@ class Resolver(object):
         """
         try:
             packages = wiz.package.extract(
-                requirement, self._definition_mapping
+                requirement, self._graph.resolver.definition_mapping
             )
         except wiz.exception.RequestNotFound:
             conflict_mappings = extract_conflicting_requirements(graph, nodes)
-            _raise_node_conflicts(conflict_mappings)
+            parents = set(
+                identifier
+                for mapping in conflict_mappings
+                for identifier in mapping["identifiers"]
+            )
+
+            # Discard conflicting nodes if parents are themselves
+            # conflicting.
+            if len(parents.intersection(conflicting_identifiers)) > 0:
+                return
+
+            raise wiz.exception.GraphConflictsError(conflict_mappings)
 
         else:
             return packages
@@ -720,7 +740,7 @@ class Resolver(object):
         identifiers.difference_update([n.identifier for n in conflicting_nodes])
 
         # Filter out identifiers which already led to graph division.
-        identifiers.difference_update(self._variant_identifiers)
+        identifiers.difference_update(self._graph.resolver.variant_identifiers)
 
         if len(identifiers):
             self._logger.debug(
@@ -734,7 +754,7 @@ class Resolver(object):
 
         return False
 
-    def _prune_graph(self, graph):
+    def _prune_graph(self):
         """Remove unreachable and invalid nodes from *graph*.
 
         The pruning process is done as follow:
@@ -748,98 +768,26 @@ class Resolver(object):
 
         3. Step 1 and 2 are repeated until the distance mapping is not updated.
 
-        :param graph: Instance of :class:`Graph`.
-
         """
         while True:
-            distance_mapping, updated = self._fetch_distance_mapping(graph)
+            distance_mapping, updated = self._fetch_distance_mapping()
             if not updated:
                 return
 
             # Remove all unreachable nodes if the graph has been updated. Reset
             # the distance mapping if nodes have been removed.
-            if trim_unreachable_from_graph(graph, distance_mapping):
+            if trim_unreachable_from_graph(self._graph, distance_mapping):
                 self._distance_mapping = None
 
             # Fetch updated distance mapping or return now.
-            distance_mapping, updated = self._fetch_distance_mapping(graph)
+            distance_mapping, updated = self._fetch_distance_mapping()
             if not updated:
                 return
 
             # Search and trim invalid nodes from graph if conditions are no
             # longer fulfilled. If so reset the distance mapping.
-            while trim_invalid_from_graph(graph, distance_mapping):
+            while trim_invalid_from_graph(self._graph, distance_mapping):
                 self._distance_mapping = None
-
-
-def _raise_node_errors(graph, identifiers):
-    """Raise exception for node *identifier* in *graph* containing errors.
-
-    :param graph: Instance of :class:`Graph`.
-
-    :param identifiers: List of node identifiers.
-
-    :raise: :exc:`wiz.exception.GraphResolutionError`.
-
-    """
-    raise wiz.exception.GraphResolutionError(
-        "The dependency graph could not be resolved due to the following "
-        "error(s):\n"
-        "{}\n".format(
-            "\n".join([
-                "  * {}: {}".format(identifier, exception)
-                for identifier in identifiers
-                for exception in graph.errors(identifier)
-            ])
-        )
-    )
-
-
-def _raise_node_conflicts(mappings, record_conflicts=True):
-    """Raise exception for list of conflict *mappings*.
-
-    :param mappings: List of conflict mappings in the form of
-        ::
-
-            [
-                {
-                    "requirement": Requirement("foo >=0.1.0, <1"),
-                    "identifiers": {"bar", "bim"},
-                    "conflicts": {"baz"},
-                    "graph": Graph()
-                },
-                {
-                    "requirement": Requirement("foo >2"),
-                    "identifiers": {"baz"},
-                    "conflicts": {"bar", "bim"},
-                    "graph": Graph()
-                }
-            ]
-
-    :param record_conflicts: Indicate whether conflict *mappings* should be
-        recorded within the exception raised.
-
-    :raise: :exc:`wiz.exception.GraphResolutionError`.
-
-    """
-    def _format(mapping):
-        """Display conflicting *mapping*."""
-        identifiers = list(mapping["identifiers"])[:3]
-        if len(mapping["identifiers"]) > 3:
-            others = len(mapping["identifiers"]) - 3
-            identifiers += ["+{} packages...".format(others)]
-
-        return "  * {requirement} \t[{identifiers}]".format(
-            requirement=mapping["requirement"],
-            identifiers=", ".join(identifiers)
-        )
-
-    raise wiz.exception.GraphResolutionError(
-        "The dependency graph could not be resolved due to the "
-        "following requirement conflicts:\n"
-        "{}\n".format("\n".join([_format(m) for m in mappings])),
-        conflicts=mappings if record_conflicts else []
-    )
 
 
 def compute_distance_mapping(graph):
@@ -931,7 +879,7 @@ def generate_variant_combinations(graph, variant_groups):
     The trimming combination represents the inverse of this product, so that it
     identify the nodes to remove at each graph division::
 
-        >>> variant_groups = [
+        >>> groups = [
         ...     ["foo[V3]", "foo[V2]", "foo[V1]"],
         ...     ["bar[V1]==1", "bar[V2]==1", "bar[V2]==2"]
         ... ]
@@ -981,9 +929,11 @@ def generate_variant_combinations(graph, variant_groups):
     for combination in itertools.product(*_groups):
         _identifiers = [_id for _group in combination for _id in _group]
 
-        yield (
-            graph,
-            tuple([_id for _id in identifiers if _id not in _identifiers])
+        yield GraphCombination(
+            graph, nodes_to_remove=[
+                _id for _id in identifiers
+                if _id not in _identifiers
+            ]
         )
 
 
@@ -1312,7 +1262,9 @@ def validate(graph, distance_mapping):
     # Pick up nearest node identifier which contains errors.
     identifier = identifiers[0]
 
-    _raise_node_errors(graph, [identifier])
+    raise wiz.exception.GraphInvalidNodesError(
+        {identifier: graph.errors(identifier)}
+    )
 
 
 def extract_ordered_packages(graph, distance_mapping):
@@ -1418,46 +1370,19 @@ class Graph(object):
         )
         result._namespace_count = copy.deepcopy(self._namespace_count)
         result._error_mapping = copy.deepcopy(self._error_mapping)
+        result._invalid_identifiers = copy.deepcopy(self._invalid_identifiers)
 
         memo[id(self)] = result
         return result
 
     @property
-    def identifier(self):
-        """Return unique graph identifier."""
-        return self._identifier
+    def resolver(self):
+        """Return resolver used to create Graph.
 
-    def identifiers(self):
-        """Return all node identifiers in the graph."""
-        return list(self._node_mapping.keys())
-
-    def data(self):
-        """Return corresponding dictionary.
-
-        :return: Mapping containing all information about the graph.
+        :return: Instance of :class:`Resolver`.
 
         """
-        return {
-            "identifier": self.identifier,
-            "node_mapping": {
-                _id: node.data() for _id, node
-                in self._node_mapping.items()
-            },
-            "link_mapping": copy.deepcopy(self._link_mapping),
-            "identifiers_per_definition": {
-                _id: sorted(node_ids) for _id, node_ids
-                in self._identifiers_per_definition.items()
-            },
-            "conditioned_nodes": [
-                stored_node.data() for stored_node in self._conditioned_nodes
-            ],
-            "variants_per_definition": self._variants_per_definition,
-            "namespace_count": dict(self._namespace_count),
-            "error_mapping": {
-                _id: [str(exception) for exception in exceptions]
-                for _id, exceptions in self._error_mapping.items()
-            },
-        }
+        return self._resolver
 
     def node(self, identifier):
         """Return node from *identifier*.
@@ -1476,6 +1401,10 @@ class Graph(object):
 
         """
         return list(self._node_mapping.values())
+
+    def identifiers(self):
+        """Return all node identifiers in the graph."""
+        return list(self._node_mapping.keys())
 
     def exists(self, identifier):
         """Indicate whether the node *identifier* is in the graph.
@@ -1820,7 +1749,7 @@ class Graph(object):
             try:
                 packages = (
                     wiz.package.extract(
-                        condition, self._resolver.definition_mapping
+                        condition, self.resolver.definition_mapping
                     ) for condition in stored_node.package.conditions
                 )
 
@@ -1894,7 +1823,7 @@ class Graph(object):
         # Get packages from requirement.
         try:
             packages = wiz.package.extract(
-                requirement, self._resolver.definition_mapping,
+                requirement, self.resolver.definition_mapping,
                 namespace_counter=self._namespace_count
             )
 
@@ -1967,8 +1896,8 @@ class Graph(object):
                         "weight": index + 1
                     })
 
-            except wiz.exception.InvalidRequirement as error:
-                raise wiz.exception.IncorrectDefinition(
+            except wiz.exception.RequirementError as error:
+                raise wiz.exception.DefinitionError(
                     "Package '{}' is incorrect [{}]"
                     .format(package.identifier, error)
                 )
@@ -2038,7 +1967,7 @@ class Graph(object):
             instances.
 
         """
-        mapping = self._resolver.definition_mapping.get("__namespace__", {})
+        mapping = self.resolver.definition_mapping.get("__namespace__", {})
 
         namespaces = []
 
@@ -2182,6 +2111,34 @@ class Graph(object):
                     _node.identifier, _identifier, _requirement,
                     weight=weight
                 )
+
+    def data(self):
+        """Return corresponding dictionary.
+
+        :return: Mapping containing all information about the graph.
+
+        """
+        return {
+            "node_mapping": {
+                _id: node.data() for _id, node
+                in self._node_mapping.items()
+            },
+            "link_mapping": copy.deepcopy(self._link_mapping),
+            "identifiers_per_definition": {
+                _id: sorted(node_ids) for _id, node_ids
+                in self._identifiers_per_definition.items()
+            },
+            "conditioned_nodes": [
+                stored_node.data() for stored_node in self._conditioned_nodes
+            ],
+            "variants_per_definition": self._variants_per_definition,
+            "namespace_count": dict(self._namespace_count),
+            "error_mapping": {
+                _id: [str(exception) for exception in exceptions]
+                for _id, exceptions in self._error_mapping.items()
+            },
+            "invalid_identifiers": self._invalid_identifiers
+        }
 
 
 class Node(object):
