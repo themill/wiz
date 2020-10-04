@@ -36,7 +36,7 @@ def get_requirement(content):
     try:
         return Requirement(content)
     except InvalidRequirement:
-        raise wiz.exception.InvalidRequirement(
+        raise wiz.exception.RequirementError(
             "The requirement '{}' is incorrect".format(content)
         )
 
@@ -54,7 +54,7 @@ def get_version(content):
     try:
         return Version(content)
     except InvalidVersion:
-        raise wiz.exception.InvalidVersion(
+        raise wiz.exception.VersionError(
             "The version '{}' is incorrect".format(content)
         )
 
@@ -195,7 +195,7 @@ def extract_version_ranges(requirement):
             _update_version_ranges((_min_version, _max_version), version_ranges)
 
         else:
-            raise wiz.exception.InvalidRequirement(
+            raise wiz.exception.RequirementError(
                 "Operator '{}' is not accepted for requirement '{}'".format(
                     specifier.operator, requirement
                 )
@@ -227,7 +227,7 @@ def _update_maximum_version(version, ranges):
     _ranges = []
 
     if ranges[0][0] is not None and version < ranges[0][0]:
-        raise wiz.exception.InvalidRequirement(
+        raise wiz.exception.RequirementError(
             "The requirement is incorrect as maximum value '{}' cannot be set "
             "when minimum value is '{}'.".format(
                 ".".join(str(v) for v in version),
@@ -270,7 +270,7 @@ def _update_minimum_version(version, ranges):
     _ranges = []
 
     if ranges[-1][1] is not None and version > ranges[-1][1]:
-        raise wiz.exception.InvalidRequirement(
+        raise wiz.exception.RequirementError(
             "The requirement is incorrect as minimum value '{}' cannot be set "
             "when maximum value is '{}'.".format(
                 ".".join(str(v) for v in version),
@@ -344,7 +344,7 @@ def _update_version_ranges(excluded, ranges):
             _ranges.append((excluded[1], r[1]))
 
     if len(_ranges) == 0:
-        raise wiz.exception.InvalidRequirement(
+        raise wiz.exception.RequirementError(
             "The requirement is incorrect as excluded version range '{}-{}' "
             "makes all other versions unreachable.".format(
                 ".".join(str(v) for v in excluded[0]),

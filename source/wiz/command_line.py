@@ -1814,7 +1814,7 @@ def _query_version(default="0.1.0"):
 
         try:
             version = wiz.utility.get_version(content)
-        except wiz.exception.InvalidVersion as error:
+        except wiz.exception.VersionError as error:
             logger.warning(error)
             continue
         else:

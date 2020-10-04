@@ -219,7 +219,9 @@ def query(requirement, definition_mapping, namespace_counter=None):
         identifier = identifier[2:]
 
     if identifier not in definition_mapping:
-        raise wiz.exception.RequestNotFound(requirement)
+        raise wiz.exception.RequestNotFound(
+            "The requirement '{}' could not be resolved.".format(requirement)
+        )
 
     definition = None
 
@@ -259,7 +261,9 @@ def query(requirement, definition_mapping, namespace_counter=None):
             break
 
     if definition is None:
-        raise wiz.exception.RequestNotFound(requirement)
+        raise wiz.exception.RequestNotFound(
+            "The requirement '{}' could not be resolved.".format(requirement)
+        )
 
     return definition
 
