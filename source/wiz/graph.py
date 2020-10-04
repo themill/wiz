@@ -53,7 +53,7 @@ class Resolver(object):
         >>> graph.update_from_requirements(
         ...     Requirement("foo"), Requirement("bar"), Requirement("baz")
         ... )
-        >>> graph.variant_groups()
+        >>> graph.conflicting_variants()
 
         [
             ["foo[V3]", "foo[V2]", "foo[V1]"],
@@ -180,7 +180,7 @@ class Resolver(object):
             self._iterator = iter([GraphCombination(graph, copy_data=False)])
 
     def extract_combinations(self, graph):
-        variant_groups = graph.variant_groups()
+        variant_groups = graph.conflicting_variants()
         if not variant_groups:
             self._logger.debug(
                 "No package variants are conflicting in the graph."
@@ -391,12 +391,6 @@ class GraphCombination(object):
         # parent node identifier.
         self._distance_mapping = None
 
-        # Keep track of whether the conflict list needs to be sorted according
-        # to the latest distance mapping computed. It should always be true for
-        # the first conflict resolution loop, and be updated depending on
-        # whether the conflict list is updated.
-        self._conflicts_needs_sorting = True
-
         # Remove node identifiers from graph if required.
         if nodes_to_remove is not None:
             self._remove_nodes(nodes_to_remove)
@@ -446,7 +440,7 @@ class GraphCombination(object):
             removed cannot be re-linked to any existing node in the graph.
 
         """
-        conflicts = self._graph.conflicting_identifiers()
+        conflicts = self._graph.conflicting_versions()
         if not conflicts:
             self._logger.debug("No conflicts in the graph.")
             return
@@ -458,17 +452,8 @@ class GraphCombination(object):
             graph=self._graph, conflicting=conflicts
         )
 
-        while True:
-            # If no nodes are left in the queue, exit the loop. The graph
-            # is officially resolved. Hooray!
-            if not conflicts:
-                return
-
-            # Sort conflicting nodes by distances.
-            distance_mapping, updated = self._fetch_distance_mapping()
-
-            if updated or self._conflicts_needs_sorting:
-                conflicts = updated_by_distance(conflicts, distance_mapping)
+        while len(conflicts) > 0:
+            conflicts = self._sort_identifiers(conflicts)
 
             # Pick up the furthest conflicting node identifier so that nearest
             # node have priorities.
@@ -513,11 +498,8 @@ class GraphCombination(object):
 
                 # Update the graph if necessary
                 updated = self._add_packages_to_graph(
-                    self._graph, packages, requirement, conflicting_nodes
+                    packages, requirement, conflicting_nodes
                 )
-
-                # Indicate whether the conflict list order must be updated.
-                self._conflicts_needs_sorting = updated
 
                 # Relink node parents to package identifiers. It needs to be
                 # done before possible combination extraction otherwise newly
@@ -525,18 +507,27 @@ class GraphCombination(object):
                 self._graph.relink_parents(node, requirement=requirement)
 
                 # Update conflict list if necessary.
-                if updated:
-                    conflicts = list(
-                        set(conflicts + self._graph.conflicting_identifiers())
+                if updated and len(conflicts):
+                    conflicts = self._sort_identifiers(
+                        set(conflicts + self._graph.conflicting_versions())
                     )
 
-                    # If the updated graph contains conflicting variants, the
-                    # relevant combination must be extracted, therefore the
-                    # current graph combination cannot be resolved.
-                    if len(self._graph.variant_groups()) > 0:
-                        raise wiz.exception.GraphVariantsError()
+                # If the updated graph contains conflicting variants, the
+                # relevant combination must be extracted, therefore the
+                # current graph combination cannot be resolved.
+                if updated and len(self._graph.conflicting_variants()) > 0:
+                    raise wiz.exception.GraphVariantsError()
 
             self._prune_graph()
+
+    def _sort_identifiers(self, identifiers):
+        distance_mapping, updated = self._fetch_distance_mapping()
+
+        # Sort conflicting nodes by distances.
+        if updated:
+            identifiers = updated_by_distance(identifiers, distance_mapping)
+
+        return identifiers
 
     def _fetch_distance_mapping(self):
         """Return tuple with distance mapping and boolean update indicator.
@@ -606,17 +597,13 @@ class GraphCombination(object):
         else:
             return packages
 
-    def _add_packages_to_graph(
-        self, graph, packages, requirement, conflicting_nodes
-    ):
+    def _add_packages_to_graph(self, packages, requirement, conflicting_nodes):
         """Add extracted *packages* not represented as conflict to *graph*.
 
         A package is not added to the *graph* if:
 
         * It is already represented as a conflicted nodes.
         * It has already led to a graph division.
-
-        :param graph: Instance of :class:`Graph`.
 
         :param packages: List of :class:`~wiz.package.Package` instances
             that has been extracted from *requirement*. The list contains more
@@ -636,21 +623,23 @@ class GraphCombination(object):
             with at least one package.
 
         """
-        identifiers = set([p.identifier for p in packages])
+        # Filter out identifiers already set as conflict, and identifiers which
+        # already led to graph division.
+        back_list = set([node.identifier for node in conflicting_nodes])
+        back_list.update(self._graph.resolver.conflicting_variants)
 
-        # Filter out identifiers already set as conflict.
-        identifiers.difference_update([n.identifier for n in conflicting_nodes])
+        # Compute new packages.
+        _packages = [
+            package for package in packages
+            if package.identifier not in back_list
+        ]
 
-        # Filter out identifiers which already led to graph division.
-        identifiers.difference_update(self._graph.resolver.conflicting_variants)
-
-        if len(identifiers):
-            self._logger.debug(
-                "Add to graph: {}".format(", ".join(identifiers))
-            )
+        if len(_packages):
+            identifier = ", ".join([package.identifier for package in packages])
+            self._logger.debug("Add to graph: {}".format(identifier))
 
             for package in packages:
-                graph.update_from_package(package, requirement)
+                self._graph.update_from_package(package, requirement)
 
             return True
 
@@ -952,7 +941,7 @@ def extract_conflicting_nodes(graph, node):
     :return: List of conflicting :class:`Node`.
 
     """
-    nodes = (graph.node(_id) for _id in graph.conflicting_identifiers())
+    nodes = (graph.node(_id) for _id in graph.conflicting_versions())
 
     # Extract definition identifier
     definition_identifier = node.definition.qualified_identifier
@@ -1365,7 +1354,7 @@ class Graph(object):
 
         return identifiers
 
-    def variant_groups(self):
+    def conflicting_variants(self):
         """Return variant groups in graphs.
 
         A variant group list should contain at least more than one node
@@ -1415,15 +1404,41 @@ class Graph(object):
 
         return groups
 
-    def variant_identifiers(self, definition_identifier):
-        """Return variant identifiers corresponding to definition identifier.
+    def conflicting_versions(self):
+        """Return conflicting nodes identifiers.
 
-        :param definition_identifier: Qualified identifier of definition.
+        A conflict appears when several nodes are found for a single
+        definition identifier.
 
-        :return: List of :class:`Node` instances.
+        :return: List of node identifiers.
 
         """
-        return self._variants_per_definition.get(definition_identifier, [])
+        conflicting = []
+
+        for identifiers in self._identifiers_per_definition.values():
+            _identifiers = [
+                identifier for identifier in identifiers
+                if self.exists(identifier)
+            ]
+
+            if len(_identifiers) > 1:
+                conflicting += _identifiers
+
+        return conflicting
+
+    def invalid_identifiers(self):
+        """Return list of invalid node identifiers within the graph.
+
+        Invalid nodes have requirements that can never be satisfied in any
+        graph combinations.
+
+        :return: List of node identifiers.
+
+        """
+        return [
+            identifier for identifier in self._invalid_identifiers
+            if identifier == self.ROOT or self.exists(identifier)
+        ]
 
     def outcoming(self, identifier):
         """Return outcoming node identifiers for node *identifier*.
@@ -1462,42 +1477,6 @@ class Graph(object):
 
         """
         return self._link_mapping[parent_identifier][identifier]["requirement"]
-
-    def conflicting_identifiers(self):
-        """Return conflicting nodes identifiers.
-
-        A conflict appears when several nodes are found for a single
-        definition identifier.
-
-        :return: List of node identifiers.
-
-        """
-        conflicting = []
-
-        for identifiers in self._identifiers_per_definition.values():
-            _identifiers = [
-                identifier for identifier in identifiers
-                if self.exists(identifier)
-            ]
-
-            if len(_identifiers) > 1:
-                conflicting += _identifiers
-
-        return conflicting
-
-    def invalid_identifiers(self):
-        """Return list of invalid node identifiers within the graph.
-
-        Invalid nodes have requirements that can never be satisfied in any
-        graph combinations.
-
-        :return: List of node identifiers.
-
-        """
-        return [
-            identifier for identifier in self._invalid_identifiers
-            if identifier == self.ROOT or self.exists(identifier)
-        ]
 
     def error_identifiers(self):
         """Return list of existing node identifiers which encapsulate an error.
