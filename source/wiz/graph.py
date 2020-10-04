@@ -236,7 +236,7 @@ class Resolver(object):
 
             # If iterator is empty, check the requirement conflicts to find
             # out if a new graph could be computed with different versions.
-            if self._fetch_new_combinations():
+            if self.fetch_new_combinations():
                 return next(self._iterator)
 
             self._logger.debug(
@@ -244,7 +244,7 @@ class Resolver(object):
                 "conflicting versions"
             )
 
-    def _fetch_new_combinations(self):
+    def fetch_new_combinations(self):
         """Re-initialize iterator from recorded requirement conflicts.
 
         After exhausting all graph combinations, the requirement conflicts
@@ -274,7 +274,7 @@ class Resolver(object):
 
             # Iterator can be initialized only if all identifiers can be
             # replaced with lower version.
-            if not self._downgrade_conflicting_versions(_graph, identifiers):
+            if not self.downgrade_conflicting_versions(_graph, identifiers):
                 continue
 
             # Reset the iterator.
@@ -282,7 +282,7 @@ class Resolver(object):
 
             return True
 
-    def _downgrade_conflicting_versions(self, graph, identifiers):
+    def downgrade_conflicting_versions(self, graph, identifiers):
         """Replace all node *identifiers* in *graph* with different versions.
 
         :param graph: Instance of :class:`Graph`.
@@ -381,6 +381,13 @@ class GraphCombination(object):
             combination=graph, nodes_to_remove=nodes_to_remove
         )
 
+        # Ensure that input data is not mutated if requested.
+        if copy_data:
+            graph = copy.deepcopy(graph)
+
+        # Record graph which will be used in this combination.
+        self._graph = graph
+
         # Record mapping indicating the shortest possible distance of each node
         # identifier from the root level of the graph with corresponding
         # parent node identifier.
@@ -391,13 +398,6 @@ class GraphCombination(object):
         # the first conflict resolution loop, and be updated depending on
         # whether the conflict list is updated.
         self._conflicts_needs_sorting = True
-
-        # Ensure that input data is not mutated if requested.
-        if copy_data:
-            graph = copy.deepcopy(graph)
-
-        # Record graph which will be used in this combination.
-        self._graph = graph
 
         # Remove node identifiers from graph if required.
         if nodes_to_remove is not None:
