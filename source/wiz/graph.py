@@ -80,12 +80,13 @@ class Resolver(object):
         # All available definitions.
         self._definition_mapping = definition_mapping
 
-        # Set of node identifiers with variants which required graph division.
-        self._variant_identifiers = set()
-
         # Iterator which yield the next graph to resolve with a list of
         # conflicting variant node identifiers to remove before instantiation.
         self._iterator = iter([])
+
+        # Record all node identifiers with conflicting variants which led to a
+        # graph division.
+        self._conflicting_variants = set()
 
         # Record all requirement conflict tuples which contains the
         # corresponding graph and a set of conflicting identifiers. A Deque is
@@ -98,9 +99,9 @@ class Resolver(object):
         return self._definition_mapping
 
     @property
-    def variant_identifiers(self):
+    def conflicting_variants(self):
         """Return set of variant identifiers used to divide graph."""
-        return self._variant_identifiers
+        return self._conflicting_variants
 
     def compute_packages(self, requirements):
         """Resolve requirements graphs and return list of packages.
@@ -188,7 +189,7 @@ class Resolver(object):
 
         # Record node identifiers from all groups to prevent dividing the graph
         # twice with the same node.
-        self._variant_identifiers.update([
+        self._conflicting_variants.update([
             identifier for group in variant_groups for identifier in group
         ])
 
@@ -641,7 +642,7 @@ class GraphCombination(object):
         identifiers.difference_update([n.identifier for n in conflicting_nodes])
 
         # Filter out identifiers which already led to graph division.
-        identifiers.difference_update(self._graph.resolver.variant_identifiers)
+        identifiers.difference_update(self._graph.resolver.conflicting_variants)
 
         if len(identifiers):
             self._logger.debug(
