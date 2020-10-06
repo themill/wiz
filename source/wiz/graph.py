@@ -1914,7 +1914,7 @@ class Node(object):
         """Return corresponding dictionary."""
         return {
             "package": self._package.data(),
-            "parents": list(self._parent_identifiers)
+            "parents": sorted(self._parent_identifiers)
         }
 
 
