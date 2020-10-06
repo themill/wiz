@@ -964,7 +964,7 @@ def test_discover_without_disabled(mocked_load, registries, definitions):
     ValueError,
     TypeError,
     wiz.exception.WizError,
-    wiz.exception.IncorrectDefinition
+    wiz.exception.DefinitionError
 ], ids=[
     "io-error",
     "value-error",
@@ -2023,12 +2023,10 @@ def test_definition_with_error():
     """Fail to create a definition with error."""
     data = {}
 
-    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+    with pytest.raises(wiz.exception.DefinitionError) as error:
         wiz.definition.Definition(data)
 
-    assert (
-        "IncorrectDefinition: 'identifier' is required."
-    ) in str(error)
+    assert "'identifier' is required." in str(error)
 
 
 def test_definition_with_version_error():
@@ -2038,12 +2036,10 @@ def test_definition_with_version_error():
         "version": "!!!"
     }
 
-    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+    with pytest.raises(wiz.exception.DefinitionError) as error:
         wiz.definition.Definition(data)
 
-    assert (
-        "IncorrectDefinition: Invalid version: '!!!'"
-    ) in str(error)
+    assert "Invalid version: '!!!'" in str(error)
 
 
 def test_definition_with_requirement_error():
@@ -2057,12 +2053,10 @@ def test_definition_with_requirement_error():
 
     definition = wiz.definition.Definition(data)
 
-    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+    with pytest.raises(wiz.exception.RequirementError) as error:
         print(definition.requirements)
 
-    assert (
-        "InvalidRequirement: The requirement 'envA -!!!' is incorrect"
-    ) in str(error)
+    assert "The requirement 'envA -!!!' is incorrect" in str(error)
 
 
 def test_definition_with_condition_error():
@@ -2076,12 +2070,10 @@ def test_definition_with_condition_error():
 
     definition = wiz.definition.Definition(data)
 
-    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+    with pytest.raises(wiz.exception.RequirementError) as error:
         print(definition.conditions)
 
-    assert (
-        "InvalidRequirement: The requirement 'envA -!!!' is incorrect"
-    ) in str(error)
+    assert "The requirement 'envA -!!!' is incorrect" in str(error)
 
 
 def test_definition_with_variant_requirement_error():
@@ -2100,12 +2092,10 @@ def test_definition_with_variant_requirement_error():
 
     definition = wiz.definition.Definition(data)
 
-    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+    with pytest.raises(wiz.exception.RequirementError) as error:
         print(definition.variants[0].requirements)
 
-    assert (
-        "InvalidRequirement: The requirement 'envA -!!!' is incorrect"
-    ) in str(error)
+    assert "The requirement 'envA -!!!' is incorrect" in str(error)
 
 
 def test_definition_set():

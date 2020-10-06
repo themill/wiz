@@ -239,7 +239,7 @@ def test_extract_version_ranges(requirement, expected):
 ])
 def test_extract_version_ranges_error(requirement, expected):
     """Fail to extract version ranges from requirements."""
-    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+    with pytest.raises(wiz.exception.RequirementError) as error:
         wiz.utility.extract_version_ranges(requirement)
 
     assert expected in str(error)
@@ -292,7 +292,7 @@ def test_update_minimum_version(version, ranges, expected):
 
 def test_update_minimum_version_fail():
     """Fail to update range with minimum value."""
-    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+    with pytest.raises(wiz.exception.RequirementError) as error:
         wiz.utility._update_minimum_version((1, 2, 3), [(None, (1,))])
 
     assert (
@@ -348,7 +348,7 @@ def test_update_maximum_version(version, ranges, expected):
 
 def test_update_maximum_version_fail():
     """Fail to update range with maximum value."""
-    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+    with pytest.raises(wiz.exception.RequirementError) as error:
         wiz.utility._update_maximum_version((1, 2, 3), [((2,), None)])
 
     assert (
@@ -410,7 +410,7 @@ def test_update_version_ranges(excluded, ranges, expected):
 
 def test_update_version_ranges_fail():
     """Fail to update version ranges from excluded version range."""
-    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+    with pytest.raises(wiz.exception.RequirementError) as error:
         wiz.utility._update_version_ranges(((0,), (3,)), [((1,), (2,))])
 
     assert (

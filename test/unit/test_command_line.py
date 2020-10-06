@@ -2580,7 +2580,12 @@ def test_install_overwrite_existing(
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
     mocked_registry_install_to_path.side_effect = (
-        wiz.exception.DefinitionsExist(["foo [0.1.0]"]),
+        wiz.exception.DefinitionsExist([
+            wiz.definition.Definition({
+                "identifier": "foo",
+                "version": "0.1.0"
+            })
+        ]),
         None
     )
     mocked_click_confirm.return_value = True
@@ -2609,7 +2614,7 @@ def test_install_overwrite_existing(
 
     mocked_click_confirm.assert_called_once_with(
         "1 definition(s) already exist in registry.\n"
-        "- foo [0.1.0]\n"
+        "- 'foo' [0.1.0]\n"
         "Overwrite?"
     )
 
@@ -2627,7 +2632,12 @@ def test_install_skip_existing(
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
     mocked_registry_install_to_path.side_effect = (
-        wiz.exception.DefinitionsExist(["foo [0.1.0]"]),
+        wiz.exception.DefinitionsExist([
+            wiz.definition.Definition({
+                "identifier": "foo",
+                "version": "0.1.0"
+            })
+        ]),
     )
     mocked_click_confirm.return_value = False
 
@@ -2649,7 +2659,7 @@ def test_install_skip_existing(
 
     mocked_click_confirm.assert_called_once_with(
         "1 definition(s) already exist in registry.\n"
-        "- foo [0.1.0]\n"
+        "- 'foo' [0.1.0]\n"
         "Overwrite?"
     )
 
@@ -2821,7 +2831,9 @@ def test_edit(
         "{\"identifier\": \"foo\",\"version\": \"0.1.0\"}"
     )
     mocked_click_confirm.return_value = True
-    mocked_filesystem_export.side_effect = [wiz.exception.FileExists(), None]
+    mocked_filesystem_export.side_effect = [
+        wiz.exception.FileExists("/path"), None
+    ]
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["edit", "/path/to/foo.json"])
@@ -2985,7 +2997,7 @@ def test_edit_skip_existing(
     )
 
     mocked_click_confirm.return_value = False
-    mocked_filesystem_export.side_effect = wiz.exception.FileExists()
+    mocked_filesystem_export.side_effect = wiz.exception.FileExists("/path")
 
     runner = CliRunner()
     result = runner.invoke(
