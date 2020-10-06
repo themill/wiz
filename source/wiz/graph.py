@@ -417,11 +417,11 @@ class GraphCombination(object):
     def compute_packages(self):
         self.resolve_conflicts()
 
+        # Raise remaining error found in graph if necessary.
+        self.validate()
+
         # Compute distance mapping if necessary.
         distance_mapping = self._fetch_distance_mapping()
-
-        # Raise remaining error found in graph if necessary.
-        validate(self._graph, distance_mapping)
 
         # Extract packages ordered by descending order of distance.
         return extract_ordered_packages(self._graph, distance_mapping)
@@ -528,6 +528,23 @@ class GraphCombination(object):
                     remaining_conflicts, self._graph.conflicting_versions(),
                     circular_conflicts=circular_conflicts
                 )
+
+    def validate(self):
+        errors = self._graph.error_identifiers()
+        if not errors:
+            self._logger.debug("No errors in the graph.")
+            return
+
+        self._logger.debug("Errors: {}".format(", ".join(errors)))
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_ERROR_IDENTIFICATION_ACTION,
+            graph=self._graph, errors=errors
+        )
+
+        raise wiz.exception.GraphInvalidNodesError(
+            {error: self._graph.errors(error) for error in errors}
+        )
 
     def _update_conflict_queue(self, *args, circular_conflicts=None):
         distance_mapping = self._fetch_distance_mapping()
@@ -1130,53 +1147,6 @@ def extract_conflicting_requirements(graph, nodes):
     return conflicts
 
 
-def validate(graph, distance_mapping):
-    """Ensure that *graph* does not have remaining errors.
-
-    The identifier nearest to the :attr:`root <Graph.ROOT>` level are analyzed
-    first, and the first exception raised under one this identifier will be
-    raised.
-
-    :param graph: Instance of :class:`Graph`.
-
-    :param distance_mapping: Mapping indicating the shortest possible distance
-        of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-        *graph* with its corresponding parent node identifier.
-
-    :raise: :exc:`wiz.exception.GraphResolutionError` if an error attached
-        to the :attr:`root <Graph.ROOT>` level or any reachable node is found.
-
-    """
-    logger = wiz.logging.Logger(__name__ + ".validate")
-
-    errors = graph.error_identifiers()
-    if not errors:
-        logger.debug("No errors in the graph.")
-        return
-
-    logger.debug("Errors: {}".format(", ".join(errors)))
-
-    wiz.history.record_action(
-        wiz.symbol.GRAPH_ERROR_IDENTIFICATION_ACTION,
-        graph=graph, errors=errors
-    )
-
-    # Updating identifier list from distance mapping automatically filter out
-    # unreachable nodes.
-    identifiers = updated_by_distance(errors, distance_mapping)
-    if len(identifiers) == 0:
-        raise wiz.exception.GraphResolutionError(
-            "The dependency graph does not contain any valid packages."
-        )
-
-    # Pick up nearest node identifier which contains errors.
-    identifier = identifiers[0]
-
-    raise wiz.exception.GraphInvalidNodesError(
-        {identifier: graph.errors(identifier)}
-    )
-
-
 def extract_ordered_packages(graph, distance_mapping):
     """Return sorted list of packages from *graph*.
 
@@ -1263,9 +1233,6 @@ class Graph(object):
         # List of exception raised per node identifier.
         self._error_mapping = {}
 
-        # Set of node identifiers which will fail in all graph combinations.
-        self._invalid_identifiers = set()
-
     def __deepcopy__(self, memo):
         """Ensure that only necessary element are copied in the new graph."""
         result = Graph(self._resolver)
@@ -1280,7 +1247,6 @@ class Graph(object):
         )
         result._namespace_count = copy.deepcopy(self._namespace_count)
         result._error_mapping = copy.deepcopy(self._error_mapping)
-        result._invalid_identifiers = copy.deepcopy(self._invalid_identifiers)
 
         memo[id(self)] = result
         return result
@@ -1444,20 +1410,6 @@ class Graph(object):
                 conflicting += _identifiers
 
         return conflicting
-
-    def invalid_identifiers(self):
-        """Return list of invalid node identifiers within the graph.
-
-        Invalid nodes have requirements that can never be satisfied in any
-        graph combinations.
-
-        :return: List of node identifiers.
-
-        """
-        return [
-            identifier for identifier in self._invalid_identifiers
-            if identifier == self.ROOT or self.exists(identifier)
-        ]
 
     def outcoming(self, identifier):
         """Return outcoming node identifiers for node *identifier*.
@@ -1730,10 +1682,6 @@ class Graph(object):
         except wiz.exception.WizError as error:
             self._error_mapping.setdefault(parent_identifier, [])
             self._error_mapping[parent_identifier].append(error)
-
-            # Record node as invalid as requirements can never be satisfied in
-            # any graph combinations.
-            self._invalid_identifiers.add(parent_identifier)
             return
 
         # Create a node for each package if necessary.
@@ -2036,8 +1984,7 @@ class Graph(object):
             "error_mapping": {
                 _id: [str(exception) for exception in exceptions]
                 for _id, exceptions in self._error_mapping.items()
-            },
-            "invalid_identifiers": self._invalid_identifiers
+            }
         }
 
 
