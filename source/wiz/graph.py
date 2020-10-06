@@ -141,7 +141,10 @@ class Resolver(object):
                 raise latest_error
 
             try:
-                return combination.compute_packages()
+                combination.resolve_conflicts()
+                combination.validate()
+
+                return combination.extract_packages()
 
             except wiz.exception.GraphResolutionError as error:
                 wiz.history.record_action(
@@ -414,18 +417,6 @@ class GraphCombination(object):
         if len(removed_nodes) > 0:
             self._prune_graph()
 
-    def compute_packages(self):
-        self.resolve_conflicts()
-
-        # Raise remaining error found in graph if necessary.
-        self.validate()
-
-        # Compute distance mapping if necessary.
-        distance_mapping = self._fetch_distance_mapping()
-
-        # Extract packages ordered by descending order of distance.
-        return extract_ordered_packages(self._graph, distance_mapping)
-
     def resolve_conflicts(self):
         """Attempt to resolve all conflicts in *graph*.
 
@@ -546,6 +537,44 @@ class GraphCombination(object):
             {error: self._graph.errors(error) for error in errors}
         )
 
+    def extract_packages(self):
+        distance_mapping = self._fetch_distance_mapping()
+
+        # Remove unreachable nodes.
+        nodes = (
+            node for node in self._graph.nodes()
+            if distance_mapping.get(node.identifier, {}).get("distance")
+            is not None
+        )
+
+        def _compare(node):
+            """Sort identifiers per distance and parent."""
+            # TODO: Identifier should probably be used as fallback instead of
+            #  parent...
+            return (
+                distance_mapping[node.identifier]["distance"],
+                distance_mapping[node.identifier]["parent"]
+            )
+
+        # Update node order by distance.
+        nodes = sorted(nodes, key=_compare, reverse=True)
+
+        # Extract packages from nodes.
+        packages = [node.package for node in nodes]
+
+        self._logger.debug(
+            "Sorted packages: {}".format(
+                ", ".join([package.identifier for package in packages])
+            )
+        )
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_PACKAGES_EXTRACTION_ACTION,
+            graph=self._graph, packages=packages
+        )
+
+        return packages
+
     def _update_conflict_queue(self, *args, circular_conflicts=None):
         distance_mapping = self._fetch_distance_mapping()
 
@@ -565,8 +594,7 @@ class GraphCombination(object):
         )
 
         def _compare(identifier):
-            """Sort identifiers per distance and identifier.
-            """
+            """Sort identifiers per distance and identifier."""
             return distance_mapping[identifier]["distance"], identifier
 
         # Update order by distance.
@@ -933,37 +961,6 @@ def trim_invalid_from_graph(graph, distance_mapping):
     return nodes_removed
 
 
-def updated_by_distance(identifiers, distance_mapping):
-    """Return updated node *identifiers* according to *distance_mapping*.
-
-    The node identifier list returned is sorted in ascending order of distance
-    from the :attr:`root <Graph.ROOT>` level of the graph.
-
-    If a node identifier does not have a distance, it means that it cannot be
-    reached from the root level. It will then not be included in the list
-    returned.
-
-    :param identifiers: List of node identifiers.
-
-    :param distance_mapping: Mapping indicating the shortest possible distance
-        of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-        *graph* with its corresponding parent node identifier.
-
-    :return: Sorted list of node identifiers.
-
-    """
-    identifiers = (
-        _id for _id in identifiers
-        if distance_mapping.get(_id, {}).get("distance") is not None
-    )
-
-    return sorted(
-        identifiers,
-        key=lambda _id: (-distance_mapping[_id]["distance"], _id),
-        reverse=True
-    )
-
-
 def extract_conflicting_nodes(graph, node):
     """Return all nodes from *graph* conflicting with *node*.
 
@@ -1145,52 +1142,6 @@ def extract_conflicting_requirements(graph, nodes):
         })
 
     return conflicts
-
-
-def extract_ordered_packages(graph, distance_mapping):
-    """Return sorted list of packages from *graph*.
-
-    Best matching :class:`~wiz.package.Package` instances are
-    extracted from each node instance and added to the list.
-
-    :param graph: Instance of :class:`Graph`.
-
-    :param distance_mapping: Mapping indicating the shortest possible distance
-        of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-        *graph* with its corresponding parent node identifier.
-
-    :return: Sorted list of :class:`~wiz.package.Package` instances.
-
-    """
-    logger = wiz.logging.Logger(__name__ + ".extract_ordered_packages")
-
-    packages = []
-
-    def _sorting_keywords(_node):
-        """Return tuple with distance and parent to sort nodes."""
-        mapping = distance_mapping[_node.identifier]
-        return mapping.get("distance") or 0, mapping.get("parent"), 0
-
-    for node in sorted(graph.nodes(), key=_sorting_keywords, reverse=True):
-        # Skip node if unreachable.
-        if distance_mapping[node.identifier].get("distance") is None:
-            continue
-
-        # Otherwise keep the package.
-        packages.append(node.package)
-
-    logger.debug(
-        "Sorted packages: {}".format(
-            ", ".join([package.identifier for package in packages])
-        )
-    )
-
-    wiz.history.record_action(
-        wiz.symbol.GRAPH_PACKAGES_EXTRACTION_ACTION,
-        graph=graph, packages=packages
-    )
-
-    return packages
 
 
 class Graph(object):
