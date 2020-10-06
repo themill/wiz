@@ -172,10 +172,7 @@ def install_to_path(definitions, registry_path, overwrite=False):
 
     # Fail if overwrite is False and some definition paths exist in registry.
     if len(existing_definition_map) > 0 and overwrite is False:
-        raise wiz.exception.DefinitionsExist([
-            wiz.utility.compute_label(definition)
-            for definition in existing_definition_map.values()
-        ])
+        raise wiz.exception.DefinitionsExist(existing_definition_map.values())
 
     # Release definitions
     for definition in _definitions:
