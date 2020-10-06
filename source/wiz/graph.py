@@ -1229,10 +1229,6 @@ class Graph(object):
         """
         return list(self._node_mapping.values())
 
-    def identifiers(self):
-        """Return all node identifiers in the graph."""
-        return list(self._node_mapping.keys())
-
     def exists(self, identifier):
         """Indicate whether the node *identifier* is in the graph.
 
