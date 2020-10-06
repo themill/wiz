@@ -523,21 +523,20 @@ class GraphCombination(object):
                 )
 
     def validate(self):
-        errors = self._graph.error_identifiers()
-        if not errors:
+        error_mapping = self._graph.errors()
+        if len(error_mapping) == 0:
             self._logger.debug("No errors in the graph.")
             return
 
-        self._logger.debug("Errors: {}".format(", ".join(errors)))
+        _errors = ", ".join(sorted(error_mapping.keys()))
+        self._logger.debug("Errors: {}".format(_errors))
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_ERROR_IDENTIFICATION_ACTION,
-            graph=self._graph, errors=errors
+            graph=self._graph, errors=error_mapping.keys()
         )
 
-        raise wiz.exception.GraphInvalidNodesError(
-            {error: self._graph.errors(error) for error in errors}
-        )
+        raise wiz.exception.GraphInvalidNodesError(error_mapping)
 
     def extract_packages(self):
         distance_mapping = self._fetch_distance_mapping()
@@ -1276,6 +1275,23 @@ class Graph(object):
 
         return conflicting
 
+    def errors(self):
+        """Return all encapsulated errors per existing node identifier.
+
+        :return: Mapping if the form of
+            ::
+                {
+                    "foo": "The requirement 'bar' could not be resolved.",
+                    ...
+                }
+
+        """
+        return {
+            identifier: error for identifier, error
+            in self._error_mapping.items()
+            if identifier == self.ROOT or self.exists(identifier)
+        }
+
     def outcoming(self, identifier):
         """Return outcoming node identifiers for node *identifier*.
 
@@ -1313,27 +1329,6 @@ class Graph(object):
 
         """
         return self._link_mapping[parent_identifier][identifier]["requirement"]
-
-    def error_identifiers(self):
-        """Return list of existing node identifiers which encapsulate an error.
-
-        :return: List of node identifiers.
-
-        """
-        return [
-            identifier for identifier in self._error_mapping.keys()
-            if identifier == self.ROOT or self.exists(identifier)
-        ]
-
-    def errors(self, identifier):
-        """Return list of exceptions raised for node *identifier*.
-
-        :param identifier: Unique identifier of the targeted node.
-
-        :return: List of :exc:`wiz.exception.GraphResolutionError` instances.
-
-        """
-        return self._error_mapping.get(identifier)
 
     def update_from_requirements(self, requirements, parent_identifier):
         """Update graph from *requirements*.
