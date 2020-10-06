@@ -415,7 +415,7 @@ class GraphCombination(object):
 
         # Prune unreachable and invalid nodes if necessary.
         if len(removed_nodes) > 0:
-            self._prune_graph()
+            self.prune_graph()
 
     def resolve_conflicts(self):
         """Attempt to resolve all conflicts in *graph*.
@@ -514,7 +514,7 @@ class GraphCombination(object):
                     raise wiz.exception.GraphVariantsError()
 
                 # Prune unnecessary nodes and reset distance mapping.
-                self._prune_graph()
+                self.prune_graph()
 
                 # Update list of remaining conflicts if necessary.
                 remaining_conflicts = self._update_conflict_queue(
@@ -707,7 +707,7 @@ class GraphCombination(object):
 
         return False
 
-    def _prune_graph(self):
+    def prune_graph(self):
         """Remove unreachable and invalid nodes from *graph*.
 
         The pruning process is done as follow:
@@ -722,29 +722,56 @@ class GraphCombination(object):
         3. Step 1 and 2 are repeated until the distance mapping is not updated.
 
         """
-        distance_mapping = self._fetch_distance_mapping(force_update=True)
-
         while True:
             # Remove all unreachable nodes if the graph has been updated.
-            if not trim_unreachable_from_graph(self._graph, distance_mapping):
+            if not self._trim_unreachable_from_graph():
                 return
-
-            # Reset the distance mapping as nodes have been removed.
-            distance_mapping = self._fetch_distance_mapping(force_update=True)
 
             # Search and trim invalid nodes from graph if conditions are no
             # longer fulfilled. Several passes might be necessary.
-            node_removed = False
-
-            while trim_invalid_from_graph(self._graph, distance_mapping):
-                node_removed = True
-
-            # Return if no nodes have been removed.
-            if not node_removed:
+            if not self._trim_unfulfilled_conditions_from_graph():
                 return
 
-            # Reset the distance mapping as nodes have been removed.
+    def _trim_unreachable_from_graph(self):
+        distance_mapping = self._fetch_distance_mapping(force_update=True)
+
+        nodes_removed = False
+
+        for node in self._graph.nodes():
+            if distance_mapping[node.identifier].get("distance") is None:
+                self._logger.debug("Remove '{}'".format(node.identifier))
+                self._graph.remove_node(node.identifier)
+                nodes_removed = True
+
+        return nodes_removed
+
+    def _trim_unfulfilled_conditions_from_graph(self):
+        needs_update = True
+        nodes_removed = []
+
+        while needs_update:
             distance_mapping = self._fetch_distance_mapping(force_update=True)
+            needs_update = False
+
+            for node in self._graph.nodes():
+                # Check if all conditions are still fulfilled.
+                for requirement in node.package.conditions:
+                    identifiers = self._graph.find(requirement)
+
+                    if len(identifiers) == 0 or any(
+                        distance_mapping.get(_id, {}).get("distance") is None
+                        for _id in identifiers
+                    ):
+                        self._logger.debug(
+                            "Remove '{}' as conditions are no longer "
+                            "fulfilled".format(node.identifier)
+                        )
+                        self._graph.remove_node(node.identifier)
+                        nodes_removed.append(node.identifier)
+                        needs_update = True
+                        break
+
+        return len(nodes_removed) > 0
 
 
 def compute_distance_mapping(graph):
@@ -892,75 +919,6 @@ def generate_variant_combinations(graph, variant_groups):
                 if _id not in _identifiers
             ]
         )
-
-
-def trim_unreachable_from_graph(graph, distance_mapping):
-    """Remove unreachable nodes from *graph* based on *distance_mapping*.
-
-    If a node within the *graph* does not have a distance, it means that it
-    cannot be reached from the :attr:`root <Graph.ROOT>` level of the *graph*.
-    It will then be lazily removed from the graph (the links are preserved to
-    save on computing time).
-
-    :param graph: Instance of :class:`Graph`.
-
-    :param distance_mapping: Mapping indicating the shortest possible distance
-        of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-        *graph* with its corresponding parent node identifier.
-
-    :return: Boolean value indicating whether nodes have been removed.
-
-    """
-    logger = wiz.logging.Logger(__name__ + ".trim_unreachable_from_graph")
-
-    nodes_removed = False
-
-    for node in graph.nodes():
-        if distance_mapping[node.identifier].get("distance") is None:
-            logger.debug("Remove '{}'".format(node.identifier))
-            graph.remove_node(node.identifier)
-            nodes_removed = True
-
-    return nodes_removed
-
-
-def trim_invalid_from_graph(graph, distance_mapping):
-    """Remove invalid nodes from *graph* based on *distance_mapping*.
-
-    If any packages that a node is conditioned by are no longer in the graph,
-    the node is marked invalid and must be removed from the graph.
-
-    :param graph: Instance of :class:`Graph`.
-
-    :param distance_mapping: Mapping indicating the shortest possible distance
-        of each node identifier from the :attr:`root <Graph.ROOT>` level of the
-        *graph* with its corresponding parent node identifier.
-
-    :return: Boolean value indicating whether invalid nodes have been removed.
-
-    """
-    logger = wiz.logging.Logger(__name__ + ".trim_invalid_from_graph")
-
-    nodes_removed = False
-
-    for node in graph.nodes():
-        # Check if all conditions are still fulfilled.
-        for requirement in node.package.conditions:
-            identifiers = graph.find(requirement)
-
-            if len(identifiers) == 0 or any(
-                distance_mapping.get(identifier, {}).get("distance") is None
-                for identifier in identifiers
-            ):
-                logger.debug(
-                    "Remove '{}' as conditions are no longer "
-                    "fulfilled".format(node.identifier)
-                )
-                graph.remove_node(node.identifier)
-                nodes_removed = True
-                break
-
-    return nodes_removed
 
 
 def combined_requirements(graph, nodes):
