@@ -418,7 +418,7 @@ class GraphCombination(object):
         self.resolve_conflicts()
 
         # Compute distance mapping if necessary.
-        distance_mapping, _ = self._fetch_distance_mapping()
+        distance_mapping = self._fetch_distance_mapping()
 
         # Raise remaining error found in graph if necessary.
         validate(self._graph, distance_mapping)
@@ -452,36 +452,48 @@ class GraphCombination(object):
             graph=self._graph, conflicting=conflicts
         )
 
-        while len(conflicts) > 0:
-            conflicts = self._sort_identifiers(conflicts)
+        # Keep track of conflicts dependent on other conflicts.
+        circular_conflicts = set()
 
-            # Pick up the furthest conflicting node identifier so that nearest
-            # node have priorities.
-            identifier = conflicts.pop()
-            node = self._graph.node(identifier)
+        # Sort conflicts per distance to ensure breath-first resolution.
+        remaining_conflicts = self._update_conflict_queue(conflicts)
+
+        while len(remaining_conflicts) > 0:
+            conflict_identifier = remaining_conflicts.popleft()
+            node = self._graph.node(conflict_identifier)
 
             # If node has already been removed from graph, ignore.
             if node is None:
                 continue
 
-            # Identify nodes conflicting with this node. Return if none are
-            # found.
+            # Identify group of nodes conflicting with this node.
             conflicting_nodes = extract_conflicting_nodes(self._graph, node)
             if len(conflicting_nodes) == 0:
                 continue
 
-            # Compute valid node identifier from combined requirements.
+            # Compute combined requirements from all conflicting nodes.
             requirement = combined_requirements(
                 self._graph, [node] + conflicting_nodes
             )
 
-            # Query packages from combined requirement.
-            packages = self._extract_packages(
-                requirement, self._graph, [node] + conflicting_nodes, conflicts
-            )
-            if packages is None:
-                # remaining_conflicts.append(identifier)
-                continue
+            # Query common packages from this combined requirements.
+            try:
+                packages = self._extract_packages(
+                    requirement, [node] + conflicting_nodes
+                )
+            except wiz.exception.GraphConflictsError as error:
+                # Push conflict at the end of the queue if it has conflicting
+                # parents that should be handled first.
+                if (
+                    len(error.parents.intersection(remaining_conflicts))
+                    and conflict_identifier not in circular_conflicts
+                ):
+                    circular_conflicts.add(conflict_identifier)
+                    remaining_conflicts.append(conflict_identifier)
+                    continue
+
+                # Otherwise, raise error and give up on current combination.
+                raise
 
             # If current node is not part of the extracted packages, it will be
             # removed from the graph.
@@ -491,10 +503,6 @@ class GraphCombination(object):
             ):
                 self._logger.debug("Remove '{}'".format(node.identifier))
                 self._graph.remove_node(node.identifier)
-
-                # The graph changed in a way that can affect the distances of
-                # other nodes, so the distance mapping cached is discarded.
-                self._distance_mapping = None
 
                 # Update the graph if necessary
                 updated = self._add_packages_to_graph(
@@ -506,50 +514,71 @@ class GraphCombination(object):
                 # added nodes will remained parent-less and will be discarded.
                 self._graph.relink_parents(node, requirement=requirement)
 
-                # Update conflict list if necessary.
-                if updated and len(conflicts):
-                    conflicts = self._sort_identifiers(
-                        set(conflicts + self._graph.conflicting_versions())
-                    )
-
                 # If the updated graph contains conflicting variants, the
                 # relevant combination must be extracted, therefore the
                 # current graph combination cannot be resolved.
                 if updated and len(self._graph.conflicting_variants()) > 0:
                     raise wiz.exception.GraphVariantsError()
 
-            self._prune_graph()
+                # Prune unnecessary nodes and reset distance mapping.
+                self._prune_graph()
 
-    def _sort_identifiers(self, identifiers):
-        distance_mapping, updated = self._fetch_distance_mapping()
+                # Update list of remaining conflicts if necessary.
+                remaining_conflicts = self._update_conflict_queue(
+                    remaining_conflicts, self._graph.conflicting_versions(),
+                    circular_conflicts=circular_conflicts
+                )
 
-        # Sort conflicting nodes by distances.
-        if updated:
-            identifiers = updated_by_distance(identifiers, distance_mapping)
+    def _update_conflict_queue(self, *args, circular_conflicts=None):
+        distance_mapping = self._fetch_distance_mapping()
 
-        return identifiers
+        # Remove unreachable nodes from circular conflicts.
+        circular_conflicts = set([
+            identifier for identifier in circular_conflicts or []
+            if distance_mapping.get(identifier, {}).get("distance") is not None
+        ])
 
-    def _fetch_distance_mapping(self):
-        """Return tuple with distance mapping and boolean update indicator.
+        # Concatenate conflict lists while ignoring unreachable nodes and
+        # identifiers flagged as circular conflicts so it can be added at the
+        # end of the queue.
+        identifiers = (
+            identifier for _identifiers in args for identifier in _identifiers
+            if identifier not in circular_conflicts
+            and distance_mapping.get(identifier, {}).get("distance") is not None
+        )
+
+        def _compare(identifier):
+            """Sort identifiers per distance and identifier.
+            """
+            return distance_mapping[identifier]["distance"], identifier
+
+        # Update order by distance.
+        conflicts = sorted(identifiers, key=_compare, reverse=True)
+
+        # Appends nodes flagged as circular conflicts
+        conflicts.extend(sorted(circular_conflicts, key=_compare, reverse=True))
+
+        # Initiate queue.
+        return collections.deque(conflicts)
+
+    def _fetch_distance_mapping(self, force_update=False):
+        """Return distance mapping from cached attribute.
 
         If no distance mapping is available, a new one is generated from
-        *graph*. The boolean update indicator is True only if a new distance
-        mapping is generated.
+        *graph*.
 
-        :return: Tuple with distance mapping and boolean value.
+        :param force_update: Indicate whether a new distance mapping should be
+            computed, even if one cached mapping is available.
+
+        :return: Distance mapping.
 
         """
-        updated = False
-
-        if self._distance_mapping is None:
+        if self._distance_mapping is None or force_update:
             self._distance_mapping = compute_distance_mapping(self._graph)
-            updated = True
 
-        return self._distance_mapping, updated
+        return self._distance_mapping
 
-    def _extract_packages(
-        self, requirement, graph, nodes, conflicting_identifiers
-    ):
+    def _extract_packages(self, requirement, nodes):
         """Return packages extracted from combined *requirement*.
 
         If no packages could be extracted, *nodes* parent identifiers are
@@ -561,12 +590,7 @@ class GraphCombination(object):
         :param requirement: Instance of
             :class:`packaging.requirements.Requirement`.
 
-        :param graph: Instance of :class:`Graph`.
-
         :param nodes: List of :class:`Node` instances.
-
-        :param conflicting_identifiers: List of node identifiers conflicting
-            in *graph*.
 
         :raise: :exc:`wiz.exception.GraphResolutionError` if no packages have
             been extracted.
@@ -579,18 +603,9 @@ class GraphCombination(object):
                 requirement, self._graph.resolver.definition_mapping
             )
         except wiz.exception.RequestNotFound:
-            conflict_mappings = extract_conflicting_requirements(graph, nodes)
-            parents = set(
-                identifier
-                for mapping in conflict_mappings
-                for identifier in mapping["identifiers"]
+            conflict_mappings = extract_conflicting_requirements(
+                self._graph, nodes
             )
-
-            # TODO: Incorrect logic: https://github.com/themill/wiz/issues/55
-            # Discard conflicting nodes if parents are themselves
-            # conflicting.
-            if len(parents.intersection(conflicting_identifiers)) > 0:
-                return
 
             raise wiz.exception.GraphConflictsError(conflict_mappings)
 
@@ -660,25 +675,29 @@ class GraphCombination(object):
         3. Step 1 and 2 are repeated until the distance mapping is not updated.
 
         """
+        distance_mapping = self._fetch_distance_mapping(force_update=True)
+
         while True:
-            distance_mapping, updated = self._fetch_distance_mapping()
-            if not updated:
+            # Remove all unreachable nodes if the graph has been updated.
+            if not trim_unreachable_from_graph(self._graph, distance_mapping):
                 return
 
-            # Remove all unreachable nodes if the graph has been updated. Reset
-            # the distance mapping if nodes have been removed.
-            if trim_unreachable_from_graph(self._graph, distance_mapping):
-                self._distance_mapping = None
-
-            # Fetch updated distance mapping or return now.
-            distance_mapping, updated = self._fetch_distance_mapping()
-            if not updated:
-                return
+            # Reset the distance mapping as nodes have been removed.
+            distance_mapping = self._fetch_distance_mapping(force_update=True)
 
             # Search and trim invalid nodes from graph if conditions are no
-            # longer fulfilled. If so reset the distance mapping.
+            # longer fulfilled. Several passes might be necessary.
+            node_removed = False
+
             while trim_invalid_from_graph(self._graph, distance_mapping):
-                self._distance_mapping = None
+                node_removed = True
+
+            # Return if no nodes have been removed.
+            if not node_removed:
+                return
+
+            # Reset the distance mapping as nodes have been removed.
+            distance_mapping = self._fetch_distance_mapping(force_update=True)
 
 
 def compute_distance_mapping(graph):

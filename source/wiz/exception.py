@@ -143,6 +143,10 @@ class GraphConflictsError(GraphResolutionError):
         """
         self.latest = latest
         self.conflicts = conflicts
+        self.parents = set(
+            identifier for mapping in conflicts
+            for identifier in mapping["identifiers"]
+        )
 
         def _format(mapping):
             """Display conflicting *mapping*."""
