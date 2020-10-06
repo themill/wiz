@@ -458,7 +458,9 @@ class GraphCombination(object):
                 continue
 
             # Identify group of nodes conflicting with this node.
-            conflicting_nodes = extract_conflicting_nodes(self._graph, node)
+            conflicting_nodes = self._graph.nodes(
+                definition_identifier=node.definition.qualified_identifier
+            )
             if len(conflicting_nodes) == 0:
                 continue
 
@@ -961,31 +963,6 @@ def trim_invalid_from_graph(graph, distance_mapping):
     return nodes_removed
 
 
-def extract_conflicting_nodes(graph, node):
-    """Return all nodes from *graph* conflicting with *node*.
-
-    A node from the *graph* is in conflict with the node *identifier* when
-    its definition identifier is identical.
-
-    :param graph: Instance of :class:`Graph`.
-
-    :param node: Instance of :class:`Node`.
-
-    :return: List of conflicting :class:`Node`.
-
-    """
-    nodes = (graph.node(_id) for _id in graph.conflicting_versions())
-
-    # Extract definition identifier
-    definition_identifier = node.definition.qualified_identifier
-
-    return [
-        _node for _node in nodes
-        if _node.definition.qualified_identifier == definition_identifier
-        and _node.identifier != node.identifier
-    ]
-
-
 def combined_requirements(graph, nodes):
     """Return combined requirements from *nodes* in *graph*.
 
@@ -1221,12 +1198,25 @@ class Graph(object):
         """
         return self._node_mapping.get(identifier)
 
-    def nodes(self):
+    def nodes(self, definition_identifier=None):
         """Return all nodes in the graph.
+
+        :param definition_identifier: Provide qualified identifier of a
+            definition whose node must belong to be returned. Default is None
+            which means that nodes are not filtered.
 
         :return: List of :class:`Node` instances.
 
         """
+        if definition_identifier is not None:
+            identifiers = self._identifiers_per_definition.get(
+                definition_identifier, []
+            )
+            return [
+                self.node(identifier) for identifier in identifiers
+                if self.exists(identifier)
+            ]
+
         return list(self._node_mapping.values())
 
     def exists(self, identifier):
