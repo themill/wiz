@@ -959,36 +959,6 @@ def combined_requirements(graph, nodes):
     return requirement
 
 
-def sanitize_requirement(requirement, namespace):
-    """Mutate package *requirement* according to the package *namespace*.
-
-    This is necessary so that the requirement name is always qualified to
-    prevent error when :func:`combining requirements <combined_requirements>`
-    during the conflict resolution process.
-
-    If the requirement "foo > 1" was used to fetch the package "namespace::foo",
-    the requirement will be mutated to "namespace::foo > 1"
-
-    On the other had, if the requirement "::bar==0.1.0" was used to fetch the
-    package "bar" which doesn't have a namespace, the requirement will be
-    mutated to "bar==0.1.0"
-
-    :param requirement: Instance of :class:`packaging.requirements.Requirement`.
-
-    :param namespace: String indicating the package namespace, or None.
-
-    :return: Updated instance of :class:`packaging.requirements.Requirement`.
-
-    """
-    separator = wiz.symbol.NAMESPACE_SEPARATOR
-
-    if namespace is not None and separator not in requirement.name:
-        requirement.name = namespace + separator + requirement.name
-
-    elif namespace is None and separator in requirement.name:
-        requirement.name = requirement.name.rsplit(separator, 1)[-1]
-
-
 def extract_conflicting_requirements(graph, nodes):
     """Return list of conflicting requirement mappings.
 
@@ -1579,10 +1549,19 @@ class Graph(object):
             self._error_mapping[parent_identifier].append(error)
             return
 
+        # Update requirement to include namespace if necessary. All packages
+        # should have the same namespace so no need to check all of them.
+        if (
+            packages[0].namespace is not None
+            and wiz.symbol.NAMESPACE_SEPARATOR not in requirement.name
+        ):
+            requirement.name = (
+                packages[0].namespace + wiz.symbol.NAMESPACE_SEPARATOR
+                + requirement.name
+            )
+
         # Create a node for each package if necessary.
         for package in packages:
-            sanitize_requirement(requirement, package.namespace)
-
             self._update_from_package(
                 package, requirement, parent_identifier, queue,
                 weight=weight
