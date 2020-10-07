@@ -120,7 +120,9 @@ class Resolver(object):
         )
 
         # Update the graph.
-        graph.update_from_requirements(requirements, graph.ROOT)
+        graph.update_from_requirements(
+            requirements, parent_identifier=graph.ROOT
+        )
 
         self.reset_combinations(graph)
 
