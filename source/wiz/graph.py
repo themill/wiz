@@ -719,15 +719,15 @@ class GraphCombination(object):
         """
         while True:
             # Remove all unreachable nodes if the graph has been updated.
-            if not self._trim_unreachable_from_graph():
+            if not self._trim_unreachable_nodes():
                 return
 
             # Search and trim invalid nodes from graph if conditions are no
             # longer fulfilled. Several passes might be necessary.
-            if not self._trim_unfulfilled_conditions_from_graph():
+            if not self._trim_unfulfilled_conditions():
                 return
 
-    def _trim_unreachable_from_graph(self):
+    def _trim_unreachable_nodes(self):
         distance_mapping = self._fetch_distance_mapping(force_update=True)
 
         nodes_removed = False
@@ -740,7 +740,7 @@ class GraphCombination(object):
 
         return nodes_removed
 
-    def _trim_unfulfilled_conditions_from_graph(self):
+    def _trim_unfulfilled_conditions(self):
         needs_update = True
         nodes_removed = []
 
