@@ -1069,38 +1069,38 @@ class Graph(object):
         # Record the weight and requirement of each link in the graph.
         self._link_mapping = {}
 
-        # Set of node identifiers organised per definition identifier.
-        self._identifiers_per_definition = {}
+        # List of exception raised per node identifier.
+        self._error_mapping = {}
 
         # List of stored nodes with related conditions.
         self._conditioned_nodes = []
 
-        # List of node identifiers with variant organised per definition
+        # Cached set of node identifiers organised per definition identifier.
+        self._identifiers_per_definition = {}
+
+        # Cached list of node identifiers with variant organised per definition
         # identifier.
         self._variants_per_definition = {}
 
-        # :class:`collections.Counter` instance which record of occurrences of
-        # namespaces from package included in the graph.
+        # Cached :class:`collections.Counter` instance which record of
+        # occurrences of namespaces from package included in the graph.
         # e.g. Counter({u'maya': 2, u'houdini': 1})
         self._namespace_count = collections.Counter()
-
-        # List of exception raised per node identifier.
-        self._error_mapping = {}
 
     def __deepcopy__(self, memo):
         """Ensure that only necessary element are copied in the new graph."""
         result = Graph(self._resolver)
         result._node_mapping = copy.deepcopy(self._node_mapping)
         result._link_mapping = copy.deepcopy(self._link_mapping)
+        result._error_mapping = copy.deepcopy(self._error_mapping)
+        result._conditioned_nodes = copy.deepcopy(self._conditioned_nodes)
         result._identifiers_per_definition = (
             copy.deepcopy(self._identifiers_per_definition)
         )
-        result._conditioned_nodes = copy.deepcopy(self._conditioned_nodes)
         result._variants_per_definition = (
             copy.deepcopy(self._variants_per_definition)
         )
         result._namespace_count = copy.deepcopy(self._namespace_count)
-        result._error_mapping = copy.deepcopy(self._error_mapping)
 
         memo[id(self)] = result
         return result
@@ -1553,7 +1553,7 @@ class Graph(object):
 
         except wiz.exception.WizError as error:
             self._error_mapping.setdefault(parent_identifier, [])
-            self._error_mapping[parent_identifier].append(error)
+            self._error_mapping[parent_identifier].append(str(error))
             return
 
         # Update requirement to include namespace if necessary. All packages
@@ -1849,22 +1849,17 @@ class Graph(object):
         """
         return {
             "node_mapping": {
-                _id: node.data() for _id, node
+                identifier: node.data() for identifier, node
                 in self._node_mapping.items()
             },
             "link_mapping": copy.deepcopy(self._link_mapping),
-            "identifiers_per_definition": {
-                _id: sorted(node_ids) for _id, node_ids
-                in self._identifiers_per_definition.items()
-            },
             "conditioned_nodes": [
-                stored_node.data() for stored_node in self._conditioned_nodes
+                stored_node.data() for stored_node
+                in self._conditioned_nodes
             ],
-            "variants_per_definition": self._variants_per_definition,
-            "namespace_count": dict(self._namespace_count),
             "error_mapping": {
-                _id: [str(exception) for exception in exceptions]
-                for _id, exceptions in self._error_mapping.items()
+                identifier: errors for identifier, errors
+                in self._error_mapping.items()
             }
         }
 
