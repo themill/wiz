@@ -1596,9 +1596,7 @@ class Graph(object):
             is the importance of the link. Default is 1.
 
         """
-        identifier = package.identifier
-
-        if not self.exists(identifier):
+        if not self.exists(package.identifier):
 
             try:
                 # Do not add node to the graph if conditions are unprocessed.
@@ -1623,7 +1621,7 @@ class Graph(object):
                 for index, _requirement in enumerate(package.requirements):
                     queue.put({
                         "requirement": _requirement,
-                        "parent_identifier": identifier,
+                        "parent_identifier": package.identifier,
                         "weight": index + 1
                     })
 
@@ -1635,9 +1633,9 @@ class Graph(object):
 
         else:
             # Update variant mapping if necessary
-            self._update_variant_mapping(identifier)
+            self._update_variant_mapping(package.identifier)
 
-        node = self._node_mapping[identifier]
+        node = self._node_mapping[package.identifier]
 
         if parent_identifier is not None:
             node.add_parent(parent_identifier)
@@ -1656,21 +1654,20 @@ class Graph(object):
         :param package: Instance of :class:`wiz.package.Package`.
 
         """
-        identifier = package.identifier
-
-        self._logger.debug("Adding package: {}".format(identifier))
-        self._node_mapping[identifier] = Node(package)
+        self._logger.debug("Adding package: {}".format(package.identifier))
+        self._node_mapping[package.identifier] = Node(package)
 
         # Record node identifiers per package to identify conflicts.
         _definition_id = package.definition.qualified_identifier
         self._identifiers_per_definition.setdefault(_definition_id, set())
-        self._identifiers_per_definition[_definition_id].add(identifier)
+        self._identifiers_per_definition[_definition_id].add(package.identifier)
 
         # Record variant per unique key identifier if necessary.
-        self._update_variant_mapping(identifier)
+        self._update_variant_mapping(package.identifier)
 
         wiz.history.record_action(
-            wiz.symbol.GRAPH_NODE_CREATION_ACTION, graph=self, node=identifier
+            wiz.symbol.GRAPH_NODE_CREATION_ACTION,
+            graph=self, node=package.identifier
         )
 
     def _update_variant_mapping(self, identifier):
