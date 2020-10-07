@@ -1848,19 +1848,19 @@ class Graph(object):
 
         """
         return {
-            "node_mapping": {
+            "nodes": {
                 identifier: node.data() for identifier, node
                 in self._node_mapping.items()
             },
-            "link_mapping": copy.deepcopy(self._link_mapping),
+            "links": copy.deepcopy(self._link_mapping),
+            "errors": {
+                identifier: errors for identifier, errors
+                in self._error_mapping.items()
+            },
             "conditioned_nodes": [
                 stored_node.data() for stored_node
                 in self._conditioned_nodes
             ],
-            "error_mapping": {
-                identifier: errors for identifier, errors
-                in self._error_mapping.items()
-            }
         }
 
 
