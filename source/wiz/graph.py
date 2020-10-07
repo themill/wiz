@@ -3,7 +3,6 @@
 import collections
 import copy
 import itertools
-import uuid
 from heapq import heapify, heappush, heappop
 
 import six.moves
@@ -397,6 +396,7 @@ class GraphCombination(object):
         # Remove node identifiers from graph if required.
         if nodes_to_remove is not None:
             self._remove_nodes(nodes_to_remove)
+            self.prune_graph()
 
     @property
     def graph(self):
@@ -412,10 +412,6 @@ class GraphCombination(object):
 
         for node in removed_nodes:
             self._graph.relink_parents(node)
-
-        # Prune unreachable and invalid nodes if necessary.
-        if len(removed_nodes) > 0:
-            self.prune_graph()
 
     def resolve_conflicts(self):
         """Attempt to resolve all conflicts in *graph*.
@@ -752,9 +748,13 @@ class GraphCombination(object):
             distance_mapping = self._fetch_distance_mapping(force_update=True)
             needs_update = False
 
-            for node in self._graph.nodes():
-                # Check if all conditions are still fulfilled.
-                for requirement in node.package.conditions:
+            for stored_node in self._graph.conditioned_nodes():
+                # Ignore if corresponding node has not been added to the graph.
+                if not self._graph.exists(stored_node.identifier):
+                    continue
+
+                # Otherwise, check whether all conditions are still fulfilled.
+                for requirement in stored_node.package.conditions:
                     identifiers = self._graph.find(requirement)
 
                     if len(identifiers) == 0 or any(
@@ -763,10 +763,10 @@ class GraphCombination(object):
                     ):
                         self._logger.debug(
                             "Remove '{}' as conditions are no longer "
-                            "fulfilled".format(node.identifier)
+                            "fulfilled".format(stored_node.identifier)
                         )
-                        self._graph.remove_node(node.identifier)
-                        nodes_removed.append(node.identifier)
+                        self._graph.remove_node(stored_node.identifier)
+                        nodes_removed.append(stored_node.identifier)
                         needs_update = True
                         break
 
@@ -1062,7 +1062,6 @@ class Graph(object):
         """
         self._logger = wiz.logging.Logger(__name__ + ".Graph")
         self._resolver = resolver
-        self._identifier = uuid.uuid4().hex
 
         # All nodes created per node identifier.
         self._node_mapping = {}
@@ -1202,6 +1201,19 @@ class Graph(object):
                 identifiers.append(node.package.identifier)
 
         return identifiers
+
+    def conditioned_nodes(self):
+        """Return all conditioned nodes in the graph.
+
+        A conditioned node is a node which requires one or several requirements
+        to be fulfilled before it can be added to the graph.
+
+        :return: List of :class:`StoredNode` instances.
+
+        .. seealso:: :ref:`definition/conditions`
+
+        """
+        return self._conditioned_nodes
 
     def conflicting_variants(self):
         """Return variant groups in graphs.
