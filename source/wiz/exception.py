@@ -76,6 +76,18 @@ class DefinitionError(WizError):
         super(DefinitionError, self).__init__(message=message)
 
 
+class PackageError(WizError):
+    """Raise when a package is incorrect."""
+
+    def __init__(self, message):
+        """Initialize with *message*.
+
+        :param message: Message describing the issue.
+
+        """
+        super(PackageError, self).__init__(message=message)
+
+
 class RequirementError(WizError):
     """Raise when a requirement is incorrect."""
 

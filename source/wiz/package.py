@@ -293,6 +293,26 @@ class Package(object):
         # been processed
         self._conditions_processed = False
 
+        if self._variant_index is None and len(self._definition.variants) > 0:
+            raise wiz.exception.PackageError(
+                "Package cannot be created from definition '{}' as no variant "
+                "index is defined.".format(
+                    self._definition.qualified_identifier
+                )
+            )
+
+        if (
+            self._variant_index is not None
+            and self._variant_index + 1 > len(self._definition.variants)
+        ):
+            raise wiz.exception.PackageError(
+                "Package cannot be created from definition '{}' with variant "
+                "index #{}.".format(
+                    self._definition.qualified_identifier,
+                    self._variant_index
+                )
+            )
+
     @property
     def definition(self):
         """Return definition used to create package.

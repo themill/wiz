@@ -467,6 +467,34 @@ def test_create_package_with_variant_error():
     ) in str(error)
 
 
+def test_incorrect_package():
+    """Fail to create a package."""
+    # Requesting non exiting variant
+    definition = wiz.definition.Definition({"identifier": "test"})
+
+    with pytest.raises(wiz.exception.PackageError) as error:
+        wiz.package.Package(definition, variant_index=3)
+
+    assert (
+        "Package cannot be created from definition 'test' with variant "
+        "index #3."
+    ) in str(error)
+
+    # Failing to request variant
+    definition = wiz.definition.Definition({
+        "identifier": "test",
+        "variants": [{"identifier": "V1"}]
+    })
+
+    with pytest.raises(wiz.exception.PackageError) as error:
+        wiz.package.Package(definition)
+
+    assert (
+        "Package cannot be created from definition 'test' as no variant "
+        "index is defined."
+    ) in str(error)
+
+
 def test_minimal_package():
     """Create a minimal package."""
     definition = wiz.definition.Definition({"identifier": "test"})
