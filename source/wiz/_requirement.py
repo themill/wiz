@@ -15,7 +15,7 @@ PUNCTUATION = Word("-_.")
 NAME = ALPHANUM + ZeroOrMore(ALPHANUM | (ZeroOrMore(PUNCTUATION) + ALPHANUM))
 NAME_SEPARATOR = L(wiz.symbol.NAMESPACE_SEPARATOR)
 IDENTIFIER = Combine(
-    Optional(Optional(NAME) + NAME_SEPARATOR) + NAME
+    ZeroOrMore(Optional(NAME) + NAME_SEPARATOR) + NAME
 )
 
 packaging.requirements.REQUIREMENT = (
