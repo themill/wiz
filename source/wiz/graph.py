@@ -52,7 +52,7 @@ class Resolver(object):
         >>> graph.update_from_requirements(
         ...     Requirement("foo"), Requirement("bar"), Requirement("baz")
         ... )
-        >>> graph.conflicting_variants()
+        >>> graph.conflicting_variant_groups()
 
         [
             ["foo[V3]", "foo[V2]", "foo[V1]"],
@@ -120,9 +120,7 @@ class Resolver(object):
         )
 
         # Update the graph.
-        graph.update_from_requirements(
-            requirements, parent_identifier=graph.ROOT
-        )
+        graph.update_from_requirements(requirements)
 
         self.reset_combinations(graph)
 
@@ -184,7 +182,7 @@ class Resolver(object):
             self._iterator = iter([GraphCombination(graph, copy_data=False)])
 
     def extract_combinations(self, graph):
-        variant_groups = graph.conflicting_variants()
+        variant_groups = graph.conflicting_variant_groups()
         if not variant_groups:
             self._logger.debug(
                 "No package variants are conflicting in the graph."
@@ -348,7 +346,7 @@ class Resolver(object):
         # Step 1: Add new node versions to graph.
         for _, packages, requirement in operations:
             for package in packages:
-                graph.update_from_package(package, requirement)
+                graph.update_from_package(package, requirement, detached=True)
 
         # Step 2: Remove conflicting nodes from graph.
         for node, _, _ in operations:
@@ -429,7 +427,7 @@ class GraphCombination(object):
             removed cannot be re-linked to any existing node in the graph.
 
         """
-        conflicts = self._graph.conflicting_versions()
+        conflicts = self._graph.conflicting()
         if not conflicts:
             self._logger.debug("No conflicts in the graph.")
             return
@@ -508,7 +506,7 @@ class GraphCombination(object):
                 # If the updated graph contains conflicting variants, the
                 # relevant combination must be extracted, therefore the
                 # current graph combination cannot be resolved.
-                if updated and len(self._graph.conflicting_variants()) > 0:
+                if updated and len(self._graph.conflicting_variant_groups()):
                     raise wiz.exception.GraphVariantsError()
 
                 # Prune unnecessary nodes and reset distance mapping.
@@ -516,7 +514,7 @@ class GraphCombination(object):
 
                 # Update list of remaining conflicts if necessary.
                 remaining_conflicts = self._update_conflict_queue(
-                    remaining_conflicts, self._graph.conflicting_versions(),
+                    remaining_conflicts, self._graph.conflicting(),
                     circular_conflicts=circular_conflicts
                 )
 
@@ -698,7 +696,9 @@ class GraphCombination(object):
             self._logger.debug("Add to graph: {}".format(identifier))
 
             for package in packages:
-                self._graph.update_from_package(package, requirement)
+                self._graph.update_from_package(
+                    package, requirement, detached=True
+                )
 
             return True
 
@@ -915,10 +915,10 @@ def generate_variant_combinations(graph, variant_groups):
         _identifiers = [_id for _group in combination for _id in _group]
 
         yield GraphCombination(
-            graph, nodes_to_remove=[
+            graph, nodes_to_remove=set([
                 _id for _id in identifiers
                 if _id not in _identifiers
-            ]
+            ])
         )
 
 
@@ -1051,7 +1051,43 @@ def extract_conflicting_requirements(graph, nodes):
 
 
 class Graph(object):
-    """Requirement Graph."""
+    """Package dependency Graph.
+
+    Requested packages are added recursively as :class:`Node` instance from
+    :meth:`requirements <Graph.update_from_requirements>` or :meth:`instances
+    <Graph.update_from_package>`::
+
+        >>> from wiz.utility import Requirement
+        >>> graph = Graph(resolver)
+        >>> graph.update_from_requirements([Requirement("A >=1, <2")])
+
+    Dependent requirements are traversed using a `Breadth-first search
+    <https://en.wikipedia.org/wiki/Breadth-first_search>`_ algorithm so that
+    potential errors are recorded in coherent order.
+
+    When a packages cannot be extracted from a requirement, errors are recorded
+    and can be retrieved as follows::
+
+        >>> graph.errors()
+        {"root": "The requirement 'incorrect' could not be resolved."}
+
+    Conflicting versions and variant groups are recorded and can be retrieved
+    as follows::
+
+        >>> graph.conflicting()
+        {"B==1.2.0", "B==2.0.0"}
+
+        >>> graph.conflicting_variant_groups()
+        [["C[V2]", "C[V1]"], ["D[V2]==1.2.3", "D[V1]==1.2.3"]]
+
+    Conditions will be recorded as :class:`StoredNode` instances.
+    Corresponding packages will be added to the graph only if at least one
+    package with the same definition identifier has previously been added
+    to the graph.
+
+    .. seealso:: :ref:`definition/conditions`
+
+    """
 
     #: Identify the root of the graph
     ROOT = "root"
@@ -1086,11 +1122,15 @@ class Graph(object):
 
         # Cached :class:`collections.Counter` instance which record of
         # occurrences of namespaces from package included in the graph.
-        # e.g. Counter({u'maya': 2, u'houdini': 1})
+        # e.g. Counter({'maya': 2, 'houdini': 1})
         self._namespace_count = collections.Counter()
 
     def __deepcopy__(self, memo):
-        """Ensure that only necessary element are copied in the new graph."""
+        """Ensure that only necessary elements are copied in the new graph.
+
+        Resolver should only be referenced in each copy.
+
+        """
         result = Graph(self._resolver)
         result._node_mapping = copy.deepcopy(self._node_mapping)
         result._link_mapping = copy.deepcopy(self._link_mapping)
@@ -1109,7 +1149,7 @@ class Graph(object):
 
     @property
     def resolver(self):
-        """Return resolver used to create Graph.
+        """Return resolver instance used to create Graph.
 
         :return: Instance of :class:`Resolver`.
 
@@ -1121,7 +1161,8 @@ class Graph(object):
 
         :param identifier: Unique identifier of the targeted node.
 
-        :return: Instance of :class:`Node`.
+        :return: Instance of :class:`Node` or None if targeted node does not
+            exist in the graph.
 
         """
         return self._node_mapping.get(identifier)
@@ -1130,18 +1171,17 @@ class Graph(object):
         """Return all nodes in the graph.
 
         :param definition_identifier: Provide qualified identifier of a
-            definition whose node must belong to be returned. Default is None
-            which means that nodes are not filtered.
+            definition whose node must belong to. Default is None which means
+            that nodes belonging to any definitions will be returned.
 
         :return: List of :class:`Node` instances.
 
         """
         if definition_identifier is not None:
-            identifiers = self._identifiers_per_definition.get(
-                definition_identifier, []
-            )
+            _definition_id = definition_identifier
             return [
-                self.node(identifier) for identifier in identifiers
+                self.node(identifier) for identifier
+                in self._identifiers_per_definition.get(_definition_id, [])
                 if self.exists(identifier)
             ]
 
@@ -1157,50 +1197,20 @@ class Graph(object):
         """
         return identifier in self._node_mapping.keys()
 
-    def find(self, requirement,  skip_removed=False):
+    def find(self, requirement):
         """Return matching node identifiers in graph for *requirement*.
 
         :param requirement: Instance of
             :class:`packaging.requirements.Requirement`.
 
-        :param skip_removed: Indicate whether only existing node identifiers
-            are returned. Default is False.
-
-        :return: List of matching node identifiers.
-
-        .. warning::
-
-            Node identifiers which have been removed from the graph will also be
-            returned.
+        :return: Set of matching node identifiers.
 
         """
-        identifiers = []
+        identifiers = set()
 
         for node in self.nodes():
-            # Ignore if node identifier doesn't match requirement name.
-            qualified_name = node.definition.qualified_identifier
-            name = qualified_name.split(wiz.symbol.NAMESPACE_SEPARATOR, 1)[-1]
-            if requirement.name not in [qualified_name, name]:
-                continue
-
-            # Ignore if node variant doesn't match requirement extras.
-            variant_identifier = node.package.variant_identifier
-            variant_requested = list(requirement.extras)
-            if len(variant_requested) > 0 and variant_identifier is not None:
-                if variant_requested[0] != variant_identifier:
-                    break
-
-            # Ignore if node doesn't exist in graph and should be skipped.
-            if skip_removed and not self.exists(node.package.identifier):
-                continue
-
-            # Node is matching if package has no version.
-            elif node.package.version is None:
-                identifiers.append(node.package.identifier)
-
-            # Node is matching if requirement contains package version.
-            elif requirement.specifier.contains(node.package.version):
-                identifiers.append(node.package.identifier)
+            if wiz.utility.match(requirement, node.package):
+                identifiers.add(node.package.identifier)
 
         return identifiers
 
@@ -1217,11 +1227,33 @@ class Graph(object):
         """
         return self._conditioned_nodes
 
-    def conflicting_variants(self):
+    def conflicting(self):
+        """Return conflicting nodes identifiers.
+
+        A conflict appears when several nodes are found for a single
+        definition identifier.
+
+        :return: Set of node identifiers.
+
+        """
+        conflicting = set()
+
+        for identifiers in self._identifiers_per_definition.values():
+            _identifiers = [
+                identifier for identifier in identifiers
+                if self.exists(identifier)
+            ]
+
+            if len(_identifiers) > 1:
+                conflicting.update(_identifiers)
+
+        return conflicting
+
+    def conflicting_variant_groups(self):
         """Return variant groups in graphs.
 
-        A variant group list should contain at least more than one node
-        identifier which belongs at least to two different variant names.
+        A variant group list should contain more than one node identifier which
+        belongs at least to two different variant names.
 
         The variant group list contains unique identifiers and is sorted
         following three criteria:
@@ -1242,24 +1274,21 @@ class Graph(object):
         """
         groups = []
 
-        for definition_identifier in self._variants_per_definition.keys():
-            nodes = [
-                self._node_mapping.get(identifier) for identifier
-                in self._variants_per_definition[definition_identifier]
-                if self._node_mapping.get(identifier)
-            ]
-
-            variant_identifiers = set([
-                node.package.variant_identifier for node in nodes
-            ])
-            if len(variant_identifiers) <= 1:
+        for identifiers in self._variants_per_definition.values():
+            nodes = [self.node(_id) for _id in identifiers if self.exists(_id)]
+            variants = set([node.package.variant_identifier for node in nodes])
+            if not len(variants) > 1:
                 continue
 
-            count = collections.Counter([node.identifier for node in nodes])
+            counter = collections.Counter([node.identifier for node in nodes])
+
+            # TODO: This sorting logic must be improved.
             nodes = sorted(
-                set(nodes),
-                key=lambda n: (
-                    count[n.identifier], n.package.version, -nodes.index(n)
+                nodes,
+                key=lambda node: (
+                    counter[node.identifier],
+                    node.package.version,
+                    -nodes.index(node)
                 ),
                 reverse=True
             )
@@ -1267,33 +1296,12 @@ class Graph(object):
 
         return groups
 
-    def conflicting_versions(self):
-        """Return conflicting nodes identifiers.
-
-        A conflict appears when several nodes are found for a single
-        definition identifier.
-
-        :return: List of node identifiers.
-
-        """
-        conflicting = []
-
-        for identifiers in self._identifiers_per_definition.values():
-            _identifiers = [
-                identifier for identifier in identifiers
-                if self.exists(identifier)
-            ]
-
-            if len(_identifiers) > 1:
-                conflicting += _identifiers
-
-        return conflicting
-
     def errors(self):
         """Return all encapsulated errors per existing node identifier.
 
         :return: Mapping if the form of
             ::
+
                 {
                     "foo": "The requirement 'bar' could not be resolved.",
                     ...
@@ -1329,8 +1337,15 @@ class Graph(object):
 
         :return: Integer value.
 
+        :raise: :exc:`ValueError` if no link is recorded between
+            *parent_identifier* and *identifier*.
+
         """
-        return self._link_mapping[parent_identifier][identifier]["weight"]
+        key = "weight"
+        try:
+            return self._link_mapping[parent_identifier][identifier][key]
+        except KeyError as error:
+            raise ValueError("No link recorded for node: {}".format(error))
 
     def link_requirement(self, identifier, parent_identifier):
         """Return requirement from link between parent and node identifier.
@@ -1341,30 +1356,30 @@ class Graph(object):
 
         :return: Instance of :class:`packaging.requirements.Requirement`.
 
-        """
-        return self._link_mapping[parent_identifier][identifier]["requirement"]
+        :raise: :exc:`ValueError` if no link is recorded between
+            *parent_identifier* and *identifier*.
 
-    def update_from_requirements(self, requirements, parent_identifier):
+        """
+        key = "requirement"
+        try:
+            return self._link_mapping[parent_identifier][identifier][key]
+        except KeyError as error:
+            raise ValueError("No link recorded for node: {}.".format(error))
+
+    def update_from_requirements(self, requirements, detached=False):
         """Update graph from *requirements*.
 
         One or several :class:`~wiz.package.Package` instances will be
-        extracted from  *requirements* and :class:`Node` instances will be added
+        extracted from *requirements* and :class:`Node` instances will be added
         to graph accordingly. The process will be repeated recursively for
         dependent requirements from newly created packages.
-
-        Package's requirement are traversed with a `Breadth-first search
-        <https://en.wikipedia.org/wiki/Breadth-first_search>`_ algorithm so that
-        potential errors are raised for top-level packages first.
-
-        Conditions will be recorded as :class:`StoredNode` instances.
-        Corresponding packages will be added to the graph only if at least one
-        package with the same definition identifier has previously been added
-        to the graph.
 
         :param requirements: List of class:`packaging.requirements.Requirement`
             instances ordered from the most important to the least important.
 
-        :param parent_identifier: Unique identifier of the parent node.
+        :param detached: Indicate whether :class:`Node` instances created for
+            *requirements* must be detached from the :attr:`root <Graph.ROOT>`
+            level of the graph. Default is False.
 
         """
         queue = six.moves.queue.Queue()
@@ -1377,20 +1392,29 @@ class Graph(object):
         # Record namespaces from all requirement names.
         self._update_namespace_count(requirements)
 
+        # If not detached, set root node as parent.
+        parent_identifier = self.ROOT if not detached else None
+
+        # If not detached, initiate weight depending on existing connections.
+        total_connections = len(self._link_mapping.get(self.ROOT, {}).keys())
+        weight = total_connections + 1 if not detached else 1
+
         # Fill up queue from requirements and update the graph accordingly.
         for index, requirement in enumerate(requirements):
             queue.put({
                 "requirement": requirement,
                 "parent_identifier": parent_identifier,
-                "weight": index + 1
+                "weight": weight + index
             })
 
-        self._update(queue)
+        self._process_queue(queue)
 
-    def update_from_package(
-        self, package, requirement, parent_identifier=None, weight=1
-    ):
+    def update_from_package(self, package, requirement, detached=False):
         """Update graph from *package*.
+
+        *package* instance and *requirement* are used to create corresponding
+        :class:`Node` instances. The process will be repeated recursively for
+        dependent requirements from newly created packages.
 
         :param package: Instance of class:`wiz.package.Package`.
 
@@ -1398,17 +1422,9 @@ class Graph(object):
             :class:`packaging.requirements.Requirement` which led to the
             *package* extraction.
 
-        :param parent_identifier: Unique identifier of the parent node. Default
-            is None, which means that *package* will not be linked to any
-            parent.
-
-        :param weight: Number indicating the importance of the dependency
-            link from the node to its parent. The lesser this number, the higher
-            is the importance of the link. Default is 1.
-
-        .. note::
-
-            *weight* is irrelevant if no *parent_identifier* is given.
+        :param detached: Indicate whether :class:`Node` instance created for
+            *package* must be detached from the :attr:`root <Graph.ROOT>` level
+            of the graph. Default is False.
 
         """
         queue = six.moves.queue.Queue()
@@ -1418,8 +1434,15 @@ class Graph(object):
             graph=self, requirements=[requirement]
         )
 
-        # Record namespaces from all requirement names.
+        # Record namespaces from requirement name.
         self._update_namespace_count([requirement])
+
+        # If not detached, set root node as parent.
+        parent_identifier = self.ROOT if not detached else None
+
+        # If not detached, initiate weight depending on existing connections.
+        total_connections = len(self._link_mapping.get(self.ROOT, {}).keys())
+        weight = total_connections + 1 if not detached else 1
 
         # Add package to queue to start updating.
         queue.put({
@@ -1429,21 +1452,38 @@ class Graph(object):
             "weight": weight
         })
 
-        self._update(queue)
+        self._process_queue(queue)
 
-    def _update(self, queue):
+    def _process_queue(self, queue):
         """Update graph and fetch stored nodes from data contained in *queue*.
 
         :param queue: Instance of :class:`Queue`.
 
         """
-        self._update_from_queue(queue)
+        while not queue.empty():
 
-        # Update graph with conditioned nodes stored if necessary.
-        stored_nodes = self._fetch_required_stored_nodes()
+            # On first pass, process all nodes in the queue.
+            while not queue.empty():
+                data = queue.get()
 
-        while len(stored_nodes) > 0:
-            for stored_node in stored_nodes:
+                if data.get("package") is None:
+                    self._process_requirement(
+                        data.get("requirement"),
+                        data.get("parent_identifier"),
+                        queue,
+                        weight=data.get("weight")
+                    )
+
+                else:
+                    self._process_package(
+                        data.get("package"), data.get("requirement"),
+                        data.get("parent_identifier"),
+                        queue,
+                        weight=data.get("weight")
+                    )
+
+            # Then update graph with conditioned nodes stored if necessary.
+            for stored_node in self._required_stored_nodes():
                 queue.put({
                     "requirement": stored_node.requirement,
                     "package": stored_node.package,
@@ -1451,12 +1491,7 @@ class Graph(object):
                     "weight": stored_node.weight
                 })
 
-            self._update_from_queue(queue)
-
-            # Check if new stored nodes need to be added to graph.
-            stored_nodes = self._fetch_required_stored_nodes()
-
-    def _fetch_required_stored_nodes(self):
+    def _required_stored_nodes(self):
         """Return :class:`StoredNode` instances which should be added to graph.
 
         A :class:`StoredNode` instance has been created for each package which
@@ -1465,7 +1500,7 @@ class Graph(object):
         :return: List of :class:`StoredNode` instances.
 
         """
-        stored_nodes = []
+        required = []
 
         for stored_node in self._conditioned_nodes:
             # Prevent adding stored nodes twice into the graph
@@ -1473,22 +1508,20 @@ class Graph(object):
                 continue
 
             try:
-                packages = (
+                # TODO: Shouldn't condition extraction also take namespace
+                # counter into account?
+                packages = itertools.chain(*(
                     wiz.package.extract(
                         condition, self.resolver.definition_mapping
-                    ) for condition in stored_node.package.conditions
-                )
-
-                # Require all package identifiers to be in the node mapping.
-                identifiers = [
-                    package.identifier for package in itertools.chain(*packages)
-                ]
+                    )
+                    for condition in stored_node.package.conditions
+                ))
 
             except wiz.exception.WizError:
                 # Do not raise if the condition request is incorrect.
                 continue
 
-            if all(self.exists(_id) for _id in identifiers):
+            if all(self.exists(package.identifier) for package in packages):
                 self._logger.debug(
                     "Package '{}' fulfills conditions [{}]".format(
                         stored_node.identifier,
@@ -1497,36 +1530,11 @@ class Graph(object):
                         )
                     )
                 )
-                stored_nodes.append(stored_node)
+                required.append(stored_node)
 
-        return stored_nodes
+        return required
 
-    def _update_from_queue(self, queue):
-        """Recursively update graph from data contained in *queue*.
-
-        :param queue: Instance of :class:`Queue`.
-
-        """
-        while not queue.empty():
-            data = queue.get()
-
-            if data.get("package") is None:
-                self._update_from_requirement(
-                    data.get("requirement"),
-                    data.get("parent_identifier"),
-                    queue,
-                    weight=data.get("weight")
-                )
-
-            else:
-                self._update_from_package(
-                    data.get("package"), data.get("requirement"),
-                    data.get("parent_identifier"),
-                    queue,
-                    weight=data.get("weight")
-                )
-
-    def _update_from_requirement(
+    def _process_requirement(
         self, requirement, parent_identifier, queue, weight=1
     ):
         """Update graph from *requirement*.
@@ -1558,25 +1566,14 @@ class Graph(object):
             self._error_mapping[parent_identifier].append(str(error))
             return
 
-        # Update requirement to include namespace if necessary. All packages
-        # should have the same namespace so no need to check all of them.
-        if (
-            packages[0].namespace is not None
-            and wiz.symbol.NAMESPACE_SEPARATOR not in requirement.name
-        ):
-            requirement.name = (
-                packages[0].namespace + wiz.symbol.NAMESPACE_SEPARATOR
-                + requirement.name
-            )
-
         # Create a node for each package if necessary.
         for package in packages:
-            self._update_from_package(
+            self._process_package(
                 package, requirement, parent_identifier, queue,
                 weight=weight
             )
 
-    def _update_from_package(
+    def _process_package(
         self, package, requirement, parent_identifier, queue, weight=1
     ):
         """Update graph from *package*.
@@ -1596,14 +1593,15 @@ class Graph(object):
             is the importance of the link. Default is 1.
 
         """
+        # Ensure that requirement contains namespace.
+        requirement = wiz.utility.sanitize_requirement(requirement, package)
+
         if not self.exists(package.identifier):
 
             try:
                 # Do not add node to the graph if conditions are unprocessed.
-                if (
-                    len(package.conditions) > 0
-                    and not package.conditions_processed
-                ):
+                has_conditions = len(package.conditions) > 0
+                if has_conditions and not package.conditions_processed:
                     package.conditions_processed = True
 
                     self._conditioned_nodes.append(
@@ -1615,7 +1613,7 @@ class Graph(object):
                     )
                     return
 
-                self._create_node_from_package(package)
+                self._create_node(package)
 
                 # Update queue with dependent requirement.
                 for index, _requirement in enumerate(package.requirements):
@@ -1641,14 +1639,12 @@ class Graph(object):
             node.add_parent(parent_identifier)
 
             # Create links with requirement and weight.
-            self.create_link(
-                node.identifier,
-                parent_identifier,
-                requirement,
+            self._create_link(
+                node.identifier, parent_identifier, requirement,
                 weight=weight
             )
 
-    def _create_node_from_package(self, package):
+    def _create_node(self, package):
         """Create node in graph from *package*.
 
         :param package: Instance of :class:`wiz.package.Package`.
@@ -1700,11 +1696,114 @@ class Graph(object):
         namespaces = []
 
         for requirement in requirements:
-            namespaces += mapping.get(requirement.name, [])
+            namespace, _ = wiz.utility.extract_namespace(requirement)
+            if namespace is not None:
+                namespaces.append(namespace)
+            else:
+                namespaces += mapping.get(requirement.name, [])
 
         self._namespace_count.update(namespaces)
 
-    def create_link(
+    def remove_node(self, identifier):
+        """Remove node from the graph.
+
+        :param identifier: Unique identifier of the targeted node.
+
+        :raise: :exc:`ValueError` if *identifier* does not correspond to any
+            existing node in the graph.
+
+        .. warning::
+
+            A lazy deletion is performed as the links are not deleted to save on
+            performance.
+
+        """
+        try:
+            del self._node_mapping[identifier]
+        except KeyError:
+            raise ValueError("Node can not be removed: {}".format(identifier))
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_NODE_REMOVAL_ACTION,
+            graph=self, node=identifier
+        )
+
+    def relink_parents(self, node_removed, requirement=None):
+        """Relink node's parents after removing it from the graph.
+
+        Example::
+
+            >>> node = self.node("foo")
+            >>> self.remove_node(node.identifier)
+            >>> self.relink_parents(node)
+
+        When creating the new links, the same weight connecting the node removed
+        to its parents is being used. *requirement* will be used for each new
+        link if given, otherwise the same requirement connecting the node
+        removed to its parents is being used.
+
+        If a parent node can not be linked to any other node in the graph, an
+        error will be recorded.
+
+        :param node_removed: Instance of :class:`Node`.
+
+        :param requirement: Instance of
+            :class:`packaging.requirements.Requirement` which can be used.
+            Default is None.
+
+        :raise: :exc:`ValueError` if *node_removed* still exists in the graph.
+
+        """
+        if self.exists(node_removed.identifier):
+            raise ValueError(
+                "Node must have been removed from graph before relinking "
+                "its parent: '{}'".format(node_removed.identifier)
+            )
+
+        nodes = None
+
+        # If requirement is given, check all nodes to relink all parents with.
+        if requirement is not None:
+            nodes = [
+                self.node(identifier) for identifier
+                in self.find(requirement)
+            ]
+
+        for _identifier in node_removed.parent_identifiers:
+            # Ignore if parent doesn't exist.
+            if not self.exists(_identifier) and not _identifier == self.ROOT:
+                continue
+
+            weight = self.link_weight(node_removed.identifier, _identifier)
+            _requirement = requirement or self.link_requirement(
+                node_removed.identifier, _identifier
+            )
+
+            # Check new nodes to link parent with.
+            _nodes = nodes or [
+                self.node(identifier) for identifier
+                in self.find(_requirement)
+            ]
+
+            if not len(_nodes):
+                self._error_mapping.setdefault(_identifier, [])
+                self._error_mapping[_identifier].append(
+                    "Requirement '{}' can not be satisfied once '{}' is "
+                    "removed from the graph.".format(
+                        _requirement, node_removed.identifier,
+                    )
+                )
+                continue
+
+            for _node in _nodes:
+                _node.add_parent(_identifier)
+
+                self._create_link(
+                    _node.identifier, _identifier, _requirement,
+                    weight=weight
+                )
+
+    def _create_link(
         self, identifier, parent_identifier, requirement, weight=1
     ):
         """Add dependency link from *parent_identifier* to *identifier*.
@@ -1725,22 +1824,15 @@ class Graph(object):
         .. note::
 
             If a link already exists between *identifier* and
-            *parent_identifier*, it will be overwritten only if the new weight
-            is lower than the current one. This way, the priority of the node
-            can raise, but never decrease.
+            *parent_identifier*, the same weight will be preserved.
 
         """
         self._link_mapping.setdefault(parent_identifier, {})
 
-        if identifier in self._link_mapping[parent_identifier].keys():
-            _weight = (
-                self._link_mapping[parent_identifier][identifier]["weight"]
-            )
-
-            # Skip if a link is already set between these two nodes with
-            # a lower weight:
-            if weight > _weight:
-                return
+        # Keep same weight if link exists.
+        _link = self._link_mapping[parent_identifier].get(identifier)
+        if _link is not None:
+            weight = _link["weight"]
 
         self._logger.debug(
             "Add dependency link from '{parent}' to '{child}' "
@@ -1764,167 +1856,119 @@ class Graph(object):
             requirement=requirement
         )
 
-    def remove_node(self, identifier):
-        """Remove node from the graph.
-
-        :param identifier: Unique identifier of the targeted node.
-
-        .. warning::
-
-            A lazy deletion is performed as the links are not deleted to save on
-            performance.
-
-        """
-        del self._node_mapping[identifier]
-
-        wiz.history.record_action(
-            wiz.symbol.GRAPH_NODE_REMOVAL_ACTION,
-            graph=self, node=identifier
-        )
-
-    def relink_parents(self, node_removed, requirement=None):
-        """Relink node's parents after removing it from the graph.
-
-        When creating the new links, the same weight connecting the node removed
-        to its parents is being used. *requirement* will be used for each new
-        link if given, otherwise the same requirement connecting the node
-        removed to its parents is being used
-
-        :param node_removed: Instance of :class:`Node`.
-
-        :param requirement: Instance of
-            :class:`packaging.requirements.Requirement` which can be used.
-            Default is None.
-
-        """
-        nodes = None
-
-        # If requirement is given, check all nodes to relink all parents with.
-        if requirement is not None:
-            nodes = [
-                self.node(identifier) for identifier
-                in self.find(requirement, skip_removed=True)
-            ]
-
-        for _identifier in node_removed.parent_identifiers:
-            # Ignore if parent doesn't exist.
-            if not self.exists(_identifier) and not _identifier == self.ROOT:
-                continue
-
-            weight = self.link_weight(node_removed.identifier, _identifier)
-            _requirement = requirement or self.link_requirement(
-                node_removed.identifier, _identifier
-            )
-
-            # Check new nodes to link parent with.
-            _nodes = nodes or [
-                self.node(identifier) for identifier
-                in self.find(_requirement, skip_removed=True)
-            ]
-
-            if not len(_nodes):
-                self._error_mapping.setdefault(_identifier, [])
-                self._error_mapping[_identifier].append(
-                    "Requirement '{}' can not be satisfied once '{}' is "
-                    "removed from the graph.".format(
-                        _requirement, node_removed.identifier,
-                    )
-                )
-                continue
-
-            for _node in _nodes:
-                _node.add_parent(_identifier)
-
-                self.create_link(
-                    _node.identifier, _identifier, _requirement,
-                    weight=weight
-                )
-
     def data(self):
-        """Return corresponding dictionary.
+        """Return reference mapping.
 
-        :return: Mapping containing all information about the graph.
+        :return: Mapping or string containing all information about the graph.
 
         """
         return {
-            "node_mapping": {
-                identifier: node.data() for identifier, node
-                in self._node_mapping.items()
-            },
-            "link_mapping": copy.deepcopy(self._link_mapping),
-            "conditioned_nodes": [
-                stored_node.data() for stored_node
-                in self._conditioned_nodes
-            ],
-            "error_mapping": {
-                identifier: errors for identifier, errors
-                in self._error_mapping.items()
-            }
+            "node_mapping": self._node_mapping,
+            "link_mapping": self._link_mapping,
+            "conditioned_nodes": self._conditioned_nodes,
+            "error_mapping": self._error_mapping
         }
 
 
 class Node(object):
-    """Representation of an element of the :class:`Graph`.
+    """Representation of a package within the :class:`Graph`.
 
     It encapsulates one :class:`~wiz.package.Package` instance with all parent
     package identifiers.
 
     """
 
-    def __init__(self, package):
+    def __init__(self, package, parent_identifiers=None):
         """Initialize Node.
 
         :param package: Instance of :class:`wiz.package.Package`.
 
+        :param parent_identifiers: Set of parent identifiers. Default is None.
+
         """
         self._package = package
-        self._parent_identifiers = set()
+        self._parent_identifiers = copy.deepcopy(parent_identifiers) or set()
+
+    def __eq__(self, other):
+        """Compare with *other*."""
+        if isinstance(other, Node):
+            return self.data() == other.data()
+        return False
+
+    def __repr__(self):
+        """Representing a Node."""
+        return "<Node id='{0}' parents=[{1}]>".format(
+            self._package.identifier,
+            ", ".join(sorted(self._parent_identifiers))
+        )
 
     @property
     def identifier(self):
         """Return identifier of the node.
 
+        :return: String value (e.g. "foo==0.1.0").
+
         .. note::
 
-            The node identifier is the same as the embedded
-            :class:`~wiz.package.Package` instance qualified identifier.
+            The node identifier is the same as the embedded package instance
+            identifier.
 
         """
         return self._package.identifier
 
     @property
     def definition(self):
-        """Return corresponding :class:`~wiz.definition.Definition` instance."""
+        """Return definition within embedded package instance.
+
+        :return: Instance of :class:`wiz.definition.Definition`.
+
+        """
         return self._package.definition
 
     @property
     def package(self):
-        """Return :class:`~wiz.package.Package` encapsulated."""
+        """Return embedded package instance.
+
+        :return: Instance of :class:`wiz.package.Package`.
+
+        """
         return self._package
 
     @property
     def parent_identifiers(self):
-        """Return set of parent identifiers."""
+        """Return set of node identifiers.
+
+        :return: Set of string values.
+
+        """
         return self._parent_identifiers
 
     def add_parent(self, identifier):
-        """Add *identifier* as parent to the node."""
+        """Add *identifier* as parent to the node.
+
+        :param identifier: Unique node identifier.
+
+        """
         self._parent_identifiers.add(identifier)
 
     def data(self):
-        """Return corresponding dictionary."""
+        """Return reference mapping.
+
+        :return: Mapping containing all information about the node.
+
+        """
         return {
-            "package": self._package.data(),
+            "package": self._package,
             "parents": sorted(self._parent_identifiers)
         }
 
 
 class StoredNode(object):
-    """Representation of a node mapping within the :class:`Graph`.
+    """Representation of a package which cannot be added to the :class:`Graph`.
 
-    It encapsulates one :class:`packaging.requirements.Requirement` instance
-    and corresponding :class:`wiz.package.Package` instance retrieved with
-    its parent package identifier and a weight number.
+    It encapsulates a :class:`~wiz.package.Package` instance with its
+    corresponding :class:`~packaging.requirements.Requirement` instance,
+    alongside with parent package identifier and weight number assigned.
 
     A StoredNode instance is used when a package request cannot be immediately
     added to the graph.
@@ -1932,8 +1976,8 @@ class StoredNode(object):
     Examples:
 
     * When a package contains conditions, a StoredNode instance is created for
-      this package request until the validation can be validated. If the
-      conditions are not validated, the package will not be added to the graph.
+      this package until the condition can be fulfilled. If the conditions are
+      not fulfilled, the package will not be added to the graph.
 
     """
 
@@ -1956,43 +2000,83 @@ class StoredNode(object):
         self._parent_identifier = parent_identifier
         self._weight = weight
 
+    def __eq__(self, other):
+        """Compare with *other*."""
+        if isinstance(other, StoredNode):
+            return self.data() == other.data()
+        return False
+
+    def __repr__(self):
+        """Representing a StoredNode."""
+        return (
+            "<StoredNode id='{0}' requirement='{1}' parent='{2}' weight={3}>"
+            .format(
+                self._package.identifier,
+                self._requirement,
+                self._parent_identifier,
+                self._weight
+            )
+        )
+
     @property
     def identifier(self):
         """Return identifier of the stored node.
 
+        :return: String value (e.g. "foo==0.1.0").
+
         .. note::
 
-            The node identifier is the same as the embedded
-            :class:`~wiz.package.Package` instance qualified identifier.
+            The node identifier is the same as the embedded package instance
+            identifier.
 
         """
         return self._package.identifier
 
     @property
     def requirement(self):
-        """Return :class:`packaging.requirements.Requirement` instance."""
+        """Return requirement used to extract embedded package instance.
+
+        :return: Instance of :class:`packaging.requirements.Requirement`.
+
+        """
         return self._requirement
 
     @property
     def package(self):
-        """Return :class:`wiz.package.Package` instance."""
+        """Return embedded package instance.
+
+        :return: Instance of :class:`wiz.package.Package`.
+
+        """
         return self._package
 
     @property
     def parent_identifier(self):
-        """Return parent identifier."""
+        """Return unique parent node identifier.
+
+        :return: String value (e.g. "foo==0.1.0").
+
+        """
         return self._parent_identifier
 
     @property
     def weight(self):
-        """Return weight number."""
+        """Return weight number.
+
+        :return: Integer value.
+
+        """
         return self._weight
 
     def data(self):
-        """Return corresponding dictionary."""
+        """Return reference mapping.
+
+        :return: Mapping containing all information about the stored node.
+
+        """
         return {
             "requirement": self._requirement,
-            "package": self.package.data(),
+            "package": self.package,
             "parent_identifier": self._parent_identifier,
             "weight": self._weight
         }
@@ -2054,11 +2138,17 @@ class _DistanceQueue(dict):
             self._build_heap()
 
     def empty(self):
-        """Indicate whether the mapping is empty."""
+        """Indicate whether the mapping is empty.
+
+        :return: Boolean value.
+
+        """
         return len(self.keys()) == 0
 
     def pop_smallest(self):
         """Return item with the shortest distance from graph root and remove it.
+
+        :return: Unique node identifier.
 
         :raise: :exc:`IndexError` if the object is empty.
 
