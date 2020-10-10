@@ -2,6 +2,7 @@
 
 import base64
 import collections
+import copy
 import hashlib
 import pipes
 import re
@@ -513,9 +514,10 @@ def compute_file_name(definition):
     name = definition.identifier
 
     if definition.namespace:
-        name = "{}-{}".format(
-            "-".join(definition.namespace.split(wiz.symbol.NAMESPACE_SEPARATOR)), name
+        namespace = "-".join(
+            definition.namespace.split(wiz.symbol.NAMESPACE_SEPARATOR)
         )
+        name = "{}-{}".format(namespace, name)
 
     if definition.version:
         name += "-{}".format(definition.version)
@@ -594,3 +596,112 @@ def deep_update(mapping1, mapping2):
         else:
             mapping1[key] = value
     return mapping1
+
+
+def sanitize_requirement(requirement, package):
+    """Return qualified *requirement* depending on *package*'s namespace.
+
+    Example::
+
+        # If the package has a namespace of 'foo'
+        >>> sanitize_requirement(Requirement("A >=1, <2"), package)
+        Requirement("foo::A >=1, <2")
+
+        # If the package has no namespace
+        >>> sanitize_requirement(Requirement("A >=1, <2"), package)
+        Requirement("::A >=1, <2")
+
+    :param requirement: Instance of :class:`packaging.requirements.Requirement`.
+
+    :param package: Instance of class:`wiz.package.Package`.
+
+    :return: new instance of :class:`packaging.requirements.Requirement`.
+
+    :raise: :exc:`ValueError` if *requirement* is incompatible with *package*.
+
+    """
+    if not match(requirement, package):
+        raise ValueError(
+            "Requirement '{0}' is incompatible with package '{1}'".format(
+                requirement, package.identifier
+            )
+        )
+
+    # Prevent mutating incoming requirement.
+    _requirement = copy.deepcopy(requirement)
+    _requirement.name = wiz.symbol.NAMESPACE_SEPARATOR.join([
+        package.namespace or "", package.definition.identifier
+    ])
+    return _requirement
+
+
+def match(requirement, package):
+    """Return whether *requirement* is compatible with *package*.
+
+    :param requirement: Instance of :class:`packaging.requirements.Requirement`.
+
+    :param package: Instance of class:`wiz.package.Package`.
+
+    :return: Boolean value.
+
+    """
+    namespace, identifier = extract_namespace(requirement)
+
+    # Ignore if package identifier doesn't match requirement name.
+    if package.definition.identifier != identifier:
+        return False
+
+    # Ignore if package namespace doesn't match requirement name.
+    if namespace is not None and package.definition.namespace != namespace:
+        return False
+
+    # Ignore if package variant doesn't match any requirement extras.
+    variants_requested = list(requirement.extras)
+    if len(variants_requested) > 0:
+        variant_identifier = package.variant_identifier
+        if not any(_id == variant_identifier for _id in variants_requested):
+            return False
+
+    # Node is matching if package has no version.
+    if package.version is not None:
+        # Remove namespace from requirement so specifier can be used.
+        _requirement = copy.deepcopy(requirement)
+        _requirement.name = identifier
+
+        if not _requirement.specifier.contains(package.version):
+            return False
+
+    return True
+
+
+def extract_namespace(requirement):
+    """Extract namespace and identifier from *requirement*.
+
+    Example::
+
+        >>> extract_namespace(Requirement("foo"))
+        None, "foo"
+
+        >>> extract_namespace(Requirement("::foo"))
+        None, "foo"
+
+        >>> extract_namespace(Requirement("bar::foo"))
+        "bar", "foo"
+
+        >>> extract_namespace(Requirement("bar1::bar2::foo"))
+        "bar1::bar2", "foo"
+
+    """
+    try:
+        namespace, identifier = requirement.name.rsplit(
+            wiz.symbol.NAMESPACE_SEPARATOR, 1
+        )
+
+        if not len(namespace):
+            namespace = None
+
+    except ValueError:
+        identifier = requirement.name
+        namespace = None
+
+    return namespace, identifier
