@@ -19,8 +19,27 @@ def mocked_resolver(mocker):
 
 @pytest.fixture()
 def mocked_package_extract(mocker):
-    """Return mocked 'wiz.package.extract' function."""
-    return mocker.patch.object(wiz.package, "extract")
+    """Return mocked 'wiz.package.extract' function.
+
+    Ensure that 'namespace_counter' option is copied to better analyze state
+    evolution.
+
+    .. seealso::
+
+        https://docs.python.org/3/library/unittest.mock-examples.html
+        #coping-with-mutable-arguments
+
+    """
+    class _MagicMock(mocker.MagicMock):
+        """Extended mocker to copy namespace counter on each call."""
+
+        def __call__(self, *args, **kwargs):
+            option = kwargs.get("namespace_counter")
+            if option is not None:
+                kwargs["namespace_counter"] = copy.deepcopy(option)
+            return super(_MagicMock, self).__call__(*args, **kwargs)
+
+    return mocker.patch.object(wiz.package, "extract", _MagicMock())
 
 
 @pytest.fixture()
@@ -905,19 +924,19 @@ def test_graph_update_from_requirements_many_with_namespaces(
         ),
         mocker.call(
             Requirement("D > 3"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter({"foo": 1})
+            namespace_counter=collections.Counter({"foo": 2})
         ),
         mocker.call(
             Requirement("bar::B"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter({"foo": 1})
+            namespace_counter=collections.Counter({"foo": 2})
         ),
         mocker.call(
             Requirement("foo::C"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter({"foo": 1})
+            namespace_counter=collections.Counter({"foo": 2, "bar": 1})
         ),
         mocker.call(
             Requirement("D > 1"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter({"foo": 1})
+            namespace_counter=collections.Counter({"foo": 3, "bar": 1})
         )
     ]
 
@@ -1300,7 +1319,10 @@ def test_graph_update_from_requirements_unfulfilled_conditions(
     # Set requirements and expected package extraction for test.
     requirements = [Requirement("A"), Requirement("G"), Requirement("H")]
     mocked_package_extract.side_effect = [
+        # Extract required packages.
         [packages["A==0.1.0"]],  [packages["G"]], [packages["H"]],
+
+        # Check remaining conditions.
         [packages["E"]], [packages["F==13"]], [packages["D==4.1.0"]],
         wiz.exception.RequestNotFound("Error")
     ]
@@ -1325,15 +1347,19 @@ def test_graph_update_from_requirements_unfulfilled_conditions(
         ),
         mocker.call(
             Requirement("E"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         ),
         mocker.call(
             Requirement("F"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         ),
         mocker.call(
             Requirement("D"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         ),
         mocker.call(
             Requirement("incorrect"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         )
     ]
 
@@ -1431,15 +1457,19 @@ def test_graph_update_from_requirements_fulfilled_conditions(
         ),
         mocker.call(
             Requirement("E"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         ),
         mocker.call(
             Requirement("F"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         ),
         mocker.call(
             Requirement("D"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         ),
         mocker.call(
             Requirement("incorrect"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         ),
         mocker.call(
             Requirement("B"), mocked_resolver.definition_mapping,
@@ -1455,15 +1485,19 @@ def test_graph_update_from_requirements_fulfilled_conditions(
         ),
         mocker.call(
             Requirement("F"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         ),
         mocker.call(
             Requirement("D"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         ),
         mocker.call(
             Requirement("incorrect"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         ),
         mocker.call(
             Requirement("incorrect"), mocked_resolver.definition_mapping,
+            namespace_counter=collections.Counter()
         )
     ]
 
