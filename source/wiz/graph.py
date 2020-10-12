@@ -1733,7 +1733,7 @@ class VariantCombination(object):
 
         :param graph: Instance of :class:`Graph`.
 
-        :param nodes_to_remove: List of node identifier from a group of
+        :param nodes_to_remove: Set of node identifier from a group of
             conflicting variants which will be removed from the *graph*. Default
             is None which means that no node will be removed from the *graph*.
 

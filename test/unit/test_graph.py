@@ -12,6 +12,12 @@ from wiz.utility import Requirement
 
 
 @pytest.fixture()
+def mocked_deepcopy(mocker):
+    """Return mocked copy.deepcopy function."""
+    return mocker.patch.object(copy, "deepcopy")
+
+
+@pytest.fixture()
 def mocked_resolver(mocker):
     """Return mocked Resolver."""
     return mocker.Mock(definition_mapping={"__namespace__": {}})
@@ -23,6 +29,12 @@ def mocked_graph(mocker):
     graph = mocker.patch.object(wiz.graph, "Graph")
     graph.ROOT = "root"
     return graph
+
+
+@pytest.fixture()
+def mocked_prune_graph(mocker):
+    """Return mocked wiz.graph.VariantCombination.prune_graph method."""
+    return mocker.patch.object(wiz.graph.VariantCombination, "prune_graph")
 
 
 @pytest.fixture()
@@ -2948,6 +2960,76 @@ def test_stored_node(mocker, options, weight):
     assert stored_node == wiz.graph.StoredNode(
         "__REQUIREMENT__", package, "__PARENT_ID__", **options
     )
+
+
+@pytest.mark.parametrize("options, copy_data", [
+    ({}, True),
+    ({"copy_data": False}, False),
+], ids=[
+    "simple",
+    "without-copy"
+])
+def test_combination(
+    mocked_graph, mocked_deepcopy, mocked_prune_graph, options, copy_data
+):
+    """Create a variant combination."""
+    combination = wiz.graph.VariantCombination(mocked_graph, **options)
+
+    if copy_data:
+        mocked_deepcopy.assert_called_once_with(mocked_graph)
+        _graph = mocked_deepcopy.return_value
+    else:
+        mocked_deepcopy.assert_not_called()
+        _graph = mocked_graph
+
+    assert combination.graph == _graph
+
+    _graph.nodes.assert_not_called()
+    _graph.remove_node.assert_not_called()
+    _graph.relink_parents.assert_not_called()
+
+    mocked_prune_graph.assert_not_called()
+
+
+@pytest.mark.parametrize("options, copy_data", [
+    ({}, True),
+    ({"copy_data": False}, False),
+], ids=[
+    "simple",
+    "without-copy"
+])
+def test_combination_with_removed_nodes(
+    mocked_graph, mocked_deepcopy, mocked_prune_graph, options, copy_data
+):
+    """Create a variant combination with node identifiers to remove."""
+    combination = wiz.graph.VariantCombination(
+        mocked_graph, nodes_to_remove={"foo[V2]", "foo[V1]", "bar[V1]"},
+        **options
+    )
+
+    if copy_data:
+        mocked_deepcopy.assert_called_once_with(mocked_graph)
+        _graph = mocked_deepcopy.return_value
+    else:
+        mocked_deepcopy.assert_not_called()
+        _graph = mocked_graph
+
+    assert combination.graph == _graph
+
+    assert _graph.node.call_count == 3
+    _graph.node.assert_any_call("foo[V2]")
+    _graph.node.assert_any_call("foo[V1]")
+    _graph.node.assert_any_call("bar[V1]")
+
+    assert _graph.remove_node.call_count == 3
+    _graph.remove_node.assert_any_call("foo[V2]")
+    _graph.remove_node.assert_any_call("foo[V1]")
+    _graph.remove_node.assert_any_call("bar[V1]")
+
+    assert _graph.relink_parents.call_count == 3
+    _graph.relink_parents.assert_any_call(_graph.node.return_value)
+
+    mocked_prune_graph.assert_called_once_with()
 
 
 def test_distance_queue():
