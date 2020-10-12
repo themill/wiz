@@ -949,8 +949,8 @@ def combined_requirements(graph, nodes):
             elif requirement.name != _requirement.name:
                 raise wiz.exception.GraphResolutionError(
                     "Impossible to combine requirements with different names "
-                    "['{}' and '{}'].".format(
-                        requirement.name, _requirement.name
+                    "[{}].".format(
+                        ", ".join(sorted([requirement.name, _requirement.name]))
                     )
                 )
 

@@ -305,6 +305,72 @@ def _packages_with_conflicting_variants():
     }
 
 
+def test_combined_requirements(mocked_graph):
+    """Combine nodes requirements."""
+    versions = ["1.2.3", "1.9.2", "3.0.0"]
+    parents_sets = [{"D"}, {"C"}, {"B"}]
+
+    # mock parents requirements check.
+    requirements = {
+        "B": {"foo==3.0.0": Requirement("foo >= 1")},
+        "C": {"foo==1.9.2": Requirement("foo >= 1, < 2")},
+        "D": {"foo==1.2.3": Requirement("foo == 1.2.3")},
+    }
+    mocked_graph.link_requirement = lambda _id1, _id2: requirements[_id2][_id1]
+
+    # Compute nodes.
+    nodes = [
+        wiz.graph.Node(
+            wiz.package.Package(
+                wiz.definition.Definition({
+                    "identifier": "foo", "version": version
+                })
+            ),
+            parent_identifiers=parents
+        )
+        for version, parents in zip(versions, parents_sets)
+    ]
+
+    assert wiz.graph.combined_requirements(mocked_graph, nodes) == (
+        Requirement("foo >=1, ==1.2.3, <2")
+    )
+
+
+def test_combined_requirements_error(mocked_graph):
+    """Fail to combine nodes requirements from different definition name."""
+    versions = ["1.2.3", "1.9.2", "3.0.0"]
+    parents_sets = [{"D"}, {"C"}, {"B"}]
+
+    # mock parents requirements check.
+    requirements = {
+        "B": {"foo==3.0.0": Requirement("incorrect")},
+        "C": {"foo==1.9.2": Requirement("foo >= 1, < 2")},
+        "D": {"foo==1.2.3": Requirement("foo == 1.2.3")},
+    }
+    mocked_graph.link_requirement = lambda _id1, _id2: requirements[_id2][_id1]
+
+    # Compute nodes.
+    nodes = [
+        wiz.graph.Node(
+            wiz.package.Package(
+                wiz.definition.Definition({
+                    "identifier": "foo", "version": version
+                })
+            ),
+            parent_identifiers=parents
+        )
+        for version, parents in zip(versions, parents_sets)
+    ]
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        wiz.graph.combined_requirements(mocked_graph, nodes)
+
+    assert (
+        "Impossible to combine requirements with different names "
+        "[foo, incorrect]."
+    ) in str(error)
+
+
 def test_extract_conflicting_requirements(mocked_graph):
     """Extract conflicting requirements from nodes."""
     versions = ["3.0.0", "3.2.1", "4.0.0"]
