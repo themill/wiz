@@ -34,7 +34,7 @@ def mocked_graph(mocker):
 @pytest.fixture()
 def mocked_prune_graph(mocker):
     """Return mocked wiz.graph.VariantCombination.prune_graph method."""
-    return mocker.patch.object(wiz.graph.VariantCombination, "prune_graph")
+    return mocker.patch.object(wiz.graph.Combination, "prune_graph")
 
 
 @pytest.fixture()
@@ -2972,8 +2972,8 @@ def test_stored_node(mocker, options, weight):
 def test_combination(
     mocked_graph, mocked_deepcopy, mocked_prune_graph, options, copy_data
 ):
-    """Create a variant combination."""
-    combination = wiz.graph.VariantCombination(mocked_graph, **options)
+    """Create a graph combination."""
+    combination = wiz.graph.Combination(mocked_graph, **options)
 
     if copy_data:
         mocked_deepcopy.assert_called_once_with(mocked_graph)
@@ -3001,8 +3001,8 @@ def test_combination(
 def test_combination_with_removed_nodes(
     mocked_graph, mocked_deepcopy, mocked_prune_graph, options, copy_data
 ):
-    """Create a variant combination with node identifiers to remove."""
-    combination = wiz.graph.VariantCombination(
+    """Create a graph combination with node identifiers to remove."""
+    combination = wiz.graph.Combination(
         mocked_graph, nodes_to_remove={"foo[V2]", "foo[V1]", "bar[V1]"},
         **options
     )

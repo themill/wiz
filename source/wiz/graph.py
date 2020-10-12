@@ -179,7 +179,7 @@ class Resolver(object):
 
         # Initialize combinations or simply add graph to iterator.
         if not self.extract_combinations(graph):
-            self._iterator = iter([VariantCombination(graph, copy_data=False)])
+            self._iterator = iter([Combination(graph, copy_data=False)])
 
     def extract_combinations(self, graph):
         variant_groups = graph.conflicting_variant_groups()
@@ -510,7 +510,7 @@ def generate_variant_combinations(graph, variant_groups):
     for combination in itertools.product(*_groups):
         _identifiers = [_id for _group in combination for _id in _group]
 
-        yield VariantCombination(
+        yield Combination(
             graph, nodes_to_remove=set([
                 _id for _id in identifiers
                 if _id not in _identifiers
@@ -1691,7 +1691,7 @@ class StoredNode(object):
         }
 
 
-class VariantCombination(object):
+class Combination(object):
     """Combination of a Package dependency Graph.
 
     This object operates an initial pruning process on a :class:`Graph` instance
@@ -1699,7 +1699,7 @@ class VariantCombination(object):
     preserved::
 
         >>> group = ["A[V3]", "A[V2]", "A[V1]"]
-        >>> combination = VariantCombination(graph, nodes_to_remove=group[1:])
+        >>> combination = Combination(graph, nodes_to_remove=group[1:])
 
     .. note::
 
@@ -1710,17 +1710,17 @@ class VariantCombination(object):
     steps:
 
     * Conflicting versions must be :meth:`resolved
-      <VariantCombination.resolve_conflicts>`::
+      <Combination.resolve_conflicts>`::
 
         >>> combination.resolve_conflicts()
 
     * Remaining nodes must be :meth:`validated
-      <VariantCombination.validate>`::
+      <Combination.validate>`::
 
         >>> combination.validate()
 
     * If previous stages did not raise any error, resolved packages can be
-      :meth:`extracted <VariantCombination.extract_packages>`::
+      :meth:`extracted <Combination.extract_packages>`::
 
         >>> combination.extract_packages()
 
@@ -1729,7 +1729,7 @@ class VariantCombination(object):
     """
 
     def __init__(self, graph, nodes_to_remove=None, copy_data=True):
-        """Initialize VariantCombination.
+        """Initialize Combination.
 
         :param graph: Instance of :class:`Graph`.
 
@@ -1741,7 +1741,7 @@ class VariantCombination(object):
             prevent mutating it. Default is True.
 
         """
-        self._logger = wiz.logging.Logger(__name__ + ".VariantCombination")
+        self._logger = wiz.logging.Logger(__name__ + ".Combination")
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_COMBINATION_EXTRACTION_ACTION,
