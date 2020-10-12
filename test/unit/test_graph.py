@@ -305,6 +305,226 @@ def _packages_with_conflicting_variants():
     }
 
 
+def test_compute_distance_mapping_empty(mocked_graph):
+    """Compute distance mapping from empty graph."""
+    mocked_graph.outcoming.return_value = []
+    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+        "root": {"distance": 0, "parent": "root"}
+    }
+
+
+def test_compute_distance_mapping_one_node(mocker, mocked_graph):
+    """Compute distance mapping from graph with one node."""
+    identifiers = ["root", "A"]
+    weights = {"root": {"A": 1}}
+
+    # mock nodes in the graph.
+    nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
+    mocked_graph.nodes.return_value = nodes
+
+    # mock graph traversal.
+    mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
+    mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
+
+    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"}
+    }
+
+
+def test_compute_distance_mapping_two_nodes(mocker, mocked_graph):
+    """Compute distance mapping from graph with two nodes."""
+    identifiers = ["root", "A", "B"]
+    weights = {"root": {"A": 1, "B": 2}}
+
+    # mock nodes in the graph.
+    nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
+    mocked_graph.nodes.return_value = nodes
+
+    # mock graph traversal.
+    mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
+    mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
+
+    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": 2, "parent": "root"}
+    }
+
+
+def test_compute_distance_mapping_three_nodes(mocker, mocked_graph):
+    """Compute distance mapping from graph with three nodes."""
+    identifiers = ["root", "A", "B", "C"]
+    weights = {"root": {"A": 1, "B": 2, "C": 3}}
+
+    # mock nodes in the graph.
+    nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
+    mocked_graph.nodes.return_value = nodes
+
+    # mock graph traversal.
+    mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
+    mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
+
+    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": 2, "parent": "root"},
+        "C": {"distance": 3, "parent": "root"}
+    }
+
+
+def test_compute_distance_mapping_two_levels(mocker, mocked_graph):
+    """Compute distance mapping from graph with two levels of dependency."""
+    identifiers = ["root", "A", "B"]
+    weights = {"root": {"A": 1}, "A": {"B": 1}}
+
+    # mock nodes in the graph.
+    nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
+    mocked_graph.nodes.return_value = nodes
+
+    # mock graph traversal.
+    mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
+    mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
+
+    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": 2, "parent": "A"}
+    }
+
+
+def test_compute_distance_mapping_three_levels(mocker, mocked_graph):
+    """Compute distance mapping from graph with three levels of dependency."""
+    identifiers = ["root", "A", "B", "C"]
+    weights = {"root": {"A": 1}, "A": {"B": 1}, "B": {"C": 1}}
+
+    # mock nodes in the graph.
+    nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
+    mocked_graph.nodes.return_value = nodes
+
+    # mock graph traversal.
+    mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
+    mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
+
+    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": 2, "parent": "A"},
+        "C": {"distance": 3, "parent": "B"}
+    }
+
+
+def test_compute_distance_mapping_circular_dependency(mocker, mocked_graph):
+    """Compute distance mapping from graph with circular dependency."""
+    identifiers = ["root", "A", "B"]
+    weights = {"root": {"A": 1, "B": 2}, "A": {"B": 1}, "B": {"A": 1}}
+
+    # mock nodes in the graph.
+    nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
+    mocked_graph.nodes.return_value = nodes
+
+    # mock graph traversal.
+    mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
+    mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
+
+    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": 2, "parent": "root"}
+    }
+
+
+def test_compute_distance_mapping_multi_levels(mocker, mocked_graph):
+    """Compute distance mapping from graph with multi levels of dependency."""
+    identifiers = ["root", "A", "B", "C", "D", "E", "F", "G"]
+    weights = {
+        "root": {"A": 1, "B": 2},
+        "A": {"C": 1, "D": 2},
+        "B": {"D": 1, "F": 2, "G": 3},
+        "D": {"E": 1}
+    }
+
+    # mock nodes in the graph.
+    nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
+    mocked_graph.nodes.return_value = nodes
+
+    # mock graph traversal.
+    mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
+    mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
+
+    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": 2, "parent": "root"},
+        "C": {"distance": 2, "parent": "A"},
+        "D": {"distance": 3, "parent": "A"},
+        "E": {"distance": 4, "parent": "D"},
+        "F": {"distance": 4, "parent": "B"},
+        "G": {"distance": 5, "parent": "B"},
+    }
+
+
+def test_compute_distance_mapping_unreachable_nodes(mocker, mocked_graph):
+    """Compute distance mapping from graph with unreachable nodes."""
+    identifiers = ["root", "A", "B", "C", "D", "E", "F"]
+    weights = {
+        "root": {"A": 1},
+        "A": {"C": 1, "E": 2, "F": 3},
+        "B": {"F": 1, "D": 2},
+    }
+
+    # mock nodes in the graph.
+    nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
+    mocked_graph.nodes.return_value = nodes
+
+    # mock graph traversal.
+    mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
+    mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
+
+    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": None, "parent": None},
+        "C": {"distance": 2, "parent": "A"},
+        "D": {"distance": None, "parent": None},
+        "E": {"distance": 3, "parent": "A"},
+        "F": {"distance": 4, "parent": "A"},
+    }
+
+
+def test_compute_distance_mapping_complex(mocker, mocked_graph):
+    """Compute distance mapping from graph with complex graph."""
+    identifiers = ["root", "A", "B", "C", "D", "E", "F", "G"]
+    weights = {
+        "root": {"A": 1, "B": 2, "F": 3},
+        "A": {"C": 1, "D": 2},
+        "B": {"D": 1, "F": 2, "G": 3},
+        "C": {"G": 1},
+        "D": {"E": 1},
+        "E": {"A": 1},
+        "G": {"B": 1}
+    }
+
+    # mock nodes in the graph.
+    nodes = [mocker.Mock(identifier=_id) for _id in identifiers]
+    mocked_graph.nodes.return_value = nodes
+
+    # mock graph traversal.
+    mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
+    mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
+
+    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+        "root": {"distance": 0, "parent": "root"},
+        "A": {"distance": 1, "parent": "root"},
+        "B": {"distance": 2, "parent": "root"},
+        "C": {"distance": 2, "parent": "A"},
+        "D": {"distance": 3, "parent": "A"},
+        "E": {"distance": 4, "parent": "D"},
+        "F": {"distance": 3, "parent": "root"},
+        "G": {"distance": 3, "parent": "C"},
+    }
+
+
 def test_combined_requirements(mocked_graph):
     """Combine nodes requirements."""
     versions = ["1.2.3", "1.9.2", "3.0.0"]

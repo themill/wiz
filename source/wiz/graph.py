@@ -799,7 +799,7 @@ def compute_distance_mapping(graph):
 
     """
     logger = wiz.logging.Logger(__name__ + ".compute_distance_mapping")
-    logger.debug("Compute distance mapping...")
+    logger.debug("Compute distance mapping.")
 
     # Initiate mapping
     distance_mapping = {
