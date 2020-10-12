@@ -18,6 +18,14 @@ def mocked_resolver(mocker):
 
 
 @pytest.fixture()
+def mocked_graph(mocker):
+    """Return mocked Graph."""
+    graph = mocker.patch.object(wiz.graph, "Graph")
+    graph.ROOT = "root"
+    return graph
+
+
+@pytest.fixture()
 def mocked_package_extract(mocker):
     """Return mocked 'wiz.package.extract' function.
 
@@ -295,6 +303,96 @@ def _packages_with_conflicting_variants():
             }),
         )
     }
+
+
+def test_extract_conflicting_requirements(mocked_graph):
+    """Extract conflicting requirements from nodes."""
+    versions = ["3.0.0", "3.2.1", "4.0.0"]
+    parents_sets = [{"root"}, {"E", "F"}, {"G", "H", "I"}]
+
+    # mock nodes existence check.
+    existences = {"E": False, "F": True, "G": True, "H": True, "I": True}
+    mocked_graph.exists = lambda _id: existences[_id]
+
+    # mock parents requirements check.
+    requirements = {
+        "root": {"foo==3.0.0": Requirement("foo==3.0.0")},
+        "F": {"foo==3.2.1": Requirement("foo ==3.*")},
+        "G": {"foo==4.0.0": Requirement("foo >=4, <5")},
+        "H": {"foo==4.0.0": Requirement("foo >=4, <5")},
+        "I": {"foo==4.0.0": Requirement("foo")},
+    }
+    mocked_graph.link_requirement = lambda _id1, _id2: requirements[_id2][_id1]
+
+    # Compute nodes.
+    nodes = [
+        wiz.graph.Node(
+            wiz.package.Package(
+                wiz.definition.Definition({
+                    "identifier": "foo", "version": version
+                })
+            ),
+            parent_identifiers=parents
+        )
+        for version, parents in zip(versions, parents_sets)
+    ]
+
+    conflicts = wiz.graph.extract_conflicting_requirements(mocked_graph, nodes)
+
+    assert conflicts == [
+        {
+            "graph": mocked_graph,
+            "requirement": Requirement("foo >=4, <5"),
+            "identifiers": {"G", "H"},
+            "conflicts": {"F", "root"}
+        },
+        {
+            "graph": mocked_graph,
+            "requirement": Requirement("foo ==3.0.0"),
+            "identifiers": {"root"},
+            "conflicts": {"G", "H"}
+        },
+        {
+            "graph": mocked_graph,
+            "requirement": Requirement("foo ==3.*"),
+            "identifiers": {"F"},
+            "conflicts": {"G", "H"}
+        }
+    ]
+
+
+def test_extract_conflicting_requirements_error(mocked_graph):
+    """Fail to extract conflicting requirements from nodes."""
+    nodes = [
+        wiz.graph.Node(
+            wiz.package.Package(
+                wiz.definition.Definition({
+                    "identifier": "foo", "version": "3.1.2"
+                })
+            ),
+            parent_identifiers={"root"}
+        ),
+        wiz.graph.Node(
+            wiz.package.Package(
+                wiz.definition.Definition({
+                    "identifier": "bar", "version": "0.1.0"
+                })
+            ),
+            parent_identifiers={"E"}
+        )
+    ]
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        wiz.graph.extract_conflicting_requirements(mocked_graph, nodes)
+
+    assert (
+        "All nodes should have the same definition identifier when "
+        "attempting to extract conflicting requirements from parent "
+        "nodes [bar, foo]"
+    ) in str(error.value)
+
+    mocked_graph.exists.assert_not_called()
+    mocked_graph.link_requirement.assert_not_called()
 
 
 def test_graph_empty(mocked_resolver):
