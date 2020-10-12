@@ -1053,15 +1053,15 @@ def extract_conflicting_requirements(graph, nodes):
 class Graph(object):
     """Package dependency Graph.
 
-    Requested packages are added recursively as :class:`Node` instance from
+    Requested packages are added recursively as :class:`Node` instances from
     :meth:`requirements <Graph.update_from_requirements>` or :meth:`instances
     <Graph.update_from_package>`::
 
         >>> graph = Graph(resolver)
         >>> graph.update_from_requirements([Requirement("A >=1, <2")])
 
-    Dependent requirements are traversed using a `Breadth-first search
-    <https://en.wikipedia.org/wiki/Breadth-first_search>`_ algorithm so that
+    Dependent requirements are traversed using a `Breadth-first
+    <https://en.wikipedia.org/wiki/Breadth-first_search>`_ approach so that
     potential errors are recorded in coherent order.
 
     When a packages cannot be extracted from a requirement, errors are recorded
@@ -1088,7 +1088,7 @@ class Graph(object):
 
     """
 
-    #: Identify the root of the graph
+    #: Identify the root of the graph.
     ROOT = "root"
 
     def __init__(self, resolver):
@@ -1170,7 +1170,7 @@ class Graph(object):
         """Return all nodes in the graph.
 
         :param definition_identifier: Provide qualified identifier of a
-            definition whose node must belong to. Default is None which means
+            definition whose nodes must belong to. Default is None which means
             that nodes belonging to any definitions will be returned.
 
         :return: List of :class:`Node` instances.
@@ -1373,7 +1373,7 @@ class Graph(object):
         to graph accordingly. The process will be repeated recursively for
         dependent requirements from newly created packages.
 
-        :param requirements: List of class:`packaging.requirements.Requirement`
+        :param requirements: List of :class:`packaging.requirements.Requirement`
             instances ordered from the most important to the least important.
 
         :param detached: Indicate whether :class:`Node` instances created for
@@ -1415,7 +1415,7 @@ class Graph(object):
         :class:`Node` instances. The process will be repeated recursively for
         dependent requirements from newly created packages.
 
-        :param package: Instance of class:`wiz.package.Package`.
+        :param package: Instance of :class:`wiz.package.Package`.
 
         :param requirement: Instance of
             :class:`packaging.requirements.Requirement` which led to the
