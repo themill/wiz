@@ -12,6 +12,7 @@ import wiz.package
 import wiz.exception
 import wiz.symbol
 import wiz.history
+from wiz.utility import Requirement
 
 
 class Resolver(object):
@@ -20,7 +21,6 @@ class Resolver(object):
     Compute a ordered list of packages from an initial list of
     :class:`packaging.requirements.Requirement` instances::
 
-        >>> from wiz.utility import Requirement
         >>> resolver = Resolver()
         >>> resolver.compute_packages(Requirement("foo"), Requirement("bar"))
 
@@ -1057,7 +1057,6 @@ class Graph(object):
     :meth:`requirements <Graph.update_from_requirements>` or :meth:`instances
     <Graph.update_from_package>`::
 
-        >>> from wiz.utility import Requirement
         >>> graph = Graph(resolver)
         >>> graph.update_from_requirements([Requirement("A >=1, <2")])
 
@@ -1434,9 +1433,6 @@ class Graph(object):
             graph=self, requirements=[requirement]
         )
 
-        # Record namespaces from requirement name.
-        self._update_namespace_count([requirement])
-
         # If not detached, set root node as parent.
         parent_identifier = self.ROOT if not detached else None
 
@@ -1508,11 +1504,10 @@ class Graph(object):
                 continue
 
             try:
-                # TODO: Shouldn't condition extraction also take namespace
-                # counter into account?
                 packages = itertools.chain(*(
                     wiz.package.extract(
-                        condition, self.resolver.definition_mapping
+                        condition, self.resolver.definition_mapping,
+                        namespace_counter=self._namespace_count
                     )
                     for condition in stored_node.package.conditions
                 ))
@@ -1595,6 +1590,11 @@ class Graph(object):
         """
         # Ensure that requirement contains namespace.
         requirement = wiz.utility.sanitize_requirement(requirement, package)
+
+        # Update namespace counter from identify namespace if necessary
+        namespace, _ = wiz.utility.extract_namespace(requirement)
+        if namespace is not None:
+            self._namespace_count.update([namespace])
 
         if not self.exists(package.identifier):
 
@@ -1683,9 +1683,22 @@ class Graph(object):
         self._variants_per_definition[_definition_id].append(identifier)
 
     def _update_namespace_count(self, requirements):
-        """Record namespace occurrences from *requirements*.
+        """Record namespace occurrences from input *requirements*.
 
-        Requirement names are used to find out all available namespaces.
+        Namespace counter is updated first from input requirements so that each
+        requirement can influence package extraction, whatever the requirements'
+        order is.
+
+        For instance, if a definition "A" has "foo" and "bar" as available
+        namespaces, and another definition "B" has only "foo", then the
+        following update will correctly import "foo::A" into the graph::
+
+            >>> self.update_from_requirements([
+            ...     Requirement("A"), Requirement("B")
+            ... ])
+
+        The namespace counter could then be updated again once each requirement
+        is sanitized and a namespace is clearly identified.
 
         :param requirements: List of :class:`packaging.requirements.Requirement`
             instances.
