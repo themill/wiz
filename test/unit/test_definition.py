@@ -491,6 +491,14 @@ def test_query_definition_guess_default_namespace_counter():
         package_mapping["namespace1::foo"]["0.1.0"]
     )
 
+    assert (
+        wiz.definition.query(
+            requirement, package_mapping,
+            namespace_counter=Counter(["namespace1"])
+        ) ==
+        package_mapping["namespace1::foo"]["0.1.0"]
+    )
+
     # Counter with "namespace1" and "namespace2"
     with pytest.raises(wiz.exception.RequestNotFound) as error:
         wiz.definition.query(

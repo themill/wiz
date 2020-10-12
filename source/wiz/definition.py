@@ -319,7 +319,7 @@ def _guess_qualified_identifier(
 
     # If more than one namespace is available, attempt to use counter to only
     # keep those which are used the most.
-    if len(_namespaces) > 1 and max_occurrence > 1:
+    if len(_namespaces) > 1 and max_occurrence > 0:
         _namespaces = [
             namespace for namespace in _namespaces
             if namespace_counter[namespace] == max_occurrence
