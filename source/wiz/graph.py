@@ -143,7 +143,7 @@ class Resolver(object):
                 combination.resolve_conflicts()
                 combination.validate()
 
-                return combination.packages()
+                return combination.extract_packages()
 
             except wiz.exception.GraphResolutionError as error:
                 wiz.history.record_action(
@@ -1720,9 +1720,9 @@ class Combination(object):
         >>> combination.validate()
 
     * If previous stages did not raise any error, resolved packages can be
-      :meth:`extracted <Combination.packages>`::
+      :meth:`extracted <Combination.extract_packages>`::
 
-        >>> combination.packages()
+        >>> combination.extract_packages()
 
     .. seealso:: :ref:`definition/variants`
 
@@ -1848,7 +1848,7 @@ class Combination(object):
             requirement = combined_requirements(self._graph, nodes)
 
             # Query common packages from this combined requirements.
-            packages = self._discover_compatible_packages(
+            packages = self._discover_packages(
                 requirement, nodes, conflict_identifier,
                 remaining_conflicts, circular_conflicts
             )
@@ -1887,74 +1887,6 @@ class Combination(object):
                     remaining_conflicts, self._graph.conflicting(),
                     circular_conflicts=circular_conflicts
                 )
-
-    def validate(self):
-        """Ensure that *graph* does not have remaining errors.
-
-        :raise: :exc:`wiz.exception.GraphInvalidNodesError` if any error is
-            found in the embedded graph.
-
-        """
-        error_mapping = self._graph.errors()
-        if len(error_mapping) == 0:
-            self._logger.debug("No errors in the graph.")
-            return
-
-        _errors = ", ".join(sorted(error_mapping.keys()))
-        self._logger.debug("Errors: {}".format(_errors))
-
-        wiz.history.record_action(
-            wiz.symbol.GRAPH_ERROR_IDENTIFICATION_ACTION,
-            graph=self._graph, errors=error_mapping.keys()
-        )
-
-        raise wiz.exception.GraphInvalidNodesError(error_mapping)
-
-    def packages(self):
-        """Return sorted list of packages from embedded graph.
-
-        Packages are sorted per descending order of distance to the
-        :attr:`root <Graph.ROOT>` level of the graph. If two nodes have the same
-        distance to the :attr:`root <Graph.ROOT>` level of the graph, the node
-        identifier is used.
-
-        :return: Sorted list of :class:~wiz.package.Package` instances.
-
-        """
-        distance_mapping = self._fetch_distance_mapping()
-
-        # Remove unreachable nodes.
-        nodes = (
-            node for node in self._graph.nodes()
-            if distance_mapping.get(node.identifier, {}).get("distance")
-            is not None
-        )
-
-        def _compare(node):
-            """Sort identifiers per distance and identifier."""
-            return (
-                distance_mapping[node.identifier]["distance"],
-                node.identifier
-            )
-
-        # Update node order by distance.
-        nodes = sorted(nodes, key=_compare, reverse=True)
-
-        # Extract packages from nodes.
-        packages = [node.package for node in nodes]
-
-        self._logger.debug(
-            "Sorted packages: {}".format(
-                ", ".join([package.identifier for package in packages])
-            )
-        )
-
-        wiz.history.record_action(
-            wiz.symbol.GRAPH_PACKAGES_EXTRACTION_ACTION,
-            graph=self._graph, packages=packages
-        )
-
-        return packages
 
     def _update_conflict_queue(self, *args, circular_conflicts=None):
         """Create new queue with conflicting node identifier lists.
@@ -2009,7 +1941,7 @@ class Combination(object):
         # Initiate queue.
         return collections.deque(conflicts)
 
-    def _discover_compatible_packages(
+    def _discover_packages(
         self, requirement, nodes, identifier, remaining_conflicts,
         circular_conflicts
     ):
@@ -2109,6 +2041,74 @@ class Combination(object):
             return True
 
         return False
+
+    def validate(self):
+        """Ensure that *graph* does not have remaining errors.
+
+        :raise: :exc:`wiz.exception.GraphInvalidNodesError` if any error is
+            found in the embedded graph.
+
+        """
+        error_mapping = self._graph.errors()
+        if len(error_mapping) == 0:
+            self._logger.debug("No errors in the graph.")
+            return
+
+        _errors = ", ".join(sorted(error_mapping.keys()))
+        self._logger.debug("Errors: {}".format(_errors))
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_ERROR_IDENTIFICATION_ACTION,
+            graph=self._graph, errors=error_mapping.keys()
+        )
+
+        raise wiz.exception.GraphInvalidNodesError(error_mapping)
+
+    def extract_packages(self):
+        """Return sorted list of packages from embedded graph.
+
+        Packages are sorted per descending order of distance to the
+        :attr:`root <Graph.ROOT>` level of the graph. If two nodes have the same
+        distance to the :attr:`root <Graph.ROOT>` level of the graph, the node
+        identifier is used.
+
+        :return: Sorted list of :class:~wiz.package.Package` instances.
+
+        """
+        distance_mapping = self._fetch_distance_mapping()
+
+        # Remove unreachable nodes.
+        nodes = (
+            node for node in self._graph.nodes()
+            if distance_mapping.get(node.identifier, {}).get("distance")
+            is not None
+        )
+
+        def _compare(node):
+            """Sort identifiers per distance and identifier."""
+            return (
+                distance_mapping[node.identifier]["distance"],
+                node.identifier
+            )
+
+        # Update node order by distance.
+        nodes = sorted(nodes, key=_compare, reverse=True)
+
+        # Extract packages from nodes.
+        packages = [node.package for node in nodes]
+
+        self._logger.debug(
+            "Sorted packages: {}".format(
+                ", ".join([package.identifier for package in packages])
+            )
+        )
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_PACKAGES_EXTRACTION_ACTION,
+            graph=self._graph, packages=packages
+        )
+
+        return packages
 
     def prune_graph(self):
         """Remove unreachable and invalid nodes from graph.
