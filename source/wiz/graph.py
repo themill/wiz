@@ -1839,22 +1839,19 @@ class Combination(object):
                 continue
 
             # Identify group of nodes conflicting with this node.
-            conflicting_nodes = self._graph.nodes(
+            nodes = self._graph.nodes(
                 definition_identifier=node.definition.qualified_identifier
             )
-            if len(conflicting_nodes) == 0:
+            if len(nodes) == 0:
                 continue
 
             # Compute combined requirements from all conflicting nodes.
-            requirement = combined_requirements(
-                self._graph, [node] + conflicting_nodes
-            )
+            requirement = combined_requirements(self._graph, nodes)
 
             # Query common packages from this combined requirements.
             try:
-                packages = self._extract_packages(
-                    requirement, [node] + conflicting_nodes
-                )
+                packages = self._extract_packages(requirement, nodes)
+
             except wiz.exception.GraphConflictsError as error:
                 # Push conflict at the end of the queue if it has conflicting
                 # parents that should be handled first.
@@ -1880,7 +1877,7 @@ class Combination(object):
 
                 # Update the graph if necessary
                 updated = self._add_packages_to_graph(
-                    packages, requirement, conflicting_nodes
+                    packages, requirement, nodes
                 )
 
                 # Relink node parents to package identifiers. It needs to be
@@ -2002,7 +1999,7 @@ class Combination(object):
         # Concatenate conflict lists while ignoring unreachable nodes and
         # identifiers flagged as circular conflicts so it can be added at the
         # end of the queue.
-        identifiers = (
+        identifiers = set(
             identifier for _identifiers in args for identifier in _identifiers
             if identifier not in circular_conflicts
             and distance_mapping.get(identifier, {}).get("distance") is not None
