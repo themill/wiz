@@ -2237,7 +2237,9 @@ class Combination(object):
 
         """
         if self._memoized_distance_mapping is None or force_update:
-            self._memoized_distance_mapping = compute_distance_mapping(self._graph)
+            self._memoized_distance_mapping = compute_distance_mapping(
+                self._graph
+            )
 
         return self._memoized_distance_mapping
 
