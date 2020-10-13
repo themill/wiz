@@ -1755,11 +1755,10 @@ class Combination(object):
         # Record graph which will be used in this combination.
         self._graph = graph
 
-        # Record memoization of distance mapping.
-        self._memoized_distance_mapping = None
-
-        # Record memoization of package extraction requests per requirement.
-        self._memoized_package_extraction = {}
+        # Record mapping indicating the shortest possible distance of each node
+        # identifier from the root level of the graph with corresponding
+        # parent node identifier.
+        self._distance_mapping = None
 
         # Remove node identifiers from graph if required.
         if nodes_to_remove is not None:
@@ -2043,7 +2042,9 @@ class Combination(object):
 
         """
         try:
-            return self._fetch_packages(requirement)
+            return wiz.package.extract(
+                requirement, self._graph.resolver.definition_mapping
+            )
 
         except wiz.exception.RequestNotFound:
             conflicts = extract_conflicting_requirements(self._graph, nodes)
@@ -2191,39 +2192,6 @@ class Combination(object):
 
         return len(nodes_removed) > 0
 
-    def _fetch_packages(self, requirement):
-        """Return packages corresponding to *requirement*.
-
-        If request has been processed before with the same *requirement*,
-        return memoized result.
-
-        :param requirement: Instance of
-            :class:`packaging.requirements.Requirement`.
-
-        :return: List of :class:`~wiz.package.Package` instances.
-
-        :raise: :exc:`wiz.exception.RequestNotFound` if no packages have
-            been extracted.
-
-        """
-        result = self._memoized_package_extraction.get(requirement)
-        if isinstance(result, wiz.exception.RequestNotFound):
-            raise result
-
-        if result is not None:
-            return result
-
-        try:
-            packages = wiz.package.extract(
-                requirement, self._graph.resolver.definition_mapping
-            )
-            self._memoized_package_extraction[requirement] = packages
-            return packages
-
-        except wiz.exception.RequestNotFound as error:
-            self._memoized_package_extraction[requirement] = error
-            raise
-
     def _fetch_distance_mapping(self, force_update=False):
         """Return distance mapping from cached attribute.
 
@@ -2236,12 +2204,10 @@ class Combination(object):
         :return: Distance mapping.
 
         """
-        if self._memoized_distance_mapping is None or force_update:
-            self._memoized_distance_mapping = compute_distance_mapping(
-                self._graph
-            )
+        if self._distance_mapping is None or force_update:
+            self._distance_mapping = compute_distance_mapping(self._graph)
 
-        return self._memoized_distance_mapping
+        return self._distance_mapping
 
 
 class _DistanceQueue(dict):
