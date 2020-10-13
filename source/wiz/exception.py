@@ -127,7 +127,7 @@ class GraphResolutionError(WizError):
 class GraphConflictsError(GraphResolutionError):
     """Raise when unsolvable conflicts are found in the graph."""
 
-    def __init__(self, conflicts, latest=True):
+    def __init__(self, conflicts):
         """Initialize with a list of conflict mappings.
 
         :param conflicts: List of conflict mappings which should be in the
@@ -149,16 +149,8 @@ class GraphConflictsError(GraphResolutionError):
                     ...
                 ]
 
-        :param latest: Indicate whether conflicts raised haven't been
-            found before. Default is True.
-
         """
-        self.latest = latest
         self.conflicts = conflicts
-        self.parents = set(
-            identifier for mapping in conflicts
-            for identifier in mapping["identifiers"]
-        )
 
         def _format(mapping):
             """Display conflicting *mapping*."""

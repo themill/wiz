@@ -143,7 +143,7 @@ class Resolver(object):
                 combination.resolve_conflicts()
                 combination.validate()
 
-                return combination.extract_packages()
+                return combination.packages()
 
             except wiz.exception.GraphResolutionError as error:
                 wiz.history.record_action(
@@ -1720,9 +1720,9 @@ class Combination(object):
         >>> combination.validate()
 
     * If previous stages did not raise any error, resolved packages can be
-      :meth:`extracted <Combination.extract_packages>`::
+      :meth:`extracted <Combination.packages>`::
 
-        >>> combination.extract_packages()
+        >>> combination.packages()
 
     .. seealso:: :ref:`definition/variants`
 
@@ -1755,10 +1755,11 @@ class Combination(object):
         # Record graph which will be used in this combination.
         self._graph = graph
 
-        # Record mapping indicating the shortest possible distance of each node
-        # identifier from the root level of the graph with corresponding
-        # parent node identifier.
-        self._distance_mapping = None
+        # Record memoization of distance mapping.
+        self._memoized_distance_mapping = None
+
+        # Record memoization of package extraction requests per requirement.
+        self._memoized_package_extraction = {}
 
         # Remove node identifiers from graph if required.
         if nodes_to_remove is not None:
@@ -1839,38 +1840,26 @@ class Combination(object):
                 continue
 
             # Identify group of nodes conflicting with this node.
-            nodes = self._graph.nodes(
-                definition_identifier=node.definition.qualified_identifier
-            )
-            if len(nodes) == 0:
+            definition_id = node.definition.qualified_identifier
+            nodes = self._graph.nodes(definition_identifier=definition_id)
+            if len(nodes) < 2:
                 continue
 
             # Compute combined requirements from all conflicting nodes.
             requirement = combined_requirements(self._graph, nodes)
 
             # Query common packages from this combined requirements.
-            try:
-                packages = self._extract_packages(requirement, nodes)
-
-            except wiz.exception.GraphConflictsError as error:
-                # Push conflict at the end of the queue if it has conflicting
-                # parents that should be handled first.
-                if (
-                    len(error.parents.intersection(remaining_conflicts))
-                    and conflict_identifier not in circular_conflicts
-                ):
-                    circular_conflicts.add(conflict_identifier)
-                    remaining_conflicts.append(conflict_identifier)
-                    continue
-
-                # Otherwise, raise error and give up on current combination.
-                raise
+            packages = self._discover_compatible_packages(
+                requirement, nodes, conflict_identifier,
+                remaining_conflicts, circular_conflicts
+            )
+            if packages is None:
+                continue
 
             # If current node is not part of the extracted packages, it will be
             # removed from the graph.
             if not any(
-                node.identifier == package.identifier
-                for package in packages
+                node.identifier == package.identifier for package in packages
             ):
                 self._logger.debug("Remove '{}'".format(node.identifier))
                 self._graph.remove_node(node.identifier)
@@ -1922,7 +1911,7 @@ class Combination(object):
 
         raise wiz.exception.GraphInvalidNodesError(error_mapping)
 
-    def extract_packages(self):
+    def packages(self):
         """Return sorted list of packages from embedded graph.
 
         Packages are sorted per descending order of distance to the
@@ -2021,30 +2010,31 @@ class Combination(object):
         # Initiate queue.
         return collections.deque(conflicts)
 
-    def _fetch_distance_mapping(self, force_update=False):
-        """Return distance mapping from cached attribute.
+    def _discover_compatible_packages(
+        self, requirement, nodes, identifier, remaining_conflicts,
+        circular_conflicts
+    ):
+        """Return packages compatible with combined *requirement*.
 
-        If no distance mapping is available, a new one is generated from
-        embedded graph via :func:`compute_distance_mapping`.
-
-        :param force_update: Indicate whether a new distance mapping should be
-            computed, even if one cached mapping is available.
-
-        :return: Distance mapping.
-
-        """
-        if self._distance_mapping is None or force_update:
-            self._distance_mapping = compute_distance_mapping(self._graph)
-
-        return self._distance_mapping
-
-    def _extract_packages(self, requirement, nodes):
-        """Return packages extracted from combined *requirement*.
+        If no packages can be extracted, parent of conflicting *nodes* are
+        fetched to find out whether they are part of the remaining conflicts.
+        If this is the case, and if node *identifier* hasn't already been
+        marked as a circular conflict, None is returned. Otherwise, an error
+        is raised.
 
         :param requirement: Instance of
             :class:`packaging.requirements.Requirement`.
 
         :param nodes: List of :class:`Node` instances.
+
+        :param identifier: Unique identifier of conflicting node currently
+            analyzed.
+
+        :param remaining_conflicts: Instance of :class:`collections.deque`
+            containing unique identifiers of conflicting nodes.
+
+        :param circular_conflicts: Set of conflicted node identifier which have
+            conflicting parents.
 
         :raise: :exc:`wiz.exception.GraphConflictsError` if no packages have
             been extracted.
@@ -2053,16 +2043,24 @@ class Combination(object):
 
         """
         try:
-            return wiz.package.extract(
-                requirement, self._graph.resolver.definition_mapping
-            )
+            return self._fetch_packages(requirement)
 
         except wiz.exception.RequestNotFound:
-            conflict_mappings = extract_conflicting_requirements(
-                self._graph, nodes
-            )
+            conflicts = extract_conflicting_requirements(self._graph, nodes)
+            parents = set(_id for m in conflicts for _id in m["identifiers"])
 
-            raise wiz.exception.GraphConflictsError(conflict_mappings)
+            # Push conflict at the end of the queue if it has conflicting
+            # parents that should be handled first.
+            if (
+                len(parents.intersection(remaining_conflicts))
+                and identifier not in circular_conflicts
+            ):
+                circular_conflicts.add(identifier)
+                remaining_conflicts.append(identifier)
+                return
+
+            # Otherwise, raise error and give up on current combination.
+            raise wiz.exception.GraphConflictsError(conflicts)
 
     def _add_packages_to_graph(self, packages, requirement, conflicting_nodes):
         """Add *packages* to embedded graph as detached nodes if necessary.
@@ -2192,6 +2190,56 @@ class Combination(object):
                         break
 
         return len(nodes_removed) > 0
+
+    def _fetch_packages(self, requirement):
+        """Return packages corresponding to *requirement*.
+
+        If request has been processed before with the same *requirement*,
+        return memoized result.
+
+        :param requirement: Instance of
+            :class:`packaging.requirements.Requirement`.
+
+        :return: List of :class:`~wiz.package.Package` instances.
+
+        :raise: :exc:`wiz.exception.RequestNotFound` if no packages have
+            been extracted.
+
+        """
+        result = self._memoized_package_extraction.get(requirement)
+        if isinstance(result, wiz.exception.RequestNotFound):
+            raise result
+
+        if result is not None:
+            return result
+
+        try:
+            packages = wiz.package.extract(
+                requirement, self._graph.resolver.definition_mapping
+            )
+            self._memoized_package_extraction[requirement] = packages
+            return packages
+
+        except wiz.exception.RequestNotFound as error:
+            self._memoized_package_extraction[requirement] = error
+            raise
+
+    def _fetch_distance_mapping(self, force_update=False):
+        """Return distance mapping from cached attribute.
+
+        If no distance mapping is available, a new one is generated from
+        embedded graph via :func:`compute_distance_mapping`.
+
+        :param force_update: Indicate whether a new distance mapping should be
+            computed, even if one cached mapping is available.
+
+        :return: Distance mapping.
+
+        """
+        if self._memoized_distance_mapping is None or force_update:
+            self._memoized_distance_mapping = compute_distance_mapping(self._graph)
+
+        return self._memoized_distance_mapping
 
 
 class _DistanceQueue(dict):
