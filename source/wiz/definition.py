@@ -571,6 +571,15 @@ class Definition(object):
         # Store values that needs to be constructed.
         self._cache = {}
 
+    def __repr__(self):
+        """Representing a Definition."""
+        return (
+            "<Definition id='{0}' version='{1}'>".format(
+                self.qualified_identifier,
+                self.version
+            )
+        )
+
     @property
     def path(self):
         """Return path to definition if available.

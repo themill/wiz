@@ -2073,7 +2073,7 @@ class Combination(object):
         distance to the :attr:`root <Graph.ROOT>` level of the graph, the node
         identifier is used.
 
-        :return: Sorted list of :class:~wiz.package.Package` instances.
+        :return: Sorted list of :class:wiz.package.Package` instances.
 
         """
         distance_mapping = self._fetch_distance_mapping()

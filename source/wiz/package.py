@@ -313,6 +313,10 @@ class Package(object):
                 )
             )
 
+    def __repr__(self):
+        """Representing a Package."""
+        return "<Package id='{0}'>".format(self.identifier)
+
     @property
     def definition(self):
         """Return definition used to create package.

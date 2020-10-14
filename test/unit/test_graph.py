@@ -156,6 +156,13 @@ def _several_packages():
                 "version": "4.1.0",
             }),
         ),
+        "E==0.1.0": wiz.package.Package(
+            wiz.definition.Definition({
+                "identifier": "E",
+                "version": "0.1.0",
+            }),
+        ),
+
     }
 
 
@@ -3661,6 +3668,58 @@ def test_combination_resolve_conflicts_circular(
     mocked_graph.conflicting_variant_groups.assert_not_called()
     mocked_graph.update_from_package.assert_not_called()
     mocked_prune_graph.assert_called_once()
+
+
+def test_combination_validate(mocked_graph):
+    """Ensure that graph does not contain any error."""
+    mocked_graph.errors.return_value = {}
+
+    combination = wiz.graph.Combination(mocked_graph, copy_data=False)
+    combination.validate()
+
+    mocked_graph.errors.assert_called_once()
+
+
+def test_combination_validate_raise(mocked_graph):
+    """Raise when the graph contains an error."""
+    mocked_graph.errors.return_value = {"foo": "Error!"}
+
+    combination = wiz.graph.Combination(mocked_graph, copy_data=False)
+
+    with pytest.raises(wiz.exception.GraphInvalidNodesError):
+        combination.validate()
+
+    mocked_graph.errors.assert_called_once()
+
+
+@pytest.mark.parametrize("packages", ["many"], indirect=True)
+def test_combination_extract_packages(
+    mocked_graph, mocked_compute_distance_mapping, packages
+):
+    """Extract extracted packages."""
+    mocked_compute_distance_mapping.return_value = {
+        "A==0.1.0": {"distance": 1},
+        "B==1.2.3": {"distance": 2},
+        "C": {"distance": None},
+        "D==4.1.0": {"distance": 5},
+        "E==0.1.0": {"distance": 2},
+    }
+
+    mocked_graph.nodes.return_value = [
+        wiz.graph.Node(packages["A==0.1.0"], parent_identifiers={"root"}),
+        wiz.graph.Node(packages["B==1.2.3"], parent_identifiers={"A==0.1.0"}),
+        wiz.graph.Node(packages["C"], parent_identifiers={"B==1.2.3"}),
+        wiz.graph.Node(packages["D==4.1.0"], parent_identifiers={"B==1.2.3"}),
+        wiz.graph.Node(packages["E==0.1.0"], parent_identifiers={"root"}),
+    ]
+
+    combination = wiz.graph.Combination(mocked_graph, copy_data=False)
+    assert combination.extract_packages() == [
+        packages["D==4.1.0"],
+        packages["E==0.1.0"],
+        packages["B==1.2.3"],
+        packages["A==0.1.0"],
+    ]
 
 
 def test_distance_queue():
