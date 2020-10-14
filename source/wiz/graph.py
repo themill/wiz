@@ -16,59 +16,35 @@ from wiz.utility import Requirement
 
 
 class Resolver(object):
-    """Graph resolver class.
+    """Package dependency resolver.
 
     Compute a ordered list of packages from an initial list of
     :class:`packaging.requirements.Requirement` instances::
 
         >>> resolver = Resolver()
-        >>> resolver.compute_packages(Requirement("foo"), Requirement("bar"))
+        >>> resolver.compute_packages([Requirement("foo"), Requirement("bar")])
 
-        [Package("foo"), Package("bar"), Package("bim"), Package("baz")]
+    An initial :class:`Graph` instance is created from initial requirements with
+    all corresponding dependencies.
 
-    A :class:`Graph` is instantiated with dependent requirements from initial
-    requirements (e.g. "foo" requires "bim" and "bim" requires "baz").
+    If the graph contains conflicting variants, several :class:`Combination`
+    instances will be created with a copy of the graph containing onlly one
+    variant for each definition included. Only one :class:`Combination` instance
+    is created otherwise.
 
-    The resolution process of the graph ensure that only one version of each
-    package definition is kept. If several versions of one package definition
-    are in a graph, their corresponding requirement will be analyzed to ensure
-    that they are compatible.::
+    The resolution process ensures that only one version and one variant of each
+    package definition is kept. A graph cannot be resolved if several
+    requirements are incompatibles (e.g. "A >= 1" and "A < 1").
 
-        - 'foo==0.5.0' is required by 'foo<1';
-        - 'foo==1.0.0' is required by 'foo';
-        - The version '0.5.0' is matching both requirements;
-        - Requirements 'foo<1' and 'foo' are seen as compatible.
-
-    A graph cannot be resolved if two requirements are incompatibles.
-
-    If several variants of one package definition are in the graph, the graph
-    must be divided in as many graph combinations as there are variants. If
-    several conflicting variant groups are in the graph, the number of graph
-    division is equal to the multiplication of each variant group size. For
-    instance, 24 graph divisions would be necessary for the following example
-    (3 x 2 x 4)::
-
-        >>> graph = Graph(resolver)
-        >>> graph.update_from_requirements(
-        ...     Requirement("foo"), Requirement("bar"), Requirement("baz")
-        ... )
-        >>> graph.conflicting_variant_groups()
-
-        [
-            ["foo[V3]", "foo[V2]", "foo[V1]"],
-            ["bar[V2]", "bar[V1]"],
-            ["baz[V4]", "baz[V3]", "baz[V2]", "baz[V1]"],
-        ]
-
-    Each combination will be generated only if the previous one failed to return
-    a solution. If all graph combinations are exhausted and no solutions are
-    found, other versions of the conflicting packages will be fetched to attempt
-    to resolve the graph.
+    Each :class:`Combination` instance will be generated only if the previous
+    one failed to return a solution. If all graph combinations are exhausted and
+    no solutions are found, other versions of the conflicting packages will be
+    fetched to attempt to resolve the graph.
 
     """
 
     def __init__(self, definition_mapping):
-        """Initialize Resolver with *requirements*.
+        """Initialize Resolver.
 
         :param definition_mapping: Mapping regrouping all available definitions
             associated with their unique identifier.
@@ -79,8 +55,7 @@ class Resolver(object):
         # All available definitions.
         self._definition_mapping = definition_mapping
 
-        # Iterator which yield the next graph to resolve with a list of
-        # conflicting variant node identifiers to remove before instantiation.
+        # Iterator containing Combination instances to resolve.
         self._iterator = iter([])
 
         # Record all node identifiers with conflicting variants which led to a
@@ -94,16 +69,24 @@ class Resolver(object):
 
     @property
     def definition_mapping(self):
-        """Return mapping of all available definitions."""
+        """Return definition mapping used by resolver.
+
+        :return: Mapping containing of all available definitions
+
+        """
         return self._definition_mapping
 
     @property
     def conflicting_variants(self):
-        """Return set of variant identifiers used to divide graph."""
+        """Return set of node identifiers with variant used to divide graph.
+
+        :return: Set of node identifiers.
+
+        """
         return self._conflicting_variants
 
     def compute_packages(self, requirements):
-        """Resolve requirements graphs and return list of packages.
+        """Return resolved packages from *requirements*.
 
         :param requirements: List of :class:`packaging.requirements.Requirement`
             instances.
@@ -122,7 +105,7 @@ class Resolver(object):
         # Update the graph.
         graph.update_from_requirements(requirements)
 
-        self.reset_combinations(graph)
+        self.initiate_combinations(graph)
 
         # Store latest exception to raise if necessary.
         latest_error = None
@@ -166,15 +149,15 @@ class Resolver(object):
                 latest_error = error
                 nb_failures += 1
 
-    def reset_combinations(self, graph):
-        """Initialize iterator with a *graph*.
+    def initiate_combinations(self, graph):
+        """Initiate combinations iterator from *graph*.
 
         :param graph: Instance of :class:`Graph`.
 
         """
         self._logger.debug("Initiate iterator from graph")
 
-        # Reset the iterator.
+        # Initialize iterator.
         self._iterator = iter([])
 
         # Initialize combinations or simply add graph to iterator.
@@ -182,8 +165,16 @@ class Resolver(object):
             self._iterator = iter([Combination(graph, copy_data=False)])
 
     def extract_combinations(self, graph):
-        variant_groups = graph.conflicting_variant_groups()
-        if not variant_groups:
+        """Extract new combinations from conflicting variants in *graph*.
+
+        :param graph: Instance of :class:`Graph`.
+
+        :return: Boolean value indicating whether :class:`Combination` instances
+            have been extracted.
+
+        """
+        groups = graph.conflicting_variant_groups()
+        if not groups:
             self._logger.debug(
                 "No package variants are conflicting in the graph."
             )
@@ -191,45 +182,39 @@ class Resolver(object):
 
         # Record node identifiers from all groups to prevent dividing the graph
         # twice with the same node.
-        self._conflicting_variants.update([
-            identifier for group in variant_groups for identifier in group
-        ])
+        identifiers = [_id for group in groups for _id in group]
+        self._conflicting_variants.update(identifiers)
 
         distance_mapping = compute_distance_mapping(graph)
 
         # Order the variant groups in ascending order of distance from the root
         # level of the graph.
-        variant_groups = sorted(
-            variant_groups,
-            key=lambda _group: min([
+        groups = sorted(
+            groups, key=lambda _group: min([
                 distance_mapping[_id].get("distance") for _id in _group
                 if distance_mapping[_id].get("distance") is not None
             ]),
         )
 
         self._logger.debug(
-            "The following variant groups are conflicting: {!r}".format(
-                variant_groups
-            )
+            "The following variant groups are conflicting: {!r}".format(groups)
         )
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_VARIANT_CONFLICTS_IDENTIFICATION_ACTION,
-            graph=graph, variant_groups=variant_groups
+            graph=graph, variant_groups=groups
         )
 
         self._iterator = itertools.chain(
-            generate_variant_combinations(graph, variant_groups),
+            generate_variant_combinations(graph, groups),
             self._iterator
         )
         return True
 
     def fetch_next_combination(self):
-        """Return next graph and nodes to remove from the combination iterator.
+        """Return next combination from the iterator.
 
-        :return: Next :class:`Graph` instance and list of nodes to remove from
-            it. If the combination iterator is empty, the graph will be returned
-            as None and the node removal list will be empty.
+        :return: Instance of :class:`Combination` or None if iterator is empty.
 
         """
         try:
@@ -239,7 +224,7 @@ class Resolver(object):
 
             # If iterator is empty, check the requirement conflicts to find
             # out if a new graph could be computed with different versions.
-            if self.fetch_new_combinations():
+            if self.discover_combinations():
                 return next(self._iterator)
 
             self._logger.debug(
@@ -247,23 +232,15 @@ class Resolver(object):
                 "conflicting versions"
             )
 
-    def fetch_new_combinations(self):
-        """Re-initialize iterator from recorded requirement conflicts.
+    def discover_combinations(self):
+        """Discover new combinations from unsolvable conflicts recorded.
 
-        After exhausting all graph combinations, the requirement conflicts
-        previously recorded are using to create another graph with different
-        node versions.
+        After exhausting all graph combinations, the unsolvable conflicts
+        previously recorded are being used to create new combinations with
+        different package versions.
 
-        For instance, if a conflict has been recording for the following nodes::
-
-            * foo==3.2.1
-            * bar==1.1.1
-
-        A new graph will be created with other versions for these two nodes if
-        possible.
-
-        :return: Boolean value indicating whether iterator has been
-            re-initialized.
+        :return: Boolean value indicating whether :class:`Combination` instances
+            have been extracted.
 
         """
         while True:
@@ -278,7 +255,7 @@ class Resolver(object):
                 continue
 
             # Reset the iterator.
-            self.reset_combinations(graph)
+            self.initiate_combinations(graph)
 
             return True
 
@@ -290,8 +267,8 @@ class Resolver(object):
         :param identifiers: List of node identifiers.
 
         :return: Boolean value indicating whether all node identifiers have been
-            replaced with different versions. Returned value is False if at
-            least one node cannot be replaced.
+            replaced with different versions. Returned value is False if no
+            conflicting nodes could be replaced.
 
         """
         replacement = {}
@@ -325,6 +302,7 @@ class Resolver(object):
                 packages = wiz.package.extract(
                     requirement, self._definition_mapping
                 )
+
             except wiz.exception.RequestNotFound:
                 self._logger.debug(
                     "Impossible to fetch another version for conflicting "
