@@ -56,6 +56,12 @@ def mocked_prune_graph(mocker):
 
 
 @pytest.fixture()
+def mocked_fetch_distance_mapping(mocker):
+    """Return mocked wiz.graph.VariantCombination._fetch_distance_mapping."""
+    return mocker.patch.object(wiz.graph.Combination, "_fetch_distance_mapping")
+
+
+@pytest.fixture()
 def mocked_package_extract(mocker):
     """Return mocked 'wiz.package.extract' function.
 
@@ -91,6 +97,7 @@ def packages(request):
         "many-with-conditions": _packages_with_conditions(),
         "conflicting-versions": _packages_with_conflicting_versions(),
         "conflicting-variants": _packages_with_conflicting_variants(),
+        "combination-resolution": _packages_for_combination_resolution()
     }
 
     return mapping[request.param]
@@ -335,35 +342,39 @@ def _packages_with_conflicting_variants():
     }
 
 
-@pytest.fixture()
-def nodes(request):
-    """Returned node mapping for testings Combination"""
-    mapping = {
-        "conflicting-versions": _nodes_with_conflicting_versions(),
-    }
-
-    return mapping[request.param]
-
-
-def _nodes_with_conflicting_versions():
-    """Create several nodes with conflicting versions."""
+def _packages_for_combination_resolution():
+    """Create several packages for testing combination resolution."""
     return {
-        "A==1.2.0": wiz.graph.Node(
-            wiz.package.Package(
-                wiz.definition.Definition({
-                    "identifier": "A",
-                    "version": "1.2.0"
-                })
-            )
+        "A==1.1.0": wiz.package.Package(
+            wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.1.0"
+            })
         ),
-        "A==1.4.8": wiz.graph.Node(
-            wiz.package.Package(
-                wiz.definition.Definition({
-                    "identifier": "A",
-                    "version": "1.4.8"
-                })
-            )
-        )
+        "A==1.2.0": wiz.package.Package(
+            wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.2.0"
+            })
+        ),
+        "A==1.4.8": wiz.package.Package(
+            wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.4.8"
+            })
+        ),
+        "B==0.1.0": wiz.package.Package(
+            wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0"
+            })
+        ),
+        "B==1.2.3": wiz.package.Package(
+            wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.2.3"
+            })
+        ),
     }
 
 
@@ -3084,7 +3095,7 @@ def test_combination_with_removed_nodes(
 
 def test_combination_resolve_conflicts_empty(
     mocked_graph, mocked_combined_requirements, mocked_package_extract,
-    mocked_compute_distance_mapping, mocked_prune_graph
+    mocked_fetch_distance_mapping, mocked_prune_graph
 ):
     """No conflicts to resolve in a graph combination."""
     mocked_graph.conflicting.return_value = set()
@@ -3099,16 +3110,17 @@ def test_combination_resolve_conflicts_empty(
     mocked_graph.nodes.assert_not_called()
     mocked_graph.remove_node.assert_not_called()
     mocked_graph.relink_parents.assert_not_called()
+    mocked_graph.conflicting_variant_groups.assert_not_called()
     mocked_graph.update_from_package.assert_not_called()
 
-    mocked_compute_distance_mapping.assert_not_called()
+    mocked_fetch_distance_mapping.assert_not_called()
     mocked_prune_graph.assert_not_called()
 
 
-@pytest.mark.parametrize("nodes", ["conflicting-versions"], indirect=True)
+@pytest.mark.parametrize("packages", ["combination-resolution"], indirect=True)
 def test_combination_resolve_conflicts_simple(
-    mocker, mocked_graph, nodes, mocked_combined_requirements,
-    mocked_package_extract, mocked_compute_distance_mapping, mocked_prune_graph,
+    mocker, mocked_graph, packages, mocked_combined_requirements,
+    mocked_package_extract, mocked_fetch_distance_mapping, mocked_prune_graph,
     mocked_extract_conflicting_requirements
 ):
     """Resolve simple conflict with two nodes.
@@ -3124,36 +3136,43 @@ def test_combination_resolve_conflicts_simple(
          `--(A>1): A==1.4.8
 
     """
-    conflicting_versions = {"A==1.2.0", "A==1.4.8"}
-    mocked_compute_distance_mapping.return_value = {
-        "root": {"distance": 0, "parent": "root"},
-        "A==1.2.0": {"distance": 1, "parent": "root"},
-        "A==1.4.8": {"distance": 3, "parent": "B"},
-        "B": {"distance": 2, "parent": "root"},
+    # Mock nodes.
+    nodes = {
+        "A==1.4.8": wiz.graph.Node(
+            packages["A==1.4.8"], parent_identifiers={"B"}
+        ),
+        "A==1.2.0": wiz.graph.Node(
+            packages["A==1.2.0"], parent_identifiers={"root"}
+        ),
     }
 
+    # Mock graph and side logic.
     mocked_graph.node.side_effect = [nodes["A==1.4.8"], nodes["A==1.2.0"]]
     mocked_graph.nodes.side_effect = [
-        [nodes["A==1.4.8"], nodes["A==1.2.0"]], []
+        [nodes["A==1.4.8"], nodes["A==1.2.0"]], [nodes["A==1.2.0"]]
     ]
-    mocked_graph.conflicting.side_effect = [conflicting_versions, []]
+    mocked_graph.conflicting.side_effect = [{"A==1.2.0", "A==1.4.8"}]
     mocked_combined_requirements.side_effect = [Requirement("::A >1, ==1.2.*")]
-    mocked_package_extract.side_effect = [
-        [getattr(nodes["A==1.2.0"], "package")],
-    ]
+    mocked_package_extract.side_effect = [[packages["A==1.2.0"]]]
+
+    # Mocked distance mapping is used to sort 'A==1.4.8' before 'A==1.2.0'.
+    mocked_fetch_distance_mapping.return_value = {
+        "A==1.2.0": {"distance": 1}, "A==1.4.8": {"distance": 3},
+    }
 
     combination = wiz.graph.Combination(mocked_graph, copy_data=False)
     combination.resolve_conflicts()
 
+    combined_requirement = Requirement("::A >1, ==1.2.*")
+
     mocked_package_extract.assert_called_once_with(
-        Requirement("::A >1, ==1.2.*"),
-        mocked_graph.resolver.definition_mapping
+        combined_requirement, mocked_graph.resolver.definition_mapping
     )
     mocked_combined_requirements.assert_called_once_with(
         mocked_graph, [nodes["A==1.4.8"], nodes["A==1.2.0"]]
     )
-
     mocked_extract_conflicting_requirements.assert_not_called()
+    mocked_fetch_distance_mapping.assert_called_once()
 
     assert mocked_graph.node.call_args_list == [
         mocker.call("A==1.4.8"),
@@ -3166,16 +3185,17 @@ def test_combination_resolve_conflicts_simple(
 
     mocked_graph.remove_node.assert_called_once_with("A==1.4.8")
     mocked_graph.relink_parents.assert_called_once_with(
-        nodes["A==1.4.8"], requirement=Requirement("::A >1, ==1.2.*")
+        nodes["A==1.4.8"], requirement=combined_requirement
     )
+    mocked_graph.conflicting_variant_groups.assert_not_called()
     mocked_graph.update_from_package.assert_not_called()
-    mocked_prune_graph.assert_called_once_with()
+    mocked_prune_graph.assert_called_once()
 
 
-@pytest.mark.parametrize("nodes", ["conflicting-versions"], indirect=True)
+@pytest.mark.parametrize("packages", ["combination-resolution"], indirect=True)
 def test_combination_resolve_conflicts_simple_inverted_order(
-    mocker, mocked_graph, nodes, mocked_combined_requirements,
-    mocked_package_extract, mocked_compute_distance_mapping, mocked_prune_graph,
+    mocker, mocked_graph, packages, mocked_combined_requirements,
+    mocked_package_extract, mocked_fetch_distance_mapping, mocked_prune_graph,
     mocked_extract_conflicting_requirements
 ):
     """Resolve simple conflict with two nodes treated in inverted order.
@@ -3191,48 +3211,52 @@ def test_combination_resolve_conflicts_simple_inverted_order(
          `--(A==1.2.*): A==1.2.0
 
     """
-    conflicting_versions = {"A==1.2.0", "A==1.4.8"}
-    mocked_compute_distance_mapping.return_value = {
-        "root": {"distance": 0, "parent": "root"},
-        "A==1.4.8": {"distance": 1, "parent": "root"},
-        "A==1.2.0": {"distance": 3, "parent": "B"},
-        "B": {"distance": 2, "parent": "root"},
+    # Mock nodes.
+    nodes = {
+        "A==1.4.8": wiz.graph.Node(
+            packages["A==1.4.8"], parent_identifiers={"root"}
+        ),
+        "A==1.2.0": wiz.graph.Node(
+            packages["A==1.2.0"], parent_identifiers={"B"}
+        ),
     }
 
+    # Mock graph and side logic.
     mocked_graph.node.side_effect = [nodes["A==1.2.0"], nodes["A==1.4.8"]]
     mocked_graph.nodes.side_effect = [
         [nodes["A==1.4.8"], nodes["A==1.2.0"]],
         [nodes["A==1.4.8"], nodes["A==1.2.0"]]
     ]
-    mocked_graph.conflicting.side_effect = [conflicting_versions, []]
+    mocked_graph.conflicting.side_effect = [{"A==1.2.0", "A==1.4.8"}]
     mocked_combined_requirements.side_effect = [
         Requirement("::A >1, ==1.2.*"),
         Requirement("::A >1, ==1.2.*")
     ]
     mocked_package_extract.side_effect = [
-        [getattr(nodes["A==1.2.0"], "package")],
-        [getattr(nodes["A==1.2.0"], "package")],
+        [packages["A==1.2.0"]], [packages["A==1.2.0"]],
     ]
+
+    # Mocked distance mapping is used to sort 'A==1.2.0' before 'A==1.4.8'.
+    mocked_fetch_distance_mapping.return_value = {
+        "A==1.4.8": {"distance": 1}, "A==1.2.0": {"distance": 3},
+    }
 
     combination = wiz.graph.Combination(mocked_graph, copy_data=False)
     combination.resolve_conflicts()
 
+    mapping = mocked_graph.resolver.definition_mapping
+    combined_requirement = Requirement("::A >1, ==1.2.*")
+
     assert mocked_package_extract.call_args_list == [
-        mocker.call(
-            Requirement("::A >1, ==1.2.*"),
-            mocked_graph.resolver.definition_mapping
-        ),
-        mocker.call(
-            Requirement("::A >1, ==1.2.*"),
-            mocked_graph.resolver.definition_mapping
-        ),
+        mocker.call(combined_requirement, mapping),
+        mocker.call(combined_requirement, mapping),
     ]
     assert mocked_combined_requirements.call_args_list == [
         mocker.call(mocked_graph, [nodes["A==1.4.8"], nodes["A==1.2.0"]]),
         mocker.call(mocked_graph, [nodes["A==1.4.8"], nodes["A==1.2.0"]])
     ]
-
     mocked_extract_conflicting_requirements.assert_not_called()
+    mocked_fetch_distance_mapping.assert_called_once()
 
     assert mocked_graph.node.call_args_list == [
         mocker.call("A==1.2.0"),
@@ -3245,16 +3269,17 @@ def test_combination_resolve_conflicts_simple_inverted_order(
 
     mocked_graph.remove_node.assert_called_once_with("A==1.4.8")
     mocked_graph.relink_parents.assert_called_once_with(
-        nodes["A==1.4.8"], requirement=Requirement("::A >1, ==1.2.*")
+        nodes["A==1.4.8"], requirement=combined_requirement
     )
+    mocked_graph.conflicting_variant_groups.assert_not_called()
     mocked_graph.update_from_package.assert_not_called()
-    mocked_prune_graph.assert_called_once_with()
+    mocked_prune_graph.assert_called_once()
 
 
-@pytest.mark.parametrize("nodes", ["conflicting-versions"], indirect=True)
+@pytest.mark.parametrize("packages", ["combination-resolution"], indirect=True)
 def test_combination_resolve_conflicts_simple_fail(
-    mocked_graph, nodes, mocked_combined_requirements,
-    mocked_package_extract, mocked_compute_distance_mapping, mocked_prune_graph,
+    mocked_graph, packages, mocked_combined_requirements,
+    mocked_package_extract, mocked_fetch_distance_mapping, mocked_prune_graph,
     mocked_extract_conflicting_requirements
 ):
     """Fail to resolve simple conflict with two nodes.
@@ -3270,48 +3295,372 @@ def test_combination_resolve_conflicts_simple_fail(
          `--(A==1.4.*): A==1.4.8
 
     """
-    conflicting_versions = {"A==1.2.0", "A==1.4.8"}
-    mocked_compute_distance_mapping.return_value = {
-        "root": {"distance": 0, "parent": "root"},
-        "A==1.2.0": {"distance": 1, "parent": "root"},
-        "A==1.4.8": {"distance": 3, "parent": "B"},
-        "B": {"distance": 2, "parent": "root"},
+    # Mock nodes.
+    nodes = {
+        "A==1.4.8": wiz.graph.Node(
+            packages["A==1.4.8"], parent_identifiers={"B"}
+        ),
+        "A==1.2.0": wiz.graph.Node(
+            packages["A==1.2.0"], parent_identifiers={"root"}
+        ),
     }
 
+    # Mock graph and side logic.
     mocked_graph.node.side_effect = [nodes["A==1.4.8"], nodes["A==1.2.0"]]
-    mocked_graph.nodes.side_effect = [
-        [nodes["A==1.4.8"], nodes["A==1.2.0"]], []
-    ]
-    mocked_graph.conflicting.side_effect = [conflicting_versions, []]
+    mocked_graph.nodes.side_effect = [[nodes["A==1.4.8"], nodes["A==1.2.0"]]]
+    mocked_graph.conflicting.side_effect = [{"A==1.2.0", "A==1.4.8"}]
     mocked_combined_requirements.side_effect = [
         Requirement("::A ==1.4.*, ==1.2.*")
     ]
     mocked_package_extract.side_effect = wiz.exception.RequestNotFound("Error")
+
+    # Mocked distance mapping is used to sort 'A==1.4.8' before 'A==1.2.0'.
+    mocked_fetch_distance_mapping.return_value = {
+        "A==1.2.0": {"distance": 1}, "A==1.4.8": {"distance": 3},
+    }
 
     combination = wiz.graph.Combination(mocked_graph, copy_data=False)
 
     with pytest.raises(wiz.exception.GraphConflictsError):
         combination.resolve_conflicts()
 
+    combined_requirement = Requirement("::A ==1.4.*, ==1.2.*")
+
     mocked_package_extract.assert_called_once_with(
-        Requirement("::A ==1.4.*, ==1.2.*"),
-        mocked_graph.resolver.definition_mapping
+        combined_requirement, mocked_graph.resolver.definition_mapping
     )
     mocked_combined_requirements.assert_called_once_with(
         mocked_graph, [nodes["A==1.4.8"], nodes["A==1.2.0"]]
     )
-
     mocked_extract_conflicting_requirements.assert_called_once_with(
         mocked_graph, [nodes["A==1.4.8"], nodes["A==1.2.0"]]
     )
+    mocked_fetch_distance_mapping.assert_called_once()
 
     mocked_graph.node.assert_called_once_with("A==1.4.8")
     mocked_graph.nodes.assert_called_once_with(definition_identifier="A")
 
     mocked_graph.remove_node.assert_not_called()
     mocked_graph.relink_parents.assert_not_called()
+    mocked_graph.conflicting_variant_groups.assert_not_called()
     mocked_graph.update_from_package.assert_not_called()
     mocked_prune_graph.assert_not_called()
+
+
+@pytest.mark.parametrize("packages", ["combination-resolution"], indirect=True)
+def test_combination_resolve_conflicts_new_package(
+    mocker, mocked_graph, packages, mocked_combined_requirements,
+    mocked_package_extract, mocked_fetch_distance_mapping, mocked_prune_graph,
+    mocked_extract_conflicting_requirements
+):
+    """Resolve conflict with new package added.
+
+    Combining the two requirements lead to a new package (A==1.1.0).
+
+    Root
+     |
+     |--(A<=1.2.0): A==1.2.0
+     |
+     `--(B): B
+         |
+         `--(A !=1.2.0): A==1.4.8
+
+    """
+    # Mock nodes.
+    nodes = {
+        "A==1.4.8": wiz.graph.Node(
+            packages["A==1.4.8"], parent_identifiers={"B"}
+        ),
+        "A==1.1.0": wiz.graph.Node(
+            packages["A==1.1.0"], parent_identifiers={"B"}
+        ),
+        "A==1.2.0": wiz.graph.Node(
+            packages["A==1.2.0"], parent_identifiers={"root"}
+        ),
+    }
+
+    # Mock graph and side logic.
+    mocked_graph.node.side_effect = [
+        nodes["A==1.4.8"], nodes["A==1.2.0"], nodes["A==1.1.0"]
+    ]
+    mocked_graph.nodes.side_effect = [
+        [nodes["A==1.4.8"], nodes["A==1.2.0"]],
+        [nodes["A==1.1.0"], nodes["A==1.2.0"]],
+        [nodes["A==1.1.0"], nodes["A==1.2.0"]]
+    ]
+    mocked_graph.conflicting.side_effect = [
+        {"A==1.2.0", "A==1.4.8"}, {"A==1.1.0", "A==1.2.0"}
+    ]
+    mocked_graph.conflicting_variant_groups.return_value = []
+    mocked_combined_requirements.side_effect = [
+        Requirement("::A <=1.2.0, !=1.2.0"),
+        Requirement("::A <=1.2.0, !=1.2.0"),
+        Requirement("::A <=1.2.0, !=1.2.0"),
+    ]
+    mocked_package_extract.side_effect = [
+        [packages["A==1.1.0"]], [packages["A==1.1.0"]], [packages["A==1.1.0"]],
+    ]
+
+    # Mocked distance mapping is used to sort 'A==1.4.8' before 'A==1.2.0',
+    # then 'A==1.1.0' before 'A==1.2.0'.
+    mocked_fetch_distance_mapping.side_effect = [
+        {"A==1.2.0": {"distance": 1}, "A==1.4.8": {"distance": 3}},
+        {"A==1.2.0": {"distance": 1}, "A==1.1.0": {"distance": 3}},
+    ]
+
+    combination = wiz.graph.Combination(mocked_graph, copy_data=False)
+    combination.resolve_conflicts()
+
+    mapping = mocked_graph.resolver.definition_mapping
+    combined_requirement = Requirement("::A <=1.2.0, !=1.2.0")
+
+    assert mocked_package_extract.call_args_list == [
+        mocker.call(combined_requirement, mapping),
+        mocker.call(combined_requirement, mapping),
+        mocker.call(combined_requirement, mapping),
+    ]
+    assert mocked_combined_requirements.call_args_list == [
+        mocker.call(mocked_graph, [nodes["A==1.4.8"], nodes["A==1.2.0"]]),
+        mocker.call(mocked_graph, [nodes["A==1.1.0"], nodes["A==1.2.0"]]),
+        mocker.call(mocked_graph, [nodes["A==1.1.0"], nodes["A==1.2.0"]])
+    ]
+
+    mocked_extract_conflicting_requirements.assert_not_called()
+    assert mocked_fetch_distance_mapping.call_count == 2
+
+    assert mocked_graph.node.call_args_list == [
+        mocker.call("A==1.4.8"),
+        mocker.call("A==1.1.0"),
+        mocker.call("A==1.2.0")
+    ]
+    assert mocked_graph.nodes.call_args_list == [
+        mocker.call(definition_identifier="A"),
+        mocker.call(definition_identifier="A"),
+        mocker.call(definition_identifier="A")
+    ]
+
+    assert mocked_graph.remove_node.call_args_list == [
+        mocker.call("A==1.4.8"),
+        mocker.call("A==1.2.0"),
+    ]
+    assert mocked_graph.relink_parents.call_args_list == [
+        mocker.call(nodes["A==1.4.8"], requirement=combined_requirement),
+        mocker.call(nodes["A==1.2.0"], requirement=combined_requirement),
+    ]
+    mocked_graph.conflicting_variant_groups.assert_called_once()
+    mocked_graph.update_from_package.assert_called_once_with(
+        getattr(nodes["A==1.1.0"], "package"),
+        Requirement("::A <=1.2.0, !=1.2.0"),
+        detached=True
+    )
+    assert mocked_prune_graph.call_count == 2
+
+
+@pytest.mark.parametrize("packages", ["combination-resolution"], indirect=True)
+def test_combination_resolve_conflicts_new_variant(
+    mocked_graph, packages, mocked_combined_requirements,
+    mocked_package_extract, mocked_fetch_distance_mapping, mocked_prune_graph,
+    mocked_extract_conflicting_requirements
+):
+    """Resolve conflict with new package added which lead to graph division.
+
+    Combining the two requirements lead to a new package (A==1.1.0), which
+    pulls new package variants into the graph (C[V1], C[V2]).
+
+    Root
+     |
+     |--(A<=1.2.0): A==1.2.0
+     |
+     `--(B): B
+         |
+         `--(A !=1.2.0): A==1.4.8
+
+    """
+    # Mock nodes.
+    nodes = {
+        "A==1.4.8": wiz.graph.Node(
+            packages["A==1.4.8"], parent_identifiers={"B"}
+        ),
+        "A==1.1.0": wiz.graph.Node(
+            packages["A==1.1.0"], parent_identifiers={"B"}
+        ),
+        "A==1.2.0": wiz.graph.Node(
+            packages["A==1.2.0"], parent_identifiers={"root"}
+        ),
+    }
+
+    # Mock graph and side logic.
+    mocked_graph.node.side_effect = [nodes["A==1.4.8"]]
+    mocked_graph.nodes.side_effect = [[nodes["A==1.4.8"], nodes["A==1.2.0"]]]
+    mocked_graph.conflicting.side_effect = [{"A==1.2.0", "A==1.4.8"}]
+    mocked_graph.conflicting_variant_groups.return_value = [["C[V2]", "C[V1]"]]
+    mocked_combined_requirements.side_effect = [
+        Requirement("::A <=1.2.0, !=1.2.0")
+    ]
+    mocked_package_extract.side_effect = [
+        [packages["A==1.1.0"]],
+    ]
+
+    # Mocked distance mapping is used to sort 'A==1.4.8' before 'A==1.2.0',
+    # then 'A==1.1.0' before 'A==1.2.0'.
+    mocked_fetch_distance_mapping.side_effect = [
+        {"A==1.2.0": {"distance": 1}, "A==1.4.8": {"distance": 3}},
+        {"A==1.2.0": {"distance": 1}, "A==1.1.0": {"distance": 3}},
+    ]
+
+    combination = wiz.graph.Combination(mocked_graph, copy_data=False)
+
+    with pytest.raises(wiz.exception.GraphVariantsError):
+        combination.resolve_conflicts()
+
+    mapping = mocked_graph.resolver.definition_mapping
+    combined_requirement = Requirement("::A <=1.2.0, !=1.2.0")
+
+    mocked_package_extract.assert_called_once_with(
+        combined_requirement, mapping
+    )
+    mocked_combined_requirements.assert_called_once_with(
+        mocked_graph, [nodes["A==1.4.8"], nodes["A==1.2.0"]]
+    )
+
+    mocked_extract_conflicting_requirements.assert_not_called()
+    mocked_fetch_distance_mapping.assert_called_once()
+
+    mocked_graph.node.assert_called_once_with("A==1.4.8")
+    mocked_graph.nodes.assert_called_once_with(definition_identifier="A")
+
+    mocked_graph.remove_node.assert_called_once_with("A==1.4.8")
+    mocked_graph.relink_parents.assert_called_once_with(
+        nodes["A==1.4.8"], requirement=combined_requirement
+    )
+
+    mocked_graph.conflicting_variant_groups.assert_called_once()
+    mocked_graph.update_from_package.assert_called_once_with(
+        packages["A==1.1.0"], combined_requirement, detached=True
+    )
+    mocked_prune_graph.assert_not_called()
+
+
+@pytest.mark.parametrize("packages", ["combination-resolution"], indirect=True)
+def test_combination_resolve_conflicts_circular(
+    mocker, mocked_graph, packages, mocked_combined_requirements,
+    mocked_package_extract, mocked_fetch_distance_mapping, mocked_prune_graph,
+    mocked_extract_conflicting_requirements
+):
+    """Resolve circular conflicts.
+
+    Requirement 'A==1.4.*' and 'A==1.2.*' are incompatible, but as 'A==1.4.8'
+    has been pulled by 'B==1.2.3' which is itself conflicting, the graph is
+    resolved by resolving this parent conflict.
+
+    Root
+     |
+     |--(A==1.2.*): A==1.2.0
+     |   |
+     |   `--(B<1): B==0.1.0
+     |
+     `--(B): B==1.2.3
+         |
+         `--(A==1.4.*): A==1.4.8
+
+    """
+    # Mock nodes.
+    nodes = {
+        "A==1.4.8": wiz.graph.Node(
+            packages["A==1.4.8"], parent_identifiers={"B==1.2.3"}
+        ),
+        "A==1.2.0": wiz.graph.Node(
+            packages["A==1.2.0"], parent_identifiers={"root"}
+        ),
+        "B==1.2.3": wiz.graph.Node(
+            packages["B==1.2.3"], parent_identifiers={"root"}
+        ),
+        "B==0.1.0": wiz.graph.Node(
+            packages["B==0.1.0"], parent_identifiers={"A==1.2.0"}
+        ),
+    }
+
+    # Mock graph and side logic.
+    mocked_graph.node.side_effect = [
+        nodes["A==1.4.8"], nodes["B==1.2.3"],
+        nodes["B==0.1.0"], nodes["A==1.2.0"], None,
+    ]
+    mocked_graph.nodes.side_effect = [
+        [nodes["A==1.4.8"], nodes["A==1.2.0"]],
+        [nodes["B==0.1.0"], nodes["B==1.2.3"]],
+        [nodes["B==0.1.0"], nodes["B==1.2.3"]],
+        [nodes["A==1.2.0"]],
+    ]
+    mocked_graph.conflicting.side_effect = [
+        {"A==1.2.0", "A==1.4.8", "B==0.1.0", "B==1.2.3"}
+    ]
+    mocked_combined_requirements.side_effect = [
+        Requirement("::A ==1.2.*, ==1.4.*"),
+        Requirement("::B <1"),
+        Requirement("::B <1"),
+    ]
+    mocked_package_extract.side_effect = [
+        wiz.exception.RequestNotFound("Error"),
+        [packages["B==0.1.0"]],
+        [packages["B==0.1.0"]]
+    ]
+
+    # Mock conflict mappings indicating that conflicting parents.
+    mocked_extract_conflicting_requirements.return_value = [
+        {"identifiers": {"root"}}, {"identifiers": {"B==1.2.3"}}
+    ]
+
+    # Mocked distance mapping is used to sort nodes.
+    mocked_fetch_distance_mapping.side_effect = [
+        {
+            "A==1.2.0": {"distance": 1},
+            "B==0.1.0": {"distance": 2},
+            "B==1.2.3": {"distance": 2},
+            "A==1.4.8": {"distance": 3}
+        },
+    ]
+
+    combination = wiz.graph.Combination(mocked_graph, copy_data=False)
+    combination.resolve_conflicts()
+
+    mapping = mocked_graph.resolver.definition_mapping
+    assert mocked_package_extract.call_args_list == [
+        mocker.call(Requirement("::A ==1.2.*, ==1.4.*"), mapping),
+        mocker.call(Requirement("::B <1"), mapping),
+        mocker.call(Requirement("::B <1"), mapping),
+    ]
+    assert mocked_combined_requirements.call_args_list == [
+        mocker.call(mocked_graph, [nodes["A==1.4.8"], nodes["A==1.2.0"]]),
+        mocker.call(mocked_graph, [nodes["B==0.1.0"], nodes["B==1.2.3"]]),
+        mocker.call(mocked_graph, [nodes["B==0.1.0"], nodes["B==1.2.3"]]),
+    ]
+    mocked_extract_conflicting_requirements.assert_called_once_with(
+        mocked_graph, [nodes["A==1.4.8"], nodes["A==1.2.0"]]
+    )
+    mocked_fetch_distance_mapping.assert_called_once()
+
+    assert mocked_graph.node.call_args_list == [
+        mocker.call("A==1.4.8"),
+        mocker.call("B==1.2.3"),
+        mocker.call("B==0.1.0"),
+        mocker.call("A==1.2.0"),
+        mocker.call("A==1.4.8"),
+    ]
+    assert mocked_graph.nodes.call_args_list == [
+        mocker.call(definition_identifier="A"),
+        mocker.call(definition_identifier="B"),
+        mocker.call(definition_identifier="B"),
+        mocker.call(definition_identifier="A"),
+    ]
+
+    mocked_graph.remove_node.assert_called_once_with("B==1.2.3")
+    mocked_graph.relink_parents.assert_called_once_with(
+        nodes["B==1.2.3"], requirement=Requirement("::B <1")
+    )
+
+    mocked_graph.conflicting_variant_groups.assert_not_called()
+    mocked_graph.update_from_package.assert_not_called()
+    mocked_prune_graph.assert_called_once()
 
 
 def test_distance_queue():

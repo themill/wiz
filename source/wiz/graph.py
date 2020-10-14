@@ -1883,10 +1883,11 @@ class Combination(object):
                 self.prune_graph()
 
                 # Update list of remaining conflicts if necessary.
-                remaining_conflicts = self._update_conflict_queue(
-                    remaining_conflicts, self._graph.conflicting(),
-                    circular_conflicts=circular_conflicts
-                )
+                if updated:
+                    remaining_conflicts = self._update_conflict_queue(
+                        remaining_conflicts, self._graph.conflicting(),
+                        circular_conflicts=circular_conflicts
+                    )
 
     def _update_conflict_queue(self, *args, circular_conflicts=None):
         """Create new queue with conflicting node identifier lists.
