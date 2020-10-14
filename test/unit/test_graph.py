@@ -3722,6 +3722,249 @@ def test_combination_extract_packages(
     ]
 
 
+def test_prune_graph_empty(mocked_graph, mocked_compute_distance_mapping):
+    """Prune empty graph."""
+    mocked_graph.nodes.return_value = []
+    mocked_graph.conditioned_nodes.return_value = []
+
+    combination = wiz.graph.Combination(mocked_graph, copy_data=False)
+    combination.prune_graph()
+
+    mocked_compute_distance_mapping.assert_called_once()
+    mocked_graph.remove_node.assert_not_called()
+    mocked_graph.exists.assert_not_called()
+    mocked_graph.find.assert_not_called()
+
+
+@pytest.mark.parametrize("packages", ["many"], indirect=True)
+def test_prune_graph_none(
+    mocked_graph, mocked_compute_distance_mapping, packages
+):
+    """Prune graph without any nodes to remove."""
+    mocked_compute_distance_mapping.return_value = {
+        "A==0.1.0": {"distance": 1},
+        "B==1.2.3": {"distance": 2},
+        "C": {"distance": 4},
+        "D==4.1.0": {"distance": 5},
+        "E==0.1.0": {"distance": 2},
+    }
+
+    mocked_graph.nodes.return_value = [
+        wiz.graph.Node(packages["A==0.1.0"], parent_identifiers={"root"}),
+        wiz.graph.Node(packages["B==1.2.3"], parent_identifiers={"A==0.1.0"}),
+        wiz.graph.Node(packages["C"], parent_identifiers={"B==1.2.3"}),
+        wiz.graph.Node(packages["D==4.1.0"], parent_identifiers={"B==1.2.3"}),
+        wiz.graph.Node(packages["E==0.1.0"], parent_identifiers={"root"}),
+    ]
+    mocked_graph.conditioned_nodes.return_value = []
+
+    combination = wiz.graph.Combination(mocked_graph, copy_data=False)
+    combination.prune_graph()
+
+    mocked_compute_distance_mapping.assert_called_once()
+    mocked_graph.remove_node.assert_not_called()
+    mocked_graph.exists.assert_not_called()
+    mocked_graph.find.assert_not_called()
+
+
+@pytest.mark.parametrize("packages", ["many"], indirect=True)
+def test_prune_graph_one_unreachable(
+    mocked_graph, mocked_compute_distance_mapping, packages
+):
+    """Prune graph with one unreachable node to remove."""
+    mocked_compute_distance_mapping.return_value = {
+        "A==0.1.0": {"distance": 1},
+        "B==1.2.3": {"distance": 2},
+        "C": {"distance": None},
+        "D==4.1.0": {"distance": 5},
+        "E==0.1.0": {"distance": 2},
+    }
+
+    mocked_graph.nodes.return_value = [
+        wiz.graph.Node(packages["A==0.1.0"], parent_identifiers={"root"}),
+        wiz.graph.Node(packages["B==1.2.3"], parent_identifiers={"A==0.1.0"}),
+        wiz.graph.Node(packages["C"], parent_identifiers={"B==1.2.3"}),
+        wiz.graph.Node(packages["D==4.1.0"], parent_identifiers={"B==1.2.3"}),
+        wiz.graph.Node(packages["E==0.1.0"], parent_identifiers={"root"}),
+    ]
+    mocked_graph.conditioned_nodes.return_value = []
+
+    combination = wiz.graph.Combination(mocked_graph, copy_data=False)
+    combination.prune_graph()
+
+    mocked_compute_distance_mapping.assert_called_once()
+    mocked_graph.remove_node.assert_called_once_with("C")
+    mocked_graph.exists.assert_not_called()
+    mocked_graph.find.assert_not_called()
+
+
+@pytest.mark.parametrize("packages", ["many-with-conditions"], indirect=True)
+def test_prune_graph_unfulfilled_conditions_one(
+    mocker, mocked_graph, mocked_compute_distance_mapping, packages
+):
+    """Prune graph with one unfulfilled conditioned node to remove."""
+    mocked_compute_distance_mapping.side_effect = [
+        {
+            "A==0.1.0": {"distance": 1},
+            "B==1.2.3": {"distance": 2},
+            "C": {"distance": 4},
+            "D==4.1.0": {"distance": None},
+            "E": {"distance": 2},
+            "F==13": {"distance": 3},
+            "G": {"distance": 3},
+        },
+        {
+            "A==0.1.0": {"distance": 1},
+            "B==1.2.3": {"distance": 2},
+            "C": {"distance": 4},
+            "D==4.1.0": {"distance": None},
+            "E": {"distance": 2},
+            "F==13": {"distance": 3},
+            "G": {"distance": None},
+        },
+    ]
+
+    mocked_graph.nodes.side_effect = [
+        [
+            wiz.graph.Node(packages["A==0.1.0"], parent_identifiers={"root"}),
+            wiz.graph.Node(
+                packages["B==1.2.3"], parent_identifiers={"A==0.1.0"}
+            ),
+            wiz.graph.Node(packages["C"], parent_identifiers={"B==1.2.3"}),
+            wiz.graph.Node(
+                packages["D==4.1.0"], parent_identifiers={"B==1.2.3"}
+            ),
+            wiz.graph.Node(packages["E"], parent_identifiers={"root"}),
+            wiz.graph.Node(packages["F==13"], parent_identifiers={"E"}),
+            wiz.graph.Node(packages["G"], parent_identifiers={"root"}),
+        ],
+        [
+            wiz.graph.Node(packages["A==0.1.0"], parent_identifiers={"root"}),
+            wiz.graph.Node(
+                packages["B==1.2.3"], parent_identifiers={"A==0.1.0"}
+            ),
+            wiz.graph.Node(packages["C"], parent_identifiers={"B==1.2.3"}),
+            wiz.graph.Node(packages["E"], parent_identifiers={"root"}),
+            wiz.graph.Node(packages["F==13"], parent_identifiers={"E"}),
+        ],
+    ]
+    mocked_graph.conditioned_nodes.return_value = [
+        wiz.graph.StoredNode(Requirement("::A"), packages["A==0.1.0"], "root"),
+        wiz.graph.StoredNode(Requirement("::G"), packages["G"], "root"),
+    ]
+
+    mocked_graph.exists.side_effect = [True, True, True, False]
+    mocked_graph.find.side_effect = [["E"], ["F==13"], [], ["E"]]
+
+    combination = wiz.graph.Combination(mocked_graph, copy_data=False)
+    combination.prune_graph()
+
+    assert mocked_compute_distance_mapping.call_count == 2
+
+    assert mocked_graph.remove_node.call_args_list == [
+        mocker.call("D==4.1.0"),
+        mocker.call("G"),
+    ]
+    assert mocked_graph.exists.call_args_list == [
+        mocker.call("A==0.1.0"),
+        mocker.call("G"),
+        mocker.call("A==0.1.0"),
+        mocker.call("G")
+    ]
+    assert mocked_graph.find.call_args_list == [
+        mocker.call(Requirement("E")),
+        mocker.call(Requirement("F")),
+        mocker.call(Requirement("D")),
+        mocker.call(Requirement("E")),
+    ]
+
+
+@pytest.mark.parametrize("packages", ["many-with-conditions"], indirect=True)
+def test_prune_graph_unfulfilled_conditions_two(
+    mocker, mocked_graph, mocked_compute_distance_mapping, packages
+):
+    """Prune graph with two unfulfilled conditioned nodes to remove."""
+    mocked_compute_distance_mapping.side_effect = [
+        {
+            "A==0.1.0": {"distance": 1},
+            "B==1.2.3": {"distance": 2},
+            "C": {"distance": 4},
+            "D==4.1.0": {"distance": 5},
+            "E": {"distance": None},
+            "F==13": {"distance": None},
+            "G": {"distance": 3},
+        },
+        {
+            "A==0.1.0": {"distance": None},
+            "B==1.2.3": {"distance": None},
+            "C": {"distance": None},
+            "D==4.1.0": {"distance": None},
+            "E": {"distance": None},
+            "F==13": {"distance": None},
+            "G": {"distance": None},
+        },
+    ]
+
+    mocked_graph.nodes.side_effect = [
+        [
+            wiz.graph.Node(packages["A==0.1.0"], parent_identifiers={"root"}),
+            wiz.graph.Node(
+                packages["B==1.2.3"], parent_identifiers={"A==0.1.0"}
+            ),
+            wiz.graph.Node(packages["C"], parent_identifiers={"B==1.2.3"}),
+            wiz.graph.Node(
+                packages["D==4.1.0"], parent_identifiers={"B==1.2.3"}
+            ),
+            wiz.graph.Node(packages["E"], parent_identifiers={"root"}),
+            wiz.graph.Node(packages["F==13"], parent_identifiers={"E"}),
+            wiz.graph.Node(packages["G"], parent_identifiers={"root"}),
+        ],
+        [
+            wiz.graph.Node(
+                packages["B==1.2.3"], parent_identifiers={"A==0.1.0"}
+            ),
+            wiz.graph.Node(packages["C"], parent_identifiers={"B==1.2.3"}),
+            wiz.graph.Node(
+                packages["D==4.1.0"], parent_identifiers={"B==1.2.3"}
+            ),
+        ],
+    ]
+    mocked_graph.conditioned_nodes.return_value = [
+        wiz.graph.StoredNode(Requirement("::A"), packages["A==0.1.0"], "root"),
+        wiz.graph.StoredNode(Requirement("::G"), packages["G"], "root"),
+    ]
+
+    mocked_graph.exists.side_effect = [True, True, False, False, False, False]
+    mocked_graph.find.side_effect = [[], []]
+
+    combination = wiz.graph.Combination(mocked_graph, copy_data=False)
+    combination.prune_graph()
+
+    assert mocked_compute_distance_mapping.call_count == 2
+
+    assert mocked_graph.remove_node.call_args_list == [
+        mocker.call("E"),
+        mocker.call("F==13"),
+        mocker.call("A==0.1.0"),
+        mocker.call("G"),
+        mocker.call("B==1.2.3"),
+        mocker.call("C"),
+        mocker.call("D==4.1.0"),
+    ]
+    assert mocked_graph.exists.call_args_list == [
+        mocker.call("A==0.1.0"),
+        mocker.call("G"),
+        mocker.call("A==0.1.0"),
+        mocker.call("G"),
+        mocker.call("A==0.1.0"),
+        mocker.call("G"),
+    ]
+    assert mocked_graph.find.call_args_list == [
+        mocker.call(Requirement("E")),
+        mocker.call(Requirement("F")),
+    ]
+
+
 def test_distance_queue():
     """Create and use _DistanceQueue instance."""
     queue = wiz.graph._DistanceQueue()

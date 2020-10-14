@@ -2166,7 +2166,6 @@ class Combination(object):
         nodes_removed = []
 
         while needs_update:
-            distance_mapping = self._fetch_distance_mapping(force_update=True)
             needs_update = False
 
             for stored_node in self._graph.conditioned_nodes():
@@ -2178,10 +2177,7 @@ class Combination(object):
                 for requirement in stored_node.package.conditions:
                     identifiers = self._graph.find(requirement)
 
-                    if len(identifiers) == 0 or any(
-                        distance_mapping.get(_id, {}).get("distance") is None
-                        for _id in identifiers
-                    ):
+                    if len(identifiers) == 0:
                         self._logger.debug(
                             "Remove '{}' as conditions are no longer "
                             "fulfilled".format(stored_node.identifier)
