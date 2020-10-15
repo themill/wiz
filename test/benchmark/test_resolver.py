@@ -42,9 +42,6 @@ def test_scenario_1(benchmark):
 
     Expected: F==1.0.0, D==0.1.0, B==0.1.0, C==0.3.2, G==2.0.2, A==0.2.0
 
-    The position of 'D==0.1.0' / 'B==0.1.0' and 'C==0.3.2' / 'G==2.0.2' can
-    vary as they have similar priority numbers.
-
     """
     definition_mapping = {
         "A": {
@@ -612,9 +609,6 @@ def test_scenario_8(benchmark):
              `--(C <1): C== 0.9.0
 
     Expected: A==0.9.0, C==0.9.0, B==0.1.0
-
-    The position of 'C==0.9.0' / 'B==0.1.0' can vary as they have similar
-    priority numbers.
 
     """
     definition_mapping = {
@@ -1488,9 +1482,6 @@ def test_scenario_19(benchmark):
                  `--(E>=2): E==2.3.0
 
     Expected: E==2.3.0, D==0.1.4, B==0.1.0, C==0.3.2, G==2.0.2, A==0.2.0
-
-    The position of 'C==0.3.2' / 'G==2.0.2' can vary as they have similar
-    priority numbers.
 
     """
     definition_mapping = {
@@ -2406,9 +2397,6 @@ def test_scenario_33(benchmark):
     Expected: F==1.0.0, E==2.3.0, D==0.1.4, B==0.1.0, G==2.0.2, C==0.3.0
     A==0.2.0
 
-    The position of 'C==0.3.0' / 'G==2.0.2' and 'F==1.0.0' / 'E==2.3.0' can
-    vary as they have similar priority numbers.
-
     """
     definition_mapping = {
         "A": {
@@ -2540,6 +2528,10 @@ def test_scenario_34(benchmark):
                 "identifier": "B",
                 "version": "3.0.0"
             }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
         },
         "C": {
             "-": wiz.definition.Definition({
@@ -2650,6 +2642,184 @@ def test_scenario_35(benchmark):
             resolver = wiz.graph.Resolver(definition_mapping)
             resolver.compute_packages([
                 Requirement("A"), Requirement("C"), Requirement("D")
+            ])
+        except wiz.exception.GraphResolutionError:
+            pass
+
+    benchmark(_resolve)
+
+
+def test_scenario_36(benchmark):
+    """Compute packages for the following graph.
+
+    When parents of conflicting nodes are themselves conflicting, we attempt to
+    resolve the conflicting parents before resolving the children. In this
+    case, one of the conflicting children disappears while resolving parent
+    conflicts.
+
+    Root
+     |
+     |--(A==1.2.*): A==1.2.0
+     |   |
+     |   `--(B<1): B==0.1.0
+     |
+     `--(B): B==1.2.3
+         |
+         `--(A==1.4.*): A==1.4.8
+
+    Expected: B==0.1.0, A==1.2.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.4.8": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.4.8"
+            }),
+            "1.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.2.0",
+                "requirements": ["B<1"]
+            })
+        },
+        "B": {
+            "1.2.3": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.2.3",
+                "requirements": ["A==1.4.*"]
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+            })
+        },
+    }
+
+    def _resolve():
+        """Resolve context."""
+        try:
+            resolver = wiz.graph.Resolver(definition_mapping)
+            resolver.compute_packages([
+                Requirement("A==1.2.*"), Requirement("B")
+            ])
+        except wiz.exception.GraphResolutionError:
+            pass
+
+    benchmark(_resolve)
+
+
+def test_scenario_37(benchmark):
+    """Fail to compute packages for the following graph.
+
+    Like scenario 36, when parents of conflicting nodes are themselves
+    conflicting, we attempt to resolve the conflicting parents before resolving
+    the children. In this case, the parent conflicts does not remove the
+    children conflicts.
+
+    Root
+     |
+     |--(A==1.2.*): A==1.2.0
+     |   |
+     |   `--(B): B==1.2.3
+     |
+     `--(B<1): B==0.1.0
+         |
+         `--(A==1.4.*): A==1.4.8
+
+    Expected: Unable to compute due to requirement compatibility between
+    'A==1.4.*' and 'A==1.2.* '.
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.4.8": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.4.8"
+            }),
+            "1.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.2.0",
+                "requirements": ["B"]
+            })
+        },
+        "B": {
+            "1.2.3": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.2.3",
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "requirements": ["A==1.4.*"]
+            })
+        },
+    }
+
+    def _resolve():
+        """Resolve context."""
+        try:
+            resolver = wiz.graph.Resolver(definition_mapping)
+            resolver.compute_packages([
+                Requirement("A==1.2.*"), Requirement("B<1")
+            ])
+        except wiz.exception.GraphResolutionError:
+            pass
+
+    benchmark(_resolve)
+
+
+def test_scenario_38(benchmark):
+    """Fail to compute packages for the following graph.
+
+    Like scenario 37, when parents of conflicting nodes are themselves
+    conflicting, we attempt to resolve the conflicting parents before resolving
+    the children. In this case, the parent conflicts cannot be solved.
+
+    Root
+     |
+     |--(A==1.2.*): A==1.2.0
+     |   |
+     |   `--(B>1): B==1.2.3
+     |
+     `--(B<1): B==0.1.0
+         |
+         `--(A==1.4.*): A==1.4.8
+
+    Expected: Unable to compute due to requirement compatibility between
+    'A==1.4.*' and 'A==1.2.*'.
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.4.8": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.4.8"
+            }),
+            "1.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.2.0",
+                "requirements": ["B>1"]
+            })
+        },
+        "B": {
+            "1.2.3": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.2.3",
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "requirements": ["A==1.4.*"]
+            })
+        },
+    }
+
+    def _resolve():
+        """Resolve context."""
+        try:
+            resolver = wiz.graph.Resolver(definition_mapping)
+            resolver.compute_packages([
+                Requirement("A==1.2.*"), Requirement("B<1")
             ])
         except wiz.exception.GraphResolutionError:
             pass
