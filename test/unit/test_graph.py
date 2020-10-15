@@ -36,6 +36,12 @@ def mocked_compute_distance_mapping(mocker):
 
 
 @pytest.fixture()
+def mocked_generate_variant_combinations(mocker):
+    """Return mocked wiz.graph.generate_variant_combinations function."""
+    return mocker.patch.object(wiz.graph, "generate_variant_combinations")
+
+
+@pytest.fixture()
 def mocked_extract_conflicting_requirements(mocker):
     """Return mocked wiz.graph.extract_conflicting_requirements function."""
     return mocker.patch.object(wiz.graph, "extract_conflicting_requirements")
@@ -44,9 +50,42 @@ def mocked_extract_conflicting_requirements(mocker):
 @pytest.fixture()
 def mocked_graph(mocker):
     """Return mocked Graph."""
-    graph = mocker.patch.object(wiz.graph, "Graph")
-    graph.ROOT = "root"
+    graph = mocker.MagicMock(ROOT="root")
+    mocker.patch.object(wiz.graph, "Graph", return_value=graph)
     return graph
+
+
+@pytest.fixture()
+def mocked_combination(mocker):
+    """Return mocked Combination."""
+    return mocker.patch.object(wiz.graph, "Combination")
+
+
+@pytest.fixture()
+def mocked_extract_combinations(mocker):
+    """Return mocked wiz.graph.Resolver.extract_combinations method."""
+    return mocker.patch.object(wiz.graph.Resolver, "extract_combinations")
+
+
+@pytest.fixture()
+def mocked_fetch_next_combination(mocker):
+    """Return mocked wiz.graph.Resolver.fetch_next_combination method."""
+    return mocker.patch.object(wiz.graph.Resolver, "fetch_next_combination")
+
+
+@pytest.fixture()
+def mocked_discover_combinations(mocker):
+    """Return mocked wiz.graph.Resolver.discover_combinations method."""
+    return mocker.patch.object(wiz.graph.Resolver, "discover_combinations")
+
+
+@pytest.fixture()
+def mocked_downgrade_conflicting_versions(mocker):
+    """Return mocked wiz.graph.Resolver.downgrade_conflicting_versions method.
+    """
+    return mocker.patch.object(
+        wiz.graph.Resolver, "downgrade_conflicting_versions"
+    )
 
 
 @pytest.fixture()
@@ -383,6 +422,374 @@ def _packages_for_combination_resolution():
             })
         ),
     }
+
+
+def test_resolver_empty():
+    """Create empty resolver."""
+    resolver = wiz.graph.Resolver("__MAPPING__")
+    assert resolver.definition_mapping == "__MAPPING__"
+    assert resolver.conflicting_variants == set()
+    assert resolver._conflicting_combinations == collections.deque()
+
+    assert isinstance(resolver._iterator, collections.Iterable)
+    assert list(resolver._iterator) == []
+
+
+@pytest.mark.parametrize(
+    "combination_number", [1, 2, 3, 4, 5, 10],
+    ids=[
+        "first-combination",
+        "second-combination",
+        "third-combination",
+        "forth-combination",
+        "fifth-combination",
+        "tenth-combination",
+    ]
+)
+def test_resolver_compute_packages(
+    mocker, mocked_graph, mocked_combination, mocked_extract_combinations,
+    mocked_fetch_next_combination, combination_number
+):
+    """Resolve packages."""
+    index = combination_number - 1
+    combinations = [mocker.Mock() for _ in range(combination_number)]
+    mocked_fetch_next_combination.side_effect = combinations
+    mocked_extract_combinations.return_value = False
+
+    for combination in combinations[:-1]:
+        combination.extract_packages.side_effect = (
+            wiz.exception.GraphResolutionError("Error!")
+        )
+
+    resolver = wiz.graph.Resolver("__MAPPING__")
+    result = resolver.compute_packages("__REQS__")
+    assert result == combinations[index].extract_packages.return_value
+    assert resolver._conflicting_combinations == collections.deque()
+
+    for combination in combinations:
+        combination.resolve_conflicts.assert_called_once_with()
+        combination.validate.assert_called_once_with()
+        combination.extract_packages.assert_called_once_with()
+
+    mocked_graph.update_from_requirements.assert_called_once_with("__REQS__")
+
+    assert mocked_fetch_next_combination.call_count == combination_number
+    mocked_extract_combinations.assert_called_once_with(mocked_graph)
+    mocked_combination.assert_called_once_with(mocked_graph, copy_data=False)
+
+
+@pytest.mark.parametrize(
+    "combination_number", [1, 2, 3, 4, 5, 10],
+    ids=[
+        "first-combination",
+        "second-combination",
+        "third-combination",
+        "forth-combination",
+        "fifth-combination",
+        "tenth-combination",
+    ]
+)
+def test_resolver_compute_packages_with_initial_variants(
+    mocker, mocked_graph, mocked_combination, mocked_extract_combinations,
+    mocked_fetch_next_combination, combination_number
+):
+    """Resolve packages with initial variants."""
+    index = combination_number - 1
+    combinations = [mocker.Mock() for _ in range(combination_number)]
+    mocked_fetch_next_combination.side_effect = combinations
+    mocked_extract_combinations.return_value = True
+
+    for combination in combinations[:-1]:
+        combination.extract_packages.side_effect = (
+            wiz.exception.GraphResolutionError("Error!")
+        )
+
+    resolver = wiz.graph.Resolver("__MAPPING__")
+    result = resolver.compute_packages("__REQS__")
+    assert result == combinations[index].extract_packages.return_value
+    assert resolver._conflicting_combinations == collections.deque()
+
+    for combination in combinations:
+        combination.resolve_conflicts.assert_called_once_with()
+        combination.validate.assert_called_once_with()
+        combination.extract_packages.assert_called_once_with()
+
+    mocked_graph.update_from_requirements.assert_called_once_with("__REQS__")
+
+    assert mocked_fetch_next_combination.call_count == combination_number
+    mocked_extract_combinations.assert_called_once_with(mocked_graph)
+    mocked_combination.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "combination_number", [1, 2, 3, 4, 5, 10],
+    ids=[
+        "first-combination",
+        "second-combination",
+        "third-combination",
+        "forth-combination",
+        "fifth-combination",
+        "tenth-combination",
+    ]
+)
+def test_resolver_compute_packages_with_variant_division(
+    mocker, mocked_graph, mocked_extract_combinations,
+    mocked_fetch_next_combination, combination_number
+):
+    """Resolve packages with variant division in previous combination."""
+    index = combination_number - 1
+    combinations = [mocker.Mock() for _ in range(combination_number)]
+    mocked_fetch_next_combination.side_effect = combinations
+
+    for combination in combinations[:-1]:
+        combination.extract_packages.side_effect = (
+            wiz.exception.GraphVariantsError()
+        )
+
+    resolver = wiz.graph.Resolver("__MAPPING__")
+    result = resolver.compute_packages("__REQS__")
+    assert result == combinations[index].extract_packages.return_value
+    assert resolver._conflicting_combinations == collections.deque()
+
+    for combination in combinations:
+        combination.resolve_conflicts.assert_called_once_with()
+        combination.validate.assert_called_once_with()
+        combination.extract_packages.assert_called_once_with()
+
+    mocked_graph.update_from_requirements.assert_called_once_with("__REQS__")
+
+    assert mocked_fetch_next_combination.call_count == combination_number
+    assert mocked_extract_combinations.call_count == combination_number
+
+    calls = [mocker.call(mocked_graph)]
+    for combination in combinations[:-1]:
+        calls.append(mocker.call(combination.graph))
+
+    assert mocked_extract_combinations.call_args_list == calls
+
+
+@pytest.mark.parametrize(
+    "combination_number", [1, 2, 3, 4, 5, 10],
+    ids=[
+        "first-combination",
+        "second-combination",
+        "third-combination",
+        "forth-combination",
+        "fifth-combination",
+        "tenth-combination",
+    ]
+)
+def test_resolver_compute_packages_fail(
+    mocker, mocked_graph, mocked_extract_combinations,
+    mocked_fetch_next_combination, combination_number
+):
+    """Fail to resolve packages."""
+    combinations = [mocker.Mock() for _ in range(combination_number)]
+    mocked_fetch_next_combination.side_effect = combinations + [None]
+
+    for combination in combinations:
+        combination.extract_packages.side_effect = (
+            wiz.exception.GraphResolutionError("Error!")
+        )
+
+    resolver = wiz.graph.Resolver("__MAPPING__")
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        resolver.compute_packages("__REQS__")
+
+    assert (
+        "Failed to resolve graph at combination #{}".format(combination_number)
+    ) in str(error)
+
+    assert resolver._conflicting_combinations == collections.deque()
+
+    for combination in combinations:
+        combination.resolve_conflicts.assert_called_once_with()
+        combination.validate.assert_called_once_with()
+        combination.extract_packages.assert_called_once_with()
+
+    mocked_graph.update_from_requirements.assert_called_once_with("__REQS__")
+
+    assert mocked_fetch_next_combination.call_count == combination_number + 1
+    mocked_extract_combinations.assert_called_once_with(mocked_graph)
+
+
+@pytest.mark.parametrize(
+    "combination_number", [1, 2, 3, 4, 5, 10],
+    ids=[
+        "first-combination",
+        "second-combination",
+        "third-combination",
+        "forth-combination",
+        "fifth-combination",
+        "tenth-combination",
+    ]
+)
+def test_resolver_compute_packages_fail_from_conflicts(
+    mocker, mocked_graph, mocked_extract_combinations,
+    mocked_fetch_next_combination, combination_number
+):
+    """Fail to resolve packages because of conflicts."""
+    combinations = [mocker.Mock() for _ in range(combination_number)]
+    mocked_fetch_next_combination.side_effect = combinations + [None]
+
+    for index, combination in enumerate(combinations):
+        conflicts = [
+            {
+                "requirement": Requirement("bar > 1"),
+                "identifiers": {"foo{}".format(index)}
+            },
+            {
+                "requirement": Requirement("bar < 1"),
+                "identifiers": {"bim{}".format(index)}
+            }
+        ]
+        combination.extract_packages.side_effect = (
+            wiz.exception.GraphConflictsError(conflicts)
+        )
+
+    resolver = wiz.graph.Resolver("__MAPPING__")
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        resolver.compute_packages("__REQS__")
+
+    assert (
+        "Failed to resolve graph at combination #{}".format(combination_number)
+    ) in str(error)
+
+    assert resolver.conflicting_variants == set()
+
+    queue = collections.deque()
+    for index, combination in enumerate(combinations):
+        queue.extend([
+            (combination.graph, {"foo{}".format(index)}),
+            (combination.graph, {"bim{}".format(index)}),
+        ])
+
+    assert resolver._conflicting_combinations == queue
+
+    for combination in combinations:
+        combination.resolve_conflicts.assert_called_once_with()
+        combination.validate.assert_called_once_with()
+        combination.extract_packages.assert_called_once_with()
+
+    mocked_graph.update_from_requirements.assert_called_once_with("__REQS__")
+
+    assert mocked_fetch_next_combination.call_count == combination_number + 1
+    mocked_extract_combinations.assert_called_once_with(mocked_graph)
+
+
+@pytest.mark.parametrize("combinations", [
+    [],
+    ["__COMB1__", "__COMB2__", "__COMB3__"],
+], ids=[
+    "simple",
+    "with-initial-combinations"
+])
+def test_resolver_extract_combinations_empty(
+    mocked_graph, mocked_compute_distance_mapping,
+    mocked_generate_variant_combinations, combinations
+):
+    """No new combinations to extract from conflicting variants"""
+    mocked_graph.conflicting_variant_groups.return_value = []
+
+    resolver = wiz.graph.Resolver("__MAPPING__")
+    resolver._iterator = iter(combinations)
+
+    assert resolver.extract_combinations(mocked_graph) is False
+
+    mocked_compute_distance_mapping.assert_not_called()
+    mocked_generate_variant_combinations.assert_not_called()
+
+    assert isinstance(resolver._iterator, collections.Iterable)
+    assert list(resolver._iterator) == combinations
+
+
+@pytest.mark.parametrize("combinations", [
+    [],
+    ["__COMB1__", "__COMB2__", "__COMB3__"],
+], ids=[
+    "simple",
+    "with-initial-combinations"
+])
+def test_resolver_extract_combinations(
+    mocked_graph, mocked_compute_distance_mapping,
+    mocked_generate_variant_combinations, combinations
+):
+    """Extract new combinations from conflicting variants"""
+    mocked_graph.conflicting_variant_groups.return_value = [
+        ["B[V3]", "B[V2]", "B[V1]"], ["A[V2]==1", "A[V1]==1", "A[V1]==2"]
+    ]
+    mocked_compute_distance_mapping.return_value = {
+        "root": {"distance": 0},
+        "B[V3]": {"distance": 2},
+        "B[V2]": {"distance": 2},
+        "B[V1]": {"distance": 2},
+        "A[V2]==1": {"distance": 1},
+        "A[V1]==1": {"distance": 1},
+        "A[V1]==2": {"distance": 3},
+    }
+    mocked_generate_variant_combinations.return_value = iter([
+        "__COMB4__", "__COMB5__", "__COMB6__"
+    ])
+
+    resolver = wiz.graph.Resolver("__MAPPING__")
+    resolver._iterator = iter(combinations)
+
+    assert resolver.extract_combinations(mocked_graph) is True
+
+    assert isinstance(resolver._iterator, collections.Iterable)
+    assert list(resolver._iterator) == (
+        ["__COMB4__", "__COMB5__", "__COMB6__"] + combinations
+    )
+
+    mocked_compute_distance_mapping.assert_called_once_with(mocked_graph)
+    mocked_generate_variant_combinations.assert_called_once_with(
+        mocked_graph, [
+            ["A[V2]==1", "A[V1]==1", "A[V1]==2"], ["B[V3]", "B[V2]", "B[V1]"]
+        ]
+    )
+
+
+def test_resolver_fetch_next_combination(mocked_discover_combinations):
+    """Return next combination from the iterator."""
+    mocked_discover_combinations.return_value = False
+
+    resolver = wiz.graph.Resolver("__MAPPING__")
+    resolver._iterator = iter(["__COMB1__", "__COMB2__", "__COMB3__"])
+
+    assert resolver.fetch_next_combination() == "__COMB1__"
+    mocked_discover_combinations.assert_not_called()
+
+    assert resolver.fetch_next_combination() == "__COMB2__"
+    mocked_discover_combinations.assert_not_called()
+
+    assert resolver.fetch_next_combination() == "__COMB3__"
+    mocked_discover_combinations.assert_not_called()
+
+    assert resolver.fetch_next_combination() is None
+    mocked_discover_combinations.assert_called_once()
+
+
+def test_resolver_fetch_next_combination_with_discovery():
+    """Return next combination from the iterator with new combinations
+    discovered.
+    """
+    resolver = wiz.graph.Resolver("__MAPPING__")
+    resolver._iterator = iter(["__COMB1__", "__COMB2__", "__COMB3__"])
+
+    def _discover_combinations():
+        """Mock combination discovery"""
+        resolver._iterator = iter(["__COMB4__", "__COMB5__"])
+        return True
+
+    resolver.discover_combinations = _discover_combinations
+
+    assert resolver.fetch_next_combination() == "__COMB1__"
+    assert resolver.fetch_next_combination() == "__COMB2__"
+    assert resolver.fetch_next_combination() == "__COMB3__"
+    assert resolver.fetch_next_combination() == "__COMB4__"
+    assert resolver.fetch_next_combination() == "__COMB5__"
 
 
 def test_compute_distance_mapping_empty(mocked_graph):
