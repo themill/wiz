@@ -1357,18 +1357,24 @@ class Graph(object):
     def downgrade_versions(self, identifiers):
         """Replace all node *identifiers* in graph with lower versions.
 
-        Requirements
+        Combined requirements from parents to each node identifier is computed
+        and altered to skip current package version. These new requirements
+        are used to extract lower package versions.
 
-        :param identifiers: List of node identifiers.
+        If the identifier does not correspond to any node in the graph or if
+        the embedded package is not versioned, the identifier is skipped.
+
+        If no packages can be extracted from new requirements, the identifier
+        is also skipped.
+
+        :param identifiers: Set of node identifiers.
 
         :return: Boolean value indicating whether at least one node have been
             replaced with different versions.
 
         """
-        self._logger.debug(
-            "Attempt to fetch lower versions for packages "
-            "'{}'".format(", ".join(identifiers))
-        )
+        message = "Attempt to fetch lower versions for '{}'"
+        self._logger.debug(message.format(", ".join(identifiers)))
 
         replacement = {}
         operations = []
@@ -1378,11 +1384,9 @@ class Graph(object):
 
             # If the node cannot be fetched or does not have a version, it is
             # impossible to replace it with another version.
-            if node is None or node.package.version == wiz.symbol.UNSET_VALUE:
-                self._logger.debug(
-                    "Impossible to fetch another version for conflicting "
-                    "package '{}'".format(identifier)
-                )
+            if node is None or node.package.version is None:
+                message = "Impossible to fetch another version for '{}'"
+                self._logger.debug(message.format(identifier))
                 continue
 
             # Extract combined requirement to node and modify it to exclude
@@ -1400,9 +1404,8 @@ class Graph(object):
 
             except wiz.exception.RequestNotFound:
                 self._logger.debug(
-                    "Impossible to fetch another version for conflicting "
-                    "package '{}' with following "
-                    "request: '{}'".format(identifier, requirement)
+                    "Impossible to fetch another version for '{0}' with "
+                    "following request: '{1}'".format(identifier, requirement)
                 )
                 continue
 

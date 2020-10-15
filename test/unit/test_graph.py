@@ -306,6 +306,15 @@ def _packages_with_conflicting_versions():
                 ]
             }),
         ),
+        "B==1.2.2": wiz.package.Package(
+            wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.2.2",
+                "requirements": [
+                    "C",
+                ]
+            }),
+        ),
         "C": wiz.package.Package(
             wiz.definition.Definition({
                 "identifier": "C",
@@ -3415,6 +3424,104 @@ def test_graph_relink_parents_unnecessary(
                     "requirement": Requirement("::D >=3, <4"), "weight": 2
                 },
             },
+        },
+        "error_mapping": {},
+        "conditioned_nodes": [],
+    }
+
+
+@pytest.mark.parametrize("packages", ["conflicting-versions"], indirect=True)
+def test_graph_downgrade_versions(
+    mocked_resolver, mocked_package_extract, packages
+):
+    """Downgrade node versions in the graph."""
+    requirements = [Requirement("B")]
+    mocked_package_extract.side_effect = [
+        [packages["B==1.2.3"]], [packages["C"]], [packages["D==3.2.0"]],
+        [packages["B==1.2.2"]], [packages["C"]]
+    ]
+
+    # Create graph.
+    graph = wiz.graph.Graph(mocked_resolver)
+    graph.update_from_requirements(requirements)
+
+    assert graph.downgrade_versions({"B==1.2.3", "incorrect"}) is True
+
+    # Check full data.
+    assert graph.data() == {
+        "node_mapping": {
+            "C": wiz.graph.Node(
+                packages["C"], parent_identifiers={"B==1.2.2", "B==1.2.3"}
+            ),
+            "D==3.2.0": wiz.graph.Node(
+                packages["D==3.2.0"], parent_identifiers={"B==1.2.3"}
+            ),
+            "B==1.2.2": wiz.graph.Node(
+                packages["B==1.2.2"], parent_identifiers={"root"}
+            ),
+        },
+        "link_mapping": {
+            "root": {
+                "B==1.2.3": {"requirement": Requirement("::B"), "weight": 1},
+                "B==1.2.2": {"requirement": Requirement("::B"), "weight": 1},
+            },
+            "B==1.2.3": {
+                "C": {"requirement": Requirement("::C"), "weight": 1},
+                "D==3.2.0": {
+                    "requirement": Requirement("::D >=3, <4"), "weight": 2
+                },
+            },
+            "B==1.2.2": {
+                "C": {"requirement": Requirement("::C"), "weight": 1},
+            },
+        },
+        "error_mapping": {},
+        "conditioned_nodes": [],
+    }
+
+
+@pytest.mark.parametrize("packages", ["conflicting-versions"], indirect=True)
+def test_graph_downgrade_versions_fail(
+    mocked_resolver, mocked_package_extract, packages
+):
+    """Fail to downgrade node versions in the graph."""
+    requirements = [Requirement("B")]
+    mocked_package_extract.side_effect = [
+        [packages["B==1.2.3"]], [packages["C"]], [packages["D==3.2.0"]],
+        wiz.exception.RequestNotFound("Error!")
+    ]
+
+    # Create graph.
+    graph = wiz.graph.Graph(mocked_resolver)
+    graph.update_from_requirements(requirements)
+
+    assert graph.downgrade_versions({"C"}) is False
+    assert graph.downgrade_versions({"incorrect"}) is False
+    assert graph.downgrade_versions({"D==3.2.0"}) is False
+
+    # Check full data.
+    assert graph.data() == {
+        "node_mapping": {
+            "C": wiz.graph.Node(
+                packages["C"], parent_identifiers={"B==1.2.3"}
+            ),
+            "D==3.2.0": wiz.graph.Node(
+                packages["D==3.2.0"], parent_identifiers={"B==1.2.3"}
+            ),
+            "B==1.2.3": wiz.graph.Node(
+                packages["B==1.2.3"], parent_identifiers={"root"}
+            ),
+        },
+        "link_mapping": {
+            "root": {
+                "B==1.2.3": {"requirement": Requirement("::B"), "weight": 1},
+            },
+            "B==1.2.3": {
+                "C": {"requirement": Requirement("::C"), "weight": 1},
+                "D==3.2.0": {
+                    "requirement": Requirement("::D >=3, <4"), "weight": 2
+                },
+            }
         },
         "error_mapping": {},
         "conditioned_nodes": [],
