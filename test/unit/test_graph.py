@@ -598,8 +598,9 @@ def test_resolver_compute_packages_fail(
         resolver.compute_packages("__REQS__")
 
     assert (
-        "Failed to resolve graph at combination #{}".format(combination_number)
-    ) in str(error)
+        "Failed to resolve graph at combination #{}:\n\n"
+        "Error!".format(combination_number)
+    ) in str(error.value)
 
     assert resolver._conflicting_combinations == collections.deque()
 
@@ -654,8 +655,14 @@ def test_resolver_compute_packages_fail_from_conflicts(
         resolver.compute_packages("__REQS__")
 
     assert (
-        "Failed to resolve graph at combination #{}".format(combination_number)
-    ) in str(error)
+        "Failed to resolve graph at combination #{0}:\n\n"
+        "The dependency graph could not be resolved due to the following "
+        "requirement conflicts:\n"
+        "  * bar >1 \t[foo{1}]\n"
+        "  * bar <1 \t[bim{1}]\n".format(
+            combination_number, combination_number-1
+        )
+    ) in str(error.value)
 
     assert resolver.conflicting_variants == set()
 
@@ -1148,7 +1155,7 @@ def test_combined_requirements_error(mocked_graph):
     assert (
         "Impossible to combine requirements with different names "
         "[foo, incorrect]."
-    ) in str(error)
+    ) in str(error.value)
 
 
 def test_extract_conflicting_requirements(mocked_graph):
@@ -1429,11 +1436,11 @@ def test_graph_link_requirement(
 
     with pytest.raises(ValueError) as error:
         graph.link_requirement(identifier, "whatever")
-    assert "No link recorded for node: 'whatever'" in str(error)
+    assert "No link recorded for node: 'whatever'" in str(error.value)
 
     with pytest.raises(ValueError) as error:
         graph.link_requirement("whatever", "root")
-    assert "No link recorded for node: 'whatever'" in str(error)
+    assert "No link recorded for node: 'whatever'" in str(error.value)
 
 
 @pytest.mark.parametrize(
@@ -1460,11 +1467,11 @@ def test_graph_link_weight(
 
     with pytest.raises(ValueError) as error:
         graph.link_weight(identifier, "whatever")
-    assert "No link recorded for node: 'whatever'" in str(error)
+    assert "No link recorded for node: 'whatever'" in str(error.value)
 
     with pytest.raises(ValueError) as error:
         graph.link_weight("whatever", "root")
-    assert "No link recorded for node: 'whatever'" in str(error)
+    assert "No link recorded for node: 'whatever'" in str(error.value)
 
 
 @pytest.mark.parametrize("packages", ["many"], indirect=True)
@@ -3149,7 +3156,7 @@ def test_graph_remove_error(mocked_resolver):
     with pytest.raises(ValueError) as error:
         graph.remove_node("A==0.1.0")
 
-    assert "Node can not be removed: A==0.1.0" in str(error)
+    assert "Node can not be removed: A==0.1.0" in str(error.value)
 
 
 @pytest.mark.parametrize("packages", ["conflicting-versions"], indirect=True)
