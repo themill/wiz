@@ -210,9 +210,9 @@ def _update_maximum_version(version, ranges):
 
     Example::
 
-        >>> ranges = [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))]
-        >>> _update_maximum_version((1, 2, 3), ranges)
-        >>> print(ranges)
+        >>> version_ranges = [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))]
+        >>> _update_maximum_version((1, 2, 3), version_ranges)
+        >>> print(version_ranges)
         [((1, 2, 3), (1, 2, 3))]
 
     :param version: Tuple representing a version (e.g. (1,2,3)).
@@ -253,9 +253,9 @@ def _update_minimum_version(version, ranges):
 
     Example::
 
-        >>> ranges = [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))]
-        >>> _update_minimum_version((1, 3, 3), ranges)
-        >>> print(ranges)
+        >>> version_ranges = [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))]
+        >>> _update_minimum_version((1, 3, 3), version_ranges)
+        >>> print(version_ranges)
         [((1, 3, 3), (1, 4))]
 
     :param version: Tuple representing a version (e.g. (1,2,3)).
@@ -296,9 +296,9 @@ def _update_version_ranges(excluded, ranges):
 
     Example::
 
-        >>> ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
-        >>> _update_version_ranges(((1,2,3), (1,3,3)), ranges)
-        >>> print(ranges)
+        >>> version_ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
+        >>> _update_version_ranges(((1,2,3), (1,3,3)), version_ranges)
+        >>> print(version_ranges)
         [((1, 2, 3), (1, 2, 3)), ((1, 3, 3), (1, 4))]
 
     :param excluded: Tuple containing two ordered version release tuples (e.g.
