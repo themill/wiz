@@ -251,102 +251,13 @@ class Resolver(object):
 
             # Iterator can be initialized only if all identifiers can be
             # replaced with lower version.
-            if not self.downgrade_conflicting_versions(graph, identifiers):
+            if not graph.downgrade_versions(identifiers):
                 continue
 
             # Reset the iterator.
             self.initiate_combinations(graph)
 
             return True
-
-    def downgrade_conflicting_versions(self, graph, identifiers):
-        """Replace all node *identifiers* in *graph* with different versions.
-
-        :param graph: Instance of :class:`Graph`.
-
-        :param identifiers: List of node identifiers.
-
-        :return: Boolean value indicating whether all node identifiers have been
-            replaced with different versions. Returned value is False if no
-            conflicting nodes could be replaced.
-
-        """
-        replacement = {}
-        operations = []
-
-        for identifier in identifiers:
-            self._logger.debug(
-                "Attempt to fetch another version for conflicting package "
-                "'{}'".format(identifier)
-            )
-            node = graph.node(identifier)
-
-            # If the node cannot be fetched or does not have a version, it is
-            # impossible to replace it with another version.
-            if node is None or node.package.version == wiz.symbol.UNSET_VALUE:
-                self._logger.debug(
-                    "Impossible to fetch another version for conflicting "
-                    "package '{}'".format(identifier)
-                )
-                continue
-
-            # Extract combined requirement to node and modify it to exclude
-            # current package version.
-            requirement = combined_requirements(graph, [node])
-            exclusion_requirement = wiz.utility.get_requirement(
-                "{} != {}".format(requirement.name, node.package.version)
-            )
-            requirement.specifier &= exclusion_requirement.specifier
-
-            try:
-                packages = wiz.package.extract(
-                    requirement, self._definition_mapping
-                )
-
-            except wiz.exception.RequestNotFound:
-                self._logger.debug(
-                    "Impossible to fetch another version for conflicting "
-                    "package '{}' with following "
-                    "request: '{}'".format(identifier, requirement)
-                )
-                continue
-
-            # Record resulting operation tuple to process replacement.
-            operations.append((node, packages, requirement))
-
-            # Record replacement logic for debugging purposes.
-            replacement[identifier] = [p.identifier for p in packages]
-
-        # If no conflicting nodes could be replaced, give up now.
-        if len(operations) == 0:
-            return False
-
-        # Step 1: Add new node versions to graph.
-        for _, packages, requirement in operations:
-            for package in packages:
-                graph.update_from_package(package, requirement, detached=True)
-
-        # Step 2: Remove conflicting nodes from graph.
-        for node, _, _ in operations:
-            graph.remove_node(node.identifier)
-            graph.relink_parents(node)
-
-        self._logger.debug(
-            "Create new graph with new nodes:\n"
-            "{}".format(
-                "\n".join([
-                    "  * {} -> {}".format(identifier, identifiers)
-                    for identifier, identifiers in replacement.items()
-                ])
-            )
-        )
-
-        wiz.history.record_action(
-            wiz.symbol.GRAPH_NODES_REPLACEMENT_ACTION,
-            graph=graph, mapping=replacement
-        )
-
-        return True
 
 
 def compute_distance_mapping(graph):
@@ -1442,6 +1353,95 @@ class Graph(object):
             weight=weight,
             requirement=requirement
         )
+
+    def downgrade_versions(self, identifiers):
+        """Replace all node *identifiers* in graph with lower versions.
+
+        Requirements
+
+        :param identifiers: List of node identifiers.
+
+        :return: Boolean value indicating whether at least one node have been
+            replaced with different versions.
+
+        """
+        self._logger.debug(
+            "Attempt to fetch lower versions for packages "
+            "'{}'".format(", ".join(identifiers))
+        )
+
+        replacement = {}
+        operations = []
+
+        for identifier in identifiers:
+            node = self._node_mapping.get(identifier)
+
+            # If the node cannot be fetched or does not have a version, it is
+            # impossible to replace it with another version.
+            if node is None or node.package.version == wiz.symbol.UNSET_VALUE:
+                self._logger.debug(
+                    "Impossible to fetch another version for conflicting "
+                    "package '{}'".format(identifier)
+                )
+                continue
+
+            # Extract combined requirement to node and modify it to exclude
+            # current package version.
+            requirement = combined_requirements(self, [node])
+            exclusion_requirement = wiz.utility.get_requirement(
+                "{} != {}".format(requirement.name, node.package.version)
+            )
+            requirement.specifier &= exclusion_requirement.specifier
+
+            try:
+                packages = wiz.package.extract(
+                    requirement, self.resolver.definition_mapping
+                )
+
+            except wiz.exception.RequestNotFound:
+                self._logger.debug(
+                    "Impossible to fetch another version for conflicting "
+                    "package '{}' with following "
+                    "request: '{}'".format(identifier, requirement)
+                )
+                continue
+
+            # Record resulting operation tuple to process replacement.
+            operations.append((node, packages, requirement))
+
+            # Record replacement logic for debugging purposes.
+            replacement[identifier] = [p.identifier for p in packages]
+
+        # If no conflicting nodes could be replaced, give up now.
+        if len(operations) == 0:
+            return False
+
+        # Step 1: Add new node versions to graph.
+        for _, packages, requirement in operations:
+            for package in packages:
+                self.update_from_package(package, requirement, detached=True)
+
+        # Step 2: Remove conflicting nodes from graph.
+        for node, _, _ in operations:
+            self.remove_node(node.identifier)
+            self.relink_parents(node)
+
+        self._logger.debug(
+            "The following nodes have been updated in the graph:\n"
+            "{}".format(
+                "\n".join([
+                    "  * {} -> {}".format(identifier, identifiers)
+                    for identifier, identifiers in replacement.items()
+                ])
+            )
+        )
+
+        wiz.history.record_action(
+            wiz.symbol.GRAPH_NODES_REPLACEMENT_ACTION,
+            graph=self, mapping=replacement
+        )
+
+        return True
 
     def data(self):
         """Return reference mapping.

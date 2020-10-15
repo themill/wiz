@@ -80,15 +80,6 @@ def mocked_discover_combinations(mocker):
 
 
 @pytest.fixture()
-def mocked_downgrade_conflicting_versions(mocker):
-    """Return mocked wiz.graph.Resolver.downgrade_conflicting_versions method.
-    """
-    return mocker.patch.object(
-        wiz.graph.Resolver, "downgrade_conflicting_versions"
-    )
-
-
-@pytest.fixture()
 def mocked_prune_graph(mocker):
     """Return mocked wiz.graph.VariantCombination.prune_graph method."""
     return mocker.patch.object(wiz.graph.Combination, "prune_graph")
@@ -790,6 +781,79 @@ def test_resolver_fetch_next_combination_with_discovery():
     assert resolver.fetch_next_combination() == "__COMB3__"
     assert resolver.fetch_next_combination() == "__COMB4__"
     assert resolver.fetch_next_combination() == "__COMB5__"
+
+
+@pytest.mark.parametrize(
+    "combination_number", [1, 2, 3, 4, 5, 10],
+    ids=[
+        "first-combination",
+        "second-combination",
+        "third-combination",
+        "forth-combination",
+        "fifth-combination",
+        "tenth-combination",
+    ]
+)
+def test_resolver_discover_combinations(
+    mocker, mocked_extract_combinations, combination_number
+):
+    """Discover new combinations from unsolvable conflicts recorded."""
+    successful_graph_index = combination_number - 1
+
+    graphs = [
+        mocker.Mock(**{
+            "downgrade_versions.return_value": (index == successful_graph_index)
+        })
+        for index in range(combination_number)
+    ]
+
+    resolver = wiz.graph.Resolver("__MAPPING__")
+    resolver._conflicting_combinations = collections.deque([
+        (graphs[index], {"N{}".format(index)})
+        for index in range(combination_number)
+    ])
+    assert resolver.discover_combinations() is True
+
+    for index, graph in enumerate(graphs):
+        graph.downgrade_versions.assert_called_once_with({"N{}".format(index)})
+
+    mocked_extract_combinations.assert_called_once_with(
+        graphs[successful_graph_index]
+    )
+
+
+@pytest.mark.parametrize(
+    "combination_number", [1, 2, 3, 4, 5, 10],
+    ids=[
+        "first-combination",
+        "second-combination",
+        "third-combination",
+        "forth-combination",
+        "fifth-combination",
+        "tenth-combination",
+    ]
+)
+def test_resolver_discover_combinations_fail(
+    mocker, mocked_extract_combinations, combination_number
+):
+    """Fail to discover new combinations from unsolvable conflicts recorded."""
+    graphs = [
+        mocker.Mock(**{"downgrade_versions.return_value": False})
+        for _ in range(combination_number)
+    ]
+
+    resolver = wiz.graph.Resolver("__MAPPING__")
+    resolver._conflicting_combinations = collections.deque([
+        (graphs[index], {"N{}".format(index)})
+        for index in range(combination_number)
+    ])
+
+    assert resolver.discover_combinations() is False
+
+    for index, graph in enumerate(graphs):
+        graph.downgrade_versions.assert_called_once_with({"N{}".format(index)})
+
+    mocked_extract_combinations.assert_not_called()
 
 
 def test_compute_distance_mapping_empty(mocked_graph):
