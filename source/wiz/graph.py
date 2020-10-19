@@ -1809,7 +1809,7 @@ class Combination(object):
         circular_conflicts = set()
 
         # Sort conflicts per distance to ensure breath-first resolution.
-        remaining_conflicts = self._update_conflict_queue(conflicts)
+        remaining_conflicts = self._update_conflict_queue([conflicts])
 
         while len(remaining_conflicts) > 0:
             conflict_identifier = remaining_conflicts.popleft()
@@ -1866,11 +1866,11 @@ class Combination(object):
                 # Update list of remaining conflicts if necessary.
                 if updated:
                     remaining_conflicts = self._update_conflict_queue(
-                        remaining_conflicts, self._graph.conflicting(),
+                        [remaining_conflicts, self._graph.conflicting()],
                         circular_conflicts=circular_conflicts
                     )
 
-    def _update_conflict_queue(self, *args, circular_conflicts=None):
+    def _update_conflict_queue(self, iterables, circular_conflicts=None):
         """Create new queue with conflicting node identifier lists.
 
         Duplicated identifiers are removed and all conflicting node identifiers
@@ -1882,7 +1882,7 @@ class Combination(object):
         Node identifier included in the *circular_conflicts* set will be sorted
         at the very end of the queue to be treated last.
 
-        :param args: Lists of conflicting node identifier.
+        :param iterables: Lists of conflicting node identifier.
 
         :param circular_conflicts: Set of conflicted node identifier which have
             conflicting parents.
@@ -1902,9 +1902,9 @@ class Combination(object):
         # identifiers flagged as circular conflicts so it can be added at the
         # end of the queue.
         identifiers = set(
-            identifier for _identifiers in args for identifier in _identifiers
-            if identifier not in circular_conflicts
-            and distance_mapping.get(identifier, {}).get("distance") is not None
+            _id for _identifiers in iterables for _id in _identifiers
+            if _id not in circular_conflicts
+            and distance_mapping.get(_id, {}).get("distance") is not None
         )
 
         def _compare(identifier):
