@@ -1493,29 +1493,6 @@ class Node(object):
         )
 
     @property
-    def identifier(self):
-        """Return identifier of the node.
-
-        :return: String value (e.g. "foo==0.1.0").
-
-        .. note::
-
-            The node identifier is the same as the embedded package instance
-            identifier.
-
-        """
-        return self._package.identifier
-
-    @property
-    def definition(self):
-        """Return definition within embedded package instance.
-
-        :return: Instance of :class:`wiz.definition.Definition`.
-
-        """
-        return self._package.definition
-
-    @property
     def package(self):
         """Return embedded package instance.
 
@@ -1523,6 +1500,24 @@ class Node(object):
 
         """
         return self._package
+
+    @property
+    def identifier(self):
+        """Return identifier of the embedded package instance.
+
+        :return: String value (e.g. "foo==0.1.0").
+
+        """
+        return self._package.identifier
+
+    @property
+    def definition(self):
+        """Return definition of embedded package instance.
+
+        :return: Instance of :class:`wiz.definition.Definition`.
+
+        """
+        return self._package.definition
 
     @property
     def parent_identifiers(self):
@@ -1610,14 +1605,9 @@ class StoredNode(object):
 
     @property
     def identifier(self):
-        """Return identifier of the stored node.
+        """Return identifier of the embedded package instance.
 
         :return: String value (e.g. "foo==0.1.0").
-
-        .. note::
-
-            The node identifier is the same as the embedded package instance
-            identifier.
 
         """
         return self._package.identifier
@@ -1907,11 +1897,11 @@ class Combination(object):
             and distance_mapping.get(_id, {}).get("distance") is not None
         )
 
-        def _compare(identifier):
+        def _compare(_identifier):
             """Sort identifiers per distance and identifier."""
             return (
-                distance_mapping[identifier]["distance"],
-                identifier
+                distance_mapping[_identifier]["distance"],
+                _identifier
             )
 
         # Update order by distance.
@@ -2054,7 +2044,7 @@ class Combination(object):
         distance to the :attr:`root <Graph.ROOT>` level of the graph, the node
         identifier is used.
 
-        :return: Sorted list of :class:wiz.package.Package` instances.
+        :return: Sorted list of :class:`wiz.package.Package` instances.
 
         """
         distance_mapping = self._fetch_distance_mapping()
