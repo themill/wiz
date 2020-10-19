@@ -175,29 +175,17 @@ class Resolver(object):
         """
         groups = graph.conflicting_variant_groups()
         if not groups:
-            self._logger.debug(
-                "No package variants are conflicting in the graph."
-            )
+            self._logger.debug("No variants are conflicting in the graph.")
             return False
 
         # Record node identifiers from all groups to prevent dividing the graph
         # twice with the same node.
-        identifiers = [_id for group in groups for _id in group]
+        identifiers = {_id for group in groups for ids in group for _id in ids}
         self._conflicting_variants.update(identifiers)
 
-        distance_mapping = compute_distance_mapping(graph)
-
-        # Order the variant groups in ascending order of distance from the root
-        # level of the graph.
-        groups = sorted(
-            groups, key=lambda _group: min([
-                distance_mapping[_id].get("distance") for _id in _group
-                if distance_mapping[_id].get("distance") is not None
-            ]),
-        )
-
         self._logger.debug(
-            "The following variant groups are conflicting: {!r}".format(groups)
+            "Combination will be extracted for following variant groups: {!r}"
+            .format(groups)
         )
 
         wiz.history.record_action(
@@ -205,8 +193,17 @@ class Resolver(object):
             graph=graph, variant_groups=groups
         )
 
+        def _generate_combinations():
+            """Yield combinations from variant groups."""
+            for permutation in generate_variant_permutations(graph, groups):
+                yield Combination(
+                    graph, nodes_to_remove=identifiers.difference(
+                        {_id for _group in permutation for _id in _group}
+                    )
+                )
+
         self._iterator = itertools.chain(
-            generate_variant_combinations(graph, groups),
+            _generate_combinations(),
             self._iterator
         )
         return True
@@ -335,76 +332,94 @@ def compute_distance_mapping(graph):
     return distance_mapping
 
 
-def generate_variant_combinations(graph, variant_groups):
-    """Yield combinations of nodes identifiers to remove from *graph*.
-
-    Each list of variant groups contains node identifiers added to the *graph*
-    in the order of importance which share the same definition identifier and
-    variant identifier.
-
-    After identifying and grouping version conflicts in each group, a cartesian
-    product is performed on all groups in order to extract combinations of node
-    variant that should be present in the graph at the same time.
-
-    The trimming combination represents the inverse of this product, so that it
-    identify the nodes to remove at each graph division::
-
-        >>> groups = [
-        ...     ["foo[V3]", "foo[V2]", "foo[V1]"],
-        ...     ["bar[V1]==1", "bar[V2]==1", "bar[V2]==2"]
-        ... ]
-        >>> list(generate_variant_combinations(graph, variant_groups))
-
-        [
-            (graph, ("foo[V2]", "foo[V1]", "bar[V2]==1", "bar[V2]==2")),
-            (graph, ("foo[V2]", "foo[V1]", "bar[V1]==1")),
-            (graph, ("foo[V3]", "foo[V1]", "bar[V2]==1", "bar[V2]==2")),
-            (graph, ("foo[V3]", "foo[V1]", "bar[V1]==1")),
-            (graph, ("foo[V3]", "foo[V2]", "bar[V2]==1", "bar[V2]==2")),
-            (graph, ("foo[V3]", "foo[V2]", "bar[V1]==1"))
-        ]
+def generate_variant_permutations(graph, variant_groups):
+    """Yield all possible permutations of the variant groups.
 
     :param graph: Instance of :class:`Graph`.
 
-    :param variant_groups: List of node identifier lists.
+    :param variant_groups: Set of tuple containing tuples of node identifiers
+        with conflicting variants. It should be in the form of::
 
-    :return: Generator which yield variant combinations.
+            {
+                (("foo[V2]==0.1.0",), ("foo[V1]==0.1.0"),),
+                (("bar[V2]==2.2.0",), ("bar[V1]==2.2.0", "bar[V1]==2.0.0"))
+            }
+
+    :return: Generator of permutations between variant groups.
 
     """
-    # Flatten list of identifiers
-    identifiers = [_id for _group in variant_groups for _id in _group]
+    distance_mapping = compute_distance_mapping(graph)
 
-    # Convert each variant group into list of lists grouping conflicting nodes.
-    # e.g. [A[V2]==1, A[V1]==1, A[V1]==2] -> [[A[V2]==1], [A[V1]==1, A[V1]==2]]
-    _groups = []
+    # Record permutations previously used.
+    permutations_used = set()
 
-    for _group in variant_groups:
-        variant_mapping = {}
+    # Organise all definition groups per minimum distance to the root level
+    # of the graph to prioritizing nodes with the smallest distance to the root
+    # node of the graph when computing permutations.
+    groups = sorted(
+        variant_groups, key=lambda _group: min([
+            distance_mapping[_id]["distance"] for _ids in _group for _id in _ids
+        ])
+    )
 
-        for node_identifier in _group:
-            node = graph.node(node_identifier)
-            variant_identifier = node.package.variant_identifier
-            variant_mapping.setdefault(variant_identifier, [])
-            variant_mapping[variant_identifier].append(node_identifier)
-            variant_mapping[variant_identifier].sort(
-                key=lambda _id: _group.index(_id)
-            )
+    # Flatten groups and sort node identifiers per minimum distance to the root
+    # level to find optimum variant permutations for each of them, starting
+    # with nodes nearest from the root node of the graph.
+    identifiers = [_id for group in groups for ids in group for _id in ids]
 
-        _tuple_group = sorted(
-            variant_mapping.values(),
-            key=lambda group: _group.index(group[0])
+    for identifier in sorted(
+        identifiers, key=lambda _identifier: (
+            distance_mapping[_identifier]["distance"],
+            identifiers.index(_identifier)
         )
-        _groups.append(_tuple_group)
+    ):
+        node = graph.node(identifier)
 
-    for combination in itertools.product(*_groups):
-        _identifiers = [_id for _group in combination for _id in _group]
+        _filtered_variant_groups = []
 
-        yield Combination(
-            graph, nodes_to_remove=set([
-                _id for _id in identifiers
-                if _id not in _identifiers
-            ])
-        )
+        for definition_group in groups:
+            _definition_group = []
+
+            for variant_group in definition_group:
+                # Keep only this variant group if current node is found.
+                if identifier in variant_group:
+                    _definition_group = [variant_group]
+                    break
+
+                # Otherwise, filter out nodes conflicting with current node.
+                _variant_group = []
+
+                for _identifier in variant_group:
+                    _node = graph.node(_identifier)
+
+                    if not wiz.utility.check_conflicting_requirements(
+                        node.package, _node.package
+                    ):
+                        _variant_group.append(_identifier)
+
+                if len(_variant_group):
+                    _definition_group.append(tuple(_variant_group))
+
+            # Uses filtered group if it contains at least one node. Otherwise
+            # uses the original group if all nodes belonging to one definition
+            # are conflicting.
+            definition_group = tuple(_definition_group or definition_group)
+
+            _filtered_variant_groups.append(definition_group)
+
+        for permutation in itertools.product(*_filtered_variant_groups):
+            if permutation in permutations_used:
+                continue
+
+            permutations_used.add(permutation)
+            yield permutation
+
+    # Once all optimized permutations are exhausted, test all other
+    # permutations.
+    for permutation in itertools.product(*variant_groups):
+        if permutation in permutations_used:
+            continue
+        yield permutation
 
 
 def combined_requirements(graph, nodes):
@@ -598,11 +613,11 @@ class Graph(object):
         self._conditioned_nodes = []
 
         # Cached set of node identifiers organised per definition identifier.
-        self._identifiers_per_definition = {}
+        self._definition_cache = {}
 
         # Cached list of node identifiers with variant organised per definition
         # identifier.
-        self._variants_per_definition = {}
+        self._variant_cache = {}
 
         # Cached :class:`collections.Counter` instance which record of
         # occurrences of namespaces from package included in the graph.
@@ -620,12 +635,8 @@ class Graph(object):
         result._link_mapping = copy.deepcopy(self._link_mapping)
         result._error_mapping = copy.deepcopy(self._error_mapping)
         result._conditioned_nodes = copy.deepcopy(self._conditioned_nodes)
-        result._identifiers_per_definition = (
-            copy.deepcopy(self._identifiers_per_definition)
-        )
-        result._variants_per_definition = (
-            copy.deepcopy(self._variants_per_definition)
-        )
+        result._definition_cache = copy.deepcopy(self._definition_cache)
+        result._variant_cache = copy.deepcopy(self._variant_cache)
         result._namespace_count = copy.deepcopy(self._namespace_count)
 
         memo[id(self)] = result
@@ -662,10 +673,9 @@ class Graph(object):
 
         """
         if definition_identifier is not None:
-            _definition_id = definition_identifier
             return [
                 self.node(identifier) for identifier
-                in self._identifiers_per_definition.get(_definition_id, [])
+                in self._definition_cache.get(definition_identifier, [])
                 if self.exists(identifier)
             ]
 
@@ -722,7 +732,7 @@ class Graph(object):
         """
         conflicting = set()
 
-        for identifiers in self._identifiers_per_definition.values():
+        for identifiers in self._definition_cache.values():
             _identifiers = [
                 identifier for identifier in identifiers
                 if self.exists(identifier)
@@ -734,49 +744,44 @@ class Graph(object):
         return conflicting
 
     def conflicting_variant_groups(self):
-        """Return variant groups in graphs.
+        """Return conflicting variant groups in graphs.
 
-        A variant group list should contain more than one node identifier which
-        belongs at least to two different variant names.
+        Conflicting variants occurs when there are at least two packages
+        belonging to different variants of one definition in the graph.
 
-        The variant group list contains unique identifiers and is sorted
-        following three criteria:
+        Each group is a tuple composed of tuples to organize node identifiers
+        per variant identifier in the order of creation. The tuples regrouping
+        nodes per variant identifier are sorted by version in descending order.
 
-        1. By number of occurrences of each node identifier in the graph in
-           descending order
-        2. By the package version in descending order
-        3. By the original variant order within the definition.
-
-        :return: Mapping in the form of
+        :return: Set of tuple containing tuples of node identifiers.
             ::
 
-                [
-                    ["foo[V2]==0.1.0", "foo[V1]==0.1.0"],
-                    ["bar[V2]==2.2.0", "bar[V2]==2.1.5", "bar[V1]==2.1.0"]
-                ]
-
+                {
+                    (("foo[V2]==0.1.0",), ("foo[V1]==0.1.0"),),
+                    (("bar[V2]==2.2.0",), ("bar[V1]==2.2.0", "bar[V1]==2.0.0"))
+                }
         """
-        groups = []
+        groups = set()
 
-        for identifiers in self._variants_per_definition.values():
+        for identifiers in self._variant_cache.values():
             nodes = [self.node(_id) for _id in identifiers if self.exists(_id)]
-            variants = set([node.package.variant_identifier for node in nodes])
-            if not len(variants) > 1:
+
+            # Regroup each node per variant identifier.
+            variant_group = collections.OrderedDict()
+            for node in nodes:
+                variant_group.setdefault(node.package.variant_identifier, [])
+                variant_group[node.package.variant_identifier].append(node)
+
+            if not len(variant_group) > 1:
                 continue
 
-            counter = collections.Counter([node.identifier for node in nodes])
+            _group = []
 
-            # TODO: This sorting logic must be improved.
-            nodes = sorted(
-                nodes,
-                key=lambda node: (
-                    counter[node.identifier],
-                    node.package.version,
-                    -nodes.index(node)
-                ),
-                reverse=True
-            )
-            groups.append([node.identifier for node in nodes])
+            for nodes in variant_group.values():
+                nodes.sort(key=lambda n: n.package.version, reverse=True)
+                _group.append(tuple([node.identifier for node in nodes]))
+
+            groups.add(tuple(_group))
 
         return groups
 
@@ -1114,10 +1119,6 @@ class Graph(object):
                     .format(package.identifier, error)
                 )
 
-        else:
-            # Update variant mapping if necessary
-            self._update_variant_mapping(package.identifier)
-
         node = self._node_mapping[package.identifier]
 
         if parent_identifier is not None:
@@ -1138,34 +1139,22 @@ class Graph(object):
         self._logger.debug("Adding package: {}".format(package.identifier))
         self._node_mapping[package.identifier] = Node(package)
 
-        # Record node identifiers per package to identify conflicts.
-        _definition_id = package.definition.qualified_identifier
-        self._identifiers_per_definition.setdefault(_definition_id, set())
-        self._identifiers_per_definition[_definition_id].add(package.identifier)
+        # Update definition cache for quick access to group of nodes
+        # belonging to one definition identifier.
+        definition_id = package.definition.qualified_identifier
+        self._definition_cache.setdefault(definition_id, set())
+        self._definition_cache[definition_id].add(package.identifier)
 
-        # Record variant per unique key identifier if necessary.
-        self._update_variant_mapping(package.identifier)
+        # Update variant cache if necessary for quick access to group of nodes
+        # with variants belonging to one definition identifier.
+        if package.variant_identifier is not None:
+            self._variant_cache.setdefault(definition_id, [])
+            self._variant_cache[definition_id].append(package.identifier)
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_NODE_CREATION_ACTION,
             graph=self, node=package.identifier
         )
-
-    def _update_variant_mapping(self, identifier):
-        """Update variant mapping according to node *identifier*.
-
-        :param identifier: Unique identifier of the targeted node.
-
-        """
-        node = self._node_mapping[identifier]
-        if node.package.variant_identifier is None:
-            return
-
-        # This is not a set because the number of occurrences of each identifier
-        # is used to determine its priority within the variant group.
-        _definition_id = node.definition.qualified_identifier
-        self._variants_per_definition.setdefault(_definition_id, [])
-        self._variants_per_definition[_definition_id].append(identifier)
 
     def _update_namespace_count(self, requirements):
         """Record namespace occurrences from input *requirements*.

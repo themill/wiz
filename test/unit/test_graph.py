@@ -36,9 +36,9 @@ def mocked_compute_distance_mapping(mocker):
 
 
 @pytest.fixture()
-def mocked_generate_variant_combinations(mocker):
-    """Return mocked wiz.graph.generate_variant_combinations function."""
-    return mocker.patch.object(wiz.graph, "generate_variant_combinations")
+def mocked_generate_variant_permutations(mocker):
+    """Return mocked wiz.graph.generate_variant_permutations function."""
+    return mocker.patch.object(wiz.graph, "generate_variant_permutations")
 
 
 @pytest.fixture()
@@ -694,19 +694,19 @@ def test_resolver_compute_packages_fail_from_conflicts(
     "with-initial-combinations"
 ])
 def test_resolver_extract_combinations_empty(
-    mocked_graph, mocked_compute_distance_mapping,
-    mocked_generate_variant_combinations, combinations
+    mocked_graph, mocked_combination, mocked_generate_variant_permutations,
+    combinations
 ):
     """No new combinations to extract from conflicting variants"""
-    mocked_graph.conflicting_variant_groups.return_value = []
+    mocked_graph.conflicting_variant_groups.return_value = set()
 
     resolver = wiz.graph.Resolver("__MAPPING__")
     resolver._iterator = iter(combinations)
 
     assert resolver.extract_combinations(mocked_graph) is False
 
-    mocked_compute_distance_mapping.assert_not_called()
-    mocked_generate_variant_combinations.assert_not_called()
+    mocked_generate_variant_permutations.assert_not_called()
+    mocked_combination.assert_not_called()
 
     assert isinstance(resolver._iterator, collections.Iterable)
     assert list(resolver._iterator) == combinations
@@ -720,24 +720,25 @@ def test_resolver_extract_combinations_empty(
     "with-initial-combinations"
 ])
 def test_resolver_extract_combinations(
-    mocked_graph, mocked_compute_distance_mapping,
-    mocked_generate_variant_combinations, combinations
+    mocker, mocked_graph, mocked_combination,
+    mocked_generate_variant_permutations, combinations
 ):
     """Extract new combinations from conflicting variants"""
-    mocked_graph.conflicting_variant_groups.return_value = [
-        ["B[V3]", "B[V2]", "B[V1]"], ["A[V2]==1", "A[V1]==1", "A[V1]==2"]
-    ]
-    mocked_compute_distance_mapping.return_value = {
-        "root": {"distance": 0},
-        "B[V3]": {"distance": 2},
-        "B[V2]": {"distance": 2},
-        "B[V1]": {"distance": 2},
-        "A[V2]==1": {"distance": 1},
-        "A[V1]==1": {"distance": 1},
-        "A[V1]==2": {"distance": 3},
+    mocked_graph.conflicting_variant_groups.return_value = {
+        (("B[V3]",), ("B[V2]",), ("B[V1]",)),
+        (("A[V2]==2", "A[V2]==1"), ("A[V1]==1",))
     }
-    mocked_generate_variant_combinations.return_value = iter([
-        "__COMB4__", "__COMB5__", "__COMB6__"
+    mocked_combination.side_effect = [
+        "__COMB4__", "__COMB5__", "__COMB6__",
+        "__COMB7__", "__COMB8__", "__COMB9__",
+    ]
+    mocked_generate_variant_permutations.return_value = iter([
+        (("B[V3]",), ("A[V2]==2", "A[V2]==1")),
+        (("B[V3]",), ("A[V1]==1",)),
+        (("B[V2]",), ("A[V2]==2", "A[V2]==1")),
+        (("B[V2]",), ("A[V1]==1",)),
+        (("B[V1]",), ("A[V2]==2", "A[V2]==1")),
+        (("B[V1]",), ("A[V1]==1",)),
     ])
 
     resolver = wiz.graph.Resolver("__MAPPING__")
@@ -747,14 +748,44 @@ def test_resolver_extract_combinations(
 
     assert isinstance(resolver._iterator, collections.Iterable)
     assert list(resolver._iterator) == (
-        ["__COMB4__", "__COMB5__", "__COMB6__"] + combinations
+        [
+            "__COMB4__", "__COMB5__", "__COMB6__",
+            "__COMB7__", "__COMB8__", "__COMB9__"
+        ] + combinations
     )
 
-    mocked_compute_distance_mapping.assert_called_once_with(mocked_graph)
-    mocked_generate_variant_combinations.assert_called_once_with(
-        mocked_graph, [
-            ["A[V2]==1", "A[V1]==1", "A[V1]==2"], ["B[V3]", "B[V2]", "B[V1]"]
-        ]
+    assert mocked_combination.call_args_list == [
+        mocker.call(
+            mocked_graph,
+            nodes_to_remove={"B[V2]", "B[V1]", "A[V1]==1"}
+        ),
+        mocker.call(
+            mocked_graph,
+            nodes_to_remove={"B[V2]", "B[V1]", "A[V2]==2", "A[V2]==1"}
+        ),
+        mocker.call(
+            mocked_graph,
+            nodes_to_remove={"B[V3]", "B[V1]", "A[V1]==1"}
+        ),
+        mocker.call(
+            mocked_graph,
+            nodes_to_remove={"B[V3]", "B[V1]", "A[V2]==2", "A[V2]==1"}
+        ),
+        mocker.call(
+            mocked_graph,
+            nodes_to_remove={"B[V3]", "B[V2]", "A[V1]==1"}
+        ),
+        mocker.call(
+            mocked_graph,
+            nodes_to_remove={"B[V3]", "B[V2]", "A[V2]==2", "A[V2]==1"}
+        ),
+    ]
+
+    mocked_generate_variant_permutations.assert_called_once_with(
+        mocked_graph, {
+            (("B[V3]",), ("B[V2]",), ("B[V1]",)),
+            (("A[V2]==2", "A[V2]==1"), ("A[V1]==1",))
+        }
     )
 
 
@@ -1255,7 +1286,7 @@ def test_graph_empty(mocked_resolver):
     assert graph.resolver == mocked_resolver
     assert graph.nodes() == []
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
     assert graph.data() == {
@@ -1558,7 +1589,7 @@ def test_graph_update_from_requirements_single(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -1600,7 +1631,7 @@ def test_graph_update_from_requirements_single_detached(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -1639,7 +1670,7 @@ def test_graph_update_from_requirements_single_with_namespace(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -1679,7 +1710,7 @@ def test_graph_update_from_requirements_single_with_error(
 
     assert graph.nodes() == []
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {
         "root": ["Error"]
@@ -1736,7 +1767,7 @@ def test_graph_update_from_requirements_many(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -1816,7 +1847,7 @@ def test_graph_update_from_requirements_many_detached(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -1893,7 +1924,7 @@ def test_graph_update_from_requirements_many_with_namespaces(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -1978,7 +2009,7 @@ def test_graph_update_from_requirements_many_with_error(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {"B==1.2.3": ["Error"]}
 
@@ -2054,7 +2085,7 @@ def test_graph_update_from_requirements_several_times(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == {"D==4.1.0", "D==3.2.0"}
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -2139,7 +2170,7 @@ def test_graph_update_from_requirements_several_times_same(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -2225,7 +2256,7 @@ def test_graph_update_from_requirements_several_times_different_parent(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -2339,7 +2370,7 @@ def test_graph_update_from_requirements_unfulfilled_conditions(
 
     # Check whether the graph has conflicts, or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.errors() == {}
 
     # Check full data.
@@ -2477,7 +2508,7 @@ def test_graph_update_from_requirements_fulfilled_conditions(
 
     # Check whether the graph has conflicts, or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.errors() == {}
 
     # Check full data.
@@ -2570,7 +2601,7 @@ def test_graph_update_from_requirements_with_version_conflicts(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == {"D==4.1.0", "D==3.2.0"}
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -2647,7 +2678,9 @@ def test_graph_update_from_requirements_with_variant_conflicts(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == {"A[V3]", "A[V2]", "A[V1]"}
-    assert graph.conflicting_variant_groups() == [["A[V3]", "A[V2]", "A[V1]"]]
+    assert graph.conflicting_variant_groups() == {
+        (("A[V3]",), ("A[V2]",), ("A[V1]",))
+    }
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -2720,7 +2753,7 @@ def test_graph_update_from_package(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -2791,7 +2824,7 @@ def test_graph_update_from_package_detached(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -2859,7 +2892,7 @@ def test_graph_update_from_package_several_times(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == {"D==4.1.0", "D==3.2.0"}
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -2935,7 +2968,7 @@ def test_graph_update_from_package_several_times_same(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -3007,7 +3040,7 @@ def test_graph_update_from_package_several_times_different_requirement(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -3081,7 +3114,7 @@ def test_graph_update_from_package_several_times_different_parent(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -3132,7 +3165,7 @@ def test_graph_remove(mocked_resolver, mocked_package_extract, packages):
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -3183,7 +3216,7 @@ def test_graph_relink_parents(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -3252,7 +3285,7 @@ def test_graph_relink_parents_error(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {
         "root": [
@@ -3328,7 +3361,7 @@ def test_graph_relink_parents_with_requirement(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
@@ -3398,7 +3431,7 @@ def test_graph_relink_parents_unnecessary(
 
     # Check whether the graph has conflicts, conditions or/and errors.
     assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == []
+    assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {}
 
