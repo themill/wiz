@@ -705,3 +705,27 @@ def extract_namespace(requirement):
         namespace = None
 
     return namespace, identifier
+
+
+def check_conflicting_requirements(package1, package2):
+    """Check whether some requirements are conflicting between packages.
+
+    :param package1: Instance of :class:`wiz.package.Package`.
+
+    :param package2: Instance of :class:`wiz.package.Package` to compare
+        *package1* with.
+
+    :return: Boolean value.
+
+    """
+    mapping = {}
+
+    for requirement in package1.requirements + package2.requirements:
+        _requirement = mapping.get(requirement.name)
+        if _requirement is not None:
+            if not is_overlapping(requirement, _requirement):
+                return True
+
+        mapping[requirement.name] = requirement
+
+    return False

@@ -680,3 +680,31 @@ def test_match(package_data, variant_index, requirement, expected):
 def test_extract_namespace(requirement, namespace, identifier):
     """Extract namespace and identifier from requirement."""
     assert wiz.utility.extract_namespace(requirement) == (namespace, identifier)
+
+
+@pytest.mark.parametrize("requirements1, requirements2, expected", [
+    ([], [], False),
+    (["bim > 3", "bah"], ["zim"], False),
+    (["bim > 3", "bah"], ["bim"], False),
+    (["bim > 3", "bah"], ["bim < 3"], True),
+], ids=[
+    "without-requirements",
+    "different-requirements",
+    "compatible-requirements",
+    "incompatible-requirements",
+])
+def test_check_conflicting_requirements(requirements1, requirements2, expected):
+    """Check whether some requirements are conflicting between packages."""
+    data1 = {"identifier": "foo"}
+    if len(requirements1):
+        data1["requirements"] = requirements1
+
+    data2 = {"identifier": "bar"}
+    if len(requirements2):
+        data2["requirements"] = requirements2
+
+    package1 = wiz.package.Package(wiz.definition.Definition(data1))
+    package2 = wiz.package.Package(wiz.definition.Definition(data2))
+
+    result = wiz.utility.check_conflicting_requirements(package1, package2)
+    assert result == expected
