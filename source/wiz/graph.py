@@ -347,11 +347,17 @@ def generate_variant_permutations(graph, variant_groups):
 
     :return: Generator of permutations between variant groups.
 
+    :raise: :exc:`ValueError` if one node identifier defined in variant groups
+        does not exist in the graph.
+
     """
     distance_mapping = compute_distance_mapping(graph)
 
     # Record permutations previously used.
     permutations_used = set()
+
+    # Compute conflicting matrix to check compatibility between packages.
+    conflicting_matrix = compute_conflicting_matrix(graph, variant_groups)
 
     # Organise all definition groups per minimum distance to the root level
     # of the graph to prioritizing nodes with the smallest distance to the root
@@ -373,32 +379,28 @@ def generate_variant_permutations(graph, variant_groups):
             identifiers.index(_identifier)
         )
     ):
-        node = graph.node(identifier)
-
         _filtered_variant_groups = []
 
         for definition_group in groups:
             _definition_group = []
 
+            # Keep only one variant group if current node is found.
             for variant_group in definition_group:
-                # Keep only this variant group if current node is found.
                 if identifier in variant_group:
                     _definition_group = [variant_group]
                     break
 
-                # Otherwise, filter out nodes conflicting with current node.
-                _variant_group = []
+            # Otherwise, filter out nodes conflicting with current node.
+            if not len(_definition_group):
+                for variant_group in definition_group:
+                    _variant_group = []
 
-                for _identifier in variant_group:
-                    _node = graph.node(_identifier)
+                    for _identifier in variant_group:
+                        if not conflicting_matrix[identifier][_identifier]:
+                            _variant_group.append(_identifier)
 
-                    if not wiz.utility.check_conflicting_requirements(
-                        node.package, _node.package
-                    ):
-                        _variant_group.append(_identifier)
-
-                if len(_variant_group):
-                    _definition_group.append(tuple(_variant_group))
+                    if len(_variant_group):
+                        _definition_group.append(tuple(_variant_group))
 
             # Uses filtered group if it contains at least one node. Otherwise
             # uses the original group if all nodes belonging to one definition
@@ -408,18 +410,80 @@ def generate_variant_permutations(graph, variant_groups):
             _filtered_variant_groups.append(definition_group)
 
         for permutation in itertools.product(*_filtered_variant_groups):
-            if permutation in permutations_used:
+            _hash = hash(tuple(sorted(permutation)))
+            if _hash in permutations_used:
                 continue
 
-            permutations_used.add(permutation)
+            permutations_used.add(_hash)
             yield permutation
 
     # Once all optimized permutations are exhausted, test all other
     # permutations.
-    for permutation in itertools.product(*variant_groups):
-        if permutation in permutations_used:
+
+    for permutation in itertools.product(*groups):
+        _hash = hash(tuple(sorted(permutation)))
+        if _hash in permutations_used:
             continue
+
         yield permutation
+
+
+def compute_conflicting_matrix(graph, variant_groups):
+    """Compute conflicting matrix for all nodes in variant groups.
+
+    Example::
+
+        >>> groups = {
+        ...     (("A[V3]",), ("A[V2]",), ("A[V1]",)),
+        ...     (("B[V2]==2", "B[V2]==1"), ("B[V1]==1",))
+        ... }
+        >>> compute_conflicting_matrix(graph, groups)
+        {
+            "A[V3]": {"B[V2]==2": True, "B[V2]==1": False, "B[V1]==1": True},
+            "A[V2]": {"B[V2]==2": True, "B[V2]==1": False, "B[V1]==1": True},
+            "A[V1]": {"B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": True},
+            "B[V2]==2": {"A[V3]": True, "A[V2]": True, "A[V1]": False},
+            "B[V2]==1": {"A[V3]": False, "A[V2]": False, "A[V1]": False},
+            "B[V1]==1": {"A[V3]": True, "A[V2]": True, "A[V1]": True},
+        }
+
+    :param graph: Instance of :class:`Graph`.
+
+    :param variant_groups: Set of tuple containing tuples of node identifiers
+        with conflicting variants. It should be in the form of::
+
+            {
+                (("foo[V2]==0.1.0",), ("foo[V1]==0.1.0"),),
+                (("bar[V2]==2.2.0",), ("bar[V1]==2.2.0", "bar[V1]==2.0.0"))
+            }
+
+    :return: Matrix recording conflicting status between each defintition node.
+
+    """
+    mapping = {}
+
+    if len(variant_groups) > 1:
+        for group1, group2 in itertools.combinations(variant_groups, r=2):
+            # Flatten each definition group as we don't need to distinguish
+            # variant clusters.
+            group1 = itertools.chain(*group1)
+            group2 = itertools.chain(*group2)
+
+            for identifier1, identifier2 in itertools.product(group1, group2):
+                node1 = graph.node(identifier1, raising=True)
+                node2 = graph.node(identifier2, raising=True)
+
+                conflicting = wiz.utility.check_conflicting_requirements(
+                    node1.package, node2.package
+                )
+
+                mapping.setdefault(identifier1, {})
+                mapping[identifier1][identifier2] = conflicting
+
+                mapping.setdefault(identifier2, {})
+                mapping[identifier2][identifier1] = conflicting
+
+    return mapping
 
 
 def combined_requirements(graph, nodes):
@@ -651,16 +715,26 @@ class Graph(object):
         """
         return self._resolver
 
-    def node(self, identifier):
+    def node(self, identifier, raising=False):
         """Return node from *identifier*.
 
         :param identifier: Unique identifier of the targeted node.
 
+        :param raising: Indicate whether an exception should be raised if the
+            node cannot be fetched in the graph. Default is False.
+
         :return: Instance of :class:`Node` or None if targeted node does not
             exist in the graph.
 
+        :raise: :exc:`ValueError` if *raising* is True and *identifier* can not
+            be found in the graph.
+
         """
-        return self._node_mapping.get(identifier)
+        node = self._node_mapping.get(identifier)
+        if raising and node is None:
+            raise ValueError("Impossible to fetch '{}'.".format(identifier))
+
+        return node
 
     def nodes(self, definition_identifier=None):
         """Return all nodes in the graph.
