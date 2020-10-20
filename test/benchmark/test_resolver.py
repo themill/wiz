@@ -1159,9 +1159,9 @@ def test_scenario_14(benchmark):
 def test_scenario_15(benchmark):
     """Compute packages for the following graph.
 
-    If a definition variant contains an error, the graph combinations list will
-    be optimized to only keep it once and drop all other combinations which
-    attempt to use it.
+    If a definition variant contains an error, the combinations containing the
+    error are discarded until a variant of the definition without errors is
+    picked.
 
     Root
      |
@@ -1170,8 +1170,6 @@ def test_scenario_15(benchmark):
      |--(A): A[V2]
      |
      |--(A): A[V3]
-     |   |
-     |   `--(incorrect): ERROR!
      |
      |--(B): B[V1]
      |
@@ -1180,12 +1178,14 @@ def test_scenario_15(benchmark):
      |--(B): B[V3]
      |
      |--(B): B[V4]
+     |   |
+     |   `--(incorrect): ERROR!
      |
      |--(C): C[V1]
      |
      `--(C): C[V2]
 
-    Expected: C[V2], B[V4], A[V2]
+    Expected: C[V2], B[V3], A[V3]
 
     """
     definition_mapping = {
@@ -1195,7 +1195,6 @@ def test_scenario_15(benchmark):
                 "variants": [
                     {
                         "identifier": "V3",
-                        "requirements": ["incorrect"]
                     },
                     {
                         "identifier": "V2",
@@ -1212,6 +1211,7 @@ def test_scenario_15(benchmark):
                 "variants": [
                     {
                         "identifier": "V4",
+                        "requirements": ["incorrect"]
                     },
                     {
                         "identifier": "V3",
@@ -1253,9 +1253,10 @@ def test_scenario_15(benchmark):
 def test_scenario_16(benchmark):
     """Compute packages for the following graph.
 
-    For the same example as scenario 15, if the package 'A[V3]' has a
-    conflicting requirement instead of an error, all other combinations which
-    include this package would be preserved.
+    For the same example as scenario 15, if the package 'B[V4]' has a
+    conflicting requirement instead of an error, the combinations containing the
+    conflict are discarded until a variant of the definition without conflicts
+    is picked.
 
     Root
      |
@@ -1264,8 +1265,6 @@ def test_scenario_16(benchmark):
      |--(A): A[V2]
      |
      |--(A): A[V3]
-     |   |
-     |   `--(D>=1): D==1.0.0
      |
      |--(B): B[V1]
      |
@@ -1274,6 +1273,8 @@ def test_scenario_16(benchmark):
      |--(B): B[V3]
      |
      |--(B): B[V4]
+     |   |
+     |   `--(D>=1): D==1.0.0
      |
      |--(C): C[V1]
      |
@@ -1291,7 +1292,6 @@ def test_scenario_16(benchmark):
                 "variants": [
                     {
                         "identifier": "V3",
-                        "requirements": ["D>=1"]
                     },
                     {
                         "identifier": "V2",
@@ -1308,6 +1308,7 @@ def test_scenario_16(benchmark):
                 "variants": [
                     {
                         "identifier": "V4",
+                        "requirements": ["D>=1"]
                     },
                     {
                         "identifier": "V3",
@@ -2823,5 +2824,125 @@ def test_scenario_38(benchmark):
             ])
         except wiz.exception.GraphResolutionError:
             pass
+
+    benchmark(_resolve)
+
+
+def test_scenario_39(benchmark):
+    """Compute packages for the following graph.
+
+    Like scenario 16, combinations containing conflicts are discarded until
+    a combination without conflicts can be resolved. But this time, variant
+    permutation can be optimized with requirements from each variants.
+
+    Root
+     |
+     |--(A): A[V1]
+     |   |
+     |   `--(B>=1, <2): B==1
+     |
+     |--(A): A[V2]
+     |   |
+     |   `--(B>=2, <3): B==2
+     |
+     |--(A): A[V3]
+     |   |
+     |   `--(B>=3, <4): B==3
+     |
+     |--(A): A[V4]
+     |   |
+     |   `--(B>=4, <5): B==4
+     |
+     |--(A): A[V5]
+     |   |
+     |   `--(B>=5, <6): B==5
+     |
+     |--(A): A[V6]
+     |   |
+     |   `--(B>=6, <7): B==6
+     |
+     |--(A): A[V7]
+     |   |
+     |   `--(B>=7, <8): B==7
+     |
+     `--(B==7): B==7
+
+    Expected: B==7, A[V7]
+
+    """
+    definition_mapping = {
+        "A": {
+            "-": wiz.definition.Definition({
+                "identifier": "A",
+                "variants": [
+                    {
+                        "identifier": "V7",
+                        "requirements": ["B>=7, <8"]
+                    },
+                    {
+                        "identifier": "V6",
+                        "requirements": ["B>=6, <7"]
+                    },
+                    {
+                        "identifier": "V5",
+                        "requirements": ["B>=5, <6"]
+                    },
+                    {
+                        "identifier": "V4",
+                        "requirements": ["B>=4, <5"]
+                    },
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B>=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B>=2, <3"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["B>=1, <2"]
+                    }
+                ]
+            })
+        },
+        "B": {
+            "1": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1",
+            }),
+            "2": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2",
+            }),
+            "3": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3",
+            }),
+            "4": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "4",
+            }),
+            "5": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "5",
+            }),
+            "6": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "6",
+            }),
+            "7": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "7",
+            }),
+        },
+    }
+
+    def _resolve():
+        """Resolve context."""
+        resolver = wiz.graph.Resolver(definition_mapping)
+        resolver.compute_packages([
+            Requirement("A"), Requirement("B==7")
+        ])
 
     benchmark(_resolve)
