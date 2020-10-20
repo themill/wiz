@@ -137,7 +137,7 @@ class Resolver(object):
                 # Extract conflicting identifiers and requirements if possible.
                 if isinstance(error, wiz.exception.GraphConflictsError):
                     self._conflicting_combinations.extend([
-                        (combination.graph, mapping["identifiers"])
+                        (combination, mapping["identifiers"])
                         for mapping in error.conflicts
                     ])
 
@@ -242,17 +242,22 @@ class Resolver(object):
         """
         while True:
             try:
-                graph, identifiers = self._conflicting_combinations.popleft()
+                queue = self._conflicting_combinations
+                combination, identifiers = queue.popleft()
+
             except IndexError:
                 return False
 
             # Iterator can be initialized only if all identifiers can be
             # replaced with lower version.
-            if not graph.downgrade_versions(identifiers):
+            if not combination.graph.downgrade_versions(identifiers):
                 continue
 
+            # Prune unreachable nodes in graph.
+            combination.prune_graph()
+
             # Reset the iterator.
-            self.initiate_combinations(graph)
+            self.initiate_combinations(combination.graph)
 
             return True
 
@@ -1798,6 +1803,15 @@ class Combination(object):
         if nodes_to_remove is not None:
             self._remove_nodes(nodes_to_remove)
             self.prune_graph()
+
+        self._nodes_removed = nodes_to_remove or []
+
+    def __repr__(self):
+        """Representing a StoredNode."""
+        return (
+            "<Combination nodes_removed='{0}'>"
+            .format(", ".join(self._nodes_removed))
+        )
 
     @property
     def graph(self):

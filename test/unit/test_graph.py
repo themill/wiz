@@ -701,8 +701,8 @@ def test_resolver_compute_packages_fail_from_conflicts(
     queue = collections.deque()
     for index, combination in enumerate(combinations):
         queue.extend([
-            (combination.graph, {"foo{}".format(index)}),
-            (combination.graph, {"bim{}".format(index)}),
+            (combination, {"foo{}".format(index)}),
+            (combination, {"bim{}".format(index)}),
         ])
 
     assert resolver._conflicting_combinations == queue
@@ -879,25 +879,28 @@ def test_resolver_discover_combinations(
     """Discover new combinations from unsolvable conflicts recorded."""
     successful_graph_index = combination_number - 1
 
-    graphs = [
-        mocker.Mock(**{
-            "downgrade_versions.return_value": (index == successful_graph_index)
-        })
+    combinations = [
+        mocker.Mock(
+            graph=mocker.Mock(**{"downgrade_versions.return_value": (
+                index == successful_graph_index
+            )})
+        )
         for index in range(combination_number)
     ]
 
     resolver = wiz.graph.Resolver("__MAPPING__")
     resolver._conflicting_combinations = collections.deque([
-        (graphs[index], {"N{}".format(index)})
+        (combinations[index], {"N{}".format(index)})
         for index in range(combination_number)
     ])
     assert resolver.discover_combinations() is True
 
-    for index, graph in enumerate(graphs):
-        graph.downgrade_versions.assert_called_once_with({"N{}".format(index)})
+    for index, combination in enumerate(combinations):
+        expected = {"N{}".format(index)}
+        combination.graph.downgrade_versions.assert_called_once_with(expected)
 
     mocked_extract_combinations.assert_called_once_with(
-        graphs[successful_graph_index]
+        combinations[successful_graph_index].graph
     )
 
 
@@ -916,21 +919,24 @@ def test_resolver_discover_combinations_fail(
     mocker, mocked_extract_combinations, combination_number
 ):
     """Fail to discover new combinations from unsolvable conflicts recorded."""
-    graphs = [
-        mocker.Mock(**{"downgrade_versions.return_value": False})
+    combinations = [
+        mocker.Mock(
+            graph=mocker.Mock(**{"downgrade_versions.return_value": False})
+        )
         for _ in range(combination_number)
     ]
 
     resolver = wiz.graph.Resolver("__MAPPING__")
     resolver._conflicting_combinations = collections.deque([
-        (graphs[index], {"N{}".format(index)})
+        (combinations[index], {"N{}".format(index)})
         for index in range(combination_number)
     ])
 
     assert resolver.discover_combinations() is False
 
-    for index, graph in enumerate(graphs):
-        graph.downgrade_versions.assert_called_once_with({"N{}".format(index)})
+    for index, combination in enumerate(combinations):
+        expected = {"N{}".format(index)}
+        combination.graph.downgrade_versions.assert_called_once_with(expected)
 
     mocked_extract_combinations.assert_not_called()
 
