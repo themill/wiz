@@ -5,6 +5,7 @@ import base64
 import hashlib
 
 import pytest
+import six
 
 import wiz.definition
 import wiz.package
@@ -44,7 +45,7 @@ def mocked_match(mocker):
 def test_encode_and_decode(element):
     """Encode *element* and immediately decode it."""
     encoded = wiz.utility.encode(element)
-    assert isinstance(encoded, bytes)
+    assert isinstance(encoded, six.string_types)
     assert element == wiz.utility.decode(encoded)
 
 

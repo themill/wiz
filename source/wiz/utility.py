@@ -426,10 +426,13 @@ def encode(element):
 
     :param element: Content to encode.
 
+    :return: Encoded string.
+
     :raise: :exc:`TypeError` if *element* is not JSON serializable.
 
     """
-    return base64.b64encode(zlib.compress(ujson.dumps(element).encode("utf-8")))
+    serialized = ujson.dumps(element).encode("utf-8")
+    return base64.b64encode(zlib.compress(serialized)).decode("utf-8")
 
 
 def decode(element):
