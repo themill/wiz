@@ -125,13 +125,11 @@ def fetch_package_request_from_command(command_request, definition_mapping):
 
     Example::
 
-        >>> definition_mapping = {
+        >>> mapping = {
         ...     "command": {"hiero": "nuke"},
         ...     "package": {"nuke": ...}
         ... }
-        >>> fetch_package_request_from_command(
-        ...     "hiero==10.5.*", definition_mapping
-        ... )
+        >>> fetch_package_request_from_command("hiero==10.5.*", mapping)
         nuke==10.5.*
 
     :param command_request: String indicating which command should be fetched.
