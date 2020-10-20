@@ -5,6 +5,10 @@ paths=[]
 initial={}
 passthrough=[]
 
+[resolver]
+maximum_combinations=5
+maximum_attempts=15
+
 [command]
 max_content_width=90
 verbosity="info"

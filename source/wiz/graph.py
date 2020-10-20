@@ -7,6 +7,7 @@ from heapq import heapify, heappush, heappop
 
 import six.moves
 
+import wiz.config
 import wiz.logging
 import wiz.package
 import wiz.exception
@@ -43,17 +44,36 @@ class Resolver(object):
 
     """
 
-    def __init__(self, definition_mapping):
+    def __init__(
+        self, definition_mapping, maximum_combinations=None,
+        maximum_attempts=None,
+    ):
         """Initialize Resolver.
 
         :param definition_mapping: Mapping regrouping all available definitions
             associated with their unique identifier.
 
+        :param maximum_combinations: Maximum number of combinations which can be
+            generated from conflicting variants. Default is None, which means
+            that the default value will be picked from the :ref:`configuration
+            <configuration`.
+
+        :param maximum_attempts: Maximum number of resolution attempts before
+            raising an error. Default is None, which means  that the default
+            value will be picked from the :ref:`configuration <configuration`.
+
         """
         self._logger = wiz.logging.Logger(__name__ + ".Resolver")
 
-        # All available definitions.
         self._definition_mapping = definition_mapping
+
+        config = wiz.config.fetch().get("resolver", {})
+
+        default_value = config.get("maximum_combinations", 5)
+        self._maximum_combinations = maximum_combinations or default_value
+
+        default_value = config.get("maximum_attempts", 10)
+        self._maximum_attempts = maximum_attempts or default_value
 
         # Iterator containing Combination instances to resolve.
         self._iterator = iter([])
@@ -115,7 +135,7 @@ class Resolver(object):
 
         while True:
             combination = self.fetch_next_combination()
-            if combination is None:
+            if combination is None or nb_failures > self._maximum_attempts:
                 latest_error.message = (
                     "Failed to resolve graph at combination #{}:\n\n"
                     "{}".format(nb_failures, latest_error.message)
@@ -195,7 +215,12 @@ class Resolver(object):
 
         def _generate_combinations():
             """Yield combinations from variant groups."""
-            for permutation in generate_variant_permutations(graph, groups):
+            for index, permutation in enumerate(
+                generate_variant_permutations(graph, groups)
+            ):
+                if index + 1 > self._maximum_combinations:
+                    return
+
                 yield Combination(
                     graph, nodes_to_remove=identifiers.difference(
                         {_id for _group in permutation for _id in _group}
@@ -2029,6 +2054,7 @@ class Combination(object):
 
         except wiz.exception.RequestNotFound:
             conflicts = extract_conflicting_requirements(self._graph, nodes)
+            print(nodes, conflicts)
             parents = set(_id for m in conflicts for _id in m["identifiers"])
 
             # Push conflict at the end of the queue if it has conflicting
