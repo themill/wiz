@@ -2054,7 +2054,6 @@ class Combination(object):
 
         except wiz.exception.RequestNotFound:
             conflicts = extract_conflicting_requirements(self._graph, nodes)
-            print(nodes, conflicts)
             parents = set(_id for m in conflicts for _id in m["identifiers"])
 
             # Push conflict at the end of the queue if it has conflicting
