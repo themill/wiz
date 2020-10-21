@@ -81,12 +81,6 @@ Release Notes
 
     .. change:: changed
 
-        Removed :func:`wiz.graph.extract_ordered_packages` and added logic to
-        :meth:`wiz.graph.Combination.extract_packages` to improve code
-        readability.
-
-    .. change:: changed
-
         Removed :func:`wiz.graph.relink_parents` and added logic to
         :meth:`wiz.graph.Graph.relink_parents`. This change was necessary to
         record potential relinking error within the graph instead of raising
@@ -164,8 +158,8 @@ Release Notes
           :exc:`wiz.exception.RequirementError`
         * :exc:`wiz.exception.IncorrectSystem` →
           :exc:`wiz.exception.CurrentSystemError`
-        * :exc:`wiz.exception.IncorrectSystem` →
-          :exc:`wiz.exception.CurrentSystemError`
+        * :exc:`wiz.exception.IncorrectDefinition` →
+          :exc:`wiz.exception.DefinitionError`
 
     .. change:: new
 
