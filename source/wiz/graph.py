@@ -2133,7 +2133,7 @@ class Combination(object):
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_ERROR_IDENTIFICATION_ACTION,
-            graph=self._graph, errors=error_mapping.keys()
+            graph=self._graph, errors=list(error_mapping.keys())
         )
 
         raise wiz.exception.GraphInvalidNodesError(error_mapping)
