@@ -282,6 +282,9 @@ class Package(object):
         :param variant_index: Index number of the variant which will be used to
             create package instance if applicable. Default is None.
 
+        :raise: :exc:`wiz.exception.PackageError` if the variant index is
+            missing or incorrect.
+
         """
         self._definition = definition
         self._variant_index = variant_index

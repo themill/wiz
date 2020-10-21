@@ -56,11 +56,11 @@ class Resolver(object):
         :param maximum_combinations: Maximum number of combinations which can be
             generated from conflicting variants. Default is None, which means
             that the default value will be picked from the :ref:`configuration
-            <configuration`.
+            <configuration>`.
 
         :param maximum_attempts: Maximum number of resolution attempts before
             raising an error. Default is None, which means  that the default
-            value will be picked from the :ref:`configuration <configuration`.
+            value will be picked from the :ref:`configuration <configuration>`.
 
         """
         self._logger = wiz.logging.Logger(__name__ + ".Resolver")

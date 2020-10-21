@@ -616,7 +616,7 @@ def sanitize_requirement(requirement, package):
 
     :param requirement: Instance of :class:`packaging.requirements.Requirement`.
 
-    :param package: Instance of class:`wiz.package.Package`.
+    :param package: Instance of :class:`wiz.package.Package`.
 
     :return: new instance of :class:`packaging.requirements.Requirement`.
 
@@ -643,7 +643,7 @@ def match(requirement, package):
 
     :param requirement: Instance of :class:`packaging.requirements.Requirement`.
 
-    :param package: Instance of class:`wiz.package.Package`.
+    :param package: Instance of :class:`wiz.package.Package`.
 
     :return: Boolean value.
 
