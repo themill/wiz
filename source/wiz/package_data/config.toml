@@ -6,7 +6,7 @@ initial={}
 passthrough=[]
 
 [resolver]
-maximum_combinations=5
+maximum_combinations=10
 maximum_attempts=15
 
 [command]
