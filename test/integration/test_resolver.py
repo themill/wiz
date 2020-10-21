@@ -2937,7 +2937,7 @@ def test_scenario_39():
      |
      `--(B==7): B==7
 
-    Expected: B==7, A[V7]
+    Expected: B==1, A[V1]
 
     """
     definition_mapping = {
@@ -3010,9 +3010,9 @@ def test_scenario_39():
 
     resolver = wiz.graph.Resolver(definition_mapping)
     packages = resolver.compute_packages([
-        Requirement("A"), Requirement("B==7")
+        Requirement("A"), Requirement("B==1")
     ])
 
     assert len(packages) == 2
-    assert packages[0].identifier == "B==7"
-    assert packages[1].identifier == "A[V7]"
+    assert packages[0].identifier == "B==1"
+    assert packages[1].identifier == "A[V1]"
