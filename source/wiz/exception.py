@@ -8,16 +8,13 @@ import wiz.utility
 class WizError(Exception):
     """Base class for Wiz specific errors."""
 
-    default_message = "Unspecified Wiz error occurred."
-
-    def __init__(self, message=None):
+    def __init__(self, message):
         """Initialize with *message*.
 
-        :param message: Message to display instead of :attr:`default_message`.
-            Default is None.
+        :param message: Message describing the issue.
 
         """
-        self.message = message or self.default_message
+        self.message = message
         self.traceback = traceback.format_exc()
 
     def __str__(self):
