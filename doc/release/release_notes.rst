@@ -178,7 +178,7 @@ Release Notes
     .. change:: fixed
 
         Updated `monkey patching <https://en.wikipedia.org/wiki/Monkey_patch>`_
-        of :class:`packaging.requirements.Requirement` to allow multiple
+        of :class:`packaging.requirements.Requirement` to allow for multiple
         :ref:`namespaces <definition/namespace>` separated by two colons
         (e.g. ``name1::name2::foo``).
 
