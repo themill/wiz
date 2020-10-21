@@ -748,25 +748,25 @@ def test_resolver_compute_packages_reach_maximum(
         resolver.compute_packages("__REQS__")
 
     assert (
-        "Failed to resolve graph at combination #6:\n\n"
+        "Failed to resolve graph at combination #5:\n\n"
         "Error!"
     ) in str(error.value)
 
     assert resolver._conflicting_combinations == collections.deque()
 
-    for combination in combinations[:6]:
+    for combination in combinations[:5]:
         combination.resolve_conflicts.assert_called_once_with()
         combination.validate.assert_called_once_with()
         combination.extract_packages.assert_called_once_with()
 
-    for combination in combinations[6:]:
+    for combination in combinations[5:]:
         combination.resolve_conflicts.assert_not_called()
         combination.validate.assert_not_called()
         combination.extract_packages.assert_not_called()
 
     mocked_graph.update_from_requirements.assert_called_once_with("__REQS__")
 
-    assert mocked_fetch_next_combination.call_count == 7
+    assert mocked_fetch_next_combination.call_count == 6
     mocked_extract_combinations.assert_called_once_with(mocked_graph)
 
 

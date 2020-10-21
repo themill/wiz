@@ -135,7 +135,7 @@ class Resolver(object):
 
         while True:
             combination = self.fetch_next_combination()
-            if combination is None or nb_failures > self._maximum_attempts:
+            if combination is None or nb_failures >= self._maximum_attempts:
                 latest_error.message = (
                     "Failed to resolve graph at combination #{}:\n\n"
                     "{}".format(nb_failures, latest_error.message)
