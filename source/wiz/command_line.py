@@ -638,6 +638,28 @@ def wiz_view(click_context, **kwargs):
     is_flag=True,
     default=False
 )
+@click.option(
+    "-mc", "--max-combinations",
+    help=(
+        "Maximum number of combinations which can be generated from "
+        "conflicting variants during the context resolution process."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_combinations"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
+@click.option(
+    "-ma", "--max-attempts",
+    help=(
+        "Maximum number of attempts to resolve the context before raising an "
+        "error."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_attempts"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
 @click.argument(
     "requests",
     nargs=-1,
@@ -660,6 +682,8 @@ def wiz_use(click_context, **kwargs):
             list(kwargs["requests"]), definition_mapping,
             ignore_implicit=ignore_implicit,
             environ_mapping=environ_mapping,
+            maximum_combinations=kwargs["max_combinations"],
+            maximum_attempts=kwargs["max_attempts"],
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -667,6 +691,10 @@ def wiz_use(click_context, **kwargs):
         if kwargs["view"]:
             display_registries(wiz_context["registries"])
             display_resolved_context(wiz_context)
+
+        # Do not execute any command if history is being recorded.
+        elif not kwargs["view"] and click_context.obj["recording_path"]:
+            pass
 
         # If no commands are indicated, spawn a shell.
         elif len(extra_arguments) == 0:
@@ -720,6 +748,28 @@ def wiz_use(click_context, **kwargs):
     is_flag=True,
     default=False
 )
+@click.option(
+    "-mc", "--max-combinations",
+    help=(
+        "Maximum number of combinations which can be generated from "
+        "conflicting variants during the context resolution process."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_combinations"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
+@click.option(
+    "-ma", "--max-attempts",
+    help=(
+        "Maximum number of attempts to resolve the context before raising an "
+        "error."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_attempts"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
 @click.argument(
     "request",
     nargs=1,
@@ -747,6 +797,8 @@ def wiz_run(click_context, **kwargs):
             [request], definition_mapping,
             ignore_implicit=ignore_implicit,
             environ_mapping=environ_mapping,
+            maximum_combinations=kwargs["max_combinations"],
+            maximum_attempts=kwargs["max_attempts"],
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -754,6 +806,10 @@ def wiz_run(click_context, **kwargs):
         if kwargs["view"]:
             display_registries(wiz_context["registries"])
             display_resolved_context(wiz_context)
+
+        # Do not execute any command if history is being recorded.
+        elif not kwargs["view"] and click_context.obj["recording_path"]:
+            pass
 
         else:
             command_elements = wiz.resolve_command(

@@ -162,7 +162,7 @@ def fetch_package_request_from_command(command_request, definition_mapping):
 
 def resolve_context(
     requests, definition_mapping=None, ignore_implicit=False,
-    environ_mapping=None
+    environ_mapping=None, maximum_combinations=None, maximum_attempts=None
 ):
     """Return context mapping from *requests*.
 
@@ -207,6 +207,15 @@ def resolve_context(
     :param environ_mapping: Mapping of environment variables which would be
         augmented by the resolved environment. Default is None.
 
+    :param maximum_combinations: Maximum number of combinations which can be
+        generated from conflicting variants. Default is None, which means
+        that the default value will be picked from the :ref:`configuration
+        <configuration`.
+
+    :param maximum_attempts: Maximum number of resolution attempts before
+        raising an error. Default is None, which means  that the default
+        value will be picked from the :ref:`configuration <configuration`.
+
     :return: Context mapping.
 
     :raise: :exc:`wiz.exception.GraphResolutionError` if the resolution graph
@@ -231,7 +240,9 @@ def resolve_context(
 
     registries = definition_mapping["registries"]
     resolver = wiz.graph.Resolver(
-        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
+        maximum_combinations=maximum_combinations,
+        maximum_attempts=maximum_attempts,
     )
     packages = resolver.compute_packages(requirements)
 

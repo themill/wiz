@@ -1497,10 +1497,20 @@ def test_use_recorded(
         mocked_filesystem_export.assert_not_called()
 
 
+@pytest.mark.parametrize("options, max_combinations, max_attempts", [
+    ([], 10, 15),
+    (["-mc", "1"], 1, 15),
+    (["-ma", "1"], 10, 1),
+], ids=[
+    "simple",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
+])
 def test_use_spawn_shell(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
-    mocked_spawn_shell, mocked_history_record_action, wiz_context, logger
+    mocked_spawn_shell, mocked_history_record_action, wiz_context, logger,
+    options, max_combinations, max_attempts
 ):
     """Use a resolved context."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1509,10 +1519,10 @@ def test_use_spawn_shell(
     mocked_resolve_context.return_value = wiz_context
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["use", "foo"])
+    result = runner.invoke(wiz.command_line.main, ["use", "foo"] + options)
+    assert result.output == ""
     assert result.exit_code == 0
     assert not result.exception
-    assert result.output == ""
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
@@ -1520,7 +1530,11 @@ def test_use_spawn_shell(
     )
 
     mocked_resolve_context.assert_called_once_with(
-        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        ["foo"], "__MAPPING__",
+        ignore_implicit=False,
+        environ_mapping={},
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts,
     )
 
     mocked_spawn_shell.assert_called_once_with({
@@ -1537,10 +1551,20 @@ def test_use_spawn_shell(
     logger.error.assert_not_called()
 
 
+@pytest.mark.parametrize("options, max_combinations, max_attempts", [
+    ([], 10, 15),
+    (["-mc", "1"], 1, 15),
+    (["-ma", "1"], 10, 1),
+], ids=[
+    "simple",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
+])
 def test_use_spawn_shell_view(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
-    mocked_spawn_shell, mocked_history_record_action, wiz_context, logger
+    mocked_spawn_shell, mocked_history_record_action, wiz_context, logger,
+    options, max_combinations, max_attempts
 ):
     """View a resolved context."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1549,7 +1573,9 @@ def test_use_spawn_shell_view(
     mocked_resolve_context.return_value = wiz_context
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["use", "foo", "--view"])
+    result = runner.invoke(
+        wiz.command_line.main, ["use", "foo", "--view"] + options
+    )
     assert not result.exception
     assert result.exit_code == 0
     assert result.output == (
@@ -1585,7 +1611,11 @@ def test_use_spawn_shell_view(
     )
 
     mocked_resolve_context.assert_called_once_with(
-        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        ["foo"], "__MAPPING__",
+        ignore_implicit=False,
+        environ_mapping={},
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts,
     )
 
     mocked_spawn_shell.assert_not_called()
@@ -1595,10 +1625,20 @@ def test_use_spawn_shell_view(
     logger.error.assert_not_called()
 
 
+@pytest.mark.parametrize("options, max_combinations, max_attempts", [
+    ([], 10, 15),
+    (["-mc", "1"], 1, 15),
+    (["-ma", "1"], 10, 1),
+], ids=[
+    "simple",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
+])
 def test_use_spawn_shell_view_empty(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
-    mocked_spawn_shell, mocked_history_record_action, logger
+    mocked_spawn_shell, mocked_history_record_action, logger,
+    options, max_combinations, max_attempts
 ):
     """View an empty resolved context."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1612,7 +1652,9 @@ def test_use_spawn_shell_view_empty(
     }
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["use", "foo", "--view"])
+    result = runner.invoke(
+        wiz.command_line.main, ["use", "foo", "--view"] + options
+    )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == (
@@ -1645,7 +1687,11 @@ def test_use_spawn_shell_view_empty(
     )
 
     mocked_resolve_context.assert_called_once_with(
-        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        ["foo"], "__MAPPING__",
+        ignore_implicit=False,
+        environ_mapping={},
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts,
     )
 
     mocked_spawn_shell.assert_not_called()
@@ -1655,10 +1701,20 @@ def test_use_spawn_shell_view_empty(
     logger.error.assert_not_called()
 
 
+@pytest.mark.parametrize("options, max_combinations, max_attempts", [
+    ([], 10, 15),
+    (["-mc", "1"], 1, 15),
+    (["-ma", "1"], 10, 1),
+], ids=[
+    "simple",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
+])
 def test_use_execute_command(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
-    mocked_spawn_shell, mocked_history_record_action, wiz_context, logger
+    mocked_spawn_shell, mocked_history_record_action, wiz_context, logger,
+    options, max_combinations, max_attempts
 ):
     """Execute a command within a resolved context."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1670,7 +1726,9 @@ def test_use_execute_command(
     runner = CliRunner()
     result = runner.invoke(
         wiz.command_line.main,
-        ["use", "foo", "--", "fooExeDebug", "-t", "/path/to/script.foo"]
+        ["use", "foo"] + options + [
+            "--", "fooExeDebug", "-t", "/path/to/script.foo"
+        ]
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -1682,7 +1740,11 @@ def test_use_execute_command(
     )
 
     mocked_resolve_context.assert_called_once_with(
-        ["foo"], "__MAPPING__", ignore_implicit=False, environ_mapping={},
+        ["foo"], "__MAPPING__",
+        ignore_implicit=False,
+        environ_mapping={},
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts,
     )
 
     mocked_resolve_command.assert_called_once_with(
@@ -1706,10 +1768,20 @@ def test_use_execute_command(
     logger.error.assert_not_called()
 
 
+@pytest.mark.parametrize("options, max_combinations, max_attempts", [
+    ([], 10, 15),
+    (["-mc", "1"], 1, 15),
+    (["-ma", "1"], 10, 1),
+], ids=[
+    "simple",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
+])
 def test_use_with_resolution_error(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
-    mocked_spawn_shell, mocked_history_record_action, logger
+    mocked_spawn_shell, mocked_history_record_action, logger,
+    options, max_combinations, max_attempts
 ):
     """Fail to resolve a context."""
     exception = wiz.exception.WizError("Oh Shit!")
@@ -1719,7 +1791,9 @@ def test_use_with_resolution_error(
     mocked_resolve_context.side_effect = exception
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["use", "foo", "bim==0.1.*"])
+    result = runner.invoke(
+        wiz.command_line.main, ["use", "foo", "bim==0.1.*"] + options
+    )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
@@ -1733,6 +1807,8 @@ def test_use_with_resolution_error(
         ["foo", "bim==0.1.*"], "__MAPPING__",
         ignore_implicit=False,
         environ_mapping={},
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts,
     )
 
     mocked_spawn_shell.assert_not_called()
@@ -1767,12 +1843,21 @@ def test_use_error(options):
     assert result.exception
 
 
+@pytest.mark.parametrize("options, max_combinations, max_attempts", [
+    ([], 10, 15),
+    (["-mc", "1"], 1, 15),
+    (["-ma", "1"], 10, 1),
+], ids=[
+    "simple",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
+])
 def test_use_initial_environment(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
-    wiz_context
+    wiz_context, options, max_combinations, max_attempts
 ):
-    """Execurting a command to extend an initial environment."""
+    """Executing a command to extend an initial environment."""
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
     mocked_fetch_definition_mapping.return_value = "__MAPPING__"
@@ -1781,10 +1866,11 @@ def test_use_initial_environment(
 
     runner = CliRunner()
     result = runner.invoke(
-        wiz.command_line.main, [
+        wiz.command_line.main,
+        [
             "--init", "PATH=/path", "--init", "PYTHONPATH=/other-path",
-            "use", "foo", "--", "fooExeDebug", "-t", "/path/to/script.foo"
-        ]
+            "use", "foo"
+        ] + options + ["--", "fooExeDebug", "-t", "/path/to/script.foo"]
     )
     assert result.exit_code == 0
     assert not result.exception
@@ -1793,6 +1879,8 @@ def test_use_initial_environment(
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False,
         environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"},
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts,
     )
 
     mocked_spawn_execute.assert_called_once_with(
@@ -1844,11 +1932,20 @@ def test_run_recorded(
         mocked_filesystem_export.assert_not_called()
 
 
+@pytest.mark.parametrize("options, max_combinations, max_attempts", [
+    ([], 10, 15),
+    (["-mc", "1"], 1, 15),
+    (["-ma", "1"], 10, 1),
+], ids=[
+    "simple",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
+])
 def test_run(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_fetch_package_request_from_command, mocked_resolve_context,
     mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
-    wiz_context, logger
+    wiz_context, logger, options, max_combinations, max_attempts
 ):
     """Execute a command within a resolved context."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1859,7 +1956,7 @@ def test_run(
     mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["run", "fooExe"])
+    result = runner.invoke(wiz.command_line.main, ["run", "fooExe"] + options)
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
@@ -1876,7 +1973,9 @@ def test_run(
     mocked_resolve_context.assert_called_once_with(
         ["__PACKAGE__"], "__MAPPING__",
         ignore_implicit=False,
-        environ_mapping={}
+        environ_mapping={},
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts,
     )
 
     mocked_resolve_command.assert_called_once_with(
@@ -1899,11 +1998,20 @@ def test_run(
     logger.error.assert_not_called()
 
 
+@pytest.mark.parametrize("options, max_combinations, max_attempts", [
+    ([], 10, 15),
+    (["-mc", "1"], 1, 15),
+    (["-ma", "1"], 10, 1),
+], ids=[
+    "simple",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
+])
 def test_run_view(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_fetch_package_request_from_command, mocked_resolve_context,
     mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
-    wiz_context, logger
+    wiz_context, logger, options, max_combinations, max_attempts
 ):
     """View a resolved context from a command execution."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1914,7 +2022,9 @@ def test_run_view(
     mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["run", "fooExe", "--view"])
+    result = runner.invoke(
+        wiz.command_line.main, ["run", "fooExe", "--view"] + options
+    )
     assert not result.exception
     assert result.exit_code == 0
     assert result.output == (
@@ -1956,7 +2066,9 @@ def test_run_view(
     mocked_resolve_context.assert_called_once_with(
         ["__PACKAGE__"], "__MAPPING__",
         ignore_implicit=False,
-        environ_mapping={}
+        environ_mapping={},
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts,
     )
 
     mocked_resolve_command.assert_not_called()
@@ -1965,11 +2077,20 @@ def test_run_view(
     logger.error.assert_not_called()
 
 
+@pytest.mark.parametrize("options, max_combinations, max_attempts", [
+    ([], 10, 15),
+    (["-mc", "1"], 1, 15),
+    (["-ma", "1"], 10, 1),
+], ids=[
+    "simple",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
+])
 def test_run_view_empty(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_fetch_package_request_from_command, mocked_resolve_context,
     mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
-    logger
+    logger, options, max_combinations, max_attempts
 ):
     """View an empty resolved context from a command execution."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1985,7 +2106,9 @@ def test_run_view_empty(
     mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["run", "fooExe", "--view"])
+    result = runner.invoke(
+        wiz.command_line.main, ["run", "fooExe", "--view"] + options
+    )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == (
@@ -2024,7 +2147,9 @@ def test_run_view_empty(
     mocked_resolve_context.assert_called_once_with(
         ["__PACKAGE__"], "__MAPPING__",
         ignore_implicit=False,
-        environ_mapping={}
+        environ_mapping={},
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts,
     )
 
     mocked_resolve_command.assert_not_called()
@@ -2033,11 +2158,20 @@ def test_run_view_empty(
     logger.error.assert_not_called()
 
 
+@pytest.mark.parametrize("options, max_combinations, max_attempts", [
+    ([], 10, 15),
+    (["-mc", "1"], 1, 15),
+    (["-ma", "1"], 10, 1),
+], ids=[
+    "simple",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
+])
 def test_run_with_resolution_error(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_fetch_package_request_from_command, mocked_resolve_context,
     mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
-    logger
+    logger, options, max_combinations, max_attempts
 ):
     """Fail to resolve a context."""
     exception = wiz.exception.WizError("Oh Shit!")
@@ -2048,7 +2182,7 @@ def test_run_with_resolution_error(
     mocked_resolve_context.side_effect = exception
 
     runner = CliRunner()
-    result = runner.invoke(wiz.command_line.main, ["run", "fooExe"])
+    result = runner.invoke(wiz.command_line.main, ["run", "fooExe"] + options)
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
@@ -2061,7 +2195,9 @@ def test_run_with_resolution_error(
     mocked_resolve_context.assert_called_once_with(
         ["__PACKAGE__"], "__MAPPING__",
         ignore_implicit=False,
-        environ_mapping={}
+        environ_mapping={},
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts,
     )
 
     mocked_fetch_package_request_from_command.assert_called_once_with(
@@ -2078,10 +2214,20 @@ def test_run_with_resolution_error(
     logger.error.assert_called_once_with("Oh Shit!")
 
 
+@pytest.mark.parametrize("options, max_combinations, max_attempts", [
+    ([], 10, 15),
+    (["-mc", "1"], 1, 15),
+    (["-ma", "1"], 10, 1),
+], ids=[
+    "simple",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
+])
 def test_run_initial_environment(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_fetch_package_request_from_command, mocked_resolve_context,
-    mocked_resolve_command, mocked_spawn_execute, wiz_context
+    mocked_resolve_command, mocked_spawn_execute, wiz_context, options,
+    max_combinations, max_attempts
 ):
     """Execute a command to extend an initial environment."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -2096,7 +2242,8 @@ def test_run_initial_environment(
         wiz.command_line.main, [
             "--init", "PATH=/path", "--init", "PYTHONPATH=/other-path",
             "run", "fooExe"
-        ])
+        ] + options
+    )
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
@@ -2104,6 +2251,8 @@ def test_run_initial_environment(
     mocked_resolve_context.assert_called_once_with(
         ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
         environ_mapping={"PATH": "/path", "PYTHONPATH": "/other-path"},
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts,
     )
 
     mocked_spawn_execute.assert_called_once_with(
