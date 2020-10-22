@@ -73,6 +73,10 @@ def test_fetch():
             "initial": {},
             "passthrough": []
         },
+        "resolver": {
+            "maximum_combinations": 10,
+            "maximum_attempts": 15,
+        },
         "command": {
             "max_content_width": 90,
             "verbosity": "info",
@@ -132,6 +136,10 @@ def test_fetch_with_personal():
                 "ENVIRON_TEST1": "VALUE"
             },
             "passthrough": []
+        },
+        "resolver": {
+            "maximum_combinations": 10,
+            "maximum_attempts": 15,
         },
         "command": {
             "max_content_width": 90,

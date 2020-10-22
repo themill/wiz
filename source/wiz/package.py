@@ -282,6 +282,9 @@ class Package(object):
         :param variant_index: Index number of the variant which will be used to
             create package instance if applicable. Default is None.
 
+        :raise: :exc:`wiz.exception.PackageError` if the variant index is
+            missing or incorrect.
+
         """
         self._definition = definition
         self._variant_index = variant_index
@@ -292,6 +295,30 @@ class Package(object):
         # Store boolean value indicating whether the package conditions have
         # been processed
         self._conditions_processed = False
+
+        if self._variant_index is None and len(self._definition.variants) > 0:
+            raise wiz.exception.PackageError(
+                "Package cannot be created from definition '{}' as no variant "
+                "index is defined.".format(
+                    self._definition.qualified_identifier
+                )
+            )
+
+        if (
+            self._variant_index is not None
+            and self._variant_index + 1 > len(self._definition.variants)
+        ):
+            raise wiz.exception.PackageError(
+                "Package cannot be created from definition '{}' with variant "
+                "index #{}.".format(
+                    self._definition.qualified_identifier,
+                    self._variant_index
+                )
+            )
+
+    def __repr__(self):
+        """Representing a Package."""
+        return "<Package id='{0}'>".format(self.identifier)
 
     @property
     def definition(self):

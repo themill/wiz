@@ -219,17 +219,22 @@ def test_fetch_package_request_from_command_error():
         wiz.fetch_package_request_from_command("app", definition_mapping)
 
 
-@pytest.mark.parametrize("options", [
-    {},
-    {"environ_mapping": "__ENVIRON__"},
+@pytest.mark.parametrize("options, environ, max_combinations, max_attempts", [
+    ({}, None, None, None),
+    ({"environ_mapping": "__ENVIRON__"}, "__ENVIRON__", None, None),
+    ({"maximum_combinations": 1}, None, 1, None),
+    ({"maximum_attempts": 1}, None, None, 1),
 ], ids=[
-    "without-environ",
+    "simple",
     "with-environ",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
 ])
 def test_resolve_context(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
     mocked_graph_resolver, mocked_environ_initiate,
-    mocked_package_extract_context, mocked_utility_encode, mocker, options
+    mocked_package_extract_context, mocked_utility_encode, mocker, options,
+    environ, max_combinations, max_attempts
 ):
     """Get resolved context mapping."""
     requests = ["test1 >=10, < 11", "test2", "test3[variant]"]
@@ -270,32 +275,37 @@ def test_resolve_context(
     mocked_fetch_definition_mapping.assert_not_called()
 
     mocked_graph_resolver.assert_called_once_with(
-        "__PACKAGE_DEFINITIONS__"
+        "__PACKAGE_DEFINITIONS__",
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts
     )
     mocked_resolver.compute_packages.assert_called_once_with([
         Requirement(request) for request in requests
     ])
 
-    mocked_environ_initiate.assert_called_once_with(
-        options.get("environ_mapping")
-    )
+    mocked_environ_initiate.assert_called_once_with(environ)
 
     mocked_package_extract_context.assert_called_once_with(
         packages, environ_mapping="__INITIAL_ENVIRON__"
     )
 
 
-@pytest.mark.parametrize("options", [
-    {},
-    {"environ_mapping": "__ENVIRON__"},
+@pytest.mark.parametrize("options, environ, max_combinations, max_attempts", [
+    ({}, None, None, None),
+    ({"environ_mapping": "__ENVIRON__"}, "__ENVIRON__", None, None),
+    ({"maximum_combinations": 1}, None, 1, None),
+    ({"maximum_attempts": 1}, None, None, 1),
 ], ids=[
-    "without-environ",
+    "simple",
     "with-environ",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
 ])
 def test_resolve_context_with_default_definition_mapping(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
     mocked_graph_resolver, mocked_environ_initiate,
-    mocked_package_extract_context, mocked_utility_encode, mocker, options
+    mocked_package_extract_context, mocked_utility_encode, mocker, options,
+    environ, max_combinations, max_attempts
 ):
     """Get resolved context mapping with default definition mapping."""
     requests = ["test1 >=10, < 11", "test2", "test3[variant]"]
@@ -336,32 +346,37 @@ def test_resolve_context_with_default_definition_mapping(
     mocked_fetch_definition_mapping.asset_called_once_with(paths)
 
     mocked_graph_resolver.assert_called_once_with(
-        "__PACKAGE_DEFINITIONS__"
+        "__PACKAGE_DEFINITIONS__",
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts
     )
     mocked_resolver.compute_packages.assert_called_once_with([
         Requirement(request) for request in requests
     ])
 
-    mocked_environ_initiate.assert_called_once_with(
-        options.get("environ_mapping")
-    )
+    mocked_environ_initiate.assert_called_once_with(environ)
 
     mocked_package_extract_context.assert_called_once_with(
         packages, environ_mapping="__INITIAL_ENVIRON__"
     )
 
 
-@pytest.mark.parametrize("options", [
-    {},
-    {"environ_mapping": "__ENVIRON__"},
+@pytest.mark.parametrize("options, environ, max_combinations, max_attempts", [
+    ({}, None, None, None),
+    ({"environ_mapping": "__ENVIRON__"}, "__ENVIRON__", None, None),
+    ({"maximum_combinations": 1}, None, 1, None),
+    ({"maximum_attempts": 1}, None, None, 1),
 ], ids=[
-    "without-environ",
+    "simple",
     "with-environ",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
 ])
 def test_resolve_context_with_implicit_packages(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
     mocked_graph_resolver, mocked_environ_initiate,
-    mocked_package_extract_context, mocked_utility_encode, mocker, options
+    mocked_package_extract_context, mocked_utility_encode, mocker, options,
+    environ, max_combinations, max_attempts
 ):
     """Get resolved context mapping with implicit packages."""
     requests = ["test1 >=10, < 11", "test2", "test3[variant]"]
@@ -404,32 +419,37 @@ def test_resolve_context_with_implicit_packages(
     mocked_fetch_definition_mapping.asset_called_once_with(paths)
 
     mocked_graph_resolver.assert_called_once_with(
-        "__PACKAGE_DEFINITIONS__"
+        "__PACKAGE_DEFINITIONS__",
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts
     )
     mocked_resolver.compute_packages.assert_called_once_with([
         Requirement(request) for request in implicit + requests
     ])
 
-    mocked_environ_initiate.assert_called_once_with(
-        options.get("environ_mapping")
-    )
+    mocked_environ_initiate.assert_called_once_with(environ)
 
     mocked_package_extract_context.assert_called_once_with(
         packages, environ_mapping="__INITIAL_ENVIRON__"
     )
 
 
-@pytest.mark.parametrize("options", [
-    {},
-    {"environ_mapping": "__ENVIRON__"},
+@pytest.mark.parametrize("options, environ, max_combinations, max_attempts", [
+    ({}, None, None, None),
+    ({"environ_mapping": "__ENVIRON__"}, "__ENVIRON__", None, None),
+    ({"maximum_combinations": 1}, None, 1, None),
+    ({"maximum_attempts": 1}, None, None, 1),
 ], ids=[
-    "without-environ",
+    "simple",
     "with-environ",
+    "with-maximum-combinations",
+    "with-maximum-attempts",
 ])
 def test_resolve_context_with_implicit_packages_ignored(
     mocked_registry_defaults, mocked_fetch_definition_mapping,
     mocked_graph_resolver, mocked_environ_initiate,
-    mocked_package_extract_context, mocked_utility_encode, mocker, options
+    mocked_package_extract_context, mocked_utility_encode, mocker, options,
+    environ, max_combinations, max_attempts
 ):
     """Get resolved context mapping with implicit packages ignored."""
     requests = ["test1 >=10, < 11", "test2", "test3[variant]"]
@@ -473,15 +493,15 @@ def test_resolve_context_with_implicit_packages_ignored(
     mocked_fetch_definition_mapping.asset_called_once_with(paths)
 
     mocked_graph_resolver.assert_called_once_with(
-        "__PACKAGE_DEFINITIONS__"
+        "__PACKAGE_DEFINITIONS__",
+        maximum_combinations=max_combinations,
+        maximum_attempts=max_attempts
     )
     mocked_resolver.compute_packages.assert_called_once_with([
         Requirement(request) for request in requests
     ])
 
-    mocked_environ_initiate.assert_called_once_with(
-        options.get("environ_mapping")
-    )
+    mocked_environ_initiate.assert_called_once_with(environ)
 
     mocked_package_extract_context.assert_called_once_with(
         packages, environ_mapping="__INITIAL_ENVIRON__"

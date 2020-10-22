@@ -219,7 +219,9 @@ def query(requirement, definition_mapping, namespace_counter=None):
         identifier = identifier[2:]
 
     if identifier not in definition_mapping:
-        raise wiz.exception.RequestNotFound(requirement)
+        raise wiz.exception.RequestNotFound(
+            "The requirement '{}' could not be resolved.".format(requirement)
+        )
 
     definition = None
 
@@ -259,7 +261,9 @@ def query(requirement, definition_mapping, namespace_counter=None):
             break
 
     if definition is None:
-        raise wiz.exception.RequestNotFound(requirement)
+        raise wiz.exception.RequestNotFound(
+            "The requirement '{}' could not be resolved.".format(requirement)
+        )
 
     return definition
 
@@ -315,7 +319,7 @@ def _guess_qualified_identifier(
 
     # If more than one namespace is available, attempt to use counter to only
     # keep those which are used the most.
-    if len(_namespaces) > 1 and max_occurrence > 1:
+    if len(_namespaces) > 1 and max_occurrence > 0:
         _namespaces = [
             namespace for namespace in _namespaces
             if namespace_counter[namespace] == max_occurrence
@@ -566,6 +570,15 @@ class Definition(object):
 
         # Store values that needs to be constructed.
         self._cache = {}
+
+    def __repr__(self):
+        """Representing a Definition."""
+        return (
+            "<Definition id='{0}' version='{1}'>".format(
+                self.qualified_identifier,
+                self.version
+            )
+        )
 
     @property
     def path(self):

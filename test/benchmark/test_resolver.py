@@ -42,9 +42,6 @@ def test_scenario_1(benchmark):
 
     Expected: F==1.0.0, D==0.1.0, B==0.1.0, C==0.3.2, G==2.0.2, A==0.2.0
 
-    The position of 'D==0.1.0' / 'B==0.1.0' and 'C==0.3.2' / 'G==2.0.2' can
-    vary as they have similar priority numbers.
-
     """
     definition_mapping = {
         "A": {
@@ -613,9 +610,6 @@ def test_scenario_8(benchmark):
 
     Expected: A==0.9.0, C==0.9.0, B==0.1.0
 
-    The position of 'C==0.9.0' / 'B==0.1.0' can vary as they have similar
-    priority numbers.
-
     """
     definition_mapping = {
         "A": {
@@ -1165,9 +1159,9 @@ def test_scenario_14(benchmark):
 def test_scenario_15(benchmark):
     """Compute packages for the following graph.
 
-    If a definition variant contains an error, the graph combinations list will
-    be optimized to only keep it once and drop all other combinations which
-    attempt to use it.
+    If a definition variant contains an error, the combinations containing the
+    error are discarded until a variant of the definition without errors is
+    picked.
 
     Root
      |
@@ -1176,8 +1170,6 @@ def test_scenario_15(benchmark):
      |--(A): A[V2]
      |
      |--(A): A[V3]
-     |   |
-     |   `--(incorrect): ERROR!
      |
      |--(B): B[V1]
      |
@@ -1186,12 +1178,14 @@ def test_scenario_15(benchmark):
      |--(B): B[V3]
      |
      |--(B): B[V4]
+     |   |
+     |   `--(incorrect): ERROR!
      |
      |--(C): C[V1]
      |
      `--(C): C[V2]
 
-    Expected: C[V2], B[V4], A[V2]
+    Expected: C[V2], B[V3], A[V3]
 
     """
     definition_mapping = {
@@ -1201,7 +1195,6 @@ def test_scenario_15(benchmark):
                 "variants": [
                     {
                         "identifier": "V3",
-                        "requirements": ["incorrect"]
                     },
                     {
                         "identifier": "V2",
@@ -1218,6 +1211,7 @@ def test_scenario_15(benchmark):
                 "variants": [
                     {
                         "identifier": "V4",
+                        "requirements": ["incorrect"]
                     },
                     {
                         "identifier": "V3",
@@ -1259,9 +1253,10 @@ def test_scenario_15(benchmark):
 def test_scenario_16(benchmark):
     """Compute packages for the following graph.
 
-    For the same example as scenario 15, if the package 'A[V3]' has a
-    conflicting requirement instead of an error, all other combinations which
-    include this package would be preserved.
+    For the same example as scenario 15, if the package 'B[V4]' has a
+    conflicting requirement instead of an error, the combinations containing the
+    conflict are discarded until a variant of the definition without conflicts
+    is picked.
 
     Root
      |
@@ -1270,8 +1265,6 @@ def test_scenario_16(benchmark):
      |--(A): A[V2]
      |
      |--(A): A[V3]
-     |   |
-     |   `--(D>=1): D==1.0.0
      |
      |--(B): B[V1]
      |
@@ -1280,6 +1273,8 @@ def test_scenario_16(benchmark):
      |--(B): B[V3]
      |
      |--(B): B[V4]
+     |   |
+     |   `--(D>=1): D==1.0.0
      |
      |--(C): C[V1]
      |
@@ -1297,7 +1292,6 @@ def test_scenario_16(benchmark):
                 "variants": [
                     {
                         "identifier": "V3",
-                        "requirements": ["D>=1"]
                     },
                     {
                         "identifier": "V2",
@@ -1314,6 +1308,7 @@ def test_scenario_16(benchmark):
                 "variants": [
                     {
                         "identifier": "V4",
+                        "requirements": ["D>=1"]
                     },
                     {
                         "identifier": "V3",
@@ -1488,9 +1483,6 @@ def test_scenario_19(benchmark):
                  `--(E>=2): E==2.3.0
 
     Expected: E==2.3.0, D==0.1.4, B==0.1.0, C==0.3.2, G==2.0.2, A==0.2.0
-
-    The position of 'C==0.3.2' / 'G==2.0.2' can vary as they have similar
-    priority numbers.
 
     """
     definition_mapping = {
@@ -2406,9 +2398,6 @@ def test_scenario_33(benchmark):
     Expected: F==1.0.0, E==2.3.0, D==0.1.4, B==0.1.0, G==2.0.2, C==0.3.0
     A==0.2.0
 
-    The position of 'C==0.3.0' / 'G==2.0.2' and 'F==1.0.0' / 'E==2.3.0' can
-    vary as they have similar priority numbers.
-
     """
     definition_mapping = {
         "A": {
@@ -2540,6 +2529,10 @@ def test_scenario_34(benchmark):
                 "identifier": "B",
                 "version": "3.0.0"
             }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
         },
         "C": {
             "-": wiz.definition.Definition({
@@ -2653,5 +2646,303 @@ def test_scenario_35(benchmark):
             ])
         except wiz.exception.GraphResolutionError:
             pass
+
+    benchmark(_resolve)
+
+
+def test_scenario_36(benchmark):
+    """Compute packages for the following graph.
+
+    When parents of conflicting nodes are themselves conflicting, we attempt to
+    resolve the conflicting parents before resolving the children. In this
+    case, one of the conflicting children disappears while resolving parent
+    conflicts.
+
+    Root
+     |
+     |--(A==1.2.*): A==1.2.0
+     |   |
+     |   `--(B<1): B==0.1.0
+     |
+     `--(B): B==1.2.3
+         |
+         `--(A==1.4.*): A==1.4.8
+
+    Expected: B==0.1.0, A==1.2.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.4.8": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.4.8"
+            }),
+            "1.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.2.0",
+                "requirements": ["B<1"]
+            })
+        },
+        "B": {
+            "1.2.3": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.2.3",
+                "requirements": ["A==1.4.*"]
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+            })
+        },
+    }
+
+    def _resolve():
+        """Resolve context."""
+        try:
+            resolver = wiz.graph.Resolver(definition_mapping)
+            resolver.compute_packages([
+                Requirement("A==1.2.*"), Requirement("B")
+            ])
+        except wiz.exception.GraphResolutionError:
+            pass
+
+    benchmark(_resolve)
+
+
+def test_scenario_37(benchmark):
+    """Fail to compute packages for the following graph.
+
+    Like scenario 36, when parents of conflicting nodes are themselves
+    conflicting, we attempt to resolve the conflicting parents before resolving
+    the children. In this case, the parent conflicts does not remove the
+    children conflicts.
+
+    Root
+     |
+     |--(A==1.2.*): A==1.2.0
+     |   |
+     |   `--(B): B==1.2.3
+     |
+     `--(B<1): B==0.1.0
+         |
+         `--(A==1.4.*): A==1.4.8
+
+    Expected: Unable to compute due to requirement compatibility between
+    'A==1.4.*' and 'A==1.2.* '.
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.4.8": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.4.8"
+            }),
+            "1.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.2.0",
+                "requirements": ["B"]
+            })
+        },
+        "B": {
+            "1.2.3": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.2.3",
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "requirements": ["A==1.4.*"]
+            })
+        },
+    }
+
+    def _resolve():
+        """Resolve context."""
+        try:
+            resolver = wiz.graph.Resolver(definition_mapping)
+            resolver.compute_packages([
+                Requirement("A==1.2.*"), Requirement("B<1")
+            ])
+        except wiz.exception.GraphResolutionError:
+            pass
+
+    benchmark(_resolve)
+
+
+def test_scenario_38(benchmark):
+    """Fail to compute packages for the following graph.
+
+    Like scenario 37, when parents of conflicting nodes are themselves
+    conflicting, we attempt to resolve the conflicting parents before resolving
+    the children. In this case, the parent conflicts cannot be solved.
+
+    Root
+     |
+     |--(A==1.2.*): A==1.2.0
+     |   |
+     |   `--(B>1): B==1.2.3
+     |
+     `--(B<1): B==0.1.0
+         |
+         `--(A==1.4.*): A==1.4.8
+
+    Expected: Unable to compute due to requirement compatibility between
+    'A==1.4.*' and 'A==1.2.*'.
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.4.8": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.4.8"
+            }),
+            "1.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.2.0",
+                "requirements": ["B>1"]
+            })
+        },
+        "B": {
+            "1.2.3": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.2.3",
+            }),
+            "0.1.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "0.1.0",
+                "requirements": ["A==1.4.*"]
+            })
+        },
+    }
+
+    def _resolve():
+        """Resolve context."""
+        try:
+            resolver = wiz.graph.Resolver(definition_mapping)
+            resolver.compute_packages([
+                Requirement("A==1.2.*"), Requirement("B<1")
+            ])
+        except wiz.exception.GraphResolutionError:
+            pass
+
+    benchmark(_resolve)
+
+
+def test_scenario_39(benchmark):
+    """Compute packages for the following graph.
+
+    Like scenario 16, combinations containing conflicts are discarded until
+    a combination without conflicts can be resolved. But this time, variant
+    permutation can be optimized with requirements from each variants.
+
+    Root
+     |
+     |--(A): A[V1]
+     |   |
+     |   `--(B>=1, <2): B==1
+     |
+     |--(A): A[V2]
+     |   |
+     |   `--(B>=2, <3): B==2
+     |
+     |--(A): A[V3]
+     |   |
+     |   `--(B>=3, <4): B==3
+     |
+     |--(A): A[V4]
+     |   |
+     |   `--(B>=4, <5): B==4
+     |
+     |--(A): A[V5]
+     |   |
+     |   `--(B>=5, <6): B==5
+     |
+     |--(A): A[V6]
+     |   |
+     |   `--(B>=6, <7): B==6
+     |
+     |--(A): A[V7]
+     |   |
+     |   `--(B>=7, <8): B==7
+     |
+     `--(B==7): B==7
+
+    Expected: B==7, A[V7]
+
+    """
+    definition_mapping = {
+        "A": {
+            "-": wiz.definition.Definition({
+                "identifier": "A",
+                "variants": [
+                    {
+                        "identifier": "V7",
+                        "requirements": ["B>=7, <8"]
+                    },
+                    {
+                        "identifier": "V6",
+                        "requirements": ["B>=6, <7"]
+                    },
+                    {
+                        "identifier": "V5",
+                        "requirements": ["B>=5, <6"]
+                    },
+                    {
+                        "identifier": "V4",
+                        "requirements": ["B>=4, <5"]
+                    },
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B>=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B>=2, <3"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["B>=1, <2"]
+                    }
+                ]
+            })
+        },
+        "B": {
+            "1": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1",
+            }),
+            "2": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2",
+            }),
+            "3": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3",
+            }),
+            "4": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "4",
+            }),
+            "5": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "5",
+            }),
+            "6": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "6",
+            }),
+            "7": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "7",
+            }),
+        },
+    }
+
+    def _resolve():
+        """Resolve context."""
+        resolver = wiz.graph.Resolver(definition_mapping)
+        resolver.compute_packages([
+            Requirement("A"), Requirement("B==7")
+        ])
 
     benchmark(_resolve)
