@@ -2,8 +2,6 @@
 
 import traceback
 
-import wiz.utility
-
 
 class WizError(Exception):
     """Base class for Wiz specific errors."""
@@ -227,15 +225,10 @@ class DefinitionsExist(WizError):
     def __init__(self, definitions):
         """Initialize with list of existing *definitions*.
 
-        :param definitions: List of :class:`wiz.definition.Definition`
-            instances.
+        :param definitions: List of definition labels (e.g. "'foo' [0.1.0]").
 
         """
-        self.definitions = [
-            wiz.utility.compute_label(definition)
-            for definition in definitions
-
-        ]
+        self.definitions = definitions
 
         super(DefinitionsExist, self).__init__(
             message="{} definition(s) already exist in registry.".format(

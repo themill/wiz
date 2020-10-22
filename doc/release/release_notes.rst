@@ -4,6 +4,15 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Reverted :exc:`wiz.exception.DefinitionsExist` to using definition
+        labels instead of definitions instances for convenience as
+        :ref:`installer plugin <plugins/default/installer>` might not have
+        access to the entire definition data when raising the error.
+
 .. release:: 3.3.0
     :date: 2020-10-21
 

@@ -2729,12 +2729,7 @@ def test_install_overwrite_existing(
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
     mocked_registry_install_to_path.side_effect = (
-        wiz.exception.DefinitionsExist([
-            wiz.definition.Definition({
-                "identifier": "foo",
-                "version": "0.1.0"
-            })
-        ]),
+        wiz.exception.DefinitionsExist(["'foo' [0.1.0]"]),
         None
     )
     mocked_click_confirm.return_value = True
@@ -2781,12 +2776,7 @@ def test_install_skip_existing(
     mocked_system_query.return_value = "__SYSTEM__"
     mocked_registry_fetch.return_value = ["/registry1", "/registry2"]
     mocked_registry_install_to_path.side_effect = (
-        wiz.exception.DefinitionsExist([
-            wiz.definition.Definition({
-                "identifier": "foo",
-                "version": "0.1.0"
-            })
-        ]),
+        wiz.exception.DefinitionsExist(["'foo' [0.1.0]"]),
     )
     mocked_click_confirm.return_value = False
 
