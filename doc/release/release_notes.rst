@@ -8,7 +8,7 @@ Release Notes
 
     .. change:: new
 
-        Added following command to limit the maximum number of attempts to
+        Added the following commands to limit the maximum number of attempts to
         resolve a context before raising an error:
 
         * :option:`wiz use -ma/--max-attempts <wiz use -ma>`
@@ -16,7 +16,7 @@ Release Notes
 
     .. change:: new
 
-        Added following command to limit the maximum number of combinations
+        Added the following commands to limit the maximum number of combinations
         which can be generated from conflicting variants during the context
         resolution process:
 
@@ -51,33 +51,40 @@ Release Notes
 
     .. change:: changed
 
-        Removed :func:`wiz.graph.generate_variant_combinations` and added logic
-        to :meth:`wiz.graph.Resolver.extract_combinations` to improve code
-        readability.
+        Removed the following functions to improve code readability and move
+        logic into different callbacks:
 
-    .. change:: changed
+        +----------------+----------------------------------------------------+
+        | Removed        | * :func:`wiz.graph.generate_variant_combinations`  |
+        +----------------+----------------------------------------------------+
+        | Logic moved to | * :meth:`wiz.graph.Resolver.extract_combinations`  |
+        +----------------+----------------------------------------------------+
 
-        Removed :func:`wiz.graph.trim_unreachable_from_graph` and
-        :func:`wiz.graph.trim_invalid_from_graph` and added logic to
-        :meth:`wiz.graph.Combination.prune_graph` to improve code readability.
+        +----------------+----------------------------------------------------+
+        | Removed        | * :func:`wiz.graph.trim_unreachable_from_graph`    |
+        |                | * :func:`wiz.graph.trim_invalid_from_graph`        |
+        +----------------+----------------------------------------------------+
+        | Logic moved to | * :meth:`wiz.graph.Combination.prune_graph`        |
+        +----------------+----------------------------------------------------+
 
-    .. change:: changed
+        +----------------+----------------------------------------------------+
+        | Removed        | * :func:`wiz.graph.updated_by_distance`            |
+        |                | * :func:`wiz.graph.extract_conflicting_nodes`      |
+        +----------------+----------------------------------------------------+
+        | Logic moved to | * :meth:`wiz.graph.Combination.resolve_conflicts`  |
+        +----------------+----------------------------------------------------+
 
-        Removed :func:`wiz.graph.updated_by_distance` and
-        :func:`wiz.graph.extract_conflicting_nodes` and added logic to
-        :meth:`wiz.graph.Combination.resolve_conflicts` to improve code
-        readability.
+        +----------------+----------------------------------------------------+
+        | Removed        | * :func:`wiz.graph.validate`                       |
+        +----------------+----------------------------------------------------+
+        | Logic moved to | * :meth:`wiz.graph.Combination.validate`           |
+        +----------------+----------------------------------------------------+
 
-    .. change:: changed
-
-        Removed :func:`wiz.graph.validate` and added logic to
-        :meth:`wiz.graph.Combination.validate` to improve code readability.
-
-    .. change:: changed
-
-        Removed :func:`wiz.graph.extract_ordered_packages` and added logic to
-        :meth:`wiz.graph.Combination.extract_packages` to improve code
-        readability.
+        +----------------+----------------------------------------------------+
+        | Removed        | * :func:`wiz.graph.extract_ordered_packages`       |
+        +----------------+----------------------------------------------------+
+        | Logic moved to | * :meth:`wiz.graph.Combination.extract_packages`   |
+        +----------------+----------------------------------------------------+
 
     .. change:: changed
 
@@ -92,7 +99,7 @@ Release Notes
         Added :func:`wiz.graph.generate_variant_permutations` to yield all
         possible permutations between variant groups in an optimized order.
         It now checks the requirement compatibility between each variant node to
-        prevent wasting time in combination that can not be resolved, hence
+        prevent wasting time in combinations that can not be resolved, hence
         providing a major performance boost for definition containing a lot of
         :ref:`variants <definition/variants>`.
 
