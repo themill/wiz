@@ -105,17 +105,21 @@ class Resolver(object):
         """
         return self._conflicting_variants
 
-    def compute_packages(self, requirements):
+    def compute_packages(self, requirements, namespace_counter=None):
         """Return resolved packages from *requirements*.
 
         :param requirements: List of :class:`packaging.requirements.Requirement`
             instances.
 
+        :param namespace_counter: instance of :class:`collections.Counter`
+            which indicates occurrence of namespaces used as hints for package
+            identification. Default is None.
+
         :raise: :exc:`wiz.exception.GraphResolutionError` if the graph cannot be
             resolved in time.
 
         """
-        graph = Graph(self)
+        graph = Graph(self, namespace_counter=namespace_counter)
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_CREATION_ACTION,
@@ -685,10 +689,14 @@ class Graph(object):
     #: Identify the root of the graph.
     ROOT = "root"
 
-    def __init__(self, resolver):
+    def __init__(self, resolver, namespace_counter=None):
         """Initialize Graph.
 
         :param resolver: Instance of :class:`Resolver`.
+
+        :param namespace_counter: instance of :class:`collections.Counter`
+            which indicates occurrence of namespaces used as hints for package
+            identification. Default is None.
 
         """
         self._logger = wiz.logging.Logger(__name__ + ".Graph")
@@ -716,7 +724,7 @@ class Graph(object):
         # Cached :class:`collections.Counter` instance which record of
         # occurrences of namespaces from package included in the graph.
         # e.g. Counter({'maya': 2, 'houdini': 1})
-        self._namespace_count = collections.Counter()
+        self._namespace_count = namespace_counter or collections.Counter()
 
     def __deepcopy__(self, memo):
         """Ensure that only necessary elements are copied in the new graph.
@@ -982,9 +990,6 @@ class Graph(object):
             graph=self, requirements=requirements
         )
 
-        # Record namespaces from all requirement names.
-        self._update_namespace_count(requirements)
-
         # If not detached, set root node as parent.
         parent_identifier = self.ROOT if not detached else None
 
@@ -1185,11 +1190,6 @@ class Graph(object):
         # Ensure that requirement contains namespace.
         requirement = wiz.utility.sanitize_requirement(requirement, package)
 
-        # Update namespace counter from identify namespace if necessary
-        namespace, _ = wiz.utility.extract_namespace(requirement)
-        if namespace is not None:
-            self._namespace_count.update([namespace])
-
         if not self.exists(package.identifier):
 
             try:
@@ -1255,45 +1255,14 @@ class Graph(object):
             self._variant_cache.setdefault(definition_id, [])
             self._variant_cache[definition_id].append(package.identifier)
 
+        # Update namespace counter from identify namespace if necessary.
+        if package.namespace is not None:
+            self._namespace_count.update([package.namespace])
+
         wiz.history.record_action(
             wiz.symbol.GRAPH_NODE_CREATION_ACTION,
             graph=self, node=package.identifier
         )
-
-    def _update_namespace_count(self, requirements):
-        """Record namespace occurrences from input *requirements*.
-
-        Namespace counter is updated first from input requirements so that each
-        requirement can influence package extraction, whatever the requirements'
-        order is.
-
-        For instance, if a definition "A" has "foo" and "bar" as available
-        namespaces, and another definition "B" has only "foo", then the
-        following update will correctly import "foo::A" into the graph::
-
-            >>> self.update_from_requirements([
-            ...     Requirement("A"), Requirement("B")
-            ... ])
-
-        The namespace counter could then be updated again once each requirement
-        is sanitized and a namespace is clearly identified.
-
-        :param requirements: List of :class:`packaging.requirements.Requirement`
-            instances.
-
-        """
-        mapping = self.resolver.definition_mapping.get("__namespace__", {})
-
-        namespaces = []
-
-        for requirement in requirements:
-            namespace, _ = wiz.utility.extract_namespace(requirement)
-            if namespace is not None:
-                namespaces.append(namespace)
-            else:
-                namespaces += mapping.get(requirement.name, [])
-
-        self._namespace_count.update(namespaces)
 
     def remove_node(self, identifier):
         """Remove node from the graph.
