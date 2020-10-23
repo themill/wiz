@@ -38,7 +38,7 @@ def mocked_check_conflicting_requirements(mocker):
 @pytest.fixture()
 def mocked_resolver(mocker):
     """Return mocked Resolver."""
-    return mocker.Mock(definition_mapping={"__namespace__": {}})
+    return mocker.Mock()
 
 
 @pytest.fixture()
@@ -2145,7 +2145,6 @@ def test_graph_update_from_requirements_single_with_namespace(
     # Set requirements and expected package extraction for test.
     requirements = [Requirement("A")]
     mocked_package_extract.side_effect = [[packages["foo::A==0.1.0"]]]
-    mocked_resolver.definition_mapping["__namespace__"]["A"] = {"foo"}
 
     # Create graph.
     graph = wiz.graph.Graph(mocked_resolver)
@@ -2154,7 +2153,7 @@ def test_graph_update_from_requirements_single_with_namespace(
     # Check call to extract packages from requirement.
     mocked_package_extract.assert_called_once_with(
         Requirement("A"), mocked_resolver.definition_mapping,
-        namespace_counter=collections.Counter({"foo": 1})
+        namespace_counter=collections.Counter()
     )
 
     # Check whether the graph has conflicts, conditions or/and errors.
@@ -2391,23 +2390,23 @@ def test_graph_update_from_requirements_many_with_namespaces(
     assert mocked_package_extract.call_args_list == [
         mocker.call(
             Requirement("foo::A"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter({"foo": 1})
+            namespace_counter=collections.Counter({})
         ),
         mocker.call(
             Requirement("D > 3"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter({"foo": 2})
+            namespace_counter=collections.Counter({"foo": 1})
         ),
         mocker.call(
             Requirement("bar::B"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter({"foo": 2})
+            namespace_counter=collections.Counter({"foo": 1})
         ),
         mocker.call(
             Requirement("foo::C"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter({"foo": 2, "bar": 1})
+            namespace_counter=collections.Counter({"foo": 1, "bar": 1})
         ),
         mocker.call(
             Requirement("D > 1"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter({"foo": 3, "bar": 1})
+            namespace_counter=collections.Counter({"foo": 2, "bar": 1})
         )
     ]
 
