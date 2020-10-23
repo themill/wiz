@@ -655,13 +655,15 @@ def sanitize_requirement(requirement, package):
 
 
 def compute_namespace_counter(requirements, definition_mapping):
-    """Compute namespace occurrences counter from *requirements*.
+    """Compute namespace frequency counter from *requirements*.
 
     :param requirements: List of :class:`packaging.requirements.Requirement`
         instances.
 
     :param definition_mapping: Mapping regrouping all available definitions
         associated with their unique identifier.
+
+    :return: Instance of :class:`collections.Counter`.
 
     """
     mapping = definition_mapping.get("__namespace__", {})

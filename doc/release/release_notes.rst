@@ -4,6 +4,32 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+
+        Updated :func:`wiz.resolve_context` logic to only guess :ref:`namespaces
+        <definition/namespace>` from initial requirements without taking
+        :ref:`implicit packages <definition/auto-use>` into account.
+
+        .. seealso::
+
+            https://github.com/themill/wiz/issues/60
+
+    .. change:: changed
+
+        Updated :meth:`wiz.graph.Resolver.compute_packages` and
+        :class:`wiz.graph.Graph` to take initial namespace counter as a keyword
+        argument. This is necessary as the logic handling :ref:`namespace
+        <definition/namespace>` frequency counting from initial requirements
+        have been moved upstream.
+
+    .. change:: new
+
+        Added :func:`wiz.utility.compute_namespace_counter` to compute a
+        :ref:`namespace <definition/namespace>` frequency counter from a list
+        of requirements.
+
 .. release:: 3.3.1
     :date: 2020-10-22
 
