@@ -1776,7 +1776,7 @@ def test_scenario_22(benchmark):
 def test_scenario_23(benchmark):
     """Compute packages for the following graph.
 
-    When a definition is found, its namespace is used to give hint when looking
+    Initial namespace counter can be used to give hint when looking
     for default namespace belonging to the other definitions.
 
     Root
@@ -1844,11 +1844,18 @@ def test_scenario_23(benchmark):
 
     def _resolve():
         """Resolve context."""
-        resolver = wiz.graph.Resolver(definition_mapping)
-        resolver.compute_packages([
+        requirements = [
             Requirement("A"), Requirement("B"), Requirement("C"),
             Requirement("D")
-        ])
+        ]
+        namespace_counter = wiz.utility.compute_namespace_counter(
+            requirements, definition_mapping
+        )
+
+        resolver = wiz.graph.Resolver(definition_mapping)
+        resolver.compute_packages(
+            requirements, namespace_counter=namespace_counter
+        )
 
     benchmark(_resolve)
 
@@ -1898,7 +1905,7 @@ def test_scenario_25(benchmark):
 
     When a definition exists with and without a namespace, other definitions
     using the same namespace within the request will lead to the selection of
-    the one with the namespace.
+    the one with the namespace if an initial counter is being used.
 
     Root
      |
@@ -1938,8 +1945,15 @@ def test_scenario_25(benchmark):
 
     def _resolve():
         """Resolve context."""
+        requirements = [Requirement("A"), Requirement("B")]
+        namespace_counter = wiz.utility.compute_namespace_counter(
+            requirements, definition_mapping
+        )
+
         resolver = wiz.graph.Resolver(definition_mapping)
-        resolver.compute_packages([Requirement("A"), Requirement("B")])
+        resolver.compute_packages(
+            requirements, namespace_counter=namespace_counter
+        )
 
     benchmark(_resolve)
 

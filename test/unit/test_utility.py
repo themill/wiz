@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import copy
+import collections
 import base64
 import hashlib
 
@@ -625,6 +626,29 @@ def test_sanitize_requirement_error(mocked_match):
         wiz.utility.sanitize_requirement(Requirement("A"), package)
 
     assert "Requirement 'A' is incompatible with package 'B'" in str(error)
+
+
+@pytest.mark.parametrize("requirements, expected", [
+    ([], {}),
+    ([Requirement("foo"), Requirement("bar")], {"A": 1, "B": 1, "C": 1}),
+    ([Requirement("::foo"), Requirement("B::bar")], {"B": 1}),
+    ([Requirement("foo"), Requirement("B::bar")], {"A": 1, "B": 1}),
+], ids=[
+    "empty",
+    "non-qualified-requirements",
+    "qualified-requirements",
+    "mixed",
+])
+def test_namespace_counter(requirements, expected):
+    """Compute namespace occurrences counter from requirements."""
+    mapping = {
+        "__namespace__": {
+            "foo": ["A"],
+            "bar": ["B", "C"]
+        }
+    }
+    result = wiz.utility.compute_namespace_counter(requirements, mapping)
+    assert result == collections.Counter(expected)
 
 
 @pytest.mark.parametrize("package_data, variant_index, requirement, expected", [
