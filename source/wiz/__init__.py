@@ -223,7 +223,7 @@ def resolve_context(
         cannot be resolved in time.
 
     """
-    requirements = collections.deque(wiz.utility.get_requirements(requests))
+    requirements = wiz.utility.get_requirements(requests)
 
     # Extract definition mapping from default registry paths if necessary.
     if definition_mapping is None:
@@ -233,13 +233,13 @@ def resolve_context(
 
     # Extract initial namespace counter from explicit requirements.
     namespace_counter = wiz.utility.compute_namespace_counter(
-        requirements, definition_mapping
+        requirements, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
     )
 
     # Prepend implicit requests to explicit ones if necessary.
     if not ignore_implicit:
         _requests = definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, [])
-        requirements.extendleft(wiz.utility.get_requirements(_requests))
+        requirements = wiz.utility.get_requirements(_requests) + requirements
 
     resolver = wiz.graph.Resolver(
         definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
