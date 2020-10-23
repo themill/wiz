@@ -1,5 +1,6 @@
 # :coding: utf-8
 
+import collections
 import os
 import shlex
 
@@ -222,29 +223,32 @@ def resolve_context(
         cannot be resolved in time.
 
     """
-    # To prevent mutating input list.
-    _requests = requests[:]
+    requirements = collections.deque(wiz.utility.get_requirements(requests))
 
+    # Extract definition mapping from default registry paths if necessary.
     if definition_mapping is None:
         definition_mapping = wiz.fetch_definition_mapping(
             wiz.registry.get_defaults()
         )
 
+    # Extract initial namespace counter from explicit requirements.
+    namespace_counter = wiz.utility.compute_namespace_counter(
+        requirements, definition_mapping
+    )
+
+    # Prepend implicit requests to explicit ones if necessary.
     if not ignore_implicit:
-        # Prepend implicit requests to explicit ones.
-        _requests = (
-            definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, []) + _requests
-        )
+        _requests = definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, [])
+        requirements.extendleft(wiz.utility.get_requirements(_requests))
 
-    requirements = [wiz.utility.get_requirement(r) for r in _requests]
-
-    registries = definition_mapping["registries"]
     resolver = wiz.graph.Resolver(
         definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
         maximum_combinations=maximum_combinations,
         maximum_attempts=maximum_attempts,
     )
-    packages = resolver.compute_packages(requirements)
+    packages = resolver.compute_packages(
+        requirements, namespace_counter=namespace_counter
+    )
 
     _environ_mapping = wiz.environ.initiate(environ_mapping)
     context = wiz.package.extract_context(
@@ -252,14 +256,14 @@ def resolve_context(
     )
 
     context["packages"] = packages
-    context["registries"] = registries
+    context["registries"] = definition_mapping["registries"]
 
     # Augment context environment with wiz signature
     context["environ"].update({
         "WIZ_VERSION": __version__,
         "WIZ_CONTEXT": wiz.utility.encode([
             [_package.identifier for _package in packages],
-            registries
+            definition_mapping["registries"]
         ])
     })
     return context

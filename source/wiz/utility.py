@@ -42,6 +42,22 @@ def get_requirement(content):
         )
 
 
+def get_requirements(contents):
+    """Return the corresponding requirement instance from *content*.
+
+    :param contents: List of strings representing requirements, with or without
+        version specifier or variant (e.g. "maya", "nuke >= 10, < 11",
+        "ldpk-nuke[10.0]").
+
+    :return: List of :class:`packaging.requirements.Requirement` instances.
+
+    :raise: :exc:`wiz.exception.InvalidRequirement` if the requirement is
+        incorrect.
+
+    """
+    return [get_requirement(content) for content in contents]
+
+
 def get_version(content):
     """Return the corresponding version instance from *content*.
 
@@ -636,6 +652,30 @@ def sanitize_requirement(requirement, package):
         package.namespace or "", package.definition.identifier
     ])
     return _requirement
+
+
+def compute_namespace_counter(requirements, definition_mapping):
+    """Compute namespace occurrences counter from input *requirements*.
+
+    :param requirements: List of :class:`packaging.requirements.Requirement`
+        instances.
+
+    :param definition_mapping: Mapping regrouping all available definitions
+        associated with their unique identifier.
+
+    """
+    mapping = definition_mapping.get("__namespace__", {})
+
+    namespaces = []
+
+    for requirement in requirements:
+        namespace, _ = wiz.utility.extract_namespace(requirement)
+        if namespace is not None:
+            namespaces.append(namespace)
+        else:
+            namespaces += mapping.get(requirement.name, [])
+
+    return collections.Counter(namespaces)
 
 
 def match(requirement, package):
