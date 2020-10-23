@@ -1826,7 +1826,7 @@ def test_scenario_22():
 def test_scenario_23():
     """Compute packages for the following graph.
 
-    When a definition is found, its namespace is used to give hint when looking
+    Initial namespace counter can be used to give hint when looking
     for default namespace belonging to the other definitions.
 
     Root
@@ -1894,9 +1894,27 @@ def test_scenario_23():
 
     resolver = wiz.graph.Resolver(definition_mapping)
 
-    packages = resolver.compute_packages([
+    requirements = [
         Requirement("A"), Requirement("B"), Requirement("C"), Requirement("D")
-    ])
+    ]
+    namespace_counter = wiz.utility.compute_namespace_counter(
+        requirements, definition_mapping
+    )
+
+    with pytest.raises(wiz.exception.GraphInvalidNodesError) as error:
+        resolver.compute_packages(requirements)
+
+    assert (
+        "The dependency graph could not be resolved due to the following "
+        "error(s):\n"
+        "  * root: Cannot guess default namespace for 'C' [available: "
+        "Namespace3, Namespace4]."
+    ) in str(error.value)
+
+    packages = resolver.compute_packages(
+        requirements, namespace_counter=namespace_counter
+    )
+
     assert len(packages) == 4
     assert packages[0].identifier == "Namespace4::D"
     assert packages[1].identifier == "Namespace4::C==0.2.0"
@@ -1949,7 +1967,7 @@ def test_scenario_25():
 
     When a definition exists with and without a namespace, other definitions
     using the same namespace within the request will lead to the selection of
-    the one with the namespace.
+    the one with the namespace if an initial counter is being used.
 
     Root
      |
@@ -1989,7 +2007,20 @@ def test_scenario_25():
 
     resolver = wiz.graph.Resolver(definition_mapping)
 
-    packages = resolver.compute_packages([Requirement("A"), Requirement("B")])
+    requirements = [Requirement("A"), Requirement("B")]
+    namespace_counter = wiz.utility.compute_namespace_counter(
+        requirements, definition_mapping
+    )
+
+    packages = resolver.compute_packages(requirements)
+
+    assert len(packages) == 2
+    assert packages[0].identifier == "Namespace1::B==0.1.0"
+    assert packages[1].identifier == "A==0.1.0"
+
+    packages = resolver.compute_packages(
+        requirements, namespace_counter=namespace_counter
+    )
 
     assert len(packages) == 2
     assert packages[0].identifier == "Namespace1::B==0.1.0"
