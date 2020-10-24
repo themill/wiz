@@ -1705,22 +1705,16 @@ def test_extract_conflicting_requirements(mocked_graph):
 
     assert conflicts == [
         {
-            "graph": mocked_graph,
             "requirement": Requirement("foo >=4, <5"),
             "identifiers": {"G", "H"},
-            "conflicts": {"F", "root"}
         },
         {
-            "graph": mocked_graph,
             "requirement": Requirement("foo ==3.0.0"),
             "identifiers": {"root"},
-            "conflicts": {"G", "H"}
         },
         {
-            "graph": mocked_graph,
             "requirement": Requirement("foo ==3.*"),
             "identifiers": {"F"},
-            "conflicts": {"G", "H"}
         }
     ]
 
