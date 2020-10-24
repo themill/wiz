@@ -100,8 +100,8 @@ def test_is_overlapping(
     mocker, mocked_extract_version_ranges, ranges1, ranges2, expected
 ):
     """Indicates whether requirements are overlapping."""
-    req1 = mocker.Mock()
-    req2 = mocker.Mock()
+    req1 = mocker.Mock(extras=set())
+    req2 = mocker.Mock(extras=set())
 
     # Hack due to the impossibility to directly mock an attribute called "name"
     # See: https://bradmontgomery.net/blog/how-world-do-you-mock-name-attribute
@@ -112,17 +112,30 @@ def test_is_overlapping(
     assert wiz.utility.is_overlapping(req1, req2) == expected
 
 
+def test_is_overlapping_with_variants(mocker):
+    """Fail to compare requirement with different variant."""
+    req1 = mocker.Mock(extras={"V1"})
+    req2 = mocker.Mock(extras={"V2"})
+
+    # Hack due to the impossibility to directly mock an attribute called "name"
+    # See: https://bradmontgomery.net/blog/how-world-do-you-mock-name-attribute
+    type(req1).name = mocker.PropertyMock(return_value="foo")
+    type(req2).name = mocker.PropertyMock(return_value="foo")
+
+    assert wiz.utility.is_overlapping(req1, req2) is False
+
+
 def test_is_overlapping_fail(mocker):
     """Fail to compare requirement with different name."""
-    req1 = mocker.Mock()
-    req2 = mocker.Mock()
+    req1 = mocker.Mock(extras=set())
+    req2 = mocker.Mock(extras=set())
 
     # Hack due to the impossibility to directly mock an attribute called "name"
     # See: https://bradmontgomery.net/blog/how-world-do-you-mock-name-attribute
     type(req1).name = mocker.PropertyMock(return_value="foo")
     type(req2).name = mocker.PropertyMock(return_value="bar")
 
-    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+    with pytest.raises(ValueError) as error:
         wiz.utility.is_overlapping(req1, req2)
 
     assert (
