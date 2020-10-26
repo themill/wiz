@@ -3,7 +3,6 @@
 import os
 
 import pytest
-
 import wiz.config
 from wiz.utility import Requirement
 
@@ -3114,5 +3113,86 @@ def test_scenario_41(benchmark):
         resolver.compute_packages([
             Requirement("A[V3]"), Requirement("C")
         ])
+
+    benchmark(_resolve)
+
+
+def test_scenario_42(benchmark):
+    """Fail to compute packages for the following graph.
+
+    Root
+     |
+     |--(A): A[V1]
+     |   |
+     |   `--(C>1): C==1.5.0
+     |
+     |--(A): A[V2]
+     |   |
+     |   `--(C>1): C==1.5.0
+     |
+     |--(B): B[V1]
+     |   |
+     |   `--(C<1): C==0.5.0
+     |
+     `--(B): B[V2]
+         |
+         `--(C<1): C==0.5.0
+
+    Expected: Unable to compute due to requirement compatibility between
+    'C <1' and 'C >1'.
+
+    """
+    definition_mapping = {
+        "A": {
+            "-": wiz.definition.Definition({
+                "identifier": "A",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                        "requirements": ["C>1"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["C>1"]
+                    },
+                ]
+            }),
+        },
+        "B": {
+            "-": wiz.definition.Definition({
+                "identifier": "B",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                        "requirements": ["C<1"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["C<1"]
+                    },
+                ]
+            }),
+        },
+        "C": {
+            "1.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "1.5.0"
+            }),
+            "0.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.5.0"
+            }),
+        }
+    }
+
+    def _resolve():
+        """Resolve context."""
+        try:
+            resolver = wiz.graph.Resolver(definition_mapping)
+            resolver.compute_packages([
+                Requirement("A"), Requirement("B")
+            ])
+        except wiz.exception.GraphResolutionError:
+            pass
 
     benchmark(_resolve)

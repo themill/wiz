@@ -678,18 +678,11 @@ def test_resolver_compute_packages_fail_from_conflicts(
     mocked_fetch_next_combination.side_effect = combinations + [None]
 
     for index, combination in enumerate(combinations):
-        conflicts = [
-            {
-                "requirement": Requirement("bar > 1"),
-                "identifiers": {"foo{}".format(index)}
-            },
-            {
-                "requirement": Requirement("bar < 1"),
-                "identifiers": {"bim{}".format(index)}
-            }
-        ]
         combination.extract_packages.side_effect = (
-            wiz.exception.GraphConflictsError(conflicts)
+            wiz.exception.GraphConflictsError({
+                Requirement("bar > 1"): {"foo{}".format(index)},
+                Requirement("bar < 1"): {"bim{}".format(index)}
+            })
         )
 
     resolver = wiz.graph.Resolver("__MAPPING__")
@@ -701,8 +694,8 @@ def test_resolver_compute_packages_fail_from_conflicts(
         "Failed to resolve graph at combination #{0}:\n\n"
         "The dependency graph could not be resolved due to the following "
         "requirement conflicts:\n"
-        "  * bar >1 \t[foo{1}]\n"
-        "  * bar <1 \t[bim{1}]\n".format(
+        "  * bar <1 \t[bim{1}]\n"
+        "  * bar >1 \t[foo{1}]\n".format(
             combination_number, combination_number-1
         )
     ) in str(error.value)
@@ -712,8 +705,8 @@ def test_resolver_compute_packages_fail_from_conflicts(
     queue = collections.deque()
     for index, combination in enumerate(combinations):
         queue.extend([
-            (combination, {"foo{}".format(index)}),
             (combination, {"bim{}".format(index)}),
+            (combination, {"foo{}".format(index)}),
         ])
 
     assert resolver._conflicting_combinations == queue
@@ -1275,21 +1268,11 @@ def test_compute_distance_mapping_complex(mocker, mocked_graph):
     }
 
 
-@pytest.mark.parametrize(
-    "value", [False, True],
-    ids=[
-        "none-conflicting",
-        "all-conflicting",
-    ]
-)
-def test_generate_variant_permutations(
+def test_generate_variant_permutations_none_conflicting(
     mocked_graph, mocked_compute_distance_mapping,
-    mocked_compute_conflicting_matrix, value
+    mocked_compute_conflicting_matrix
 ):
-    """Yield all possible permutations of the variant groups.
-
-    Result is the same is all variant nodes or no variant nodes are conflicting.
-
+    """Yield all variant groups permutations if no groups are conflicting.
     """
     variant_groups = {
         (("A[V3]",), ("A[V2]",), ("A[V1]",)),
@@ -1304,12 +1287,12 @@ def test_generate_variant_permutations(
         "B[V1]==1": {"distance": 1},
     }
     mocked_compute_conflicting_matrix.return_value = {
-        "A[V3]": {"B[V2]==2": value, "B[V2]==1": value, "B[V1]==1": value},
-        "A[V2]": {"B[V2]==2": value, "B[V2]==1": value, "B[V1]==1": value},
-        "A[V1]": {"B[V2]==2": value, "B[V2]==1": value, "B[V1]==1": value},
-        "B[V2]==2": {"A[V3]": value, "A[V2]": value, "A[V1]": value},
-        "B[V2]==1": {"A[V3]": value, "A[V2]": value, "A[V1]": value},
-        "B[V1]==1": {"A[V3]": value, "A[V2]": value, "A[V1]": value},
+        "A[V3]": {"B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": False},
+        "A[V2]": {"B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": False},
+        "A[V1]": {"B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": False},
+        "B[V2]==2": {"A[V3]": False, "A[V2]": False, "A[V1]": False},
+        "B[V2]==1": {"A[V3]": False, "A[V2]": False, "A[V1]": False},
+        "B[V1]==1": {"A[V3]": False, "A[V2]": False, "A[V1]": False},
     }
 
     result = wiz.graph.generate_variant_permutations(
@@ -1324,6 +1307,47 @@ def test_generate_variant_permutations(
         (("B[V2]==2", "B[V2]==1"), ("A[V3]",)),
         (("B[V2]==2", "B[V2]==1"), ("A[V2]",)),
         (("B[V2]==2", "B[V2]==1"), ("A[V1]",)),
+    ]
+
+    mocked_compute_conflicting_matrix.assert_called_once_with(
+        mocked_graph, variant_groups
+    )
+
+
+def test_generate_variant_permutations_all_conflicting(
+    mocked_graph, mocked_compute_distance_mapping,
+    mocked_compute_conflicting_matrix
+):
+    """Yield all variant groups permutations if all groups are conflicting.
+    """
+    variant_groups = {
+        (("A[V3]",), ("A[V2]",), ("A[V1]",)),
+        (("B[V2]==2", "B[V2]==1"), ("B[V1]==1",))
+    }
+    mocked_compute_distance_mapping.return_value = {
+        "A[V3]": {"distance": 3},
+        "A[V2]": {"distance": 3},
+        "A[V1]": {"distance": 3},
+        "B[V2]==2": {"distance": 2},
+        "B[V2]==1": {"distance": 2},
+        "B[V1]==1": {"distance": 1},
+    }
+    mocked_compute_conflicting_matrix.return_value = {
+        "A[V3]": {"B[V2]==2": True, "B[V2]==1": True, "B[V1]==1": True},
+        "A[V2]": {"B[V2]==2": True, "B[V2]==1": True, "B[V1]==1": True},
+        "A[V1]": {"B[V2]==2": True, "B[V2]==1": True, "B[V1]==1": True},
+        "B[V2]==2": {"A[V3]": True, "A[V2]": True, "A[V1]": True},
+        "B[V2]==1": {"A[V3]": True, "A[V2]": True, "A[V1]": True},
+        "B[V1]==1": {"A[V3]": True, "A[V2]": True, "A[V1]": True},
+    }
+
+    result = wiz.graph.generate_variant_permutations(
+        mocked_graph, variant_groups
+    )
+
+    assert isinstance(result, collections.Iterable)
+    assert list(result) == [
+        (("B[V1]==1",), ("A[V3]",)),
     ]
 
     mocked_compute_conflicting_matrix.assert_called_once_with(
@@ -1365,16 +1389,53 @@ def test_generate_variant_permutations_optimized(
     assert list(result) == [
         (("B[V1]==1",), ("A[V1]",)),
         (("B[V2]==2", "B[V2]==1"), ("A[V3]",)),
-        (("B[V2]==2", "B[V2]==1"), ("A[V1]",)),
-        (("B[V2]==2", "B[V2]==1"), ("A[V2]",)),
         (("B[V2]==1",), ("A[V2]",)),
-        (("B[V1]==1",), ("A[V3]",)),
-        (("B[V1]==1",), ("A[V2]",)),
+        (("B[V2]==2", "B[V2]==1"), ("A[V1]",)),
     ]
 
     mocked_compute_conflicting_matrix.assert_called_once_with(
         mocked_graph, variant_groups
     )
+
+
+@pytest.mark.parametrize("variant_groups, expected", [
+    (set(), []),
+    (
+        {(("B[V2]==2", "B[V2]==1"), ("B[V1]==1",))},
+        [(("B[V1]==1",), ("B[V2]==2", "B[V2]==1"))]
+    ),
+    (
+        {(("B[V1]==1",), ("B[V2]==2", "B[V2]==1"))},
+        [(("B[V1]==1",), ("B[V2]==2", "B[V2]==1"))]
+    ),
+    (
+        {
+            (("A[V3]",), ("A[V2]",), ("A[V1]",)),
+            (("B[V2]==2", "B[V2]==1"), ("B[V1]==1",))
+        },
+        [
+            (("B[V1]==1",), ("B[V2]==2", "B[V2]==1")),
+            (("A[V3]",), ("A[V2]",), ("A[V1]",)),
+        ]
+    )
+], ids=[
+    "empty",
+    "one-group",
+    "one-group-unchanged",
+    "two-groups",
+])
+def test_sorted_variant_groups(variant_groups, expected):
+    """Return sorted variant groups using the distance mapping."""
+    mapping = {
+        "A[V3]": {"distance": 3},
+        "A[V2]": {"distance": 3},
+        "A[V1]": {"distance": 3},
+        "B[V2]==2": {"distance": 2},
+        "B[V2]==1": {"distance": 2},
+        "B[V1]==1": {"distance": 1},
+    }
+
+    assert wiz.graph.sorted_variant_groups(variant_groups, mapping) == expected
 
 
 def test_compute_conflicting_matrix_empty(
@@ -1701,22 +1762,15 @@ def test_extract_conflicting_requirements(mocked_graph):
         for version, parents in zip(versions, parents_sets)
     ]
 
-    conflicts = wiz.graph.extract_conflicting_requirements(mocked_graph, nodes)
+    conflicting = wiz.graph.extract_conflicting_requirements(
+        mocked_graph, nodes
+    )
 
-    assert conflicts == [
-        {
-            "requirement": Requirement("foo >=4, <5"),
-            "identifiers": {"G", "H"},
-        },
-        {
-            "requirement": Requirement("foo ==3.0.0"),
-            "identifiers": {"root"},
-        },
-        {
-            "requirement": Requirement("foo ==3.*"),
-            "identifiers": {"F"},
-        }
-    ]
+    assert conflicting == {
+        Requirement("foo >=4, <5"): {"G", "H"},
+        Requirement("foo ==3.0.0"): {"root"},
+        Requirement("foo ==3.*"): {"F"}
+    }
 
 
 def test_extract_conflicting_requirements_error(mocked_graph):
@@ -1740,7 +1794,7 @@ def test_extract_conflicting_requirements_error(mocked_graph):
         )
     ]
 
-    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+    with pytest.raises(ValueError) as error:
         wiz.graph.extract_conflicting_requirements(mocked_graph, nodes)
 
     assert (
@@ -2195,14 +2249,14 @@ def test_graph_update_from_requirements_single_with_error(
     assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {
-        "root": ["Error"]
+        "root": [wiz.exception.RequestNotFound("Error")]
     }
 
     # Check full data.
     assert graph.data() == {
         "node_mapping": {},
         "link_mapping": {},
-        "error_mapping": {"root": ["Error"]},
+        "error_mapping": {"root": [wiz.exception.RequestNotFound("Error")]},
         "conditioned_nodes": [],
     }
 
@@ -2493,7 +2547,9 @@ def test_graph_update_from_requirements_many_with_error(
     assert graph.conflicting() == set()
     assert graph.conflicting_variant_groups() == set()
     assert graph.conditioned_nodes() == []
-    assert graph.errors() == {"B==1.2.3": ["Error"]}
+    assert graph.errors() == {
+        "B==1.2.3": [wiz.exception.RequestNotFound("Error")]
+    }
 
     # Check full data.
     assert graph.data() == {
@@ -2520,7 +2576,7 @@ def test_graph_update_from_requirements_many_with_error(
                 "C": {"requirement": Requirement("::C"), "weight": 1},
             }
         },
-        "error_mapping": {"B==1.2.3": ["Error"]},
+        "error_mapping": {"B==1.2.3": [wiz.exception.RequestNotFound("Error")]},
         "conditioned_nodes": [],
     }
 
@@ -3743,15 +3799,15 @@ def test_graph_relink_parents(
     }
 
 
-@pytest.mark.parametrize("packages", ["conflicting-versions"], indirect=True)
+@pytest.mark.parametrize("packages", ["conflicting-variants"], indirect=True)
 def test_graph_relink_parents_error(
     mocked_resolver, mocked_package_extract, packages
 ):
     """Fail to relink parents after removing a node."""
-    requirements = [Requirement("A"), Requirement("D==3.1.0")]
+    requirements = [Requirement("A"), Requirement("A[V1]")]
     mocked_package_extract.side_effect = [
-        [packages["A==0.1.0"]],  [packages["D==3.1.0"]], [packages["B==1.2.3"]],
-        [packages["C"]], [packages["D==3.2.0"]],
+        [packages["A[V3]"],  packages["A[V2]"], packages["A[V1]"]],
+        [packages["A[V1]"]],
     ]
 
     # Create graph.
@@ -3759,60 +3815,48 @@ def test_graph_relink_parents_error(
     graph.update_from_requirements(requirements)
 
     # Remove a node.
-    node = graph.node("D==3.1.0")
-    graph.remove_node("D==3.1.0")
+    node = graph.node("A[V1]")
+    graph.remove_node("A[V1]")
 
     # Relink parent from removed node.
     graph.relink_parents(node)
 
     # Check whether the graph has conflicts, conditions or/and errors.
-    assert graph.conflicting() == set()
-    assert graph.conflicting_variant_groups() == set()
+    assert graph.conflicting() == {"A[V2]", "A[V3]"}
+    assert graph.conflicting_variant_groups() == {(("A[V3]",), ("A[V2]",))}
     assert graph.conditioned_nodes() == []
     assert graph.errors() == {
         "root": [
-            "Requirement '::D ==3.1.0' can not be satisfied once 'D==3.1.0' is "
-            "removed from the graph."
+            wiz.exception.GraphConflictsError({
+                Requirement("::A"): {"root"},
+                Requirement("::A[V1]"): {"root"},
+            })
         ]
     }
 
     # Check full data.
     assert graph.data() == {
         "node_mapping": {
-            "A==0.1.0": wiz.graph.Node(
-                packages["A==0.1.0"], parent_identifiers={"root"}
+            "A[V2]": wiz.graph.Node(
+                packages["A[V2]"], parent_identifiers={"root"}
             ),
-            "B==1.2.3": wiz.graph.Node(
-                packages["B==1.2.3"], parent_identifiers={"A==0.1.0"}
-            ),
-            "C": wiz.graph.Node(
-                packages["C"], parent_identifiers={"B==1.2.3"}
-            ),
-            "D==3.2.0": wiz.graph.Node(
-                packages["D==3.2.0"], parent_identifiers={"B==1.2.3"}
+            "A[V3]": wiz.graph.Node(
+                packages["A[V3]"], parent_identifiers={"root"}
             ),
         },
         "link_mapping": {
             "root": {
-                "A==0.1.0": {"requirement": Requirement("::A"), "weight": 1},
-                "D==3.1.0": {
-                    "requirement": Requirement("::D ==3.1.0"), "weight": 2
-                }
-            },
-            "A==0.1.0": {
-                "B==1.2.3": {"requirement": Requirement("::B"), "weight": 1}
-            },
-            "B==1.2.3": {
-                "C": {"requirement": Requirement("::C"), "weight": 1},
-                "D==3.2.0": {
-                    "requirement": Requirement("::D >=3, <4"), "weight": 2
-                },
+                "A[V3]": {"requirement": Requirement("::A"), "weight": 1},
+                "A[V2]": {"requirement": Requirement("::A"), "weight": 1},
+                "A[V1]": {"requirement": Requirement("::A[V1]"), "weight": 1},
             },
         },
         "error_mapping": {
             "root": [
-                "Requirement '::D ==3.1.0' can not be satisfied once 'D==3.1.0'"
-                " is removed from the graph."
+                wiz.exception.GraphConflictsError({
+                    Requirement("::A"): {"root"},
+                    Requirement("::A[V1]"): {"root"},
+                })
             ]
         },
         "conditioned_nodes": [],
@@ -4713,9 +4757,10 @@ def test_combination_resolve_conflicts_circular(
     ]
 
     # Mock conflict mappings indicating that conflicting parents.
-    mocked_extract_conflicting_requirements.return_value = [
-        {"identifiers": {"root"}}, {"identifiers": {"B==1.2.3"}}
-    ]
+    mocked_extract_conflicting_requirements.return_value = {
+        Requirement("A==1.2.*"): {"root"},
+        Requirement("A==1.4.*"): {"B==1.2.3"},
+    }
 
     # Mocked distance mapping is used to sort nodes.
     mocked_fetch_distance_mapping.side_effect = [

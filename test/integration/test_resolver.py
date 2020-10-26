@@ -3206,3 +3206,84 @@ def test_scenario_41():
     assert packages[0].identifier == "C==0.5.0"
     assert packages[1].identifier == "B==3.0.0"
     assert packages[2].identifier == "A[V3]==1.0.0"
+
+
+def test_scenario_42():
+    """Fail to compute packages for the following graph.
+
+    Root
+     |
+     |--(A): A[V1]
+     |   |
+     |   `--(C>1): C==1.5.0
+     |
+     |--(A): A[V2]
+     |   |
+     |   `--(C>1): C==1.5.0
+     |
+     |--(B): B[V1]
+     |   |
+     |   `--(C<1): C==0.5.0
+     |
+     `--(B): B[V2]
+         |
+         `--(C<1): C==0.5.0
+
+    Expected: Unable to compute due to requirement compatibility between
+    'C <1' and 'C >1'.
+
+    """
+    definition_mapping = {
+        "A": {
+            "-": wiz.definition.Definition({
+                "identifier": "A",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                        "requirements": ["C>1"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["C>1"]
+                    },
+                ]
+            }),
+        },
+        "B": {
+            "-": wiz.definition.Definition({
+                "identifier": "B",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                        "requirements": ["C<1"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["C<1"]
+                    },
+                ]
+            }),
+        },
+        "C": {
+            "1.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "1.5.0"
+            }),
+            "0.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.5.0"
+            }),
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        resolver.compute_packages([Requirement("A"), Requirement("B")])
+
+    assert (
+        "The dependency graph could not be resolved due to the "
+        "following requirement conflicts:\n"
+        "  * ::C <1 \t[B[V2]]\n"
+        "  * ::C >1 \t[A[V2]]"
+    ) in str(error.value)
