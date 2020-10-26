@@ -161,15 +161,15 @@ class Resolver(object):
                 # Extract conflicting identifiers and requirements if possible.
                 if isinstance(error, wiz.exception.GraphConflictsError):
                     self._conflicting_combinations.extend([
-                        (combination, mapping["identifiers"])
-                        for mapping in error.conflicts
+                        (combination, identifiers)
+                        for _, identifiers in error.conflicts
                     ])
 
                 # Divide the graph into new combinations if necessary
                 if isinstance(error, wiz.exception.GraphVariantsError):
                     self.extract_combinations(combination.graph)
 
-                self._logger.debug("Failed to resolve graph: {}".format(error))
+                self._logger.info("Failed to resolve graph: {}".format(error))
                 latest_error = error
                 nb_failures += 1
 
@@ -559,31 +559,24 @@ def combined_requirements(graph, nodes):
 
 
 def extract_conflicting_requirements(graph, nodes):
-    """Return list of conflicting requirement mappings.
-
-    The list returned should be in the form of::
-
-        [
-            {
-                "requirement": Requirement("foo >=0.1.0, <1"),
-                "identifiers": {"bar", "bim"},
-            },
-            {
-                "requirement": Requirement("foo >2"),
-                "identifiers": {"baz"},
-            }
-        ]
+    """Return mapping of conflicting node identifiers per requirement.
 
     A requirement is conflicting when it is not overlapping with at least one
-    other requirement from existing parents of *nodes*. The conflict list
-    is sorted based on the number of times a requirement is conflicting.
+    other requirement from existing parents of *nodes*.
 
     :param graph: Instance of :class:`Graph`.
 
     :param nodes: List of :class:`Node` instances which belong to the
         same definition identifier.
 
-    :return: List of conflict mappings.
+    :return: Mapping in the form of
+        ::
+
+            {
+                Requirement("foo >=0.1.0, <1"): {"bar", "bim"},
+                Requirement("foo >2"): {"baz},
+                ...
+            }
 
     """
     # Ensure that definition requirement is the same for all nodes.
@@ -595,49 +588,33 @@ def extract_conflicting_requirements(graph, nodes):
             "nodes [{}]".format(", ".join(sorted(definitions)))
         )
 
-    # Identify all parent node identifier per requirement.
-    mapping1 = {}
+    # Identify all parent node identifiers per requirement.
+    requirement_mapping = {}
 
     for node in nodes:
-        for parent_identifier in node.parent_identifiers:
+        for identifier in node.parent_identifiers:
             # Filter out non existing nodes from incoming.
-            if (
-                parent_identifier != graph.ROOT and
-                not graph.exists(parent_identifier)
-            ):
+            if identifier != graph.ROOT and not graph.exists(identifier):
                 continue
 
-            identifier = node.identifier
-            requirement = graph.link_requirement(identifier, parent_identifier)
-
-            mapping1.setdefault(requirement, set([]))
-            mapping1[requirement].add(parent_identifier)
+            requirement = graph.link_requirement(node.identifier, identifier)
+            requirement_mapping.setdefault(requirement, set())
+            requirement_mapping[requirement].add(identifier)
 
     # Identify all conflicting requirements.
-    mapping2 = {}
+    conflicting = set()
 
-    for tuple1, tuple2 in (
-        itertools.combinations(mapping1.items(), 2)
+    for requirement1, requirement2 in (
+        itertools.combinations(requirement_mapping.keys(), 2)
     ):
-        requirement1, requirement2 = tuple1[0], tuple2[0]
         if not wiz.utility.is_overlapping(requirement1, requirement2):
-            mapping2.setdefault(requirement1, set([]))
-            mapping2.setdefault(requirement2, set([]))
-            mapping2[requirement1].add(requirement2)
-            mapping2[requirement2].add(requirement1)
+            conflicting.update({requirement1, requirement2})
 
-    # Create conflict mapping list.
-    conflicts = []
-
-    for requirement, conflicting_requirements in sorted(
-        mapping2.items(), key=lambda v: (len(v[1]), str(v[0])), reverse=True
-    ):
-        conflicts.append({
-            "requirement": requirement,
-            "identifiers": mapping1[requirement],
-        })
-
-    return conflicts
+    return {
+        requirement: identifiers
+        for requirement, identifiers in requirement_mapping.items()
+        if requirement in conflicting
+    }
 
 
 class Graph(object):
@@ -1149,7 +1126,7 @@ class Graph(object):
 
         except wiz.exception.WizError as error:
             self._error_mapping.setdefault(parent_identifier, [])
-            self._error_mapping[parent_identifier].append(str(error))
+            self._error_mapping[parent_identifier].append(error)
             return
 
         # Create a node for each package if necessary.
@@ -1338,12 +1315,15 @@ class Graph(object):
             ]
 
             if not len(_nodes):
+                definition_id = node_removed.definition.qualified_identifier
+                nodes = self.nodes(definition_identifier=definition_id)
+                conflicts = extract_conflicting_requirements(
+                    self, nodes + [node_removed]
+                )
+
                 self._error_mapping.setdefault(_identifier, [])
                 self._error_mapping[_identifier].append(
-                    "Requirement '{}' can not be satisfied once '{}' is "
-                    "removed from the graph.".format(
-                        _requirement, node_removed.identifier,
-                    )
+                    wiz.exception.GraphConflictsError(conflicts)
                 )
                 continue
 
@@ -1483,9 +1463,9 @@ class Graph(object):
             self.remove_node(node.identifier)
             self.relink_parents(node)
 
-        self._logger.debug(
+        print(
             "The following nodes have been updated in the graph:\n"
-            "{}".format(
+            "{}\n".format(
                 "\n".join([
                     "  * {} -> {}".format(identifier, identifiers)
                     for identifier, identifiers in replacement.items()
@@ -2014,8 +1994,8 @@ class Combination(object):
             )
 
         except wiz.exception.RequestNotFound:
-            conflicts = extract_conflicting_requirements(self._graph, nodes)
-            parents = set(_id for m in conflicts for _id in m["identifiers"])
+            conflicting = extract_conflicting_requirements(self._graph, nodes)
+            parents = set(itertools.chain(*conflicting.values()))
 
             # Push conflict at the end of the queue if it has conflicting
             # parents that should be handled first.
@@ -2028,7 +2008,7 @@ class Combination(object):
                 return
 
             # Otherwise, raise error and give up on current combination.
-            raise wiz.exception.GraphConflictsError(conflicts)
+            raise wiz.exception.GraphConflictsError(conflicting)
 
     def _add_packages_to_graph(self, packages, requirement, conflicting_nodes):
         """Add *packages* to embedded graph as detached nodes if necessary.
@@ -2078,10 +2058,18 @@ class Combination(object):
         return False
 
     def validate(self):
-        """Ensure that *graph* does not have remaining errors.
+        """Ensure that graph does not have remaining errors.
+
+        If some conflicting errors are found, they would be regrouped and raised
+        into one :exc:`~wiz.exception.GraphConflictsError` exception. Other
+        type of errors will be regrouped and raised into one
+        :exc:`~wiz.exception.GraphInvalidNodesError` exception.
 
         :raise: :exc:`wiz.exception.GraphInvalidNodesError` if any error is
             found in the embedded graph.
+
+        :raise: :exc:`wiz.exception.GraphConflictsError` if any requirement
+            conflict is found in the embedded graph.
 
         """
         error_mapping = self._graph.errors()
@@ -2097,7 +2085,24 @@ class Combination(object):
             graph=self._graph, errors=list(error_mapping.keys())
         )
 
-        raise wiz.exception.GraphInvalidNodesError(error_mapping)
+        # Extract potential conflicts from errors and combine into one mapping.
+        conflicting = {}
+
+        for errors in error_mapping.values():
+            for error in errors:
+                for requirement, identifiers in getattr(error, "conflicts", []):
+                    conflicting.setdefault(requirement, set())
+                    conflicting[requirement].update(identifiers)
+
+        # Raise combined exception for conflicts if necessary.
+        if len(conflicting):
+            raise wiz.exception.GraphConflictsError(conflicting)
+
+        # Otherwise, raise combined exception with remaining errors.
+        raise wiz.exception.GraphInvalidNodesError({
+            name: error for name, error in error_mapping.items()
+            if not isinstance(error, wiz.exception.GraphConflictsError)
+        })
 
     def extract_packages(self):
         """Return sorted list of packages from embedded graph.

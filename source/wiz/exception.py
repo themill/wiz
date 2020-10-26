@@ -122,40 +122,38 @@ class GraphResolutionError(WizError):
 class GraphConflictsError(GraphResolutionError):
     """Raise when unsolvable conflicts are found in the graph."""
 
-    def __init__(self, conflicts):
+    def __init__(self, conflicting):
         """Initialize with a list of conflict mappings.
 
-        :param conflicts: List of conflict mappings which should be in the
-            form of::
+        :param conflicting: Mapping of conflicting node identifiers per
+            requirement. It should be in the form of::
 
-                [
-                    {
-                        "requirement": Requirement("foo >=0.1.0, <1"),
-                        "identifiers": {"bar", "bim"},
-                        "conflicts": {"baz"},
-                        "graph": Graph()
-                    },
-                    {
-                        "requirement": Requirement("foo >2"),
-                        "identifiers": {"baz"},
-                        "conflicts": {"bar", "bim"},
-                        "graph": Graph()
-                    }
-                    ...
-                ]
+            {
+                Requirement("foo >=0.1.0, <1"): {"bar", "bim"},
+                Requirement("foo >2"): {"baz},
+                ...
+            }
 
         """
-        self.conflicts = conflicts
+        # Sort conflicting requirements per ascending number of conflicting
+        # nodes so that resolver attempts to downgrade versions of the smallest
+        # cluster first.
+        self.conflicts = sorted(
+            conflicting.items(), key=lambda t: (len(t[1]), str(t[0]))
+        )
 
-        def _format(mapping):
+        def _format(requirement, identifiers):
             """Display conflicting *mapping*."""
-            identifiers = list(mapping["identifiers"])[:3]
-            if len(mapping["identifiers"]) > 3:
-                others = len(mapping["identifiers"]) - 3
-                identifiers += ["+{} packages...".format(others)]
+            # Convert set to list and sort to make message deterministic.
+            identifiers = sorted(identifiers)
+
+            # Truncate list if too long.
+            if len(identifiers) > 3:
+                _ellipsis = "+{} packages...".format(len(identifiers[3:]))
+                identifiers = identifiers[:3] + [_ellipsis]
 
             return "  * {requirement} \t[{identifiers}]".format(
-                requirement=mapping["requirement"],
+                requirement=requirement,
                 identifiers=", ".join(identifiers)
             )
 
@@ -163,7 +161,7 @@ class GraphConflictsError(GraphResolutionError):
             message=(
                 "The dependency graph could not be resolved due to the "
                 "following requirement conflicts:\n"
-                "{}\n".format("\n".join([_format(m) for m in conflicts]))
+                "{}\n".format("\n".join([_format(*c) for c in self.conflicts]))
             )
         )
 
