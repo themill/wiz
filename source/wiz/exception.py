@@ -19,6 +19,12 @@ class WizError(Exception):
         """Return human readable representation."""
         return str(self.message)
 
+    def __eq__(self, other):
+        """Compare with *other*."""
+        if isinstance(other, WizError):
+            return self.message == other.message
+        return False
+
 
 class CurrentSystemError(WizError):
     """Raise when the system is incorrect."""
@@ -165,6 +171,12 @@ class GraphConflictsError(GraphResolutionError):
             )
         )
 
+    def __eq__(self, other):
+        """Compare with *other*."""
+        if isinstance(other, GraphConflictsError):
+            return self.conflicts == other.conflicts
+        return super(GraphConflictsError, self).__eq__(other)
+
 
 class GraphInvalidNodesError(GraphResolutionError):
     """Raise when invalid nodes are found in the graph."""
@@ -191,6 +203,12 @@ class GraphInvalidNodesError(GraphResolutionError):
                 )
             )
         )
+
+    def __eq__(self, other):
+        """Compare with *other*."""
+        if isinstance(other, GraphInvalidNodesError):
+            return self.error_mapping == other.error_mapping
+        return super(GraphInvalidNodesError, self).__eq__(other)
 
 
 class GraphVariantsError(GraphResolutionError):
