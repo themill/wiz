@@ -295,11 +295,11 @@ def compute_distance_mapping(graph):
     """Return distance mapping for each node of *graph*.
 
     The mapping indicates the shortest possible distance of each node
-    identifier from the :attr:`root <Graph.ROOT>` level of the *graph* with
+    identifier from the :attr:`root <Graph.ROOT>` level of the graph with
     corresponding parent node identifier.
 
     The distance is defined by the sum of the weights from each node to the
-    :attr:`root <Graph.ROOT>` level of the *graph*.
+    :attr:`root <Graph.ROOT>` level of the graph.
 
     This is using `Dijkstra's shortest path algorithm
     <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>`_.
@@ -367,7 +367,11 @@ def compute_distance_mapping(graph):
 
 
 def generate_variant_permutations(graph, variant_groups):
-    """Yield all possible permutations of the variant groups.
+    """Yield valid permutations of the variant groups.
+
+    Group containing nodes nearest to the :attr:`root <Graph.ROOT>` level of the
+    graph are yield first and variant permutations containing conflicting
+    requirements are discarded.
 
     :param graph: Instance of :class:`Graph`.
 
@@ -450,16 +454,6 @@ def generate_variant_permutations(graph, variant_groups):
 
             permutations_used.add(_hash)
             yield permutation
-
-    # Once all optimized permutations are exhausted, test all other
-    # permutations.
-
-    for permutation in itertools.product(*groups):
-        _hash = hash(tuple(sorted(permutation)))
-        if _hash in permutations_used:
-            continue
-
-        yield permutation
 
 
 def compute_conflicting_matrix(graph, variant_groups):
