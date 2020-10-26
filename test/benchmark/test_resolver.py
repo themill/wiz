@@ -2960,3 +2960,159 @@ def test_scenario_39(benchmark):
         ])
 
     benchmark(_resolve)
+
+
+def test_scenario_40(benchmark):
+    """Compute packages for the following graph.
+
+    Like scenario 34, a conflict appear when relinking parents as two
+    requirements are explicitly requesting conflicting variants: "A[V2]" and
+    "A[V3]". But this time, the graph contains a version conflict which will
+    be resolved by removing "A[V2]", hence making this conflict irrelevant.
+
+    Root
+     |
+     |--(A[V3]): A[V3]==1.0.0
+     |   |
+     |   `--(B >=3, <4): B==3.0.0
+     |
+     |--(C >=1): C==2.0.0
+     |   |
+     |   `--(A[V2]): A[V2]==1.0.0
+     |       |
+     |       `--(B >=2, <3): B==2.0.0
+     |
+     `--(E): E
+         |
+         `--(C >=1, <2): C==1.5.0
+
+    Expected: E, C==1.5.0, B==3.0.0, A[V3]==1.0.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    }
+                ]
+            })
+        },
+        "B": {
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
+        },
+        "C": {
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "2.0.0",
+                "requirements": ["A[V2]"]
+            }),
+            "1.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "1.5.0"
+            }),
+        },
+        "E": {
+            "-": wiz.definition.Definition({
+                "identifier": "E",
+                "requirements": ["C >=1, <2"]
+            }),
+        }
+    }
+
+    def _resolve():
+        """Resolve context."""
+        resolver = wiz.graph.Resolver(definition_mapping)
+        resolver.compute_packages([
+            Requirement("A[V3]"), Requirement("C >=1"), Requirement("E"),
+        ])
+
+    benchmark(_resolve)
+
+
+def test_scenario_41(benchmark):
+    """Compute packages for the following graph.
+
+    Like scenario 34, a conflict appear when relinking parents as two
+    requirements are explicitly requesting conflicting variants: "A[V2]" and
+    "A[V3]". But this time, the resolver can downgrade versions of conflicting
+    nodes to find a solution.
+
+    Root
+     |
+     |--(A[V3]): A[V3]==1.0.0
+     |   |
+     |   `--(B >=3, <4): B==3.0.0
+     |
+     `--(C): C==1.0.0
+         |
+         `--(A[V2]): A[V2]==1.0.0
+             |
+             `--(B >=2, <3): B==2.0.0
+
+    Expected: C==0.5.0, B==3.0.0, A[V3]==1.0.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    }
+                ]
+            })
+        },
+        "B": {
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
+        },
+        "C": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "1.0.0",
+                "requirements": ["A[V2]"]
+            }),
+            "0.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.5.0",
+            })
+        }
+    }
+
+    def _resolve():
+        """Resolve context."""
+        resolver = wiz.graph.Resolver(definition_mapping)
+        resolver.compute_packages([
+            Requirement("A[V3]"), Requirement("C")
+        ])
+
+    benchmark(_resolve)
