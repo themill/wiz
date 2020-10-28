@@ -43,8 +43,8 @@ def mocked_resolver(mocker):
 
 @pytest.fixture()
 def mocked_combined_requirements(mocker):
-    """Return mocked wiz.graph.combined_requirements function."""
-    return mocker.patch.object(wiz.graph, "combined_requirements")
+    """Return mocked wiz.graph._combined_requirements function."""
+    return mocker.patch.object(wiz.graph, "_combined_requirements")
 
 
 @pytest.fixture()
@@ -67,8 +67,8 @@ def mocked_compute_conflicting_matrix(mocker):
 
 @pytest.fixture()
 def mocked_extract_conflicting_requirements(mocker):
-    """Return mocked wiz.graph.extract_conflicting_requirements function."""
-    return mocker.patch.object(wiz.graph, "extract_conflicting_requirements")
+    """Return mocked wiz.graph._extract_conflicting_requirements function."""
+    return mocker.patch.object(wiz.graph, "_extract_conflicting_requirements")
 
 
 @pytest.fixture()
@@ -1355,11 +1355,11 @@ def test_generate_variant_permutations_all_conflicting(
     )
 
 
-def test_generate_variant_permutations_optimized(
+def test_generate_variant_permutations_optimized_two_groups(
     mocked_graph, mocked_compute_distance_mapping,
     mocked_compute_conflicting_matrix
 ):
-    """Yield optimized permutations when some variant nodes are conflicting."""
+    """Yield optimized permutations for two groups."""
     variant_groups = {
         (("A[V3]",), ("A[V2]",), ("A[V1]",)),
         (("B[V2]==2", "B[V2]==1"), ("B[V1]==1",))
@@ -1391,6 +1391,83 @@ def test_generate_variant_permutations_optimized(
         (("B[V2]==2", "B[V2]==1"), ("A[V3]",)),
         (("B[V2]==2", "B[V2]==1"), ("A[V1]",)),
         (("B[V2]==1",), ("A[V2]",)),
+    ]
+
+    mocked_compute_conflicting_matrix.assert_called_once_with(
+        mocked_graph, variant_groups
+    )
+
+
+def test_generate_variant_permutations_optimized_three_groups(
+    mocked_graph, mocked_compute_distance_mapping,
+    mocked_compute_conflicting_matrix
+):
+    """Yield optimized permutations for three groups."""
+    variant_groups = {
+        (("A[V3]",), ("A[V2]",), ("A[V1]",)),
+        (("B[V2]==2", "B[V2]==1"), ("B[V1]==1",)),
+        (("C[V2]",), ("C[V1]",)),
+    }
+    mocked_compute_distance_mapping.return_value = {
+        "A[V3]": {"distance": 3},
+        "A[V2]": {"distance": 3},
+        "A[V1]": {"distance": 3},
+        "B[V2]==2": {"distance": 2},
+        "B[V2]==1": {"distance": 2},
+        "B[V1]==1": {"distance": 1},
+        "C[V2]": {"distance": 1},
+        "C[V1]": {"distance": 1},
+    }
+    mocked_compute_conflicting_matrix.return_value = {
+        "A[V3]": {
+            "B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": True,
+            "C[V2]": False, "C[V1]": False,
+        },
+        "A[V2]": {
+            "B[V2]==2": True, "B[V2]==1": False, "B[V1]==1": True,
+            "C[V2]": False, "C[V1]": True,
+        },
+        "A[V1]": {
+            "B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": False,
+            "C[V2]": False, "C[V1]": True,
+        },
+        "B[V2]==2": {
+            "A[V3]": False, "A[V2]": True, "A[V1]": False,
+            "C[V2]": False, "C[V1]": True,
+        },
+        "B[V2]==1": {
+            "A[V3]": False, "A[V2]": False, "A[V1]": False,
+            "C[V2]": False, "C[V1]": False,
+        },
+        "B[V1]==1": {
+            "A[V3]": True, "A[V2]": True, "A[V1]": False,
+            "C[V2]": False, "C[V1]": False,
+        },
+        "C[V2]": {
+            "A[V3]": False, "A[V2]": False, "A[V1]": False,
+            "B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": False,
+        },
+        "C[V1]": {
+            "A[V3]": False, "A[V2]": True, "A[V1]": True,
+            "B[V2]==2": True, "B[V2]==1": False, "B[V1]==1": False,
+        }
+    }
+
+    result = wiz.graph.generate_variant_permutations(
+        mocked_graph, variant_groups
+    )
+
+    assert isinstance(result, collections.Iterable)
+    assert list(result) == [
+        (("B[V1]==1",), ("C[V2]",), ("A[V1]",)),
+        (("B[V2]==2", "B[V2]==1"), ("C[V2]",), ("A[V3]",)),
+        (("B[V2]==2", "B[V2]==1"), ("C[V2]",), ("A[V1]",)),
+        (("B[V1]==1",), ("C[V2]",), ("A[V3]",)),
+        (("B[V2]==2", "B[V2]==1"), ("C[V2]",), ("A[V2]",)),
+        (("B[V2]==1",), ("C[V2]",), ("A[V3]",)),
+        (("B[V2]==1",), ("C[V2]",), ("A[V2]",)),
+        (("B[V2]==1",), ("C[V2]",), ("A[V1]",)),
+        (("B[V2]==1",), ("C[V1]",), ("A[V3]",))
     ]
 
     mocked_compute_conflicting_matrix.assert_called_once_with(
@@ -1690,7 +1767,7 @@ def test_combined_requirements(mocked_graph):
         for version, parents in zip(versions, parents_sets)
     ]
 
-    assert wiz.graph.combined_requirements(mocked_graph, nodes) == (
+    assert wiz.graph._combined_requirements(mocked_graph, nodes) == (
         Requirement("foo >=1, ==1.2.3, <2")
     )
 
@@ -1722,7 +1799,7 @@ def test_combined_requirements_error(mocked_graph):
     ]
 
     with pytest.raises(wiz.exception.GraphResolutionError) as error:
-        wiz.graph.combined_requirements(mocked_graph, nodes)
+        wiz.graph._combined_requirements(mocked_graph, nodes)
 
     assert (
         "Impossible to combine requirements with different names "
@@ -1762,7 +1839,7 @@ def test_extract_conflicting_requirements(mocked_graph):
         for version, parents in zip(versions, parents_sets)
     ]
 
-    conflicting = wiz.graph.extract_conflicting_requirements(
+    conflicting = wiz.graph._extract_conflicting_requirements(
         mocked_graph, nodes
     )
 
@@ -1795,7 +1872,7 @@ def test_extract_conflicting_requirements_error(mocked_graph):
     ]
 
     with pytest.raises(ValueError) as error:
-        wiz.graph.extract_conflicting_requirements(mocked_graph, nodes)
+        wiz.graph._extract_conflicting_requirements(mocked_graph, nodes)
 
     assert (
         "All nodes should have the same definition identifier when "
