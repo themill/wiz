@@ -61,8 +61,8 @@ def mocked_generate_variant_permutations(mocker):
 
 @pytest.fixture()
 def mocked_compute_conflicting_matrix(mocker):
-    """Return mocked wiz.graph.compute_conflicting_matrix function."""
-    return mocker.patch.object(wiz.graph, "compute_conflicting_matrix")
+    """Return mocked wiz.graph._compute_conflicting_matrix function."""
+    return mocker.patch.object(wiz.graph, "_compute_conflicting_matrix")
 
 
 @pytest.fixture()
@@ -1389,8 +1389,8 @@ def test_generate_variant_permutations_optimized(
     assert list(result) == [
         (("B[V1]==1",), ("A[V1]",)),
         (("B[V2]==2", "B[V2]==1"), ("A[V3]",)),
-        (("B[V2]==1",), ("A[V2]",)),
         (("B[V2]==2", "B[V2]==1"), ("A[V1]",)),
+        (("B[V2]==1",), ("A[V2]",)),
     ]
 
     mocked_compute_conflicting_matrix.assert_called_once_with(
@@ -1399,24 +1399,24 @@ def test_generate_variant_permutations_optimized(
 
 
 @pytest.mark.parametrize("variant_groups, expected", [
-    (set(), []),
+    (set(), ()),
     (
         {(("B[V2]==2", "B[V2]==1"), ("B[V1]==1",))},
-        [(("B[V1]==1",), ("B[V2]==2", "B[V2]==1"))]
+        ((("B[V1]==1",), ("B[V2]==2", "B[V2]==1")),)
     ),
     (
         {(("B[V1]==1",), ("B[V2]==2", "B[V2]==1"))},
-        [(("B[V1]==1",), ("B[V2]==2", "B[V2]==1"))]
+        ((("B[V1]==1",), ("B[V2]==2", "B[V2]==1")),)
     ),
     (
         {
             (("A[V3]",), ("A[V2]",), ("A[V1]",)),
             (("B[V2]==2", "B[V2]==1"), ("B[V1]==1",))
         },
-        [
+        (
             (("B[V1]==1",), ("B[V2]==2", "B[V2]==1")),
             (("A[V3]",), ("A[V2]",), ("A[V1]",)),
-        ]
+        )
     )
 ], ids=[
     "empty",
@@ -1435,14 +1435,14 @@ def test_sorted_variant_groups(variant_groups, expected):
         "B[V1]==1": {"distance": 1},
     }
 
-    assert wiz.graph.sorted_variant_groups(variant_groups, mapping) == expected
+    assert wiz.graph._sorted_variant_groups(variant_groups, mapping) == expected
 
 
 def test_compute_conflicting_matrix_empty(
     mocked_graph, mocked_check_conflicting_requirements
 ):
     """Compute conflicting matrix for empty variant group."""
-    assert wiz.graph.compute_conflicting_matrix(mocked_graph, set()) == {}
+    assert wiz.graph._compute_conflicting_matrix(mocked_graph, set()) == {}
 
     mocked_check_conflicting_requirements.assert_not_called()
 
@@ -1452,7 +1452,7 @@ def test_compute_conflicting_matrix_one_group(
 ):
     """Compute conflicting matrix for one variant group."""
     groups = {(("A[V3]",), ("A[V2]",))}
-    assert wiz.graph.compute_conflicting_matrix(mocked_graph, groups) == {}
+    assert wiz.graph._compute_conflicting_matrix(mocked_graph, groups) == {}
 
     mocked_check_conflicting_requirements.assert_not_called()
 
@@ -1514,7 +1514,7 @@ def test_compute_conflicting_matrix_two_groups(
     mocked_graph.node = _fetch_mocked_node
     mocked_check_conflicting_requirements.side_effect = conflicts
 
-    result = wiz.graph.compute_conflicting_matrix(mocked_graph, groups)
+    result = wiz.graph._compute_conflicting_matrix(mocked_graph, groups)
     assert result == expected
 
     assert mocked_check_conflicting_requirements.call_args_list == [
@@ -1645,7 +1645,7 @@ def test_compute_conflicting_matrix_three_groups(
     mocked_graph.node = _fetch_mocked_node
     mocked_check_conflicting_requirements.side_effect = conflicts
 
-    result = wiz.graph.compute_conflicting_matrix(mocked_graph, groups)
+    result = wiz.graph._compute_conflicting_matrix(mocked_graph, groups)
     assert result == expected
 
     assert mocked_check_conflicting_requirements.call_args_list == [
