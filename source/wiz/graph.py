@@ -655,7 +655,7 @@ def _compute_conflicting_matrix(graph, variant_groups):
     return mapping
 
 
-def combined_requirements(graph, nodes):
+def _combined_requirements(graph, nodes):
     """Return combined requirements from *nodes* in *graph*.
 
     :param graph: Instance of :class:`Graph`.
@@ -693,7 +693,7 @@ def combined_requirements(graph, nodes):
     return requirement
 
 
-def extract_conflicting_requirements(graph, nodes):
+def _extract_conflicting_requirements(graph, nodes):
     """Return mapping of conflicting node identifiers per requirement.
 
     A requirement is conflicting when it is not overlapping with at least one
@@ -1458,7 +1458,7 @@ class Graph(object):
             if not len(_nodes):
                 definition_id = node_removed.definition.qualified_identifier
                 nodes = self.nodes(definition_identifier=definition_id)
-                conflicts = extract_conflicting_requirements(
+                conflicts = _extract_conflicting_requirements(
                     self, nodes + [node_removed]
                 )
 
@@ -1566,7 +1566,7 @@ class Graph(object):
 
             # Extract combined requirement to node and modify it to exclude
             # current package version.
-            requirement = combined_requirements(self, [node])
+            requirement = _combined_requirements(self, [node])
             exclusion_requirement = wiz.utility.get_requirement(
                 "{} != {}".format(requirement.name, node.package.version)
             )
@@ -2000,7 +2000,7 @@ class Combination(object):
                 continue
 
             # Compute combined requirements from all conflicting nodes.
-            requirement = combined_requirements(self._graph, nodes)
+            requirement = _combined_requirements(self._graph, nodes)
 
             # Query common packages from this combined requirements.
             packages = self._discover_packages(
@@ -2135,7 +2135,7 @@ class Combination(object):
             )
 
         except wiz.exception.RequestNotFound:
-            conflicting = extract_conflicting_requirements(self._graph, nodes)
+            conflicting = _extract_conflicting_requirements(self._graph, nodes)
             parents = set(itertools.chain(*conflicting.values()))
 
             # Push conflict at the end of the queue if it has conflicting
