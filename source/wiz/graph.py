@@ -395,7 +395,7 @@ def generate_variant_permutations(graph, variant_groups):
     permutations_used = set()
 
     # Compute conflicting matrix to check compatibility between packages.
-    conflicting_matrix = compute_conflicting_matrix(graph, variant_groups)
+    conflicting_matrix = _compute_conflicting_matrix(graph, variant_groups)
 
     # Organise all definition groups per minimum distance to the root level
     # of the graph to prioritizing nodes with the smallest distance to the root
@@ -446,7 +446,7 @@ def _sorted_variant_groups(variant_groups, distance_mapping):
         of each node identifier from the :attr:`root <Graph.ROOT>` level of the
         *graph* with its corresponding parent node identifier.
 
-    :return: List containing sorted variant groups.
+    :return: Tuple containing sorted variant groups.
 
      """
     _variant_groups = []
@@ -465,13 +465,29 @@ def _sorted_variant_groups(variant_groups, distance_mapping):
     _variant_groups.sort()
 
     # Return sorted groups after filtering out the minimum distance.
-    return [
+    return tuple([
         tuple([groups for _, groups in definition_group])
         for definition_group in _variant_groups
-    ]
+    ])
 
 
 def _extract_optimized_variant_groups(variant_groups, conflicting):
+    """Extract list of optimized variant groups skipping conflicting nodes.
+
+    :param variant_groups: :func:`Sorted <_sorted_variant_groups>` variant
+        groups tuple. It should be in the form of::
+
+            (
+                (("foo[V2]==0.1.0",), ("foo[V1]==0.1.0"),),
+                (("bar[V2]==2.2.0",), ("bar[V1]==2.2.0", "bar[V1]==2.0.0"))
+            )
+
+    :param conflicting: Mapping recording conflicting status between each
+        definition node.
+
+    :return: List of optimized variant groups.
+
+    """
     variant_groups_list = []
 
     # Compute optimized variants group for each variant group within each
@@ -481,8 +497,7 @@ def _extract_optimized_variant_groups(variant_groups, conflicting):
 
             # Filter out every nodes identifier conflicting with group.
             _group = _filtered_variant_groups(
-                variant_groups,
-                filter_callback=lambda _index, _id: not (
+                variant_groups, callback=lambda _index, _id: not (
                     (_index == index and _id not in group)
                     or any(conflicting.get(id2, {}).get(_id) for id2 in group)
                 )
@@ -516,9 +531,7 @@ def _extract_optimized_variant_groups(variant_groups, conflicting):
             # in the same group.
             for conflicting_group in conflicting_groups:
                 _new_group = _filtered_variant_groups(
-                    _group, filter_callback=lambda _, _id: (
-                        _id not in conflicting_group
-                    )
+                    _group, callback=lambda _, _id: _id not in conflicting_group
                 )
 
                 # Discard filtered group if one entire definition group is
@@ -532,7 +545,38 @@ def _extract_optimized_variant_groups(variant_groups, conflicting):
     return variant_groups_list
 
 
-def _filtered_variant_groups(variant_groups, filter_callback):
+def _filtered_variant_groups(variant_groups, callback):
+    """Return filtered variant group using *callback*.
+
+    Example::
+
+        >>> groups = (
+        ...     (("A[V1]=1", "A[V1]=2"), ("A[V2]",)),
+        ...     (("B[V2]",), ("B[V1]",))
+        ... )
+        >>> _filtered_variant_groups(
+        ...     groups, callback _, _id= _id not in ("A[V1]=2", "B[V1]")
+        ... )
+        ((("A[V1]=1", ("A[V2]",)), (("B[V2]",),))
+
+    :param variant_groups: :func:`Sorted <_sorted_variant_groups>` variant
+        groups tuple. It should be in the form of::
+
+            (
+                (("foo[V2]==0.1.0",), ("foo[V1]==0.1.0"),),
+                (("bar[V2]==2.2.0",), ("bar[V1]==2.2.0", "bar[V1]==2.0.0"))
+            )
+
+    :param callback: Function returning whether a specific node identifier
+        should be kept in the variant groups. It should be in the form of::
+
+            def filter_callback(group_index, identifier):
+                \"""Return whether node *identifier* should be kept.\"""
+                return group_index == _index and identifier not in _group
+
+    :return: Filtered variant groups.
+
+    """
     filtered_group = []
 
     for index, definition_group in enumerate(variant_groups):
@@ -542,7 +586,7 @@ def _filtered_variant_groups(variant_groups, filter_callback):
             _group = []
 
             for identifier in group:
-                if filter_callback(index, identifier):
+                if callback(index, identifier):
                     _group.append(identifier)
 
             if len(_group):
@@ -554,7 +598,7 @@ def _filtered_variant_groups(variant_groups, filter_callback):
     return tuple(filtered_group)
 
 
-def compute_conflicting_matrix(graph, variant_groups):
+def _compute_conflicting_matrix(graph, variant_groups):
     """Compute conflicting matrix for all nodes in variant groups.
 
     Example::
@@ -563,7 +607,7 @@ def compute_conflicting_matrix(graph, variant_groups):
         ...     (("A[V3]",), ("A[V2]",), ("A[V1]",)),
         ...     (("B[V2]==2", "B[V2]==1"), ("B[V1]==1",))
         ... }
-        >>> compute_conflicting_matrix(graph, groups)
+        >>> _compute_conflicting_matrix(graph, groups)
         {
             "A[V3]": {"B[V2]==2": True, "B[V2]==1": False, "B[V1]==1": True},
             "A[V2]": {"B[V2]==2": True, "B[V2]==1": False, "B[V1]==1": True},
