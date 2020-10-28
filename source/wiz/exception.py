@@ -134,11 +134,11 @@ class GraphConflictsError(GraphResolutionError):
         :param conflicting: Mapping of conflicting node identifiers per
             requirement. It should be in the form of::
 
-            {
-                Requirement("foo >=0.1.0, <1"): {"bar", "bim"},
-                Requirement("foo >2"): {"baz},
-                ...
-            }
+                {
+                    Requirement("foo >=0.1.0, <1"): {"bar", "bim"},
+                    Requirement("foo >2"): {"baz},
+                    ...
+                }
 
         """
         # Sort conflicting requirements per ascending number of conflicting

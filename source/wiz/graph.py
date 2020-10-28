@@ -2388,13 +2388,12 @@ class _DistanceQueue(dict):
     """Distance mapping which can be used as a queue.
 
     Distances are cumulated weights computed between each node and the
-    :attr:`root of the graph <Graph.ROOT>`.
+    :attr:`root <Graph.ROOT>` level of the graph. Keys of the dictionary are
+    node identifiers added into a queue, and values are their respective
+    distances.
 
-    Keys of the dictionary are node identifiers added into a queue, and
-    values are their respective distances.
-
-    The advantage over a standard heapq-based distance queue is that distances
-    of node identifiers can be efficiently updated (amortized O(1)).
+    The advantage over a standard :mod:`heapq`-based distance queue is that
+    distances of node identifiers can be efficiently updated (amortized O(1)).
 
     .. note::
 
