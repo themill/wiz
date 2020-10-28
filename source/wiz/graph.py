@@ -411,9 +411,8 @@ def generate_variant_permutations(graph, variant_groups):
     # If all variant groups are conflicting, simply return one permutation of
     # the original variant groups.
     if len(variant_groups_list) == 0:
-        for permutation in itertools.product(*variant_groups):
-            yield permutation
-            return
+        yield tuple(tuple(def_grp[0]) for def_grp in variant_groups)
+        return
 
     # Otherwise return permutations for each optimized variant groups.
     for _variant_groups in variant_groups_list:
