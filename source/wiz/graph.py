@@ -220,7 +220,7 @@ class Resolver(object):
         def _generate_combinations():
             """Yield combinations from variant groups."""
             for index, permutation in enumerate(
-                generate_variant_permutations(graph, groups)
+                _generate_variant_permutations(graph, groups)
             ):
                 if index + 1 > self._maximum_combinations:
                     return
@@ -291,7 +291,7 @@ class Resolver(object):
             return True
 
 
-def compute_distance_mapping(graph):
+def _compute_distance_mapping(graph):
     """Return distance mapping for each node of *graph*.
 
     The mapping indicates the shortest possible distance of each node
@@ -366,7 +366,7 @@ def compute_distance_mapping(graph):
     return distance_mapping
 
 
-def generate_variant_permutations(graph, variant_groups):
+def _generate_variant_permutations(graph, variant_groups):
     """Yield valid permutations of the variant groups.
 
     Group containing nodes nearest to the :attr:`root <Graph.ROOT>` level of the
@@ -389,7 +389,7 @@ def generate_variant_permutations(graph, variant_groups):
         does not exist in the graph.
 
     """
-    distance_mapping = compute_distance_mapping(graph)
+    distance_mapping = _compute_distance_mapping(graph)
 
     # Record permutations previously used.
     permutations_used = set()
@@ -2379,7 +2379,7 @@ class Combination(object):
 
         """
         if self._distance_mapping is None or force_update:
-            self._distance_mapping = compute_distance_mapping(self._graph)
+            self._distance_mapping = _compute_distance_mapping(self._graph)
 
         return self._distance_mapping
 

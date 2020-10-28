@@ -49,14 +49,14 @@ def mocked_combined_requirements(mocker):
 
 @pytest.fixture()
 def mocked_compute_distance_mapping(mocker):
-    """Return mocked wiz.graph.compute_distance_mapping function."""
-    return mocker.patch.object(wiz.graph, "compute_distance_mapping")
+    """Return mocked wiz.graph._compute_distance_mapping function."""
+    return mocker.patch.object(wiz.graph, "_compute_distance_mapping")
 
 
 @pytest.fixture()
 def mocked_generate_variant_permutations(mocker):
-    """Return mocked wiz.graph.generate_variant_permutations function."""
-    return mocker.patch.object(wiz.graph, "generate_variant_permutations")
+    """Return mocked wiz.graph._generate_variant_permutations function."""
+    return mocker.patch.object(wiz.graph, "_generate_variant_permutations")
 
 
 @pytest.fixture()
@@ -1051,7 +1051,7 @@ def test_resolver_discover_combinations_fail(
 def test_compute_distance_mapping_empty(mocked_graph):
     """Compute distance mapping from empty graph."""
     mocked_graph.outcoming.return_value = []
-    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+    assert wiz.graph._compute_distance_mapping(mocked_graph) == {
         "root": {"distance": 0, "parent": "root"}
     }
 
@@ -1069,7 +1069,7 @@ def test_compute_distance_mapping_one_node(mocker, mocked_graph):
     mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
     mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
 
-    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+    assert wiz.graph._compute_distance_mapping(mocked_graph) == {
         "root": {"distance": 0, "parent": "root"},
         "A": {"distance": 1, "parent": "root"}
     }
@@ -1088,7 +1088,7 @@ def test_compute_distance_mapping_two_nodes(mocker, mocked_graph):
     mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
     mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
 
-    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+    assert wiz.graph._compute_distance_mapping(mocked_graph) == {
         "root": {"distance": 0, "parent": "root"},
         "A": {"distance": 1, "parent": "root"},
         "B": {"distance": 2, "parent": "root"}
@@ -1108,7 +1108,7 @@ def test_compute_distance_mapping_three_nodes(mocker, mocked_graph):
     mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
     mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
 
-    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+    assert wiz.graph._compute_distance_mapping(mocked_graph) == {
         "root": {"distance": 0, "parent": "root"},
         "A": {"distance": 1, "parent": "root"},
         "B": {"distance": 2, "parent": "root"},
@@ -1129,7 +1129,7 @@ def test_compute_distance_mapping_two_levels(mocker, mocked_graph):
     mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
     mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
 
-    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+    assert wiz.graph._compute_distance_mapping(mocked_graph) == {
         "root": {"distance": 0, "parent": "root"},
         "A": {"distance": 1, "parent": "root"},
         "B": {"distance": 2, "parent": "A"}
@@ -1149,7 +1149,7 @@ def test_compute_distance_mapping_three_levels(mocker, mocked_graph):
     mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
     mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
 
-    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+    assert wiz.graph._compute_distance_mapping(mocked_graph) == {
         "root": {"distance": 0, "parent": "root"},
         "A": {"distance": 1, "parent": "root"},
         "B": {"distance": 2, "parent": "A"},
@@ -1170,7 +1170,7 @@ def test_compute_distance_mapping_circular_dependency(mocker, mocked_graph):
     mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
     mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
 
-    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+    assert wiz.graph._compute_distance_mapping(mocked_graph) == {
         "root": {"distance": 0, "parent": "root"},
         "A": {"distance": 1, "parent": "root"},
         "B": {"distance": 2, "parent": "root"}
@@ -1195,7 +1195,7 @@ def test_compute_distance_mapping_multi_levels(mocker, mocked_graph):
     mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
     mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
 
-    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+    assert wiz.graph._compute_distance_mapping(mocked_graph) == {
         "root": {"distance": 0, "parent": "root"},
         "A": {"distance": 1, "parent": "root"},
         "B": {"distance": 2, "parent": "root"},
@@ -1224,7 +1224,7 @@ def test_compute_distance_mapping_unreachable_nodes(mocker, mocked_graph):
     mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
     mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
 
-    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+    assert wiz.graph._compute_distance_mapping(mocked_graph) == {
         "root": {"distance": 0, "parent": "root"},
         "A": {"distance": 1, "parent": "root"},
         "B": {"distance": None, "parent": None},
@@ -1256,7 +1256,7 @@ def test_compute_distance_mapping_complex(mocker, mocked_graph):
     mocked_graph.outcoming = lambda _id: weights.get(_id, {}).keys()
     mocked_graph.link_weight = lambda _id1, _id2: weights[_id2][_id1]
 
-    assert wiz.graph.compute_distance_mapping(mocked_graph) == {
+    assert wiz.graph._compute_distance_mapping(mocked_graph) == {
         "root": {"distance": 0, "parent": "root"},
         "A": {"distance": 1, "parent": "root"},
         "B": {"distance": 2, "parent": "root"},
@@ -1295,7 +1295,7 @@ def test_generate_variant_permutations_none_conflicting(
         "B[V1]==1": {"A[V3]": False, "A[V2]": False, "A[V1]": False},
     }
 
-    result = wiz.graph.generate_variant_permutations(
+    result = wiz.graph._generate_variant_permutations(
         mocked_graph, variant_groups
     )
 
@@ -1341,7 +1341,7 @@ def test_generate_variant_permutations_all_conflicting(
         "B[V1]==1": {"A[V3]": True, "A[V2]": True, "A[V1]": True},
     }
 
-    result = wiz.graph.generate_variant_permutations(
+    result = wiz.graph._generate_variant_permutations(
         mocked_graph, variant_groups
     )
 
@@ -1381,7 +1381,7 @@ def test_generate_variant_permutations_optimized_two_groups(
         "B[V1]==1": {"A[V3]": True, "A[V2]": True, "A[V1]": False},
     }
 
-    result = wiz.graph.generate_variant_permutations(
+    result = wiz.graph._generate_variant_permutations(
         mocked_graph, variant_groups
     )
 
@@ -1453,7 +1453,7 @@ def test_generate_variant_permutations_optimized_three_groups(
         }
     }
 
-    result = wiz.graph.generate_variant_permutations(
+    result = wiz.graph._generate_variant_permutations(
         mocked_graph, variant_groups
     )
 
