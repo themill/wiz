@@ -391,59 +391,42 @@ def generate_variant_permutations(graph, variant_groups):
     """
     distance_mapping = compute_distance_mapping(graph)
 
+    # Record permutations previously used.
+    permutations_used = set()
+
     # Compute conflicting matrix to check compatibility between packages.
     conflicting_matrix = compute_conflicting_matrix(graph, variant_groups)
 
     # Organise all definition groups per minimum distance to the root level
     # of the graph to prioritizing nodes with the smallest distance to the root
     # node of the graph when computing permutations.
-    variant_groups = sorted_variant_groups(variant_groups, distance_mapping)
+    variant_groups = _sorted_variant_groups(variant_groups, distance_mapping)
 
-    # Identify whether at least one group is conflicting with all other variant
-    # groups.
-    conflicting_groups = False
+    # Extract list containing several variations of the variant groups avoiding
+    # conflicting node identifiers.
+    variant_groups_list = _extract_optimized_variant_groups(
+        variant_groups, conflicting_matrix
+    )
 
-    for index, definition_group in enumerate(variant_groups):
-        _identifiers = [_id for group in definition_group for _id in group]
-        if set(conflicting_matrix.get(_identifiers[0], {}).values()) == {True}:
-            conflicting_groups = True
-            break
-
-    # Yield cartesian product between each definition group.
-    for permutation in itertools.product(*variant_groups):
-
-        # If at least one group is conflicting with every other group, return
-        # only one permutation.
-        if conflicting_groups:
+    # If all variant groups are conflicting, simply return one permutation of
+    # the original variant groups.
+    if len(variant_groups_list) == 0:
+        for permutation in itertools.product(*variant_groups):
             yield permutation
             return
 
-        # Otherwise, filter out conflicting permutations.
-        _filtered_permutations = []
-        identifiers = [_id for group in permutation for _id in group]
-
-        for id1, id2 in itertools.combinations(identifiers, r=2):
-            if not conflicting_matrix.get(id1, {}).get(id2, False):
+    # Otherwise return permutations for each optimized variant groups.
+    for _variant_groups in variant_groups_list:
+        for permutation in itertools.product(*_variant_groups):
+            _hash = hash(tuple(sorted(permutation)))
+            if _hash in permutations_used:
                 continue
 
-            for conflict in [id1, id2]:
-                _filtered_permutations.append([
-                    tuple([_id for _id in group if _id != conflict])
-                    for group in permutation
-                ])
-
-        # Loop through all filtered permutations, or original permutation if no
-        # conflicts where found.
-        for _permutation in _filtered_permutations or [permutation]:
-
-            # Discard permutation if one entire group is conflicting.
-            if any(len(group) == 0 for group in _permutation):
-                continue
-
-            yield tuple(_permutation)
+            permutations_used.add(_hash)
+            yield permutation
 
 
-def sorted_variant_groups(variant_groups, distance_mapping):
+def _sorted_variant_groups(variant_groups, distance_mapping):
     """Return sorted variant groups using the distance mapping.
 
     The incoming set is sorted to prioritize definition groups whose nodes are
@@ -471,21 +454,104 @@ def sorted_variant_groups(variant_groups, distance_mapping):
     # Sort each definition group using the minimum distance from each variant
     # group in ascending order.
     for definition_group in variant_groups:
-        _group = sorted([
+        groups = sorted([
             (min([distance_mapping[_id]["distance"] for _id in group]), group)
             for group in definition_group
         ], key=lambda t: (t[0], definition_group.index(t[1])))
 
-        _variant_groups.append(_group)
+        _variant_groups.append(groups)
 
     # Sort variant groups using the minimum distance from each definition group.
     _variant_groups.sort()
 
     # Return sorted groups after filtering out the minimum distance.
     return [
-        tuple([group for _, group in definition_group])
+        tuple([groups for _, groups in definition_group])
         for definition_group in _variant_groups
     ]
+
+
+def _extract_optimized_variant_groups(variant_groups, conflicting):
+    variant_groups_list = []
+
+    # Compute optimized variants group for each variant group within each
+    # definition group.
+    for index, definition_group in enumerate(variant_groups):
+        for group in definition_group:
+
+            # Filter out every nodes identifier conflicting with group.
+            _group = _filtered_variant_groups(
+                variant_groups,
+                filter_callback=lambda _index, _id: not (
+                    (_index == index and _id not in group)
+                    or any(conflicting.get(id2, {}).get(_id) for id2 in group)
+                )
+            )
+
+            # Discard filtered group if one entire definition group is
+            # conflicting with group.
+            if len(_group) != len(variant_groups):
+                continue
+
+            # Extract remaining conflict in filtered group if necessary.
+            conflicting_groups = []
+
+            identifiers = [_id for grp in _group for ids in grp for _id in ids]
+            for identifier in identifiers:
+                conflicts = tuple([
+                    _id for _id, is_conflicting
+                    in conflicting.get(identifier, {}).items()
+                    if is_conflicting and _id in identifiers
+                ])
+
+                if len(conflicts) and conflicts not in conflicting_groups:
+                    conflicting_groups.append(conflicts)
+
+            # If there is no remaining conflicts, record filtered group.
+            if len(conflicting_groups) == 0:
+                if _group not in variant_groups_list:
+                    variant_groups_list.append(_group)
+
+            # Otherwise, record permutations to prevent conflicting nodes to be
+            # in the same group.
+            for conflicting_group in conflicting_groups:
+                _new_group = _filtered_variant_groups(
+                    _group, filter_callback=lambda _, _id: (
+                        _id not in conflicting_group
+                    )
+                )
+
+                # Discard filtered group if one entire definition group is
+                # conflicting with group.
+                if len(_new_group) != len(variant_groups):
+                    continue
+
+                if _new_group not in variant_groups_list:
+                    variant_groups_list.append(_new_group)
+
+    return variant_groups_list
+
+
+def _filtered_variant_groups(variant_groups, filter_callback):
+    filtered_group = []
+
+    for index, definition_group in enumerate(variant_groups):
+        _definition_group = []
+
+        for group in definition_group:
+            _group = []
+
+            for identifier in group:
+                if filter_callback(index, identifier):
+                    _group.append(identifier)
+
+            if len(_group):
+                _definition_group.append(tuple(_group))
+
+        if len(_definition_group):
+            filtered_group.append(tuple(_definition_group))
+
+    return tuple(filtered_group)
 
 
 def compute_conflicting_matrix(graph, variant_groups):
@@ -517,7 +583,7 @@ def compute_conflicting_matrix(graph, variant_groups):
                 (("bar[V2]==2.2.0",), ("bar[V1]==2.2.0", "bar[V1]==2.0.0"))
             }
 
-    :return: Matrix recording conflicting status between each defintition node.
+    :return: Matrix recording conflicting status between each definition node.
 
     """
     mapping = {}
