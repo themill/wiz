@@ -7,6 +7,21 @@ Migration notes
 This section will show more detailed information when relevant for switching to
 a new version, such as when upgrading involves backwards incompatibilities.
 
+.. _release/migration/3.5.0:
+
+Migrate to 3.5.0
+================
+
+.. rubric:: API
+
+The following functions have been made private:
+
+* :func:`wiz.graph._compute_distance_mapping`
+* :func:`wiz.graph._generate_variant_permutations`
+* :func:`wiz.graph._compute_conflicting_matrix`
+* :func:`wiz.graph._combined_requirements`
+* :func:`wiz.graph._extract_conflicting_requirements`
+
 .. _release/migration/3.3.0:
 
 Migrate to 3.3.0

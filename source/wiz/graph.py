@@ -161,8 +161,8 @@ class Resolver(object):
                 # Extract conflicting identifiers and requirements if possible.
                 if isinstance(error, wiz.exception.GraphConflictsError):
                     self._conflicting_combinations.extend([
-                        (combination, mapping["identifiers"])
-                        for mapping in error.conflicts
+                        (combination, identifiers)
+                        for _, identifiers in error.conflicts
                     ])
 
                 # Divide the graph into new combinations if necessary
@@ -208,8 +208,9 @@ class Resolver(object):
         self._conflicting_variants.update(identifiers)
 
         self._logger.debug(
-            "Combination will be extracted for following variant groups: {!r}"
-            .format(groups)
+            "Conflicting variant groups:\n{}\n".format(
+                "\n".join([" * {!r}".format(g) for g in groups])
+            )
         )
 
         wiz.history.record_action(
@@ -220,15 +221,23 @@ class Resolver(object):
         def _generate_combinations():
             """Yield combinations from variant groups."""
             for index, permutation in enumerate(
-                generate_variant_permutations(graph, groups)
+                _generate_variant_permutations(graph, groups)
             ):
                 if index + 1 > self._maximum_combinations:
                     return
 
-                yield Combination(
-                    graph, nodes_to_remove=identifiers.difference(
-                        {_id for _group in permutation for _id in _group}
+                # Flatten permutation groups.
+                permutation = {_id for _group in permutation for _id in _group}
+
+                self._logger.debug(
+                    "Generate combination with only following variants:\n"
+                    "{}\n".format(
+                        "\n".join([" * {}".format(_id) for _id in permutation])
                     )
+                )
+
+                yield Combination(
+                    graph, nodes_to_remove=identifiers.difference(permutation)
                 )
 
         self._iterator = itertools.chain(
@@ -291,15 +300,15 @@ class Resolver(object):
             return True
 
 
-def compute_distance_mapping(graph):
+def _compute_distance_mapping(graph):
     """Return distance mapping for each node of *graph*.
 
     The mapping indicates the shortest possible distance of each node
-    identifier from the :attr:`root <Graph.ROOT>` level of the *graph* with
+    identifier from the :attr:`root <Graph.ROOT>` level of the graph with
     corresponding parent node identifier.
 
     The distance is defined by the sum of the weights from each node to the
-    :attr:`root <Graph.ROOT>` level of the *graph*.
+    :attr:`root <Graph.ROOT>` level of the graph.
 
     This is using `Dijkstra's shortest path algorithm
     <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>`_.
@@ -366,8 +375,12 @@ def compute_distance_mapping(graph):
     return distance_mapping
 
 
-def generate_variant_permutations(graph, variant_groups):
-    """Yield all possible permutations of the variant groups.
+def _generate_variant_permutations(graph, variant_groups):
+    """Yield valid permutations of the variant groups.
+
+    Group containing nodes nearest to the :attr:`root <Graph.ROOT>` level of the
+    graph are yield first and variant permutations containing conflicting
+    requirements are discarded.
 
     :param graph: Instance of :class:`Graph`.
 
@@ -385,65 +398,34 @@ def generate_variant_permutations(graph, variant_groups):
         does not exist in the graph.
 
     """
-    distance_mapping = compute_distance_mapping(graph)
+    distance_mapping = _compute_distance_mapping(graph)
 
     # Record permutations previously used.
     permutations_used = set()
 
     # Compute conflicting matrix to check compatibility between packages.
-    conflicting_matrix = compute_conflicting_matrix(graph, variant_groups)
+    conflicting_matrix = _compute_conflicting_matrix(graph, variant_groups)
 
     # Organise all definition groups per minimum distance to the root level
     # of the graph to prioritizing nodes with the smallest distance to the root
     # node of the graph when computing permutations.
-    groups = sorted(
-        variant_groups, key=lambda _group: min([
-            distance_mapping[_id]["distance"] for _ids in _group for _id in _ids
-        ])
+    variant_groups = _sorted_variant_groups(variant_groups, distance_mapping)
+
+    # Extract list containing several variations of the variant groups avoiding
+    # conflicting node identifiers.
+    variant_groups_list = _extract_optimized_variant_groups(
+        variant_groups, conflicting_matrix
     )
 
-    # Flatten groups and sort node identifiers per minimum distance to the root
-    # level to find optimum variant permutations for each of them, starting
-    # with nodes nearest from the root node of the graph.
-    identifiers = [_id for group in groups for ids in group for _id in ids]
+    # If all variant groups are conflicting, simply return one permutation of
+    # the original variant groups.
+    if len(variant_groups_list) == 0:
+        yield tuple(tuple(def_grp[0]) for def_grp in variant_groups)
+        return
 
-    for identifier in sorted(
-        identifiers, key=lambda _identifier: (
-            distance_mapping[_identifier]["distance"],
-            identifiers.index(_identifier)
-        )
-    ):
-        _filtered_variant_groups = []
-
-        for definition_group in groups:
-            _definition_group = []
-
-            # Keep only one variant group if current node is found.
-            for variant_group in definition_group:
-                if identifier in variant_group:
-                    _definition_group = [variant_group]
-                    break
-
-            # Otherwise, filter out nodes conflicting with current node.
-            if not len(_definition_group):
-                for variant_group in definition_group:
-                    _variant_group = []
-
-                    for _identifier in variant_group:
-                        if not conflicting_matrix[identifier][_identifier]:
-                            _variant_group.append(_identifier)
-
-                    if len(_variant_group):
-                        _definition_group.append(tuple(_variant_group))
-
-            # Uses filtered group if it contains at least one node. Otherwise
-            # uses the original group if all nodes belonging to one definition
-            # are conflicting.
-            definition_group = tuple(_definition_group or definition_group)
-
-            _filtered_variant_groups.append(definition_group)
-
-        for permutation in itertools.product(*_filtered_variant_groups):
+    # Otherwise return permutations for each optimized variant groups.
+    for _variant_groups in variant_groups_list:
+        for permutation in itertools.product(*_variant_groups):
             _hash = hash(tuple(sorted(permutation)))
             if _hash in permutations_used:
                 continue
@@ -451,18 +433,184 @@ def generate_variant_permutations(graph, variant_groups):
             permutations_used.add(_hash)
             yield permutation
 
-    # Once all optimized permutations are exhausted, test all other
-    # permutations.
 
-    for permutation in itertools.product(*groups):
-        _hash = hash(tuple(sorted(permutation)))
-        if _hash in permutations_used:
-            continue
+def _sorted_variant_groups(variant_groups, distance_mapping):
+    """Return sorted variant groups using the distance mapping.
 
-        yield permutation
+    The incoming set is sorted to prioritize definition groups whose nodes are
+    nearest to the :attr:`root <Graph.ROOT>` level of the graph. Each definition
+    group is also sorted to prioritize variant groups whose nodes are nearest to
+    the :attr:`root <Graph.ROOT>` level of the graph.
+
+    :param variant_groups: Set of tuple containing tuples of node identifiers
+        with conflicting variants. It should be in the form of::
+
+            {
+                (("foo[V2]==0.1.0",), ("foo[V1]==0.1.0"),),
+                (("bar[V2]==2.2.0",), ("bar[V1]==2.2.0", "bar[V1]==2.0.0"))
+            }
+
+    :param distance_mapping: Mapping indicating the shortest possible distance
+        of each node identifier from the :attr:`root <Graph.ROOT>` level of the
+        *graph* with its corresponding parent node identifier.
+
+    :return: Tuple containing sorted variant groups.
+
+     """
+    _variant_groups = []
+
+    # Sort each definition group using the minimum distance from each variant
+    # group in ascending order.
+    for definition_group in variant_groups:
+        groups = sorted([
+            (min([distance_mapping[_id]["distance"] for _id in group]), group)
+            for group in definition_group
+        ], key=lambda t: (t[0], definition_group.index(t[1])))
+
+        _variant_groups.append(groups)
+
+    # Sort variant groups using the minimum distance from each definition group.
+    _variant_groups.sort()
+
+    # Return sorted groups after filtering out the minimum distance.
+    return tuple([
+        tuple([groups for _, groups in definition_group])
+        for definition_group in _variant_groups
+    ])
 
 
-def compute_conflicting_matrix(graph, variant_groups):
+def _extract_optimized_variant_groups(variant_groups, conflicting):
+    """Extract list of optimized variant groups skipping conflicting nodes.
+
+    :param variant_groups: :func:`Sorted <_sorted_variant_groups>` variant
+        groups tuple. It should be in the form of::
+
+            (
+                (("foo[V2]==0.1.0",), ("foo[V1]==0.1.0"),),
+                (("bar[V2]==2.2.0",), ("bar[V1]==2.2.0", "bar[V1]==2.0.0"))
+            )
+
+    :param conflicting: Mapping recording conflicting status between each
+        definition node.
+
+    :return: List of optimized variant groups.
+
+    """
+    # Nothing to optimize if there is less than 2 definition groups.
+    if len(variant_groups) < 2:
+        return [variant_groups]
+
+    variant_groups_list = []
+
+    # Compute optimized variants group for each variant group within each
+    # definition group.
+    for index, definition_group in enumerate(variant_groups):
+        for group in definition_group:
+
+            # Filter out every nodes identifier conflicting with group.
+            _group = _filtered_variant_groups(
+                variant_groups, callback=lambda _index, _id: not (
+                    (_index == index and _id not in group)
+                    or any(conflicting.get(id2, {}).get(_id) for id2 in group)
+                )
+            )
+
+            # Discard filtered group if one entire definition group is
+            # conflicting with group.
+            if len(_group) != len(variant_groups):
+                continue
+
+            # Extract remaining conflict in filtered group if necessary.
+            conflicting_groups = []
+
+            identifiers = [_id for grp in _group for ids in grp for _id in ids]
+            for identifier in identifiers:
+                conflicts = tuple([
+                    _id for _id, is_conflicting
+                    in conflicting.get(identifier, {}).items()
+                    if is_conflicting and _id in identifiers
+                ])
+
+                if len(conflicts) and conflicts not in conflicting_groups:
+                    conflicting_groups.append(conflicts)
+
+            # If there is no remaining conflicts, record filtered group.
+            if len(conflicting_groups) == 0:
+                if _group not in variant_groups_list:
+                    variant_groups_list.append(_group)
+
+            # Otherwise, record permutations to prevent conflicting nodes to be
+            # in the same group.
+            for conflicting_group in conflicting_groups:
+                _new_group = _filtered_variant_groups(
+                    _group, callback=lambda _, _id: _id not in conflicting_group
+                )
+
+                # Discard filtered group if one entire definition group is
+                # conflicting with group.
+                if len(_new_group) != len(variant_groups):
+                    continue
+
+                if _new_group not in variant_groups_list:
+                    variant_groups_list.append(_new_group)
+
+    return variant_groups_list
+
+
+def _filtered_variant_groups(variant_groups, callback):
+    """Return filtered variant group using *callback*.
+
+    Example::
+
+        >>> groups = (
+        ...     (("A[V1]=1", "A[V1]=2"), ("A[V2]",)),
+        ...     (("B[V2]",), ("B[V1]",))
+        ... )
+        >>> _filtered_variant_groups(
+        ...     groups, callback=lambda _, _id: _id not in ("A[V1]=2", "B[V1]")
+        ... )
+        ((("A[V1]=1",), ("A[V2]",)), (("B[V2]",),))
+
+    :param variant_groups: :func:`Sorted <_sorted_variant_groups>` variant
+        groups tuple. It should be in the form of::
+
+            (
+                (("foo[V2]==0.1.0",), ("foo[V1]==0.1.0"),),
+                (("bar[V2]==2.2.0",), ("bar[V1]==2.2.0", "bar[V1]==2.0.0"))
+            )
+
+    :param callback: Function returning whether a specific node identifier
+        should be kept in the variant groups. It should be in the form of::
+
+            def filter_callback(group_index, identifier):
+                \"""Return whether node *identifier* should be kept.\"""
+                return group_index == _index and identifier not in _group
+
+    :return: Filtered variant groups.
+
+    """
+    filtered_group = []
+
+    for index, definition_group in enumerate(variant_groups):
+        _definition_group = []
+
+        for group in definition_group:
+            _group = []
+
+            for identifier in group:
+                if callback(index, identifier):
+                    _group.append(identifier)
+
+            if len(_group):
+                _definition_group.append(tuple(_group))
+
+        if len(_definition_group):
+            filtered_group.append(tuple(_definition_group))
+
+    return tuple(filtered_group)
+
+
+def _compute_conflicting_matrix(graph, variant_groups):
     """Compute conflicting matrix for all nodes in variant groups.
 
     Example::
@@ -471,7 +619,7 @@ def compute_conflicting_matrix(graph, variant_groups):
         ...     (("A[V3]",), ("A[V2]",), ("A[V1]",)),
         ...     (("B[V2]==2", "B[V2]==1"), ("B[V1]==1",))
         ... }
-        >>> compute_conflicting_matrix(graph, groups)
+        >>> _compute_conflicting_matrix(graph, groups)
         {
             "A[V3]": {"B[V2]==2": True, "B[V2]==1": False, "B[V1]==1": True},
             "A[V2]": {"B[V2]==2": True, "B[V2]==1": False, "B[V1]==1": True},
@@ -491,7 +639,7 @@ def compute_conflicting_matrix(graph, variant_groups):
                 (("bar[V2]==2.2.0",), ("bar[V1]==2.2.0", "bar[V1]==2.0.0"))
             }
 
-    :return: Matrix recording conflicting status between each defintition node.
+    :return: Matrix recording conflicting status between each definition node.
 
     """
     mapping = {}
@@ -520,7 +668,7 @@ def compute_conflicting_matrix(graph, variant_groups):
     return mapping
 
 
-def combined_requirements(graph, nodes):
+def _combined_requirements(graph, nodes):
     """Return combined requirements from *nodes* in *graph*.
 
     :param graph: Instance of :class:`Graph`.
@@ -558,94 +706,65 @@ def combined_requirements(graph, nodes):
     return requirement
 
 
-def extract_conflicting_requirements(graph, nodes):
-    """Return list of conflicting requirement mappings.
-
-    The list returned should be in the form of::
-
-        [
-            {
-                "requirement": Requirement("foo >=0.1.0, <1"),
-                "identifiers": {"bar", "bim"},
-                "conflicts": {"baz"},
-                "graph": Graph()
-            },
-            {
-                "requirement": Requirement("foo >2"),
-                "identifiers": {"baz"},
-                "conflicts": {"bar", "bim"},
-                "graph": Graph()
-            }
-        ]
+def _extract_conflicting_requirements(graph, nodes):
+    """Return mapping of conflicting node identifiers per requirement.
 
     A requirement is conflicting when it is not overlapping with at least one
-    other requirement from existing parents of *nodes*. The conflict list
-    is sorted based on the number of times a requirement is conflicting.
+    other requirement from existing parents of *nodes*.
 
     :param graph: Instance of :class:`Graph`.
 
     :param nodes: List of :class:`Node` instances which belong to the
         same definition identifier.
 
-    :return: List of conflict mappings.
+    :return: Mapping in the form of
+        ::
+
+            {
+                Requirement("foo >=0.1.0, <1"): {"bar", "bim"},
+                Requirement("foo >2"): {"baz},
+                ...
+            }
+
+    :raise: :exc:`ValueError` if nodes do not belong to the same definition.
 
     """
     # Ensure that definition requirement is the same for all nodes.
     definitions = set(node.definition.qualified_identifier for node in nodes)
     if len(definitions) > 1:
-        raise wiz.exception.GraphResolutionError(
+        raise ValueError(
             "All nodes should have the same definition identifier when "
             "attempting to extract conflicting requirements from parent "
             "nodes [{}]".format(", ".join(sorted(definitions)))
         )
 
-    # Identify all parent node identifier per requirement.
-    mapping1 = {}
+    # Identify all parent node identifiers per requirement.
+    requirement_mapping = {}
 
     for node in nodes:
-        for parent_identifier in node.parent_identifiers:
+        for identifier in node.parent_identifiers:
             # Filter out non existing nodes from incoming.
-            if (
-                parent_identifier != graph.ROOT and
-                not graph.exists(parent_identifier)
-            ):
+            if identifier != graph.ROOT and not graph.exists(identifier):
                 continue
 
-            identifier = node.identifier
-            requirement = graph.link_requirement(identifier, parent_identifier)
-
-            mapping1.setdefault(requirement, set([]))
-            mapping1[requirement].add(parent_identifier)
+            requirement = graph.link_requirement(node.identifier, identifier)
+            requirement_mapping.setdefault(requirement, set())
+            requirement_mapping[requirement].add(identifier)
 
     # Identify all conflicting requirements.
-    mapping2 = {}
+    conflicting = set()
 
-    for tuple1, tuple2 in (
-        itertools.combinations(mapping1.items(), 2)
+    for requirement1, requirement2 in (
+        itertools.combinations(requirement_mapping.keys(), 2)
     ):
-        requirement1, requirement2 = tuple1[0], tuple2[0]
         if not wiz.utility.is_overlapping(requirement1, requirement2):
-            mapping2.setdefault(requirement1, set([]))
-            mapping2.setdefault(requirement2, set([]))
-            mapping2[requirement1].add(requirement2)
-            mapping2[requirement2].add(requirement1)
+            conflicting.update({requirement1, requirement2})
 
-    # Create conflict mapping list.
-    conflicts = []
-
-    for requirement, conflicting_requirements in sorted(
-        mapping2.items(), key=lambda v: (len(v[1]), str(v[0])), reverse=True
-    ):
-        conflicts.append({
-            "graph": graph,
-            "requirement": requirement,
-            "identifiers": mapping1[requirement],
-            "conflicts": set(itertools.chain(
-                *[mapping1[r] for r in conflicting_requirements]
-            ))
-        })
-
-    return conflicts
+    return {
+        requirement: identifiers
+        for requirement, identifiers in requirement_mapping.items()
+        if requirement in conflicting
+    }
 
 
 class Graph(object):
@@ -735,11 +854,15 @@ class Graph(object):
         result = Graph(self._resolver)
         result._node_mapping = copy.deepcopy(self._node_mapping)
         result._link_mapping = copy.deepcopy(self._link_mapping)
-        result._error_mapping = copy.deepcopy(self._error_mapping)
         result._conditioned_nodes = copy.deepcopy(self._conditioned_nodes)
         result._definition_cache = copy.deepcopy(self._definition_cache)
         result._variant_cache = copy.deepcopy(self._variant_cache)
         result._namespace_count = copy.deepcopy(self._namespace_count)
+
+        # Deepcopy doesn't work on instances inheriting from Exception in
+        # Python 2.7, so we need to use shallow copy for mapping containing
+        # exceptions until we can switch completely to Python 3.
+        result._error_mapping = copy.copy(self._error_mapping)
 
         memo[id(self)] = result
         return result
@@ -1157,7 +1280,7 @@ class Graph(object):
 
         except wiz.exception.WizError as error:
             self._error_mapping.setdefault(parent_identifier, [])
-            self._error_mapping[parent_identifier].append(str(error))
+            self._error_mapping[parent_identifier].append(error)
             return
 
         # Create a node for each package if necessary.
@@ -1346,12 +1469,15 @@ class Graph(object):
             ]
 
             if not len(_nodes):
+                definition_id = node_removed.definition.qualified_identifier
+                nodes = self.nodes(definition_identifier=definition_id)
+                conflicts = _extract_conflicting_requirements(
+                    self, nodes + [node_removed]
+                )
+
                 self._error_mapping.setdefault(_identifier, [])
                 self._error_mapping[_identifier].append(
-                    "Requirement '{}' can not be satisfied once '{}' is "
-                    "removed from the graph.".format(
-                        _requirement, node_removed.identifier,
-                    )
+                    wiz.exception.GraphConflictsError(conflicts)
                 )
                 continue
 
@@ -1453,7 +1579,7 @@ class Graph(object):
 
             # Extract combined requirement to node and modify it to exclude
             # current package version.
-            requirement = combined_requirements(self, [node])
+            requirement = _combined_requirements(self, [node])
             exclusion_requirement = wiz.utility.get_requirement(
                 "{} != {}".format(requirement.name, node.package.version)
             )
@@ -1493,7 +1619,7 @@ class Graph(object):
 
         self._logger.debug(
             "The following nodes have been updated in the graph:\n"
-            "{}".format(
+            "{}\n".format(
                 "\n".join([
                     "  * {} -> {}".format(identifier, identifiers)
                     for identifier, identifiers in replacement.items()
@@ -1887,7 +2013,7 @@ class Combination(object):
                 continue
 
             # Compute combined requirements from all conflicting nodes.
-            requirement = combined_requirements(self._graph, nodes)
+            requirement = _combined_requirements(self._graph, nodes)
 
             # Query common packages from this combined requirements.
             packages = self._discover_packages(
@@ -2022,8 +2148,8 @@ class Combination(object):
             )
 
         except wiz.exception.RequestNotFound:
-            conflicts = extract_conflicting_requirements(self._graph, nodes)
-            parents = set(_id for m in conflicts for _id in m["identifiers"])
+            conflicting = _extract_conflicting_requirements(self._graph, nodes)
+            parents = set(itertools.chain(*conflicting.values()))
 
             # Push conflict at the end of the queue if it has conflicting
             # parents that should be handled first.
@@ -2036,7 +2162,7 @@ class Combination(object):
                 return
 
             # Otherwise, raise error and give up on current combination.
-            raise wiz.exception.GraphConflictsError(conflicts)
+            raise wiz.exception.GraphConflictsError(conflicting)
 
     def _add_packages_to_graph(self, packages, requirement, conflicting_nodes):
         """Add *packages* to embedded graph as detached nodes if necessary.
@@ -2086,10 +2212,18 @@ class Combination(object):
         return False
 
     def validate(self):
-        """Ensure that *graph* does not have remaining errors.
+        """Ensure that graph does not have remaining errors.
+
+        If some conflicting errors are found, they would be regrouped and raised
+        into one :exc:`~wiz.exception.GraphConflictsError` exception. Other
+        type of errors will be regrouped and raised into one
+        :exc:`~wiz.exception.GraphInvalidNodesError` exception.
 
         :raise: :exc:`wiz.exception.GraphInvalidNodesError` if any error is
             found in the embedded graph.
+
+        :raise: :exc:`wiz.exception.GraphConflictsError` if any requirement
+            conflict is found in the embedded graph.
 
         """
         error_mapping = self._graph.errors()
@@ -2105,6 +2239,20 @@ class Combination(object):
             graph=self._graph, errors=list(error_mapping.keys())
         )
 
+        # Extract potential conflicts from errors and combine into one mapping.
+        conflicting = {}
+
+        for errors in error_mapping.values():
+            for error in errors:
+                for requirement, identifiers in getattr(error, "conflicts", []):
+                    conflicting.setdefault(requirement, set())
+                    conflicting[requirement].update(identifiers)
+
+        # Raise combined exception for conflicts if necessary.
+        if len(conflicting):
+            raise wiz.exception.GraphConflictsError(conflicting)
+
+        # Otherwise, raise combined exception with remaining errors.
         raise wiz.exception.GraphInvalidNodesError(error_mapping)
 
     def extract_packages(self):
@@ -2244,7 +2392,7 @@ class Combination(object):
 
         """
         if self._distance_mapping is None or force_update:
-            self._distance_mapping = compute_distance_mapping(self._graph)
+            self._distance_mapping = _compute_distance_mapping(self._graph)
 
         return self._distance_mapping
 
@@ -2253,13 +2401,12 @@ class _DistanceQueue(dict):
     """Distance mapping which can be used as a queue.
 
     Distances are cumulated weights computed between each node and the
-    :attr:`root of the graph <Graph.ROOT>`.
+    :attr:`root <Graph.ROOT>` level of the graph. Keys of the dictionary are
+    node identifiers added into a queue, and values are their respective
+    distances.
 
-    Keys of the dictionary are node identifiers added into a queue, and
-    values are their respective distances.
-
-    The advantage over a standard heapq-based distance queue is that distances
-    of node identifiers can be efficiently updated (amortized O(1)).
+    The advantage over a standard :mod:`heapq`-based distance queue is that
+    distances of node identifiers can be efficiently updated (amortized O(1)).
 
     .. note::
 

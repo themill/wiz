@@ -242,8 +242,8 @@ def test_scenario_2():
     assert (
         "The dependency graph could not be resolved due to the "
         "following requirement conflicts:\n"
-        "  * ::D >0.1.0 \t[B==0.1.0]\n"
-        "  * ::D ==0.1.0 \t[C==0.3.2]"
+        "  * ::D ==0.1.0 \t[C==0.3.2]\n"
+        "  * ::D >0.1.0 \t[B==0.1.0]"
     ) in str(error.value)
 
 
@@ -2455,8 +2455,8 @@ def test_scenario_32():
     assert (
         "The dependency graph could not be resolved due to the "
         "following requirement conflicts:\n"
-        "  * ::B >1 \t[root]\n"
-        "  * ::B <1 \t[C==0.1.0]"
+        "  * ::B <1 \t[C==0.1.0]\n"
+        "  * ::B >1 \t[root]"
     ) in str(error.value)
 
 
@@ -2598,7 +2598,7 @@ def test_scenario_34():
          |
          `--(A[V2]): A[V2]==1.0.0
              |
-             `--(B >=1, <2): B==1.0.0
+             `--(B >=2, <3): B==2.0.0
 
     Expected: Unable to compute due to requirement compatibility between
     'A[V2]' and 'A[V3]'.
@@ -2646,9 +2646,9 @@ def test_scenario_34():
 
     assert (
         "The dependency graph could not be resolved due to the following "
-        "error(s):\n"
-        "  * root: Requirement '::A[V3]' can not be satisfied once "
-        "'A[V3]==1.0.0' is removed from the graph."
+        "requirement conflicts:\n"
+        "  * ::A[V2] \t[C]\n"
+        "  * ::A[V3] \t[root]"
     ) in str(error.value)
 
 
@@ -2745,11 +2745,10 @@ def test_scenario_35():
 
     assert (
         "The dependency graph could not be resolved due to the following "
-        "error(s):\n"
-        "  * C: Requirement '::A[V2]' can not be satisfied once 'A[V2]==1.0.0' "
-        "is removed from the graph.\n"
-        "  * D==0.1.0: Requirement '::A[V3]' can not be satisfied once "
-        "'A[V3]==1.0.0' is removed from the graph."
+        "requirement conflicts:\n"
+        "  * ::A \t[root]\n"
+        "  * ::A[V2] \t[C]\n"
+        "  * ::A[V3] \t[D==0.1.0]"
     ) in str(error.value)
 
 
@@ -2865,8 +2864,8 @@ def test_scenario_37():
     assert (
         "The dependency graph could not be resolved due to the following "
         "requirement conflicts:\n"
-        "  * ::A ==1.4.* \t[B==0.1.0]\n"
-        "  * ::A ==1.2.* \t[root]"
+        "  * ::A ==1.2.* \t[root]\n"
+        "  * ::A ==1.4.* \t[B==0.1.0]"
     ) in str(error.value)
 
 
@@ -2924,8 +2923,8 @@ def test_scenario_38():
     assert (
         "The dependency graph could not be resolved due to the following "
         "requirement conflicts:\n"
-        "  * ::A ==1.4.* \t[B==0.1.0]\n"
-        "  * ::A ==1.2.* \t[root]"
+        "  * ::A ==1.2.* \t[root]\n"
+        "  * ::A ==1.4.* \t[B==0.1.0]"
     ) in str(error.value)
 
 
@@ -3047,3 +3046,244 @@ def test_scenario_39():
     assert len(packages) == 2
     assert packages[0].identifier == "B==1"
     assert packages[1].identifier == "A[V1]"
+
+
+def test_scenario_40():
+    """Compute packages for the following graph.
+
+    Like scenario 34, a conflict appear when relinking parents as two
+    requirements are explicitly requesting conflicting variants: "A[V2]" and
+    "A[V3]". But this time, the graph contains a version conflict which will
+    be resolved by removing "A[V2]", hence making this conflict irrelevant.
+
+    Root
+     |
+     |--(A[V3]): A[V3]==1.0.0
+     |   |
+     |   `--(B >=3, <4): B==3.0.0
+     |
+     |--(C >=1): C==2.0.0
+     |   |
+     |   `--(A[V2]): A[V2]==1.0.0
+     |       |
+     |       `--(B >=2, <3): B==2.0.0
+     |
+     `--(E): E
+         |
+         `--(C >=1, <2): C==1.5.0
+
+    Expected: E, C==1.5.0, B==3.0.0, A[V3]==1.0.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    }
+                ]
+            })
+        },
+        "B": {
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
+        },
+        "C": {
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "2.0.0",
+                "requirements": ["A[V2]"]
+            }),
+            "1.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "1.5.0"
+            }),
+        },
+        "E": {
+            "-": wiz.definition.Definition({
+                "identifier": "E",
+                "requirements": ["C >=1, <2"]
+            }),
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A[V3]"), Requirement("C >=1"), Requirement("E"),
+    ])
+
+    assert len(packages) == 4
+    assert packages[0].identifier == "E"
+    assert packages[1].identifier == "C==1.5.0"
+    assert packages[2].identifier == "B==3.0.0"
+    assert packages[3].identifier == "A[V3]==1.0.0"
+
+
+def test_scenario_41():
+    """Compute packages for the following graph.
+
+    Like scenario 34, a conflict appear when relinking parents as two
+    requirements are explicitly requesting conflicting variants: "A[V2]" and
+    "A[V3]". But this time, the resolver can downgrade versions of conflicting
+    nodes to find a solution.
+
+    Root
+     |
+     |--(A[V3]): A[V3]==1.0.0
+     |   |
+     |   `--(B >=3, <4): B==3.0.0
+     |
+     `--(C): C==1.0.0
+         |
+         `--(A[V2]): A[V2]==1.0.0
+             |
+             `--(B >=2, <3): B==2.0.0
+
+    Expected: C==0.5.0, B==3.0.0, A[V3]==1.0.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.0.0",
+                "variants": [
+                    {
+                        "identifier": "V3",
+                        "requirements": ["B >=3, <4"]
+                    },
+                    {
+                        "identifier": "V2",
+                        "requirements": ["B >=2, <3"]
+                    }
+                ]
+            })
+        },
+        "B": {
+            "3.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "3.0.0"
+            }),
+            "2.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "2.0.0"
+            }),
+        },
+        "C": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "1.0.0",
+                "requirements": ["A[V2]"]
+            }),
+            "0.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.5.0",
+            })
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    packages = resolver.compute_packages([
+        Requirement("A[V3]"), Requirement("C")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].identifier == "C==0.5.0"
+    assert packages[1].identifier == "B==3.0.0"
+    assert packages[2].identifier == "A[V3]==1.0.0"
+
+
+def test_scenario_42():
+    """Fail to compute packages for the following graph.
+
+    Root
+     |
+     |--(A): A[V1]
+     |   |
+     |   `--(C>1): C==1.5.0
+     |
+     |--(A): A[V2]
+     |   |
+     |   `--(C>1): C==1.5.0
+     |
+     |--(B): B[V1]
+     |   |
+     |   `--(C<1): C==0.5.0
+     |
+     `--(B): B[V2]
+         |
+         `--(C<1): C==0.5.0
+
+    Expected: Unable to compute due to requirement compatibility between
+    'C <1' and 'C >1'.
+
+    """
+    definition_mapping = {
+        "A": {
+            "-": wiz.definition.Definition({
+                "identifier": "A",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                        "requirements": ["C>1"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["C>1"]
+                    },
+                ]
+            }),
+        },
+        "B": {
+            "-": wiz.definition.Definition({
+                "identifier": "B",
+                "variants": [
+                    {
+                        "identifier": "V2",
+                        "requirements": ["C<1"]
+                    },
+                    {
+                        "identifier": "V1",
+                        "requirements": ["C<1"]
+                    },
+                ]
+            }),
+        },
+        "C": {
+            "1.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "1.5.0"
+            }),
+            "0.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.5.0"
+            }),
+        }
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+
+    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+        resolver.compute_packages([Requirement("A"), Requirement("B")])
+
+    assert (
+        "The dependency graph could not be resolved due to the "
+        "following requirement conflicts:\n"
+        "  * ::C <1 \t[B[V2]]\n"
+        "  * ::C >1 \t[A[V2]]"
+    ) in str(error.value)
