@@ -4,6 +4,41 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+
+        Updated :mod:`wiz.graph` to make the following functions private:
+
+        * :func:`wiz.graph._compute_distance_mapping`
+        * :func:`wiz.graph._generate_variant_permutations`
+        * :func:`wiz.graph._compute_conflicting_matrix`
+        * :func:`wiz.graph._combined_requirements`
+        * :func:`wiz.graph._extract_conflicting_requirements`
+
+    .. change:: changed
+
+        Updated :func:`wiz.graph._generate_variant_permutations` to discard
+        permutations containing variant nodes with conflicting requirements.
+        Previously, the resolver had to consider all conflicting permutations
+        before attempting to :meth:`discover
+        <wiz.graph.Resolver.discover_combinations>` new combinations by
+        :meth:`downgrading <wiz.graph.Graph.downgrade_versions>` the versions
+        of conflicting nodes. As a results, precious time was wasted on
+        iterations which have little chance to lead to a solution when
+        downgrading versions of conflicting nodes is the most efficient way to
+        resolve a graph.
+
+    .. change:: changed
+
+        Updated :meth:`wiz.graph.Graph.relink_parents` to record error as
+        :exc:`~wiz.exception.GraphConflictsError` exception which can be raised
+        during the :meth:`validation <wiz.graph.Combination.validate>` of a
+        combination. This allows the resolver to :meth:`discover
+        <wiz.graph.Resolver.discover_combinations>` new combinations by
+        :meth:`downgrading <wiz.graph.Graph.downgrade_versions>` the versions
+        of the conflicting nodes involved if necessary.
+
 .. release:: 3.4.0
     :date: 2020-10-23
 
