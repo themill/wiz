@@ -24,14 +24,11 @@ Release Notes
         before attempting to :meth:`discover
         <wiz.graph.Resolver.discover_combinations>` new combinations by
         :meth:`downgrading <wiz.graph.Graph.downgrade_versions>` the versions
-        of conflicting nodes. As a results, precious time was wasted on
-        iterations which have little chance to lead to a solution when
-        downgrading versions of conflicting nodes is the most efficient way to
-        resolve a graph.
+        of conflicting nodes.
 
     .. change:: changed
 
-        Updated :meth:`wiz.graph.Graph.relink_parents` to record error as
+        Updated :meth:`wiz.graph.Graph.relink_parents` to record errors as
         :exc:`~wiz.exception.GraphConflictsError` exception which can be raised
         during the :meth:`validation <wiz.graph.Combination.validate>` of a
         combination. This allows the resolver to :meth:`discover
