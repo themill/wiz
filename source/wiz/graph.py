@@ -208,8 +208,9 @@ class Resolver(object):
         self._conflicting_variants.update(identifiers)
 
         self._logger.debug(
-            "Combination will be extracted for following variant groups: {!r}"
-            .format(groups)
+            "Conflicting variant groups:\n{}\n".format(
+                "\n".join([" * {!r}".format(g) for g in groups])
+            )
         )
 
         wiz.history.record_action(
@@ -225,10 +226,18 @@ class Resolver(object):
                 if index + 1 > self._maximum_combinations:
                     return
 
-                yield Combination(
-                    graph, nodes_to_remove=identifiers.difference(
-                        {_id for _group in permutation for _id in _group}
+                # Flatten permutation groups.
+                permutation = {_id for _group in permutation for _id in _group}
+
+                self._logger.debug(
+                    "Generate combination with only following variants:\n"
+                    "{}\n".format(
+                        "\n".join([" * {}".format(_id) for _id in permutation])
                     )
+                )
+
+                yield Combination(
+                    graph, nodes_to_remove=identifiers.difference(permutation)
                 )
 
         self._iterator = itertools.chain(
