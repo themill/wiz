@@ -487,6 +487,10 @@ def _extract_optimized_variant_groups(variant_groups, conflicting):
     :return: List of optimized variant groups.
 
     """
+    # Nothing to optimize if there is less than 2 definition groups.
+    if len(variant_groups) < 2:
+        return [variant_groups]
+
     variant_groups_list = []
 
     # Compute optimized variants group for each variant group within each
@@ -554,9 +558,9 @@ def _filtered_variant_groups(variant_groups, callback):
         ...     (("B[V2]",), ("B[V1]",))
         ... )
         >>> _filtered_variant_groups(
-        ...     groups, callback _, _id= _id not in ("A[V1]=2", "B[V1]")
+        ...     groups, callback=lambda _, _id: _id not in ("A[V1]=2", "B[V1]")
         ... )
-        ((("A[V1]=1", ("A[V2]",)), (("B[V2]",),))
+        ((("A[V1]=1",), ("A[V2]",)), (("B[V2]",),))
 
     :param variant_groups: :func:`Sorted <_sorted_variant_groups>` variant
         groups tuple. It should be in the form of::

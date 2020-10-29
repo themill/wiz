@@ -1515,6 +1515,191 @@ def test_sorted_variant_groups(variant_groups, expected):
     assert wiz.graph._sorted_variant_groups(variant_groups, mapping) == expected
 
 
+@pytest.mark.parametrize("variant_groups, expected", [
+    ((), [()]),
+    (
+        ((("A[V3]",), ("A[V2]",), ("A[V1]",)),),
+        [((("A[V3]",), ("A[V2]",), ("A[V1]",)),)]
+    ),
+], ids=[
+    "empty",
+    "one-group",
+])
+def test_extract_optimized_variant_groups_no_effect(variant_groups, expected):
+    """Extract list of optimized variant groups for less than 2 groups."""
+    result = wiz.graph._extract_optimized_variant_groups(
+        variant_groups, {}
+    )
+    assert result == expected
+
+
+def test_extract_optimized_variant_groups_without_conflict():
+    """Extract list of optimized variant groups without conflict."""
+    variant_groups = (
+        (("A[V3]",), ("A[V2]",), ("A[V1]",)),
+        (("C[V2]",), ("C[V1]",))
+    )
+
+    conflicting = {
+        "A[V3]": {"C[V2]": False, "C[V1]": False},
+        "A[V2]": {"C[V2]": False, "C[V1]": False},
+        "A[V1]": {"C[V2]": False, "C[V1]": False},
+        "C[V2]": {"A[V3]": False, "A[V2]": False, "A[V1]": False},
+        "C[V1]": {"A[V3]": False, "A[V2]": False, "A[V1]": False},
+    }
+
+    result = wiz.graph._extract_optimized_variant_groups(
+        variant_groups, conflicting
+    )
+
+    assert result == [
+        ((("A[V3]",),), (("C[V2]",), ("C[V1]",))),
+        ((("A[V2]",),), (("C[V2]",), ("C[V1]",))),
+        ((("A[V1]",),), (("C[V2]",), ("C[V1]",))),
+        ((("A[V3]",), ("A[V2]",), ("A[V1]",)), (("C[V2]",),)),
+        ((("A[V3]",), ("A[V2]",), ("A[V1]",)), (("C[V1]",),)),
+    ]
+
+
+def test_extract_optimized_variant_groups_with_node_conflicts():
+    """Extract optimized variant groups with few nodes conflicting."""
+    variant_groups = (
+        (("A[V3]",), ("A[V2]",), ("A[V1]",)),
+        (("B[V2]==2", "B[V2]==1"), ("B[V1]==1",))
+    )
+
+    conflicting = {
+        "A[V3]": {"B[V2]==2": True, "B[V2]==1": False, "B[V1]==1": False},
+        "A[V2]": {"B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": False},
+        "A[V1]": {"B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": False},
+        "B[V2]==2": {"A[V3]": True, "A[V2]": False, "A[V1]": False},
+        "B[V2]==1": {"A[V3]": False, "A[V2]": False, "A[V1]": False},
+        "B[V1]==1": {"A[V3]": False, "A[V2]": False, "A[V1]": False},
+    }
+
+    result = wiz.graph._extract_optimized_variant_groups(
+        variant_groups, conflicting
+    )
+
+    assert result == [
+        ((("A[V3]",),), (("B[V2]==1",), ("B[V1]==1",))),
+        ((("A[V2]",),), (("B[V2]==2", "B[V2]==1",), ("B[V1]==1",))),
+        ((("A[V1]",),), (("B[V2]==2", "B[V2]==1",), ("B[V1]==1",))),
+        ((("A[V2]",), ("A[V1]",)), (("B[V2]==2", "B[V2]==1",),)),
+        ((("A[V3]",), ("A[V2]",), ("A[V1]",)), (("B[V1]==1",),)),
+    ]
+
+
+def test_extract_optimized_variant_groups_with_definition_conflicts():
+    """Extract optimized variant groups with definition group conflicting."""
+    variant_groups = (
+        (("B[V2]==2", "B[V2]==1"), ("B[V1]==1",)),
+        (("C[V2]",), ("C[V1]",))
+    )
+
+    conflicting = {
+        "B[V2]==2": {"C[V2]": False, "C[V1]": False},
+        "B[V2]==1": {"C[V2]": False, "C[V1]": False},
+        "B[V1]==1": {"C[V2]": True, "C[V1]": True},
+        "C[V2]": {"B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": True},
+        "C[V1]": {"B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": True},
+    }
+
+    result = wiz.graph._extract_optimized_variant_groups(
+        variant_groups, conflicting
+    )
+
+    assert result == [
+        ((("B[V2]==2", "B[V2]==1"),), (("C[V2]",), ("C[V1]",))),
+        ((("B[V2]==2", "B[V2]==1"),), (("C[V2]",),)),
+        ((("B[V2]==2", "B[V2]==1"),), (("C[V1]",),)),
+    ]
+
+
+def test_extract_optimized_variant_groups_with_three_groups():
+    """Extract optimized variant groups for three definitions group conflicting.
+    """
+    variant_groups = (
+        (("A[V3]",), ("A[V2]",), ("A[V1]",)),
+        (("B[V2]==2", "B[V2]==1"), ("B[V1]==1",)),
+        (("C[V2]",), ("C[V1]",))
+    )
+
+    conflicting = {
+        "A[V3]": {
+            "B[V2]==2": True, "B[V2]==1": False, "B[V1]==1": False,
+            "C[V2]": False, "C[V1]": False,
+        },
+        "A[V2]": {
+            "B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": False,
+            "C[V2]": False, "C[V1]": False,
+        },
+        "A[V1]": {
+            "B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": False,
+            "C[V2]": False, "C[V1]": False,
+        },
+        "B[V2]==2": {
+            "A[V3]": True, "A[V2]": False, "A[V1]": False,
+            "C[V2]": False, "C[V1]": False,
+        },
+        "B[V2]==1": {
+            "A[V3]": False, "A[V2]": False, "A[V1]": False,
+            "C[V2]": False, "C[V1]": False,
+        },
+        "B[V1]==1": {
+            "A[V3]": False, "A[V2]": False, "A[V1]": False,
+            "C[V2]": True, "C[V1]": True,
+        },
+        "C[V2]": {
+            "A[V3]": False, "A[V2]": False, "A[V1]": False,
+            "B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": True,
+        },
+        "C[V1]": {
+            "A[V3]": False, "A[V2]": False, "A[V1]": False,
+            "B[V2]==2": False, "B[V2]==1": False, "B[V1]==1": True,
+        }
+    }
+
+    result = wiz.graph._extract_optimized_variant_groups(
+        variant_groups, conflicting
+    )
+
+    assert result == [
+        ((("A[V3]",),), (("B[V2]==1",),), (("C[V2]",), ("C[V1]",))),
+        ((("A[V2]",),), (("B[V2]==2", "B[V2]==1",),), (("C[V2]",), ("C[V1]",))),
+        ((("A[V1]",),), (("B[V2]==2", "B[V2]==1",),), (("C[V2]",), ("C[V1]",))),
+        (
+            (("A[V2]",), ("A[V1]",)),
+            (("B[V2]==2", "B[V2]==1",),),
+            (("C[V2]",), ("C[V1]",))
+        ),
+        ((("A[V3]",), ("A[V2]",), ("A[V1]",)), (("B[V2]==1",),), (("C[V2]",),)),
+        ((("A[V2]",), ("A[V1]",)), (("B[V2]==2", "B[V2]==1",),), (("C[V2]",),)),
+        ((("A[V3]",), ("A[V2]",), ("A[V1]",)), (("B[V2]==1",),), (("C[V1]",),)),
+        ((("A[V2]",), ("A[V1]",)), (("B[V2]==2", "B[V2]==1",),), (("C[V1]",),)),
+    ]
+
+
+def test_filtered_variant_groups():
+    """Return filtered variant group using callback."""
+    variant_groups = (
+        (("A[V1]=1", "A[V1]=2"), ("A[V2]",)),
+        (("B[V2]",), ("B[V1]",))
+    )
+
+    result = wiz.graph._filtered_variant_groups(
+        variant_groups, callback=lambda _, _id: _id not in ("A[V1]=2", "B[V1]")
+    )
+    assert result == ((("A[V1]=1",), ("A[V2]",)), (("B[V2]",),))
+
+    result = wiz.graph._filtered_variant_groups(
+        variant_groups, callback=lambda _index, _id: (
+            _index == 0 and _id not in ("A[V1]=1", "A[V1]=2")
+        )
+    )
+    assert result == ((("A[V2]",),),)
+
+
 def test_compute_conflicting_matrix_empty(
     mocked_graph, mocked_check_conflicting_requirements
 ):
