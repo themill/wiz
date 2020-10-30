@@ -286,6 +286,10 @@ class Resolver(object):
             except IndexError:
                 return False
 
+            # Prevent mutating original combination as it might be reused to
+            # downgrade other conflicting nodes.
+            combination = copy.deepcopy(combination)
+
             # Iterator can be initialized only if all identifiers can be
             # replaced with lower version.
             if not combination.graph.downgrade_versions(identifiers):
@@ -1932,6 +1936,16 @@ class Combination(object):
             "<Combination nodes_removed='{0}'>"
             .format(", ".join(self._nodes_removed))
         )
+
+    def __deepcopy__(self, memo):
+        """Ensure that only necessary elements are copied in new combination.
+        """
+        result = Combination(self._graph)
+        result._nodes_removed = self._nodes_removed
+        result._distance_mapping = self._distance_mapping
+
+        memo[id(self)] = result
+        return result
 
     @property
     def graph(self):

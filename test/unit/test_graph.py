@@ -981,7 +981,7 @@ def test_resolver_fetch_next_combination_with_discovery():
     ]
 )
 def test_resolver_discover_combinations(
-    mocker, mocked_extract_combinations, combination_number
+    mocker, mocked_deepcopy, mocked_extract_combinations, combination_number
 ):
     """Discover new combinations from unsolvable conflicts recorded."""
     successful_graph_index = combination_number - 1
@@ -997,10 +997,16 @@ def test_resolver_discover_combinations(
 
     resolver = wiz.graph.Resolver("__MAPPING__")
     resolver._conflicting_combinations = collections.deque([
-        (combinations[index], {"N{}".format(index)})
+        ("COMBINATION{}".format(index), {"N{}".format(index)})
         for index in range(combination_number)
     ])
+    mocked_deepcopy.side_effect = combinations
     assert resolver.discover_combinations() is True
+
+    assert mocked_deepcopy.call_args_list == [
+        mocker.call("COMBINATION{}".format(index))
+        for index in range(combination_number)
+    ]
 
     for index, combination in enumerate(combinations):
         expected = {"N{}".format(index)}
@@ -1023,7 +1029,7 @@ def test_resolver_discover_combinations(
     ]
 )
 def test_resolver_discover_combinations_fail(
-    mocker, mocked_extract_combinations, combination_number
+    mocker, mocked_deepcopy, mocked_extract_combinations, combination_number
 ):
     """Fail to discover new combinations from unsolvable conflicts recorded."""
     combinations = [
@@ -1035,11 +1041,17 @@ def test_resolver_discover_combinations_fail(
 
     resolver = wiz.graph.Resolver("__MAPPING__")
     resolver._conflicting_combinations = collections.deque([
-        (combinations[index], {"N{}".format(index)})
+        ("COMBINATION{}".format(index), {"N{}".format(index)})
         for index in range(combination_number)
     ])
+    mocked_deepcopy.side_effect = combinations
 
     assert resolver.discover_combinations() is False
+
+    assert mocked_deepcopy.call_args_list == [
+        mocker.call("COMBINATION{}".format(index))
+        for index in range(combination_number)
+    ]
 
     for index, combination in enumerate(combinations):
         expected = {"N{}".format(index)}

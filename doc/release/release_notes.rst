@@ -4,6 +4,15 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Updated :meth:`wiz.graph.Combination.discover_combinations` to always
+        copy the combination before attempting to downgrade conflicting package
+        versions, so that it can be safely reused to downgrade other conflicting
+        package versions if necessary.
+
 .. release:: 3.5.1
     :date: 2020-10-29
 
