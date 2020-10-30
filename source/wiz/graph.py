@@ -701,6 +701,7 @@ def _combined_requirements(graph, nodes):
                 )
 
             else:
+                requirement.extras.update(_requirement.extras)
                 requirement.specifier &= _requirement.specifier
 
     return requirement
@@ -1580,10 +1581,9 @@ class Graph(object):
             # Extract combined requirement to node and modify it to exclude
             # current package version.
             requirement = _combined_requirements(self, [node])
-            exclusion_requirement = wiz.utility.get_requirement(
-                "{} != {}".format(requirement.name, node.package.version)
-            )
-            requirement.specifier &= exclusion_requirement.specifier
+            requirement.specifier &= "< {}".format(node.package.version)
+            if node.package.variant_identifier is not None:
+                requirement.extras = {node.package.variant_identifier}
 
             try:
                 packages = wiz.package.extract(
@@ -2177,7 +2177,7 @@ class Combination(object):
         :param requirement: Instance of
             :class:`packaging.requirements.Requirement` which led to the package
             extraction. It is a :func:`combined requirement
-            <wiz.graph.combined_requirements>` from all requirements which
+            <_combined_requirements>` from all requirements which
             extracted packages embedded in *conflicting_nodes*.
 
         :param conflicting_nodes: List of :class:`Node` instances representing
@@ -2383,7 +2383,7 @@ class Combination(object):
         """Return distance mapping from cached attribute.
 
         If no distance mapping is available, a new one is generated from
-        embedded graph via :func:`compute_distance_mapping`.
+        embedded graph via :func:`_compute_distance_mapping`.
 
         :param force_update: Indicate whether a new distance mapping should be
             computed, even if one cached mapping is available.

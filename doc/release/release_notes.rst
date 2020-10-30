@@ -4,6 +4,18 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Updated :func:`wiz.graph._combined_requirements` to return requirement
+        including combined variant identifiers from incoming parents.
+
+    .. change:: fixed
+
+        Updated :meth:`wiz.graph.Graph.downgrade_versions` to preserve the
+        same variant identifier when downgrading versions.
+
 .. release:: 3.5.0
     :date: 2020-10-29
 
