@@ -3,6 +3,7 @@
 import collections
 import copy
 import itertools
+import logging
 from heapq import heapify, heappush, heappop
 
 import six.moves
@@ -63,7 +64,7 @@ class Resolver(object):
             value will be picked from the :ref:`configuration <configuration>`.
 
         """
-        self._logger = wiz.logging.Logger(__name__ + ".Resolver")
+        self._logger = logging.getLogger(__name__ + ".Resolver")
 
         self._definition_mapping = definition_mapping
 
@@ -327,7 +328,7 @@ def _compute_distance_mapping(graph):
         distance is being kept.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".compute_distance_mapping")
+    logger = logging.getLogger(__name__ + ".compute_distance_mapping")
     logger.debug("Compute distance mapping.")
 
     # Initiate mapping
@@ -823,7 +824,7 @@ class Graph(object):
             identification. Default is None.
 
         """
-        self._logger = wiz.logging.Logger(__name__ + ".Graph")
+        self._logger = logging.getLogger(__name__ + ".Graph")
         self._resolver = resolver
 
         # All nodes created per node identifier.
@@ -1904,7 +1905,7 @@ class Combination(object):
             prevent mutating it. Default is True.
 
         """
-        self._logger = wiz.logging.Logger(__name__ + ".Combination")
+        self._logger = logging.getLogger(__name__ + ".Combination")
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_COMBINATION_EXTRACTION_ACTION,

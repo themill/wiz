@@ -1,6 +1,7 @@
 # :coding: utf-8
 
 import functools
+import logging
 
 import wiz.definition
 import wiz.environ
@@ -168,7 +169,7 @@ def combine_environ_mapping(package_identifier, mapping1, mapping2):
         This process will stringify all variable values.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".combine_environ_mapping")
+    logger = logging.getLogger(__name__ + ".combine_environ_mapping")
 
     mapping = {}
 
@@ -218,7 +219,7 @@ def combine_command_mapping(package_identifier, mapping1, mapping2):
     :return: Combined command alias mapping.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".combine_command_mapping")
+    logger = logging.getLogger(__name__ + ".combine_command_mapping")
 
     mapping = {}
 

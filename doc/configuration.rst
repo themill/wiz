@@ -150,3 +150,32 @@ See :ref:`here <plugins>` how to initialize environment variables using plugins.
     It is highly recommended to define initial environment variables when
     :ref:`installing <installing/source/options>` the package instead of
     defining it for each user as it can be error prone.
+
+.. _configuration/logging:
+
+Customize Logging
+-----------------
+
+The configuration can also be used to customize Python logging configuration.
+
+By default, :data:`wiz.logging.DEFAULT_CONFIG` will be used which initialize
+one :class:`logging.StreamHandler` instance for the console and one
+:class:`logging.handlers.RotatingFileHandler` instance to save detailed logs on
+the disk. The console handler is using :class:`coloredlogs.ColoredFormatter` to
+display messages in color depending on the level.
+
+For instance, the following configuration will disable the file handler and add
+a timestamp to each messages displayed via the console handler:
+
+.. code-block:: toml
+
+    [logging.root]
+    handlers=["console"]
+
+    [logging.formatters.standard]
+    format="%(asctime)s - %(message)s"
+
+.. note::
+
+    Logging configuration should adhere to :ref:`Configuration dictionary schema
+    <logging-config-dictschema>`.

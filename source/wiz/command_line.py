@@ -7,6 +7,7 @@ import datetime
 import os
 import time
 import textwrap
+import logging
 
 import click
 import six
@@ -26,7 +27,7 @@ import wiz.utility
 from wiz import __version__
 
 # Initiate logging handler to display potential warning when fetching config.
-wiz.logging.configure()
+wiz.logging.initiate()
 
 #: Retrieve configuration mapping to initialize default values.
 _CONFIG = wiz.config.fetch()
@@ -106,7 +107,7 @@ class _MainGroup(click.Group):
 @click.option(
     "-v", "--verbosity",
     help="Set the logging output verbosity.",
-    type=click.Choice(wiz.logging.levels),
+    type=click.Choice(wiz.logging.LEVEL_MAPPING.keys()),
     default=_CONFIG.get("command", {}).get("verbosity", "info"),
     show_default=True
 )
@@ -200,16 +201,13 @@ class _MainGroup(click.Group):
 @click.pass_context
 def main(click_context, **kwargs):
     """Main entry point for the command line interface."""
-    wiz.logging.configure()
-    logger = wiz.logging.Logger(__name__ + ".main")
+    wiz.logging.initiate(console_level=kwargs["verbosity"])
+    logger = logging.getLogger(__name__ + ".main")
 
     if kwargs["record"] is not None:
         wiz.history.start_recording(
             command=click_context.obj["initial_input"]
         )
-
-    # Set verbosity level.
-    wiz.logging.root.handlers["stderr"].filterer.min = kwargs["verbosity"]
 
     # Identify system mapping.
     system_mapping = wiz.system.query(
@@ -451,7 +449,7 @@ def wiz_list_command(click_context, **kwargs):
 @click.pass_context
 def wiz_search(click_context, **kwargs):
     """Search and display definitions from request(s)."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_search")
+    logger = logging.getLogger(__name__ + ".wiz_search")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -549,7 +547,7 @@ def wiz_search(click_context, **kwargs):
 @click.pass_context
 def wiz_view(click_context, **kwargs):
     """Display definition from identifier or command."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_view")
+    logger = logging.getLogger(__name__ + ".wiz_view")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -668,7 +666,7 @@ def wiz_view(click_context, **kwargs):
 @click.pass_context
 def wiz_use(click_context, **kwargs):
     """Resolve and use context from command."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_use")
+    logger = logging.getLogger(__name__ + ".wiz_use")
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
@@ -709,7 +707,6 @@ def wiz_use(click_context, **kwargs):
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
-        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -778,7 +775,7 @@ def wiz_use(click_context, **kwargs):
 @click.pass_context
 def wiz_run(click_context, **kwargs):
     """Run application from resolved context."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_run")
+    logger = logging.getLogger(__name__ + ".wiz_run")
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
@@ -820,7 +817,6 @@ def wiz_run(click_context, **kwargs):
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
-        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -871,7 +867,7 @@ def wiz_run(click_context, **kwargs):
 @click.pass_context
 def wiz_freeze(click_context, **kwargs):
     """Freeze resolved context into a package definition or a script."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_freeze")
+    logger = logging.getLogger(__name__ + ".wiz_freeze")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -930,7 +926,6 @@ def wiz_freeze(click_context, **kwargs):
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
-        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -981,7 +976,7 @@ def wiz_freeze(click_context, **kwargs):
 @click.pass_context
 def wiz_install(click_context, **kwargs):
     """Install a definition to a registry."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_install")
+    logger = logging.getLogger(__name__ + ".wiz_install")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -1021,7 +1016,6 @@ def wiz_install(click_context, **kwargs):
 
         except Exception as error:
             logger.error(error)
-            logger.debug_traceback()
 
             wiz.history.record_action(
                 wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -1136,7 +1130,7 @@ def wiz_install(click_context, **kwargs):
 @click.pass_context
 def wiz_edit(click_context, **kwargs):
     """Edit one or several definition(s)."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_edit")
+    logger = logging.getLogger(__name__ + ".wiz_edit")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -1199,7 +1193,6 @@ def wiz_edit(click_context, **kwargs):
 
     except Exception as error:
         logger.error(str(error))
-        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -1248,52 +1241,143 @@ def wiz_edit(click_context, **kwargs):
 @click.pass_context
 def wiz_analyze(click_context, **kwargs):
     """Display warning and error for each registry."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_analyze")
+    logger = logging.getLogger(__name__ + ".wiz_analyze")
     if click_context.obj["recording_path"] is not None:
         logger.error("Impossible to record history during analysis.")
         return
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
-    system_mapping = (
-        None if kwargs["no_arch"] else click_context.obj["system_mapping"]
-    )
 
-    latest_registry = None
+    definitions = [
+        definition for key, mapping
+        in definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE].items()
+        for definition in mapping.values()
+        if key != "__namespace__"
+    ]
 
-    for definition in wiz.definition.discover(
-        click_context.obj["registry_paths"],
-        system_mapping=system_mapping,
-        max_depth=click_context.obj["registry_search_depth"]
-    ):
-        if latest_registry != definition.registry_path:
-            info = "\nRegistry: {}\n".format(definition.registry_path)
-            print(wiz.utility.colored_text(info, color="cyan"))
-            latest_registry = definition.registry_path
+    # validation_mapping = {}
+    #
+    # with click.progressbar(definitions, show_pos=True) as _definitions:
+    #     for definition in _definitions:
+    #         mapping = _fetch_validation_mapping(
+    #             log_error, log_warning, definition, definition_mapping
+    #         )
+    #
+    # print(len(definitions))
 
-        identifier = definition.qualified_version_identifier
+    # validation_mapping = None
+    #
+    # for definition in wiz.definition.discover(
+    #     click_context.obj["registry_paths"],
+    #     system_mapping=system_mapping,
+    #     max_depth=click_context.obj["registry_search_depth"]
+    # ):
+    #     print(definition)
+    #     if latest_registry != definition.registry_path:
+    #         info = "\nRegistry: {}\n".format(definition.registry_path)
+    #         print(wiz.utility.colored_text(info, color="cyan"))
+    #         latest_registry = definition.registry_path
+    #
+    #     identifier = definition.qualified_version_identifier
+    #
+    #     # Skip definition if not matching filters.
+    #     if any(
+    #         _filter.lower() not in identifier.lower()
+    #         for _filter in kwargs["filters"]
+    #     ):
+    #         continue
+    #
+    #     print("  - {}".format(identifier), end="")
+    #     if kwargs["no_arch"]:
+    #         system_label = wiz.utility.compute_system_label(definition)
+    #         print(" [{}]".format(system_label), end="")
+    #
+    #     display_definition_analysis(
+    #         definition,
+    #         definition_mapping=definition_mapping,
+    #         verbose=kwargs["verbose"],
+    #     )
+    #
+    # if latest_registry is None:
+    #     print(wiz.utility.colored_text("No definitions found.", color="red"))
+    #
+    # print()
 
-        # Skip definition if not matching filters.
-        if any(
-            _filter.lower() not in identifier.lower()
-            for _filter in kwargs["filters"]
-        ):
-            continue
 
-        print("  - {}".format(identifier), end="")
-        if kwargs["no_arch"]:
-            system_label = wiz.utility.compute_system_label(definition)
-            print(" [{}]".format(system_label), end="")
+def _fetch_validation_mapping(
+    log_error, log_warning, definition, definition_mapping
+):
+    """Fetch errors and warnings from definition for *definition*.
 
-        display_definition_analysis(
-            definition,
-            definition_mapping=definition_mapping,
-            verbose=kwargs["verbose"],
+    :param log_error: instances of :class:`io.StringIO` such as
+        the instance returned by :func:`wiz.logging.configure_for_debug`. It
+        will receive possible error logged during the context resolution
+        process.
+
+    :param log_warning: instances of :class:`io.StringIO` such as
+        the instance returned by :func:`wiz.logging.configure_for_debug`. It
+        will receive possible warning logged during the context resolution
+        process.
+
+    :param definition: instance of :class:`wiz.definition.Definition`.
+
+    :param definition_mapping: Mapping regrouping all available definitions. It
+        could be fetched with :func:`fetch_definition_mapping`.
+
+    :return: Mapping in the form of
+        ::
+
+            {
+                "errors": [],
+                "warnings": []
+            }
+
+    .. warning::
+
+        *log_error* and *log_warning* variables will be :meth:`closed
+        <io.StringIO.close>` and should not be re-used.
+
+    """
+    mapping = {"errors": [], "warnings": []}
+
+    try:
+        _context = wiz.resolve_context(
+            [definition.qualified_version_identifier],
+            definition_mapping,
+            ignore_implicit=True,
         )
 
-    if latest_registry is None:
-        print(wiz.utility.colored_text("No definitions found.", color="red"))
+        error = log_error.getvalue()
+        warning = log_warning.getvalue()
 
-    print()
+        if len(error) > 0:
+            mapping["errors"].append(error)
+
+        if len(warning) > 0:
+            mapping["warnings"].append(warning)
+
+        log_error.close()
+        log_warning.close()
+
+    except wiz.exception.WizError as error:
+        mapping["errors"].append("critical: {}".format(str(error)))
+
+    else:
+        for key, value in _context.get("environ", {}).items():
+            unresolved_variables = []
+            for variable_tuple in wiz.environ.ENV_PATTERN.findall(value):
+                unresolved_variables.append("".join(variable_tuple))
+
+            if len(unresolved_variables) > 0:
+                warning = (
+                    "warning: the '{}' environment variable contains "
+                    "unresolved elements: {}".format(
+                        key, ", ".join(unresolved_variables)
+                    )
+                )
+                mapping["warnings"].append(warning)
+
+    return mapping
 
 
 def display_definition_analysis(
@@ -1830,7 +1914,7 @@ def _casted_argument(argument):
 
 def _query_identifier():
     """Query an identifier for a resolved context."""
-    logger = wiz.logging.Logger(__name__ + "._query_identifier")
+    logger = logging.getLogger(__name__ + "._query_identifier")
 
     while True:
         value = click.prompt("Please enter a definition identifier")
@@ -1846,7 +1930,7 @@ def _query_identifier():
 
 def _query_description():
     """Query an description for a resolved context."""
-    logger = wiz.logging.Logger(__name__ + "._query_description")
+    logger = logging.getLogger(__name__ + "._query_description")
 
     while True:
         value = click.prompt("Please enter a description")
@@ -1863,7 +1947,7 @@ def _query_description():
 
 def _query_version(default="0.1.0"):
     """Query a version for a resolved context."""
-    logger = wiz.logging.Logger(__name__ + "._query_version")
+    logger = logging.getLogger(__name__ + "._query_version")
 
     while True:
         content = click.prompt("Please indicate a version", default=default)
@@ -2010,7 +2094,7 @@ def _fetch_definition_mapping_from_context(click_context):
 
 def _export_history_if_requested(click_context):
     """Return definition mapping from elements stored in *click_context*."""
-    logger = wiz.logging.Logger(__name__ + "._export_history_if_requested")
+    logger = logging.getLogger(__name__ + "._export_history_if_requested")
 
     if click_context.obj["recording_path"] is None:
         return

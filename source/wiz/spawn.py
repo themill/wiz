@@ -11,6 +11,7 @@ import termios
 import tty
 import pty
 import signal
+import logging
 
 import wiz.logging
 import wiz.utility
@@ -30,7 +31,7 @@ def shell(environment, command=None):
         Default shell is :term:`Bash`.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".shell")
+    logger = logging.getLogger(__name__ + ".shell")
 
     if command is None:
         command = {}
@@ -100,7 +101,7 @@ def execute(elements, environment):
     :param environment: Environment mapping to execute command with.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".shell")
+    logger = logging.getLogger(__name__ + ".shell")
     logger.info(
         "Start command: {}".format(wiz.utility.combine_command(elements))
     )

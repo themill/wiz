@@ -4,6 +4,7 @@ import collections
 import imp
 import os
 import uuid
+import logging
 
 import toml
 
@@ -27,7 +28,7 @@ def fetch(refresh=False):
     :return: Configuration mapping.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".fetch")
+    logger = logging.getLogger(__name__ + ".fetch")
 
     global _CONFIG
 
@@ -75,7 +76,7 @@ def _discover_plugins():
     :return: List of plugins discovered.
 
     """
-    logger = wiz.logging.Logger(__name__ + "._discover_plugins")
+    logger = logging.getLogger(__name__ + "._discover_plugins")
 
     # Fetch all plugin paths.
     root = os.path.dirname(__file__)
