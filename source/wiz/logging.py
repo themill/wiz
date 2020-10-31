@@ -85,10 +85,63 @@ def initiate(console_level="info"):
     logging_config = copy.deepcopy(DEFAULT_CONFIG)
     wiz.utility.deep_update(logging_config, config.get("logging", {}))
 
-    print(logging_config)
     # Initiate the default level for the console if applicable.
     console_handler = logging_config.get("handlers", {}).get("console")
     if console_handler is not None:
         console_handler["level"] = LEVEL_MAPPING[console_level]
 
     logging.config.dictConfig(logging_config)
+
+
+def capture_logs(error_stream, warning_stream):
+    """Initialize logger to capture error and warning level.
+
+    :param error_stream: instances of :class:`io.StringIO` which will receive
+        all errors logged.
+
+    :param warning_stream: instances of :class:`io.StringIO` which will receive
+        all warnings logged.
+
+    """
+    logging.config.dictConfig({
+        "version": 1,
+        "root": {
+            "handlers": ["error", "warning"],
+            "level": logging.WARNING
+        },
+        "formatters": {
+            "standard": {
+                "class": "logging.Formatter",
+                "format": "%(message)s"
+            },
+        },
+        "handlers": {
+            "error": {
+                "class": "logging.StreamHandler",
+                "formatter": "standard",
+                "stream": error_stream,
+                "level": logging.ERROR,
+            },
+            "warning": {
+                "class": "logging.StreamHandler",
+                "formatter": "standard",
+                "stream": warning_stream,
+                "level": logging.WARNING,
+                "filters": ["warning-filter"]
+            }
+        },
+        "filters": {
+            "warning-filter": {
+                "()": _WarningLevelFilter,
+            }
+        },
+
+    })
+
+
+class _WarningLevelFilter(logging.Filter):
+    """Filter out log record with level other than 'WARNING'."""
+
+    def filter(self, record):
+        """Return whether *record* is a warning."""
+        return record.levelno == logging.WARNING
