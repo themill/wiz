@@ -328,7 +328,7 @@ def _compute_distance_mapping(graph):
         distance is being kept.
 
     """
-    logger = logging.getLogger(__name__ + ".compute_distance_mapping")
+    logger = logging.getLogger(__name__ + "._compute_distance_mapping")
     logger.debug("Compute distance mapping.")
 
     # Initiate mapping
