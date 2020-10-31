@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import collections
 import datetime
+import io
 import os
 import time
 import textwrap
@@ -1253,232 +1254,75 @@ def wiz_analyze(click_context, **kwargs):
         in definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE].items()
         for definition in mapping.values()
         if key != "__namespace__"
+        and not any(
+            _filter.lower() not in definition.qualified_identifier
+            for _filter in kwargs["filters"]
+        )
     ]
 
-    # validation_mapping = {}
-    #
-    # with click.progressbar(definitions, show_pos=True) as _definitions:
-    #     for definition in _definitions:
-    #         mapping = _fetch_validation_mapping(
-    #             log_error, log_warning, definition, definition_mapping
-    #         )
-    #
-    # print(len(definitions))
+    validation_mapping = {}
 
-    # validation_mapping = None
-    #
-    # for definition in wiz.definition.discover(
-    #     click_context.obj["registry_paths"],
-    #     system_mapping=system_mapping,
-    #     max_depth=click_context.obj["registry_search_depth"]
-    # ):
-    #     print(definition)
-    #     if latest_registry != definition.registry_path:
-    #         info = "\nRegistry: {}\n".format(definition.registry_path)
-    #         print(wiz.utility.colored_text(info, color="cyan"))
-    #         latest_registry = definition.registry_path
-    #
-    #     identifier = definition.qualified_version_identifier
-    #
-    #     # Skip definition if not matching filters.
-    #     if any(
-    #         _filter.lower() not in identifier.lower()
-    #         for _filter in kwargs["filters"]
-    #     ):
-    #         continue
-    #
-    #     print("  - {}".format(identifier), end="")
-    #     if kwargs["no_arch"]:
-    #         system_label = wiz.utility.compute_system_label(definition)
-    #         print(" [{}]".format(system_label), end="")
-    #
-    #     display_definition_analysis(
-    #         definition,
-    #         definition_mapping=definition_mapping,
-    #         verbose=kwargs["verbose"],
-    #     )
-    #
-    # if latest_registry is None:
-    #     print(wiz.utility.colored_text("No definitions found.", color="red"))
-    #
-    # print()
+    with click.progressbar(definitions, show_pos=True) as _definitions:
+        for definition in _definitions:
+            result = _fetch_validation_mapping(definition, definition_mapping)
+            validation_mapping[definition.qualified_version_identifier] = result
 
 
-def _fetch_validation_mapping(
-    log_error, log_warning, definition, definition_mapping
-):
-    """Fetch errors and warnings from definition for *definition*.
-
-    :param log_error: instances of :class:`io.StringIO` such as
-        the instance returned by :func:`wiz.logging.configure_for_debug`. It
-        will receive possible error logged during the context resolution
-        process.
-
-    :param log_warning: instances of :class:`io.StringIO` such as
-        the instance returned by :func:`wiz.logging.configure_for_debug`. It
-        will receive possible warning logged during the context resolution
-        process.
+def _fetch_validation_mapping(definition, definition_mapping):
+    """Fetch errors and warnings for *definition*.
 
     :param definition: instance of :class:`wiz.definition.Definition`.
 
     :param definition_mapping: Mapping regrouping all available definitions. It
         could be fetched with :func:`fetch_definition_mapping`.
 
-    :return: Mapping in the form of
-        ::
-
-            {
-                "errors": [],
-                "warnings": []
-            }
-
-    .. warning::
-
-        *log_error* and *log_warning* variables will be :meth:`closed
-        <io.StringIO.close>` and should not be re-used.
+    :return: Validation mapping.
 
     """
-    mapping = {"errors": [], "warnings": []}
+    result = {"errors": [], "warnings": []}
+    context = {}
 
-    try:
-        _context = wiz.resolve_context(
-            [definition.qualified_version_identifier],
-            definition_mapping,
-            ignore_implicit=True,
-        )
+    error_stream, warning_stream = io.StringIO(), io.StringIO()
+    wiz.logging.capture_logs(error_stream, warning_stream)
 
-        error = log_error.getvalue()
-        warning = log_warning.getvalue()
-
-        if len(error) > 0:
-            mapping["errors"].append(error)
-
-        if len(warning) > 0:
-            mapping["warnings"].append(warning)
-
-        log_error.close()
-        log_warning.close()
-
-    except wiz.exception.WizError as error:
-        mapping["errors"].append("critical: {}".format(str(error)))
-
-    else:
-        for key, value in _context.get("environ", {}).items():
-            unresolved_variables = []
-            for variable_tuple in wiz.environ.ENV_PATTERN.findall(value):
-                unresolved_variables.append("".join(variable_tuple))
-
-            if len(unresolved_variables) > 0:
-                warning = (
-                    "warning: the '{}' environment variable contains "
-                    "unresolved elements: {}".format(
-                        key, ", ".join(unresolved_variables)
-                    )
-                )
-                mapping["warnings"].append(warning)
-
-    return mapping
-
-
-def display_definition_analysis(
-    definition, definition_mapping=None, verbose=False
-):
-    """Analyze *definition* and display results.
-
-    Example::
-
-        >>> display_definition_analysis(definition)
-
-          - foo==10.0 ✘
-        critical: Failed to resolve graph at combination #10:
-
-        The dependency graph could not be resolved due to the following
-        requirement conflicts:
-          * foo ==1.5 	    [bar[1.5]==2.0.3]
-          * foo >=1, <1.5 	[bim==3.0.0]
-
-        >>> display_definition_analysis(definition, verbose=True)
-
-          - foo==10.0 ✘
-        critical: Failed to resolve graph at combination #10:
-
-        The dependency graph could not be resolved due to the following
-        requirement conflicts:
-          * foo ==1.5 	    [bar[1.5]==2.0.3]
-          * foo >=1, <1.5 	[bim==3.0.0]
-
-        * TIME DURATION: 0.276069879532
-        * CREATE_GRAPH: 1
-        * UPDATE_GRAPH: 6
-        * CREATE_NODE: 37
-        * CREATE_LINK: 98
-        * CREATE_DISTANCE_MAPPING: 15
-        * IDENTIFY_VARIANT_CONFLICTS: 3
-        * EXTRACT_GRAPH_COMBINATION: 10
-        * REMOVE_NODE: 25
-        * IDENTIFY_VERSION_CONFLICTS: 1
-        * RESOLUTION_ERROR: 10
-        * REPLACE_NODES: 3
-
-    :param definition: Instance of :class:`wiz.definition.Definition`.
-
-    :param definition_mapping: Mapping regrouping all available definitions. It
-        could be fetched with :func:`wiz.fetch_definition_mapping`. If no
-        definition mapping is provided, a default one will be fetched from
-        :func:`default registries <wiz.registry.get_defaults>`.
-
-    :param verbose: Indicate whether time duration and history information
-        should be added to analysis.
-
-    """
-    if definition_mapping is None:
-        definition_mapping = wiz.fetch_definition_mapping(
-            wiz.registry.get_defaults()
-        )
-
-    if verbose:
-        wiz.history.start_recording(minimal_actions=True)
+    wiz.history.start_recording(minimal_actions=True)
 
     time_start = time.time()
 
-    mapping = wiz.validate_definition(
-        definition, definition_mapping=definition_mapping
-    )
+    try:
+        context = wiz.resolve_context(
+            [definition.qualified_version_identifier], definition_mapping,
+            ignore_implicit=True,
+        )
 
-    time_duration = time.time() - time_start
+    except wiz.exception.WizError as error:
+        result["errors"].append(str(error))
 
-    errors = mapping.get("errors", [])
-    warnings = mapping.get("warnings", [])
+    result["time"] = time.time() - time_start
+    result["actions"] = wiz.history.get().get("actions", [])
 
-    if len(errors) > 0 or len(warnings) > 0:
-        print(wiz.utility.colored_text(" ✘", color="red"))
+    recorded = error_stream.getvalue()
+    if len(recorded) > 0:
+        result["errors"].append(recorded)
 
-        if len(errors) > 0:
-            _errors = "\n".join(errors)
-            print(wiz.utility.colored_text(_errors, color="red"))
+    recorded = warning_stream.getvalue()
+    if len(recorded) > 0:
+        result["warnings"].append(recorded)
 
-        if len(warnings) > 0:
-            _warnings = "\n".join(warnings)
-            print(wiz.utility.colored_text(_warnings, color="yellow"))
+    error_stream.close()
+    warning_stream.close()
 
-    else:
-        print(wiz.utility.colored_text(" ✔", color="green"))
+    for key, value in context.get("environ", {}).items():
+        unresolved = wiz.environ.ENV_PATTERN.findall(value)
+        unresolved = ["".join(res) for res in unresolved]
 
-    if verbose:
-        _mapping = collections.OrderedDict({"TIME DURATION": time_duration})
-        history = wiz.history.get()
+        if len(unresolved) > 0:
+            result["warnings"].append(
+                "warning: the '{}' environment variable contains "
+                "unresolved elements: {}".format(key, ", ".join(unresolved))
+            )
 
-        for action in history.get("actions", []):
-            identifier = action.get("identifier")
-            _mapping.setdefault(identifier, 0)
-            _mapping[identifier] += 1
-
-        message = "\n".join([
-            "    * {}: {}".format(key, value)
-            for key, value in _mapping.items()
-        ])
-
-        print(wiz.utility.colored_text(message + "\n", color="green"))
+    return result
 
 
 def display_registries(paths):
