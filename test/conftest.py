@@ -1,5 +1,6 @@
 # :coding: utf-8
 
+import logging
 import os
 import shutil
 import tempfile
@@ -47,13 +48,9 @@ def temporary_directory(request):
 
 @pytest.fixture(autouse=True)
 def logger(mocker):
-    """Mock the 'wiz.logging' module and return logger."""
-    import wiz.logging
-    mocker.patch.object(wiz.logging, "configure")
-    mocker.patch.object(wiz.logging, "root")
-
-    mock_logger = mocker.Mock()
-    mocker.patch.object(
-        wiz.logging, "Logger", return_value=mock_logger
+    """Mock logger."""
+    return mocker.Mock(
+        warning=mocker.patch.object(logging.Logger, "warning"),
+        error=mocker.patch.object(logging.Logger, "error"),
+        info=mocker.patch.object(logging.Logger, "info"),
     )
-    return mock_logger
