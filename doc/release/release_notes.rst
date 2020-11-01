@@ -12,6 +12,15 @@ Release Notes
         `sawmill <https://gitlab.com/4degrees/sawmill>`_ as there are no clear
         advantages in using a non-standard framework to handle logging system.
 
+    .. change:: new
+
+        Added :func:`wiz.logging.initiate` to configure logging for the command
+        line tool using a :data:`default configuration
+        <wiz.logging.DEFAULT_CONFIG>` which can be modified from the Wiz
+        configuration.
+
+        .. seealso:: :ref:`configuration/logging`
+
     .. change:: changed
 
         Updated ``wiz analyze`` to make results more condensed and easier to
@@ -34,6 +43,12 @@ Release Notes
 
         Expanded results can be displayed by using
         :option:`wiz analyze -V/--verbose <wiz analyze -V>`.
+
+    .. change:: changed
+
+        Removed :func:`wiz.validate_definition` as it is using unsafe logic
+        which modifies the logging configuration outside of the main program.
+        This feature will be accessible from ``wiz analyze``  command only.
 
 .. release:: 3.5.2
     :date: 2020-10-30
