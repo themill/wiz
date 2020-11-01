@@ -6,7 +6,6 @@ import logging
 import wiz.config
 import wiz.exception
 import wiz.filesystem
-import wiz.logging
 import wiz.utility
 
 

@@ -13,7 +13,6 @@ import pty
 import signal
 import logging
 
-import wiz.logging
 import wiz.utility
 import wiz.symbol
 

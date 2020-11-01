@@ -8,7 +8,6 @@ import wiz.environ
 import wiz.exception
 import wiz.filesystem
 import wiz.graph
-import wiz.logging
 import wiz.package
 import wiz.registry
 import wiz.spawn

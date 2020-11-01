@@ -9,7 +9,6 @@ from heapq import heapify, heappush, heappop
 import six.moves
 
 import wiz.config
-import wiz.logging
 import wiz.package
 import wiz.exception
 import wiz.symbol

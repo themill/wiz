@@ -8,7 +8,6 @@ import logging
 
 import toml
 
-import wiz.logging
 import wiz.utility
 
 #: Global configuration mapping.

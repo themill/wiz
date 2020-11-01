@@ -7,7 +7,6 @@ import wiz.definition
 import wiz.environ
 import wiz.exception
 import wiz.history
-import wiz.logging
 import wiz.symbol
 
 
