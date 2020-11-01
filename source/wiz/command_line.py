@@ -1355,7 +1355,7 @@ def wiz_analyze(click_context, **kwargs):
             "≥ {} second(s)".format(duration_threshold),
             len(over_duration_threshold)
         ),
-        ("Max Duration", "{:0.4f}s".format(max_duration)),
+        ("Max resolution time", "{:0.4f}s".format(max_duration)),
         ("Max combinations", max_combinations),
         ("Max version dropdown", max_version_dropdown)
     ]
