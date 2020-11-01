@@ -1230,7 +1230,43 @@ def wiz_edit(click_context, **kwargs):
     default=_CONFIG.get("command", {}).get("analyze", {}).get("no_arch", False)
 )
 @click.option(
-    "--verbose",
+    "-d", "--duration-threshold",
+    help="Update duration threshold (in seconds)",
+    type=int,
+    metavar="SECONDS",
+    default=1
+)
+@click.option(
+    "-e", "--extraction-threshold",
+    help="Update combination extraction threshold",
+    type=int,
+    metavar="NUMBER",
+    default=5
+)
+@click.option(
+    "-mc", "--max-combinations",
+    help=(
+        "Maximum number of combinations which can be generated from "
+        "conflicting variants during the context resolution process."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_combinations"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
+@click.option(
+    "-ma", "--max-attempts",
+    help=(
+        "Maximum number of attempts to resolve the context before raising an "
+        "error."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_attempts"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
+@click.option(
+    "-V", "--verbose",
     help="Increase verbosity of analysis.",
     is_flag=True,
     default=_CONFIG.get("command", {}).get("analyze", {}).get("verbose", False)
@@ -1260,26 +1296,147 @@ def wiz_analyze(click_context, **kwargs):
         )
     ]
 
-    validation_mapping = {}
+    extraction_threshold = kwargs["extraction_threshold"]
+    duration_threshold = kwargs["duration_threshold"]
+
+    with_errors = []
+    with_warnings = []
+    with_version_dropdown = []
+    over_combination_threshold = []
+    over_duration_threshold = []
+    max_version_dropdown = 0
+    max_combinations = 0
+    max_duration = 0
 
     with click.progressbar(definitions, show_pos=True) as _definitions:
         for definition in _definitions:
-            result = _fetch_validation_mapping(definition, definition_mapping)
-            validation_mapping[definition.qualified_version_identifier] = result
+            result = _fetch_validation_mapping(
+                definition, definition_mapping,
+                maximum_combinations=kwargs["max_combinations"],
+                maximum_attempts=kwargs["max_attempts"],
+            )
+
+            identifier = definition.qualified_version_identifier
+            if len(result["errors"]):
+                with_errors.append((identifier, result["errors"]))
+
+            if len(result["warnings"]):
+                with_warnings.append((identifier, result["warnings"]))
+
+            action = wiz.symbol.GRAPH_NODES_REPLACEMENT_ACTION
+            value = result["history"].get(action)
+            if value:
+                with_version_dropdown.append((value, identifier))
+                max_version_dropdown = max(max_version_dropdown, value)
+
+            action = wiz.symbol.GRAPH_COMBINATION_EXTRACTION_ACTION
+            value = result["history"].get(action)
+            if value:
+                max_combinations = max(max_combinations, value)
+
+                if value >= extraction_threshold:
+                    over_combination_threshold.append((value, identifier))
+
+            max_duration = max(max_duration, result["duration"])
+
+            if result["duration"] >= duration_threshold:
+                over_duration_threshold.append((result["duration"], identifier))
+
+    columns = _create_columns(["Metrics", "Values"])
+
+    rows = [
+        ("Errors", len(with_errors)),
+        ("Warnings", len(with_warnings)),
+        ("With version dropdown", len(with_version_dropdown)),
+        (
+            "≥ {} combination(s)".format(extraction_threshold),
+            len(over_combination_threshold)
+        ),
+        (
+            "≥ {} second(s)".format(duration_threshold),
+            len(over_duration_threshold)
+        ),
+        ("Max Duration", "{:0.4f}s".format(max_duration)),
+        ("Max combinations", max_combinations),
+        ("Max version dropdown", max_version_dropdown)
+    ]
+
+    for key, value in rows:
+        _create_row(key, columns[0])
+        _create_row(value, columns[1])
+
+    _display_table(columns)
+
+    if kwargs["verbose"]:
+        click.echo(click.style("Errors", bold=True))
+        for _id, errors in sorted(with_errors):
+            click.echo("- {}".format(_id))
+            for error in errors:
+                click.echo(click.style(error, fg="red"))
+
+        if not len(with_errors):
+            click.echo("None")
+
+        click.echo(click.style("\nWarning", bold=True))
+        for _id, warnings in sorted(with_warnings):
+            click.echo("- {}".format(_id))
+            for warning in warnings:
+                click.echo(click.style(warning, fg="yellow"))
+
+        if not len(with_warnings):
+            click.echo("None")
+
+        click.echo(click.style("\nWith version dropdown", bold=True))
+        for value, _id in sorted(with_version_dropdown):
+            click.echo("- {} [{}]".format(_id, value))
+
+        if not len(with_version_dropdown):
+            click.echo("None")
+
+        click.echo(click.style(
+            "\n≥ {} combination(s)".format(extraction_threshold), bold=True
+        ))
+        for value, _id in sorted(over_combination_threshold):
+            click.echo("- {} [{}]".format(_id, value))
+
+        if not len(over_combination_threshold):
+            click.echo("None")
+
+        click.echo(click.style(
+            "\n≥ {} second(s)".format(duration_threshold), bold=True
+        ))
+        for duration, _id in sorted(over_duration_threshold):
+            click.echo("- {} [{:0.4f}s]".format(_id, duration))
+
+        if not len(over_duration_threshold):
+            click.echo("None")
+
+        click.echo()
 
 
-def _fetch_validation_mapping(definition, definition_mapping):
-    """Fetch errors and warnings for *definition*.
+def _fetch_validation_mapping(
+    definition, definition_mapping, maximum_combinations, maximum_attempts
+):
+    """Fetch validation mapping for *definition*.
 
     :param definition: instance of :class:`wiz.definition.Definition`.
 
     :param definition_mapping: Mapping regrouping all available definitions. It
         could be fetched with :func:`fetch_definition_mapping`.
 
+    :param maximum_combinations: Maximum number of combinations which can be
+        generated from conflicting variants. Default is None, which means
+        that the default value will be picked from the :ref:`configuration
+        <configuration>`.
+
+    :param maximum_attempts: Maximum number of resolution attempts before
+        raising an error. Default is None, which means  that the default
+        value will be picked from the :ref:`configuration <configuration>`.
+
     :return: Validation mapping.
 
     """
-    result = {"errors": [], "warnings": []}
+    result = {"errors": [], "warnings": [], "history": {}}
     context = {}
 
     error_stream, warning_stream = io.StringIO(), io.StringIO()
@@ -1292,14 +1449,15 @@ def _fetch_validation_mapping(definition, definition_mapping):
     try:
         context = wiz.resolve_context(
             [definition.qualified_version_identifier], definition_mapping,
+            maximum_combinations=maximum_combinations,
+            maximum_attempts=maximum_attempts,
             ignore_implicit=True,
         )
 
     except wiz.exception.WizError as error:
         result["errors"].append(str(error))
 
-    result["time"] = time.time() - time_start
-    result["actions"] = wiz.history.get().get("actions", [])
+    result["duration"] = time.time() - time_start
 
     recorded = error_stream.getvalue()
     if len(recorded) > 0:
@@ -1321,6 +1479,11 @@ def _fetch_validation_mapping(definition, definition_mapping):
                 "warning: the '{}' environment variable contains "
                 "unresolved elements: {}".format(key, ", ".join(unresolved))
             )
+
+    for action in wiz.history.get().get("actions", []):
+        identifier = action.get("identifier")
+        result["history"].setdefault(identifier, 0)
+        result["history"][identifier] += 1
 
     return result
 
