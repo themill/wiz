@@ -122,7 +122,6 @@ def execute(elements, environment):
             "Executable can not be found within resolved "
             "environment [{}]".format(elements[0])
         )
-        logger.debug_traceback()
 
 
 def _cleanup(signum, frame):
