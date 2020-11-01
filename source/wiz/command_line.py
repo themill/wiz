@@ -1212,7 +1212,7 @@ def wiz_edit(click_context, **kwargs):
 
         \b
         >>> wiz analyze
-        >>> wiz analyze "foo" "bar"
+        >>> wiz analyze foo bar
         >>> wiz analyze --verbose
         >>> wiz -r /path/to/registry analyze
         >>> wiz -add /path/to/additional/registry analyze
@@ -1221,12 +1221,6 @@ def wiz_edit(click_context, **kwargs):
     ),
     short_help="Analyze reachable definitions.",
     context_settings=CONTEXT_SETTINGS
-)
-@click.option(
-    "--no-arch",
-    help="Analyze definition for all platforms.",
-    is_flag=True,
-    default=_CONFIG.get("command", {}).get("analyze", {}).get("no_arch", False)
 )
 @click.option(
     "-d", "--duration-threshold",
