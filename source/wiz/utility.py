@@ -8,7 +8,6 @@ import pipes
 import re
 import zlib
 
-import colorama
 from packaging.requirements import InvalidRequirement
 from packaging.version import Version, InvalidVersion
 import ujson
@@ -572,25 +571,6 @@ def combine_command(elements):
 
     """
     return " ".join([pipes.quote(element) for element in elements])
-
-
-def colored_text(message, color):
-    """Return colored *message* according to color *name*.
-
-    Available color names are: "black", "red", "green", "yellow", "blue",
-    "magenta", "cyan" and "white".
-
-    :param message: String to colorize.
-
-    :param color: Symbol of color to apply to *message*.
-
-    :return: Colorized message.
-
-    """
-    return (
-        getattr(colorama.Fore, color.upper()) + message +
-        colorama.Style.RESET_ALL
-    )
 
 
 def deep_update(mapping1, mapping2):
