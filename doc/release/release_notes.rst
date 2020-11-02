@@ -4,7 +4,8 @@
 Release Notes
 *************
 
-.. release:: Upcoming
+.. release:: 3.6.0
+    :date: 2020-11-01
 
     .. change:: changed
 
