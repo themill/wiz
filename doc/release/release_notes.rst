@@ -10,7 +10,7 @@ Release Notes
 
         Updated repository to use built-in :mod:`logging` module instead of
         `sawmill <https://gitlab.com/4degrees/sawmill>`_ as there are no clear
-        advantages in using a non-standard framework to handle logging system.
+        advantages in using a non-standard framework to handle logging.
 
     .. change:: new
 
