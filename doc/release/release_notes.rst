@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Updated :func:`wiz.logging.initiate` to ensure that default logging
+        :data:`~wiz.logging.PATH` exists so the file handler can be configured
+        without raising an error.
+
 .. release:: 3.6.0
     :date: 2020-11-01
 

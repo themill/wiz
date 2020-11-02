@@ -13,6 +13,7 @@ import coloredlogs
 
 import wiz.config
 import wiz.utility
+import wiz.filesystem
 
 
 # Configure custom colors for messages displayed in the console.
@@ -31,8 +32,7 @@ LEVEL_MAPPING = collections.OrderedDict([
     ("error", logging.ERROR),
 ])
 
-#: Default output path for files exported by
-# :class:`~logging.handlers.RotatingFileHandler`.
+#: Output path for files exported by default 'file' handler.
 PATH = os.path.join(tempfile.gettempdir(), "wiz", "logs")
 
 #: Default configuration for logger.
@@ -81,6 +81,9 @@ def initiate(console_level="info"):
 
     """
     config = wiz.config.fetch()
+
+    # Ensure that default output path exists.
+    wiz.filesystem.ensure_directory(PATH)
 
     # Update default logging configuration if necessary.
     logging_config = copy.deepcopy(DEFAULT_CONFIG)
