@@ -90,7 +90,7 @@ intersphinx_mapping = {
     "python": ("http://docs.python.org/", None),
     "packaging": ("https://packaging.pypa.io/en/stable/", None),
     "click": ("https://click.palletsprojects.com/en/7.x/", None),
-    "sawmill": ("https://sawmill.readthedocs.io/en/stable/", None)
+    "coloredlogs": ("https://coloredlogs.readthedocs.io/en/latest/", None)
 }
 
 

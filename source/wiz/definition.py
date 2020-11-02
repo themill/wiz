@@ -1,16 +1,17 @@
 # :coding: utf-8
 
+from __future__ import absolute_import
 import os
 import copy
 import json
 import collections
+import logging
 
 import ujson
 
 import wiz.exception
 import wiz.filesystem
 import wiz.history
-import wiz.logging
 import wiz.package
 import wiz.symbol
 import wiz.system
@@ -430,7 +431,7 @@ def discover(paths, system_mapping=None, max_depth=None):
     :return: Generator which yield all :class:`definitions <Definition>`.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".discover")
+    logger = logging.getLogger(__name__ + ".discover")
 
     for path in paths:
 
@@ -466,9 +467,8 @@ def discover(paths, system_mapping=None, max_depth=None):
                 ):
                     logger.warning(
                         "Error occurred trying to load definition from {!r}"
-                        .format(_path),
+                        .format(_path)
                     )
-                    logger.debug_traceback()
                     continue
 
                 # Skip definition if an incompatible system if set.

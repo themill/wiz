@@ -7,6 +7,16 @@ Migration notes
 This section will show more detailed information when relevant for switching to
 a new version, such as when upgrading involves backwards incompatibilities.
 
+.. _release/migration/3.6.0:
+
+Migrate to 3.6.0
+================
+
+.. rubric:: API
+
+:func:`wiz.validate_definition` has been removed as it was using unsafe logic
+modifying the logging configuration outside of the main program.
+
 .. _release/migration/3.5.0:
 
 Migrate to 3.5.0

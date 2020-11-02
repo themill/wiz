@@ -4,6 +4,53 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+
+        Updated repository to use built-in :mod:`logging` module instead of
+        `sawmill <https://gitlab.com/4degrees/sawmill>`_ as there are no clear
+        advantages in using a non-standard framework to handle logging.
+
+    .. change:: new
+
+        Added :func:`wiz.logging.initiate` to configure logging for the command
+        line tool using a :data:`default configuration
+        <wiz.logging.DEFAULT_CONFIG>` which can be modified from the Wiz
+        configuration.
+
+        .. seealso:: :ref:`configuration/logging`
+
+    .. change:: changed
+
+        Updated ``wiz analyze`` to make results more condensed and easier to
+        use for debugging.
+
+        .. code-block:: console
+
+            >>> wiz analyze
+
+            Metrics                 Values
+            ---------------------   -------
+            Total                   120
+            Errors                  0
+            Warnings                2
+            With version dropdown   1
+            ≥ 5 combination(s)      1
+            ≥ 1 second(s)           0
+            Max resolution time     0.5484s
+            Max combinations        12
+            Max version dropdown    5
+
+        Expanded results can be displayed by using
+        :option:`wiz analyze -V/--verbose <wiz analyze -V>`.
+
+    .. change:: changed
+
+        Removed :func:`wiz.validate_definition` as it is using unsafe logic
+        which modifies the logging configuration outside of the main program.
+        This feature will be accessible from ``wiz analyze``  command only.
+
 .. release:: 3.5.2
     :date: 2020-10-30
 
@@ -770,7 +817,7 @@ Release Notes
     .. change:: fixed
         :tags: documentation
 
-        Fixed error in :ref:`tutorial`.
+        Fixed error in ``tutorial``.
 
 .. release:: 2.6.0
     :date: 2019-03-28
@@ -778,7 +825,7 @@ Release Notes
     .. change:: changed
         :tags: documentation
 
-        Updated :ref:`tutorial`.
+        Updated ``tutorial``.
 
     .. change:: changed
         :tags: command-line
@@ -2132,7 +2179,7 @@ Release Notes
     .. change:: new
         :tags: documentation
 
-        Added :ref:`tutorial` section to documentation, including a guide for
+        Added ``tutorial`` section to documentation, including a guide for
         project registries, as well as some introduction into
         :ref:`registry` and :ref:`definition`.
         Additional :ref:`guidelines` and "tools" sections have been added to

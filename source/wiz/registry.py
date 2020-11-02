@@ -1,11 +1,12 @@
 # :coding: utf-8
 
+from __future__ import absolute_import
 import os
+import logging
 
 import wiz.config
 import wiz.exception
 import wiz.filesystem
-import wiz.logging
 import wiz.utility
 
 
@@ -130,7 +131,7 @@ def install_to_path(definitions, registry_path, overwrite=False):
         *registry_path*.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".install_to_path")
+    logger = logging.getLogger(__name__ + ".install_to_path")
 
     if not os.path.isdir(registry_path):
         raise wiz.exception.InstallError(
