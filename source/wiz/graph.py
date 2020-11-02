@@ -1019,7 +1019,7 @@ class Graph(object):
             _group = []
 
             for nodes in variant_group.values():
-                nodes.sort(key=lambda n: n.package.version, reverse=True)
+                nodes.sort(key=lambda n: n.package.version or "", reverse=True)
                 _group.append(tuple([node.identifier for node in nodes]))
 
             groups.add(tuple(_group))
