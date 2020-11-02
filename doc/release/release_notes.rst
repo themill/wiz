@@ -32,6 +32,7 @@ Release Notes
 
             Metrics                 Values
             ---------------------   -------
+            Total                   120
             Errors                  0
             Warnings                2
             With version dropdown   1

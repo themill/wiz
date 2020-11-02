@@ -1340,6 +1340,7 @@ def wiz_analyze(click_context, **kwargs):
     columns = _create_columns(["Metrics", "Values"])
 
     rows = [
+        ("Total", len(definitions)),
         ("Errors", len(with_errors)),
         ("Warnings", len(with_warnings)),
         ("With version dropdown", len(with_version_dropdown)),
