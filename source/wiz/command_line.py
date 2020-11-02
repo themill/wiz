@@ -1301,7 +1301,9 @@ def wiz_analyze(click_context, **kwargs):
     max_combinations = 0
     max_duration = 0
 
-    with click.progressbar(definitions, show_pos=True) as _definitions:
+    with click.progressbar(
+        definitions, show_pos=True, show_eta=False
+    ) as _definitions:
         for definition in _definitions:
             result = _fetch_validation_mapping(
                 definition, definition_mapping,
