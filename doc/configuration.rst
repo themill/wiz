@@ -156,16 +156,19 @@ See :ref:`here <plugins>` how to initialize environment variables using plugins.
 Customize Logging
 -----------------
 
-The configuration can also be used to customize Python logging configuration.
+By default, :data:`wiz.logging.DEFAULT_CONFIG` will be used to initialize
+the Python logging for the command line tool with two handlers:
 
-By default, :data:`wiz.logging.DEFAULT_CONFIG` will be used which initialize
-one :class:`logging.StreamHandler` instance for the console and one
-:class:`logging.handlers.RotatingFileHandler` instance to save detailed logs on
-the disk. The console handler is using :class:`coloredlogs.ColoredFormatter` to
-display messages in color depending on the level.
+* The 'console' handler is a :class:`~logging.StreamHandler` instance which
+  handles terminal output. It is using :class:`~coloredlogs.ColoredFormatter` to
+  display messages with a color corresponding to the level used.
 
-For instance, the following configuration will disable the file handler and add
-a timestamp to each messages displayed via the console handler:
+* The 'file' handler is a :class:`~logging.handlers.RotatingFileHandler`
+  instance which saves detailed logs on the disk for each user.
+
+The configuration can be used to modify these handlers, or add new ones. For
+instance, the following configuration will disable the 'file' handler and add a
+timestamp to each messages displayed via the 'console' handler:
 
 .. code-block:: toml
 
@@ -177,5 +180,5 @@ a timestamp to each messages displayed via the console handler:
 
 .. note::
 
-    Logging configuration should adhere to :ref:`Configuration dictionary schema
-    <logging-config-dictschema>`.
+    Logging configuration should adhere to the
+    :ref:`Configuration dictionary schema <logging-config-dictschema>`.
