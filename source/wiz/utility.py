@@ -115,8 +115,9 @@ def is_overlapping(requirement1, requirement2):
 
     r1 = extract_version_ranges(requirement1)
     r2 = extract_version_ranges(requirement2)
-    return (r2[-1][1] is None or r1[0][0] is None or r2[-1][1] >= r1[0][0]) and (
-        r1[-1][1] is None or r2[0][0] is None or r1[-1][1] >= r2[0][0]
+    return (
+        (r2[-1][1] is None or r1[0][0] is None or r2[-1][1] >= r1[0][0]) and
+        (r1[-1][1] is None or r2[0][0] is None or r1[-1][1] >= r2[0][0])
     )
 
 
@@ -293,7 +294,7 @@ def _update_maximum_version(version, ranges):
             "The requirement is incorrect as maximum value '{}' cannot be set "
             "when minimum value is '{}'.".format(
                 ".".join(str(v) for v in version),
-                ".".join(str(v) for v in ranges[0][0]),
+                ".".join(str(v) for v in ranges[0][0])
             )
         )
 
@@ -336,7 +337,7 @@ def _update_minimum_version(version, ranges):
             "The requirement is incorrect as minimum value '{}' cannot be set "
             "when maximum value is '{}'.".format(
                 ".".join(str(v) for v in version),
-                ".".join(str(v) for v in ranges[-1][1]),
+                ".".join(str(v) for v in ranges[-1][1])
             )
         )
 
@@ -578,7 +579,9 @@ def compute_file_name(definition):
     name = definition.identifier
 
     if definition.namespace:
-        namespace = "-".join(definition.namespace.split(wiz.symbol.NAMESPACE_SEPARATOR))
+        namespace = "-".join(
+            definition.namespace.split(wiz.symbol.NAMESPACE_SEPARATOR)
+        )
         name = "{}-{}".format(namespace, name)
 
     if definition.version:
@@ -672,9 +675,9 @@ def sanitize_requirement(requirement, package):
 
     # Prevent mutating incoming requirement.
     _requirement = copy.deepcopy(requirement)
-    _requirement.name = wiz.symbol.NAMESPACE_SEPARATOR.join(
-        [package.namespace or "", package.definition.identifier]
-    )
+    _requirement.name = wiz.symbol.NAMESPACE_SEPARATOR.join([
+        package.namespace or "", package.definition.identifier
+    ])
     return _requirement
 
 
