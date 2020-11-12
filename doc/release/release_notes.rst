@@ -4,6 +4,342 @@
 Release Notes
 *************
 
+.. release:: 3.6.1
+    :date: 2020-11-02
+
+    .. change:: fixed
+
+        Updated :func:`wiz.logging.initiate` to ensure that default logging
+        :data:`~wiz.logging.PATH` exists so the file handler can be configured
+        without raising an error.
+
+.. release:: 3.6.0
+    :date: 2020-11-01
+
+    .. change:: changed
+
+        Updated repository to use built-in :mod:`logging` module instead of
+        `sawmill <https://gitlab.com/4degrees/sawmill>`_ as there are no clear
+        advantages in using a non-standard framework to handle logging.
+
+    .. change:: new
+
+        Added :func:`wiz.logging.initiate` to configure logging for the command
+        line tool using a :data:`default configuration
+        <wiz.logging.DEFAULT_CONFIG>` which can be modified from the Wiz
+        configuration.
+
+        .. seealso:: :ref:`configuration/logging`
+
+    .. change:: changed
+
+        Updated ``wiz analyze`` to make results more condensed and easier to
+        use for debugging.
+
+        .. code-block:: console
+
+            >>> wiz analyze
+
+            Metrics                 Values
+            ---------------------   -------
+            Total                   120
+            Errors                  0
+            Warnings                2
+            With version dropdown   1
+            ≥ 5 combination(s)      1
+            ≥ 1 second(s)           0
+            Max resolution time     0.5484s
+            Max combinations        12
+            Max version dropdown    5
+
+        Expanded results can be displayed by using
+        :option:`wiz analyze -V/--verbose <wiz analyze -V>`.
+
+    .. change:: changed
+
+        Removed :func:`wiz.validate_definition` as it is using unsafe logic
+        which modifies the logging configuration outside of the main program.
+        This feature will be accessible from ``wiz analyze``  command only.
+
+.. release:: 3.5.2
+    :date: 2020-10-30
+
+    .. change:: fixed
+
+        Updated :meth:`wiz.graph.Combination.discover_combinations` to always
+        copy the combination before attempting to downgrade conflicting package
+        versions, so that it can be safely reused to downgrade other conflicting
+        package versions if necessary.
+
+.. release:: 3.5.1
+    :date: 2020-10-29
+
+    .. change:: fixed
+
+        Updated :func:`wiz.graph._combined_requirements` to return requirement
+        including combined variant identifiers from incoming parents.
+
+    .. change:: fixed
+
+        Updated :meth:`wiz.graph.Graph.downgrade_versions` to preserve the
+        same variant identifier when downgrading versions.
+
+.. release:: 3.5.0
+    :date: 2020-10-29
+
+    .. change:: changed
+
+        Updated :mod:`wiz.graph` to make the following functions private:
+
+        * :func:`wiz.graph._compute_distance_mapping`
+        * :func:`wiz.graph._generate_variant_permutations`
+        * :func:`wiz.graph._compute_conflicting_matrix`
+        * :func:`wiz.graph._combined_requirements`
+        * :func:`wiz.graph._extract_conflicting_requirements`
+
+    .. change:: changed
+
+        Updated :func:`wiz.graph._generate_variant_permutations` to discard
+        permutations containing variant nodes with conflicting requirements.
+        Previously, the resolver had to consider all conflicting permutations
+        before attempting to :meth:`discover
+        <wiz.graph.Resolver.discover_combinations>` new combinations by
+        :meth:`downgrading <wiz.graph.Graph.downgrade_versions>` the versions
+        of conflicting nodes.
+
+    .. change:: changed
+
+        Updated :meth:`wiz.graph.Graph.relink_parents` to record errors as
+        :exc:`~wiz.exception.GraphConflictsError` exception which can be raised
+        during the :meth:`validation <wiz.graph.Combination.validate>` of a
+        combination. This allows the resolver to :meth:`discover
+        <wiz.graph.Resolver.discover_combinations>` new combinations by
+        :meth:`downgrading <wiz.graph.Graph.downgrade_versions>` the versions
+        of the conflicting nodes involved if necessary.
+
+.. release:: 3.4.0
+    :date: 2020-10-23
+
+    .. change:: changed
+
+        Updated :func:`wiz.resolve_context` logic to only guess :ref:`namespaces
+        <definition/namespace>` from initial requirements without taking
+        :ref:`implicit packages <definition/auto-use>` into account.
+
+        .. seealso::
+
+            https://github.com/themill/wiz/issues/60
+
+    .. change:: changed
+
+        Updated :meth:`wiz.graph.Resolver.compute_packages` and
+        :class:`wiz.graph.Graph` to take initial namespace counter as a keyword
+        argument. This is necessary as the logic handling :ref:`namespace
+        <definition/namespace>` frequency counting from initial requirements
+        have been moved upstream.
+
+    .. change:: new
+
+        Added :func:`wiz.utility.compute_namespace_counter` to compute a
+        :ref:`namespace <definition/namespace>` frequency counter from a list
+        of requirements.
+
+.. release:: 3.3.1
+    :date: 2020-10-22
+
+    .. change:: fixed
+
+        Reverted :exc:`wiz.exception.DefinitionsExist` to using definition
+        labels instead of definitions instances for convenience as
+        :ref:`installer plugin <plugins/default/installer>` might not have
+        access to the entire definition data when raising the error.
+
+.. release:: 3.3.0
+    :date: 2020-10-21
+
+    .. change:: new
+
+        Added the following commands to limit the maximum number of attempts to
+        resolve a context before raising an error:
+
+        * :option:`wiz use -ma/--max-attempts <wiz use -ma>`
+        * :option:`wiz run -ma/--max-attempts <wiz run -ma>`
+
+    .. change:: new
+
+        Added the following commands to limit the maximum number of combinations
+        which can be generated from conflicting variants during the context
+        resolution process:
+
+        * :option:`wiz use -mc/--max-combinations <wiz use -mc>`
+        * :option:`wiz run -mc/--max-combinations <wiz run -mc>`
+
+    .. change:: changed
+
+        Updated :func:`wiz.resolve_context` to add keyword arguments which
+        provide a maximum number of attempts to resolve a context before raising
+        an error, and a maximum number of combinations which can be generated
+        from conflicting variants during the context resolution process.
+
+    .. change:: changed
+
+        Updated :class:`wiz.graph.Resolver` constructor to add keyword arguments
+        which provide a maximum number of resolution attempts before raising
+        an error, and a maximum number of combinations which can be generated
+        from conflicting variants.
+
+    .. change:: changed
+
+        Refactored :mod:`wiz.graph` to provide a better `separation of concerns
+        <https://en.wikipedia.org/wiki/Separation_of_concerns>`_ between stages
+        of the resolution process.
+
+        The :class:`~wiz.graph.Resolver` class handles the creation of the
+        initial :class:`~wiz.graph.Graph` and the extraction and management of
+        :class:`~wiz.graph.Combination` instances. The newly added
+        :class:`~wiz.graph.Combination` class handles the version conflict
+        resolution, the graph validation and the packages extraction.
+
+    .. change:: changed
+
+        Removed the following functions to improve code readability and move
+        logic into different callbacks:
+
+        +----------------+----------------------------------------------------+
+        | Removed        | * :func:`wiz.graph.generate_variant_combinations`  |
+        +----------------+----------------------------------------------------+
+        | Logic moved to | * :meth:`wiz.graph.Resolver.extract_combinations`  |
+        +----------------+----------------------------------------------------+
+
+        +----------------+----------------------------------------------------+
+        | Removed        | * :func:`wiz.graph.trim_unreachable_from_graph`    |
+        |                | * :func:`wiz.graph.trim_invalid_from_graph`        |
+        +----------------+----------------------------------------------------+
+        | Logic moved to | * :meth:`wiz.graph.Combination.prune_graph`        |
+        +----------------+----------------------------------------------------+
+
+        +----------------+----------------------------------------------------+
+        | Removed        | * :func:`wiz.graph.updated_by_distance`            |
+        |                | * :func:`wiz.graph.extract_conflicting_nodes`      |
+        +----------------+----------------------------------------------------+
+        | Logic moved to | * :meth:`wiz.graph.Combination.resolve_conflicts`  |
+        +----------------+----------------------------------------------------+
+
+        +----------------+----------------------------------------------------+
+        | Removed        | * :func:`wiz.graph.validate`                       |
+        +----------------+----------------------------------------------------+
+        | Logic moved to | * :meth:`wiz.graph.Combination.validate`           |
+        +----------------+----------------------------------------------------+
+
+        +----------------+----------------------------------------------------+
+        | Removed        | * :func:`wiz.graph.extract_ordered_packages`       |
+        +----------------+----------------------------------------------------+
+        | Logic moved to | * :meth:`wiz.graph.Combination.extract_packages`   |
+        +----------------+----------------------------------------------------+
+
+    .. change:: changed
+
+        Removed :func:`wiz.graph.relink_parents` and added logic to
+        :meth:`wiz.graph.Graph.relink_parents`. This change was necessary to
+        record potential relinking error within the graph instead of raising
+        an exception immediately as the node bearing the error might be removed
+        during the conflict resolution process.
+
+    .. change:: new
+
+        Added :func:`wiz.graph.generate_variant_permutations` to yield all
+        possible permutations between variant groups in an optimized order.
+        It now checks the requirement compatibility between each variant node to
+        prevent wasting time in combinations that can not be resolved, hence
+        providing a major performance boost for definition containing a lot of
+        :ref:`variants <definition/variants>`.
+
+    .. change:: new
+
+        Added :func:`wiz.graph.compute_conflicting_matrix` to compute
+        compatibility between each variant node.
+
+    .. change:: changed
+
+        Moved :func:`wiz.graph.sanitize_requirement` to
+        :func:`wiz.utility.sanitize_requirement` and improved logic to prevent
+        confusion when the package does not contain a :ref:`namespace
+        <definition/namespace>`.
+
+    .. change:: new
+
+        Added :func:`wiz.utility.match` to check whether a
+        :class:`~packaging.requirements.Requirement` instance is compatible
+        with a :class:`wiz.package.Package` instance. This logic was previously
+        included in :meth:`wiz.graph.Graph.find`.
+
+    .. change:: new
+
+        Added :func:`wiz.utility.extract_namespace` to retrieve a
+        :ref:`namespace <definition/namespace>` from a
+        :class:`~packaging.requirements.Requirement` instance. This logic was
+        previously included in :meth:`wiz.graph.Graph.find`.
+
+    .. change:: new
+
+        Added :func:`wiz.utility.check_conflicting_requirements` to check
+        whether two :class:`wiz.package.Package` instances contain conflicting
+        requirements.
+
+    .. change:: fixed
+
+        Updated :class:`wiz.graph.Resolver` to prevent discarding graph
+        combinations containing a node which has been flagged as conflict or
+        error in a previous iteration. This logic was flawed as these nodes
+        could be removed during the conflict resolution process, leading to a
+        false negative evaluation of a graph combination.
+
+    .. change:: fixed
+
+        Updated :meth:`wiz.graph.Combination.resolve_conflicts` to better
+        handle resolution of circular conflicts.
+
+    .. change:: fixed
+
+        Updated :meth:`wiz.graph.Resolver.discover_combinations` to prune
+        unreachable nodes from the graph after downgrading node versions.
+        Previously, variant conflicts could be detected from nodes which had
+        been removed from the graph.
+
+    .. change:: changed
+
+        Updated following exception names for consistency:
+
+        * :exc:`wiz.exception.InvalidVersion` →
+          :exc:`wiz.exception.VersionError`
+        * :exc:`wiz.exception.InvalidRequirement` →
+          :exc:`wiz.exception.RequirementError`
+        * :exc:`wiz.exception.IncorrectSystem` →
+          :exc:`wiz.exception.CurrentSystemError`
+        * :exc:`wiz.exception.IncorrectDefinition` →
+          :exc:`wiz.exception.DefinitionError`
+
+    .. change:: new
+
+        Added new exceptions inheriting from
+        :exc:`wiz.exception.GraphResolutionError` to better handle flow of data:
+
+        * :exc:`wiz.exception.GraphConflictsError`
+        * :exc:`wiz.exception.GraphInvalidNodesError`
+        * :exc:`wiz.exception.GraphVariantsError`
+
+    .. change:: changed
+
+        Updated :class:`wiz.package.Package` constructor to raise an error if
+        the variant index is missing or incorrect.
+
+    .. change:: fixed
+
+        Updated `monkey patching <https://en.wikipedia.org/wiki/Monkey_patch>`_
+        of :class:`packaging.requirements.Requirement` to allow for multiple
+        :ref:`namespaces <definition/namespace>` separated by two colons
+        (e.g. ``name1::name2::foo``).
+
 .. release:: 3.2.5
     :date: 2020-09-15
 
@@ -491,7 +827,7 @@ Release Notes
     .. change:: fixed
         :tags: documentation
 
-        Fixed error in :ref:`tutorial`.
+        Fixed error in ``tutorial``.
 
 .. release:: 2.6.0
     :date: 2019-03-28
@@ -499,7 +835,7 @@ Release Notes
     .. change:: changed
         :tags: documentation
 
-        Updated :ref:`tutorial`.
+        Updated ``tutorial``.
 
     .. change:: changed
         :tags: command-line
@@ -1853,7 +2189,7 @@ Release Notes
     .. change:: new
         :tags: documentation
 
-        Added :ref:`tutorial` section to documentation, including a guide for
+        Added ``tutorial`` section to documentation, including a guide for
         project registries, as well as some introduction into
         :ref:`registry` and :ref:`definition`.
         Additional :ref:`guidelines` and "tools" sections have been added to

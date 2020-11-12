@@ -43,8 +43,8 @@ def query(platform=None, architecture=None, os_name=None, os_version=None):
 
     :return: System mapping.
 
-    :raise: :exc:`wiz.exception.UnsupportedPlatform` if platform is not
-        supported.
+    :raise: :exc:`wiz.exception.IncorrectSystem` if current system could not
+        be identified or is not supported.
 
     """
     name = _platform.system().lower()
@@ -59,11 +59,10 @@ def query(platform=None, architecture=None, os_name=None, os_version=None):
         else:
             raise wiz.exception.UnsupportedPlatform(name)
 
-    except wiz.exception.InvalidVersion as error:
-        raise wiz.exception.IncorrectDefinition(
-            "The operating system version found seems incorrect [{}]".format(
-                error
-            )
+    except wiz.exception.VersionError as error:
+        raise wiz.exception.CurrentSystemError(
+            "The operating system version found seems incorrect "
+            "[{}]".format(error)
         )
 
     if platform is not None:
@@ -211,8 +210,8 @@ def validate(definition, system_mapping):
     if os_system is not None:
         try:
             requirement = wiz.utility.get_requirement(os_system)
-        except wiz.exception.InvalidRequirement:
-            raise wiz.exception.IncorrectDefinition(
+        except wiz.exception.RequirementError:
+            raise wiz.exception.DefinitionError(
                 "The operating system requirement is incorrect: {}".format(
                     os_system
                 )

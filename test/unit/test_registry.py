@@ -284,7 +284,7 @@ def test_install_to_path(
 ):
     """Install definitions to path."""
     mocked_fetch_definition_mapping.return_value = "__MAPPING__"
-    mocked_fetch_definition.side_effect = wiz.exception.RequestNotFound()
+    mocked_fetch_definition.side_effect = wiz.exception.RequestNotFound("Error")
 
     wiz.registry.install_to_path(
         mocked_definitions, temporary_directory
@@ -327,7 +327,7 @@ def test_install_to_path_with_relative_path(
     os.makedirs(path)
 
     mocked_fetch_definition_mapping.return_value = "__MAPPING__"
-    mocked_fetch_definition.side_effect = wiz.exception.RequestNotFound()
+    mocked_fetch_definition.side_effect = wiz.exception.RequestNotFound("Error")
 
     wiz.registry.install_to_path(
         mocked_definitions, path
@@ -390,7 +390,7 @@ def test_install_to_path_error_definition_exists(
     """Fail to install definitions when definition exists."""
     mocked_fetch_definition_mapping.return_value = "__MAPPING__"
     mocked_fetch_definition.side_effect = [
-        wiz.exception.RequestNotFound(),
+        wiz.exception.RequestNotFound("Error"),
         wiz.definition.Definition({
             "identifier": "bar",
         }),
@@ -429,7 +429,7 @@ def test_install_to_path_overwrite(
     """Install definitions while overwriting existing definitions."""
     mocked_fetch_definition_mapping.return_value = "__MAPPING__"
     mocked_fetch_definition.side_effect = [
-        wiz.exception.RequestNotFound(),
+        wiz.exception.RequestNotFound("Error"),
         wiz.definition.Definition(
             {"identifier": "bar"},
             path="/path/to/registry/bar/bar.json"

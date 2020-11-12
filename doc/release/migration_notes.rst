@@ -7,6 +7,60 @@ Migration notes
 This section will show more detailed information when relevant for switching to
 a new version, such as when upgrading involves backwards incompatibilities.
 
+.. _release/migration/3.6.0:
+
+Migrate to 3.6.0
+================
+
+.. rubric:: API
+
+:func:`wiz.validate_definition` has been removed as it was using unsafe logic
+modifying the logging configuration outside of the main program.
+
+.. _release/migration/3.5.0:
+
+Migrate to 3.5.0
+================
+
+.. rubric:: API
+
+The following functions have been made private:
+
+* :func:`wiz.graph._compute_distance_mapping`
+* :func:`wiz.graph._generate_variant_permutations`
+* :func:`wiz.graph._compute_conflicting_matrix`
+* :func:`wiz.graph._combined_requirements`
+* :func:`wiz.graph._extract_conflicting_requirements`
+
+.. _release/migration/3.3.0:
+
+Migrate to 3.3.0
+================
+
+.. rubric:: Exceptions
+
+The following exceptions have been renamed for consistency:
+
+* :exc:`wiz.exception.InvalidVersion` → :exc:`wiz.exception.VersionError`
+* :exc:`wiz.exception.InvalidRequirement` →
+  :exc:`wiz.exception.RequirementError`
+* :exc:`wiz.exception.IncorrectSystem` → :exc:`wiz.exception.CurrentSystemError`
+* :exc:`wiz.exception.IncorrectDefinition` →
+  :exc:`wiz.exception.DefinitionError`
+
+.. rubric:: API
+
+The following functions have been removed as part of the refactoring process of
+:mod:`wiz.graph`:
+
+* :func:`wiz.graph.generate_variant_combinations`
+* :func:`wiz.graph.trim_unreachable_from_graph`
+* :func:`wiz.graph.updated_by_distance`
+* :func:`wiz.graph.validate`
+* :func:`wiz.graph.extract_ordered_packages`
+* :func:`wiz.graph.relink_parents`
+* :func:`wiz.graph.sanitize_requirement`
+
 .. _release/migration/3.1.0:
 
 Migrate to 3.1.0

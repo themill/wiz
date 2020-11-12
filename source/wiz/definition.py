@@ -1,16 +1,17 @@
 # :coding: utf-8
 
+from __future__ import absolute_import
 import os
 import copy
 import json
 import collections
+import logging
 
 import ujson
 
 import wiz.exception
 import wiz.filesystem
 import wiz.history
-import wiz.logging
 import wiz.package
 import wiz.symbol
 import wiz.system
@@ -219,7 +220,9 @@ def query(requirement, definition_mapping, namespace_counter=None):
         identifier = identifier[2:]
 
     if identifier not in definition_mapping:
-        raise wiz.exception.RequestNotFound(requirement)
+        raise wiz.exception.RequestNotFound(
+            "The requirement '{}' could not be resolved.".format(requirement)
+        )
 
     definition = None
 
@@ -259,7 +262,9 @@ def query(requirement, definition_mapping, namespace_counter=None):
             break
 
     if definition is None:
-        raise wiz.exception.RequestNotFound(requirement)
+        raise wiz.exception.RequestNotFound(
+            "The requirement '{}' could not be resolved.".format(requirement)
+        )
 
     return definition
 
@@ -315,7 +320,7 @@ def _guess_qualified_identifier(
 
     # If more than one namespace is available, attempt to use counter to only
     # keep those which are used the most.
-    if len(_namespaces) > 1 and max_occurrence > 1:
+    if len(_namespaces) > 1 and max_occurrence > 0:
         _namespaces = [
             namespace for namespace in _namespaces
             if namespace_counter[namespace] == max_occurrence
@@ -426,7 +431,7 @@ def discover(paths, system_mapping=None, max_depth=None):
     :return: Generator which yield all :class:`definitions <Definition>`.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".discover")
+    logger = logging.getLogger(__name__ + ".discover")
 
     for path in paths:
 
@@ -462,9 +467,8 @@ def discover(paths, system_mapping=None, max_depth=None):
                 ):
                     logger.warning(
                         "Error occurred trying to load definition from {!r}"
-                        .format(_path),
+                        .format(_path)
                     )
-                    logger.debug_traceback()
                     continue
 
                 # Skip definition if an incompatible system if set.
@@ -566,6 +570,15 @@ class Definition(object):
 
         # Store values that needs to be constructed.
         self._cache = {}
+
+    def __repr__(self):
+        """Representing a Definition."""
+        return (
+            "<Definition id='{0}' version='{1}'>".format(
+                self.qualified_identifier,
+                self.version
+            )
+        )
 
     @property
     def path(self):
