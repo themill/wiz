@@ -4,6 +4,19 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Fixed version order when listing packages and commands with the command
+        line tool. Previously, it would sometimes sort versions in
+        incoherent order.
+
+    .. change:: new
+
+        Added :func:`wiz.utility.compare_versions` to sort a list of version
+        representation following logic defined in :term:`PEP 440`.
+
 .. release:: 3.6.1
     :date: 2020-11-02
 

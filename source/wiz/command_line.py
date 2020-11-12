@@ -3,11 +3,12 @@
 from __future__ import absolute_import
 import collections
 import datetime
+import functools
 import io
-import os
-import time
-import textwrap
 import logging
+import os
+import textwrap
+import time
 
 import click
 import six
@@ -1631,7 +1632,11 @@ def display_command_mapping(
     success = False
 
     for command, identifier in sorted(command_mapping.items()):
-        versions = sorted(package_mapping[identifier].keys(), reverse=True)
+        versions = sorted(
+            package_mapping[identifier].keys(),
+            key=functools.cmp_to_key(wiz.utility.compare_versions),
+            reverse=True
+        )
 
         # Filter latest version if requested.
         if not all_versions:
@@ -1728,7 +1733,11 @@ def display_package_mapping(
     success = False
 
     for identifier in sorted(package_mapping.keys()):
-        versions = sorted(package_mapping[identifier].keys(), reverse=True)
+        versions = sorted(
+            package_mapping[identifier].keys(),
+            key=functools.cmp_to_key(wiz.utility.compare_versions),
+            reverse=True
+        )
 
         # Filter latest version if requested.
         if not all_versions:

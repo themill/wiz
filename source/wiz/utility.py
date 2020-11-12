@@ -3,6 +3,7 @@
 import base64
 import collections
 import copy
+import functools
 import hashlib
 import pipes
 import re
@@ -223,6 +224,47 @@ def extract_version_ranges(requirement):
             )
 
     return version_ranges
+
+
+def compare_versions(version1, version2):
+    """Compare two versions following logic defined in :term:`PEP 440`.
+
+    Invalid versions are always considered as lower than valid versions.
+
+    Example::
+
+        >>> sorted(
+        ...     ["2.3.4", "12.3", "1.0.0b0", "invalid"],
+        ...     key=functools.cmp_to_key(compare_versions)
+        ... )
+
+        ["invalid", "1.0.0b0", "2.3.4", "12.3"]
+
+    :param version1: String representing a versio .
+
+    :param version2: String representing a version to compare *version1* with.
+
+    :return: Returns 0 if bother versions are equal, -1 if *version1* is lower
+        than *version2*, or 1 if *version1* is higher than *version2*.
+
+    .. seealso:: https://en.wikipedia.org/wiki/Three-way_comparison
+
+    """
+    try:
+        version1 = Version(version1)
+    except InvalidVersion:
+        pass
+
+    try:
+        version2 = Version(version2)
+    except InvalidVersion:
+        pass
+
+    if type(version1) == type(version2):
+        return (version1 > version2) - (version1 < version2)
+    elif isinstance(version1, Version):
+        return 1
+    return -1
 
 
 def _update_maximum_version(version, ranges):
