@@ -749,37 +749,43 @@ def test_check_conflicting_requirements(requirements1, requirements2, expected):
 
 
 def test_semver_sort_major_minor_path():
-    versions = ['5.3.1', '5.10.0', '5.9.5', '5.1.1', '5.9.4', '5.9.1', '5.9.0',
-                '5.8.2', '5.3.2', '5.2.0', '5.1.0', '5.3.0']
-    expected = ['5.10.0', '5.9.5', '5.9.4', '5.9.1', '5.9.0', '5.8.2',
-                '5.3.2', '5.3.1', '5.3.0','5.2.0', '5.1.1', '5.1.0', ]
-
+    versions = [
+        "5.3.1", "5.10.0", "5.9.5", "5.1.1", "5.9.4", "5.9.1", "5.9.0",
+        "5.8.2", "5.3.2", "5.2.0", "5.1.0", "5.3.0"
+    ]
+    expected = [
+        "5.10.0", "5.9.5", "5.9.4", "5.9.1", "5.9.0", "5.8.2",
+        "5.3.2", "5.3.1", "5.3.0", "5.2.0", "5.1.1", "5.1.0"
+    ]
 
     compare = wiz.utility.compare_semver
     out = sorted(versions, cmp=compare, reverse=True)
     assert out == expected
+
 
 def test_semver_sort_no_patch():
-    versions = ['5.3', '5.10', '5.9.0', '5.1', '5.3.2']
-    expected = ['5.10', '5.9.0', '5.3.2', '5.3', '5.1' ]
-
+    versions = ["5.3", "5.10", "5.9.0", "5.1", "5.3.2"]
+    expected = ["5.10", "5.9.0", "5.3.2", "5.3", "5.1"]
 
     compare = wiz.utility.compare_semver
     out = sorted(versions, cmp=compare, reverse=True)
     assert out == expected
+
 
 def test_semver_with_prereleases():
+    versions = [
+        "4.21.4", "4.21.3", "4.21.2", "1.0.0-alpha", "4.21.1", "4.21.0",
+        "4.1.0", "4.0.0", "4.21.2b0", "3.13.1", "3.13.0", "3.12.0",
+        "1.0.0-beta", "1.0.0-alpha.1", "1.0.0-alpha.beta", "1.0.0",
+        "1.0.0-beta.2", "1.0.0-beta.11", "4.0.0b0", "1.0.0-rc.1"
+    ]
+    expected = [
+        "4.21.4", "4.21.3", "4.21.2", "4.21.2b0", "4.21.1", "4.21.0",
+        "4.1.0", "4.0.0", "4.0.0b0", "3.13.1", "3.13.0", "3.12.0",
+        "1.0.0", "1.0.0-rc.1", "1.0.0-beta.11", "1.0.0-beta.2",
+        "1.0.0-beta", "1.0.0-alpha.beta", "1.0.0-alpha.1",  "1.0.0-alpha"
+    ]
 
-    versions = ['4.21.4', '4.21.3', '4.21.2', "1.0.0-alpha", '4.21.1', '4.21.0',
-                '4.1.0', '4.0.0', '4.21.2b0', '3.13.1', '3.13.0', '3.12.0',
-                "1.0.0-beta", "1.0.0-alpha.1", "1.0.0-alpha.beta","1.0.0",
-                "1.0.0-beta.2","1.0.0-beta.11",'4.0.0b0', "1.0.0-rc.1"]
-
-    expected = ['4.21.4', '4.21.3', '4.21.2', '4.21.2b0', '4.21.1', '4.21.0',
-                '4.1.0', '4.0.0', '4.0.0b0', '3.13.1', '3.13.0', '3.12.0',
-                "1.0.0", "1.0.0-rc.1", "1.0.0-beta.11","1.0.0-beta.2",
-                "1.0.0-beta","1.0.0-alpha.beta","1.0.0-alpha.1",  "1.0.0-alpha"]
     compare = wiz.utility.compare_semver
     out = sorted(versions, cmp=compare, reverse=True)
     assert out == expected
-
