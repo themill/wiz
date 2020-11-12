@@ -1634,7 +1634,7 @@ def display_command_mapping(
     for command, identifier in sorted(command_mapping.items()):
         versions = sorted(
             package_mapping[identifier].keys(),
-            key=functools.cmp_to_key(wiz.utility.compare_semver),
+            key=functools.cmp_to_key(wiz.utility.compare_versions),
             reverse=True
         )
 
@@ -1735,7 +1735,7 @@ def display_package_mapping(
     for identifier in sorted(package_mapping.keys()):
         versions = sorted(
             package_mapping[identifier].keys(),
-            key=functools.cmp_to_key(wiz.utility.compare_semver),
+            key=functools.cmp_to_key(wiz.utility.compare_versions),
             reverse=True
         )
 
