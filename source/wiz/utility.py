@@ -3,6 +3,7 @@
 import base64
 import collections
 import copy
+import functools
 import hashlib
 import pipes
 import re
@@ -225,77 +226,48 @@ def extract_version_ranges(requirement):
     return version_ranges
 
 
+def compare_versions(version1, version2):
+    """Compare two versions following logic defined in :term:`PEP 440`.
 
-def compare_semver(left, right):
+    Invalid versions are always considered as lower than valid versions.
+
+    Example::
+
+        >>> sorted(
+        ...     ["2.3.4", "12.3", "1.0.0b0", "invalid"],
+        ...     key=functools.cmp_to_key(compare_versions)
+        ... )
+
+        ["invalid", "1.0.0b0", "2.3.4", "12.3"]
+
+    :param version1: String representing a versio .
+
+    :param version2: String representing a version to compare *version1* with.
+
+    :return: Returns 0 if bother versions are equal, -1 if *version1* is lower
+        than *version2*, or 1 if *version1* is higher than *version2*.
+
+    .. seealso:: https://en.wikipedia.org/wiki/Three-way_comparison
+
     """
-    Compares two semantic versions as per https://semver.org/ with a small
-    adjustment. The regex allows for missing patch versions as well as custom
-    pre-release tags. Intended to be used with Python's `sorted` function.
+    try:
+        version1 = Version(version1)
+    except InvalidVersion:
+        pass
 
-    :param left: First semantic version to compare
-    :type left: String
-    :param right: Second semantic version to compare
-    :type right: String
+    try:
+        version2 = Version(version2)
+    except InvalidVersion:
+        pass
 
-    :return: Returns 0 if versions are equal, -1 if left < right,
-             or 1 if left > right
-    """
-    parse_semver = re.compile(
-        (
-            r"^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)(\.(?P<patch>0|[1-9]\d*)"
-            r"(?:-?(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\."
-            r"(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?"
-            r"(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?)?$"
-        )
-    )
-    left_match = parse_semver.search(left)
-    right_match = parse_semver.search(right)
+    if type(version1) == type(version2):
+        if version1 == version2:
+            return 0
+        return -1 if version1 < version2 else 1
 
-    if left_match.group("major") != right_match.group("major"):
-        return int(left_match.group("major")) - int(right_match.group("major"))
-    if left_match.group("minor") != right_match.group("minor"):
-        return int(left_match.group("minor")) - int(right_match.group("minor"))
-
-    # If patch missing, assume 0
-    left_patch = int(left_match.group("patch")) if left_match.group("patch") else 0
-    right_patch = int(right_match.group("patch")) if right_match.group("patch") else 0
-    if left_patch != right_patch:
-        return left_patch - right_patch
-
-    # Non pre-release is in front of a pre-release
-    if left_match.group("prerelease") and not right_match.group("prerelease"):
-        return -1
-
-    if not left_match.group("prerelease") and right_match.group("prerelease"):
+    elif isinstance(version1, Version):
         return 1
-
-    if left_match.group("prerelease") and right_match.group("prerelease"):
-        prerelease_match = re.compile((r"^(?P<first>[a-zA-Z]+)"
-                                       r"\.?(?P<second>[a-z0-9]+)"))
-        left_prerelease = prerelease_match.search(left_match.group("prerelease"))
-        right_prerelease = prerelease_match.search(right_match.group("prerelease"))
-
-        # If names match, compare second part, else just compare names
-        if left_prerelease.group("first") == right_prerelease.group("first"):
-            if left_prerelease.group("second") and right_prerelease.group("second"):
-                # Handle case of "alpha.beta" or "alpha.11"
-                try:
-                    return (int(left_prerelease.group("second")) -
-                            int(right_prerelease.group("second")))
-                except ValueError:
-                    if (left_prerelease.group("second") <
-                        right_prerelease.group("second")):
-                        return -1
-                    elif (left_prerelease.group("second") >
-                          right_prerelease.group("second")):
-                        return 1
-        else:
-            if left_prerelease.group("first") < right_prerelease.group("first"):
-                return -1
-            elif left_prerelease.group("first") > right_prerelease.group("first"):
-                return 1
-
-    return 0
+    return -1
 
 
 def _update_maximum_version(version, ranges):
