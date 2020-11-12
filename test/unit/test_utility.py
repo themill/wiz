@@ -477,7 +477,7 @@ def test_update_version_ranges_fail():
     "prereleases"
 ])
 def test_compare_versions(versions, expected):
-    """Compare two versions"""
+    """Compare list of versions"""
     compare = functools.cmp_to_key(wiz.utility.compare_versions)
     assert sorted(versions, key=compare) == expected
 
