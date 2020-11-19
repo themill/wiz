@@ -1390,7 +1390,7 @@ class Graph(object):
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_NODE_CREATION_ACTION,
-            graph=self, node=package.identifier
+            graph=self, node_identifier=package.identifier
         )
 
     def remove_node(self, identifier):
@@ -1634,7 +1634,7 @@ class Graph(object):
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_NODES_REPLACEMENT_ACTION,
-            graph=self, mapping=replacement
+            graph=self, replacement_mapping=replacement
         )
 
         return True
@@ -1909,7 +1909,7 @@ class Combination(object):
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_COMBINATION_EXTRACTION_ACTION,
-            combination=graph, nodes_to_remove=nodes_to_remove
+            graph=graph, nodes_to_remove=nodes_to_remove
         )
 
         # Ensure that input data is not mutated if requested.
@@ -2004,7 +2004,7 @@ class Combination(object):
 
         wiz.history.record_action(
             wiz.symbol.GRAPH_VERSION_CONFLICTS_IDENTIFICATION_ACTION,
-            graph=self._graph, conflicting=conflicts
+            graph=self._graph, node_identifiers=conflicts
         )
 
         # Keep track of conflicts dependent on other conflicts.
