@@ -123,7 +123,7 @@ def record_action(identifier, **kwargs):
             kwargs["traceback"] = traceback.format_exc().splitlines()
 
         # Serialize content data to lock action state.
-        action["data"] = json.dumps(kwargs, default=_json_default)
+        action["content"] = json.dumps(kwargs, default=_json_default)
 
     global _HISTORY
     _HISTORY["actions"].append(action)
