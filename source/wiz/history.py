@@ -1,6 +1,5 @@
 # :coding: utf-8
 
-import copy
 import datetime
 import os
 import platform
@@ -52,7 +51,7 @@ def get(serialized=False):
 
     """
     if serialized:
-        return json.dumps(_HISTORY, default=_json_default).encode("utf-8")
+        return json.dumps(_HISTORY).encode("utf-8")
     return _HISTORY
 
 
@@ -120,13 +119,14 @@ def record_action(identifier, **kwargs):
     action = {"identifier": identifier}
 
     if not _MINIMAL_ACTIONS_REQUIRED:
-        action.update(**kwargs)
+        if isinstance(kwargs.get("error"), Exception):
+            kwargs["traceback"] = traceback.format_exc().splitlines()
 
-        if isinstance(action.get("error"), Exception):
-            action["traceback"] = traceback.format_exc().splitlines()
+        # Serialize content data to lock action state.
+        action["data"] = json.dumps(kwargs, default=_json_default)
 
     global _HISTORY
-    _HISTORY["actions"].append(copy.deepcopy(action))
+    _HISTORY["actions"].append(action)
 
 
 def _json_default(_object):
