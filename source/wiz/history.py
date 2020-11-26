@@ -6,6 +6,7 @@ import platform
 import time
 import traceback
 import json
+import uuid
 
 from wiz.utility import Requirement, Version
 from ._version import __version__
@@ -31,6 +32,8 @@ _HISTORY = {
 def get(serialized=False):
     """Return recorded history mapping.
 
+    A unique identifier is added to the history returned.
+
     :param serialized: Indicate whether the returned history should be
         serialized as a :term:`JSON` string. Default is False.
 
@@ -38,6 +41,7 @@ def get(serialized=False):
         ::
 
             {
+                "identifier": "d998a2cb-9c00-411a-ac2a-ae11c89382b0",
                 "version": "3.0.0",
                 "user": "john-doe",
                 "hostname": "ws123",
@@ -50,9 +54,12 @@ def get(serialized=False):
             }
 
     """
+    history = _HISTORY.copy()
+    history["identifier"] = str(uuid.uuid4())
+
     if serialized:
-        return json.dumps(_HISTORY).encode("utf-8")
-    return _HISTORY
+        return json.dumps(history).encode("utf-8")
+    return history
 
 
 def start_recording(command=None, minimal_actions=False):
