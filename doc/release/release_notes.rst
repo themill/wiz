@@ -4,6 +4,14 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Updated :func:`wiz.logging.initiate` to change the mode of logging path
+        to ``0o777``. Previously, it would sometimes lock the folder for other
+        users depending on the `umask <https://en.wikipedia.org/wiki/Umask>`_.
+
 .. release:: 3.6.2
     :date: 2020-11-12
 
