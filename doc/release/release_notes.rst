@@ -10,7 +10,7 @@ Release Notes
 
         Updated :func:`wiz.logging.initiate` to temporarily alter `umask
         <https://en.wikipedia.org/wiki/Umask>`_ before creating the logging path
-        instead of change its mode to ``0o777`` afterward. It prevent error to
+        instead of changing its mode to ``0o777`` afterward. It prevent error to
         be raised if the new permissions cannot be applied.
 
 .. release:: 3.6.3
