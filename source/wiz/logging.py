@@ -82,12 +82,15 @@ def initiate(console_level="info"):
     """
     config = wiz.config.fetch()
 
+    # Ensure that umask is set to 0 to create log folder with opened
+    # permissions for group and other.
+    _umask = os.umask(0)
+
     # Ensure that default output path exists.
     wiz.filesystem.ensure_directory(PATH)
 
-    # Ensure that permissions are always opened. This is necessary as the
-    # umask could lock it for other users.
-    os.chmod(PATH, 0o777)
+    # Restore previous umask.
+    os.umask(_umask)
 
     # Update default logging configuration if necessary.
     logging_config = copy.deepcopy(DEFAULT_CONFIG)

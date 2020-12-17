@@ -170,14 +170,30 @@ def test_initiate_with_existing_folder(
 ):
     """Initiate logger configuration with existing folder."""
     path = os.path.join(temporary_directory, "wiz", "logs")
-    os.makedirs(path, mode=0o755)
+    os.makedirs(path)
 
     mocked_gettempdir.return_value = temporary_directory
     mocked_config_fetch.return_value = {}
     reload_module(wiz.logging)
 
     assert os.path.isdir(wiz.logging.PATH)
-    assert oct(os.stat(wiz.logging.PATH).st_mode) == oct(0o40755)
+    assert oct(os.stat(wiz.logging.PATH).st_mode) == oct(0o40777)
+
+    wiz.logging.initiate()
+
+    assert os.path.isdir(wiz.logging.PATH)
+    assert oct(os.stat(wiz.logging.PATH).st_mode) == oct(0o40777)
+
+
+def test_initiate_with_restrictive_umask(
+    temporary_directory, mocked_gettempdir, mocked_config_fetch
+):
+    """Initiate logger configuration when umask is restrictive."""
+    os.umask(0o022)
+
+    mocked_gettempdir.return_value = temporary_directory
+    mocked_config_fetch.return_value = {}
+    reload_module(wiz.logging)
 
     wiz.logging.initiate()
 
