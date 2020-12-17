@@ -85,6 +85,10 @@ def initiate(console_level="info"):
     # Ensure that default output path exists.
     wiz.filesystem.ensure_directory(PATH)
 
+    # Ensure that permissions are always opened. This is necessary as the
+    # umask could lock it for other users.
+    os.chmod(PATH, 0o777)
+
     # Update default logging configuration if necessary.
     logging_config = copy.deepcopy(DEFAULT_CONFIG)
     wiz.utility.deep_update(logging_config, config.get("logging", {}))
