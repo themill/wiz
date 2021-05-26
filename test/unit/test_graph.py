@@ -3113,12 +3113,7 @@ def test_graph_update_from_requirements_unfulfilled_conditions(
     # Set requirements and expected package extraction for test.
     requirements = [Requirement("A"), Requirement("G"), Requirement("H")]
     mocked_package_extract.side_effect = [
-        # Extract required packages.
         [packages["A==0.1.0"]],  [packages["G"]], [packages["H"]],
-
-        # Check remaining conditions.
-        [packages["E"]], [packages["F==13"]], [packages["D==4.1.0"]],
-        wiz.exception.RequestNotFound("Error")
     ]
 
     # Create graph.
@@ -3137,22 +3132,6 @@ def test_graph_update_from_requirements_unfulfilled_conditions(
         ),
         mocker.call(
             Requirement("H"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
-            Requirement("E"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
-            Requirement("F"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
-            Requirement("D"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
-            Requirement("incorrect"), mocked_resolver.definition_mapping,
             namespace_counter=collections.Counter()
         )
     ]
@@ -3204,23 +3183,11 @@ def test_graph_update_from_requirements_fulfilled_conditions(
         Requirement("A"), Requirement("G"), Requirement("H"), Requirement("E")
     ]
     mocked_package_extract.side_effect = [
-        # Extract required packages.
         [packages["A==0.1.0"]],  [packages["G"]], [packages["H"]],
         [packages["E"]], [packages["F==13"]],
 
-        # Check remaining conditions.
-        [packages["E"]], [packages["F==13"]], [packages["D==4.1.0"]],
-        wiz.exception.RequestNotFound("Error"),
-
-        # Conditions are fulfilled for A, adding it with dependencies.
+        # Extract required packages when conditions are fulfilled.
         [packages["B==1.2.3"]], [packages["C"]], [packages["D==4.1.0"]],
-
-        # Check remaining conditions.
-        [packages["F==13"]], [packages["D==4.1.0"]],
-        wiz.exception.RequestNotFound("Error"),
-
-        # Check remaining conditions.
-        wiz.exception.RequestNotFound("Error"),
     ]
 
     # Create graph.
@@ -3250,22 +3217,6 @@ def test_graph_update_from_requirements_fulfilled_conditions(
             namespace_counter=collections.Counter()
         ),
         mocker.call(
-            Requirement("E"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
-            Requirement("F"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
-            Requirement("D"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
-            Requirement("incorrect"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
             Requirement("B"), mocked_resolver.definition_mapping,
             namespace_counter=collections.Counter()
         ),
@@ -3275,22 +3226,6 @@ def test_graph_update_from_requirements_fulfilled_conditions(
         ),
         mocker.call(
             Requirement("D>1"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
-            Requirement("F"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
-            Requirement("D"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
-            Requirement("incorrect"), mocked_resolver.definition_mapping,
-            namespace_counter=collections.Counter()
-        ),
-        mocker.call(
-            Requirement("incorrect"), mocked_resolver.definition_mapping,
             namespace_counter=collections.Counter()
         )
     ]
