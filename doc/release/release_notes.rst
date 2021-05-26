@@ -4,6 +4,13 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: fixed
+
+        Fixed :class:`wiz.graph.Graph` to improve logic determining whether
+        the :ref:`conditions <definition/conditions>` of a node are fulfilled.
+
 .. release:: 3.6.4
     :date: 2020-12-17
 
