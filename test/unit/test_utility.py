@@ -1,12 +1,16 @@
 # :coding: utf-8
 
 import copy
+import collections
 import base64
 import hashlib
+import functools
 
 import pytest
+import six
 
 import wiz.definition
+import wiz.package
 import wiz.utility
 from wiz.utility import Requirement
 
@@ -15,6 +19,12 @@ from wiz.utility import Requirement
 def mocked_extract_version_ranges(mocker):
     """Return mocked wiz.utility.extract_version_ranges function."""
     return mocker.patch.object(wiz.utility, "extract_version_ranges")
+
+
+@pytest.fixture()
+def mocked_match(mocker):
+    """Return mocked wiz.utility.match function."""
+    return mocker.patch.object(wiz.utility, "match")
 
 
 @pytest.mark.parametrize("element", [
@@ -37,7 +47,7 @@ def mocked_extract_version_ranges(mocker):
 def test_encode_and_decode(element):
     """Encode *element* and immediately decode it."""
     encoded = wiz.utility.encode(element)
-    assert isinstance(encoded, bytes)
+    assert isinstance(encoded, six.string_types)
     assert element == wiz.utility.decode(encoded)
 
 
@@ -91,8 +101,8 @@ def test_is_overlapping(
     mocker, mocked_extract_version_ranges, ranges1, ranges2, expected
 ):
     """Indicates whether requirements are overlapping."""
-    req1 = mocker.Mock()
-    req2 = mocker.Mock()
+    req1 = mocker.Mock(extras=set())
+    req2 = mocker.Mock(extras=set())
 
     # Hack due to the impossibility to directly mock an attribute called "name"
     # See: https://bradmontgomery.net/blog/how-world-do-you-mock-name-attribute
@@ -103,17 +113,30 @@ def test_is_overlapping(
     assert wiz.utility.is_overlapping(req1, req2) == expected
 
 
+def test_is_overlapping_with_variants(mocker):
+    """Fail to compare requirement with different variant."""
+    req1 = mocker.Mock(extras={"V1"})
+    req2 = mocker.Mock(extras={"V2"})
+
+    # Hack due to the impossibility to directly mock an attribute called "name"
+    # See: https://bradmontgomery.net/blog/how-world-do-you-mock-name-attribute
+    type(req1).name = mocker.PropertyMock(return_value="foo")
+    type(req2).name = mocker.PropertyMock(return_value="foo")
+
+    assert wiz.utility.is_overlapping(req1, req2) is False
+
+
 def test_is_overlapping_fail(mocker):
     """Fail to compare requirement with different name."""
-    req1 = mocker.Mock()
-    req2 = mocker.Mock()
+    req1 = mocker.Mock(extras=set())
+    req2 = mocker.Mock(extras=set())
 
     # Hack due to the impossibility to directly mock an attribute called "name"
     # See: https://bradmontgomery.net/blog/how-world-do-you-mock-name-attribute
     type(req1).name = mocker.PropertyMock(return_value="foo")
     type(req2).name = mocker.PropertyMock(return_value="bar")
 
-    with pytest.raises(wiz.exception.GraphResolutionError) as error:
+    with pytest.raises(ValueError) as error:
         wiz.utility.is_overlapping(req1, req2)
 
     assert (
@@ -239,7 +262,7 @@ def test_extract_version_ranges(requirement, expected):
 ])
 def test_extract_version_ranges_error(requirement, expected):
     """Fail to extract version ranges from requirements."""
-    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+    with pytest.raises(wiz.exception.RequirementError) as error:
         wiz.utility.extract_version_ranges(requirement)
 
     assert expected in str(error)
@@ -292,7 +315,7 @@ def test_update_minimum_version(version, ranges, expected):
 
 def test_update_minimum_version_fail():
     """Fail to update range with minimum value."""
-    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+    with pytest.raises(wiz.exception.RequirementError) as error:
         wiz.utility._update_minimum_version((1, 2, 3), [(None, (1,))])
 
     assert (
@@ -348,7 +371,7 @@ def test_update_maximum_version(version, ranges, expected):
 
 def test_update_maximum_version_fail():
     """Fail to update range with maximum value."""
-    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+    with pytest.raises(wiz.exception.RequirementError) as error:
         wiz.utility._update_maximum_version((1, 2, 3), [((2,), None)])
 
     assert (
@@ -410,13 +433,53 @@ def test_update_version_ranges(excluded, ranges, expected):
 
 def test_update_version_ranges_fail():
     """Fail to update version ranges from excluded version range."""
-    with pytest.raises(wiz.exception.InvalidRequirement) as error:
+    with pytest.raises(wiz.exception.RequirementError) as error:
         wiz.utility._update_version_ranges(((0,), (3,)), [((1,), (2,))])
 
     assert (
         "The requirement is incorrect as excluded version range '0-3' "
         "makes all other versions unreachable."
     ) in str(error)
+
+
+@pytest.mark.parametrize("versions, expected", [
+    (
+        [
+            "5.3.1", "5.10.0", "5.9.5", "5.1.1", "5.9.4", "5.9.1", "5.9.0",
+            "5.8.2", "5.3.2", "5.2.0", "5.1.0", "5.3.0"
+        ],
+        [
+            "5.1.0", "5.1.1", "5.2.0", "5.3.0", "5.3.1", "5.3.2", "5.8.2",
+            "5.9.0", "5.9.1", "5.9.4", "5.9.5", "5.10.0"
+        ]
+    ),
+    (
+        ["5.3", "5.10", "5.9.0", "5.1", "5.3.2"],
+        ["5.1", "5.3", "5.3.2", "5.9.0", "5.10"]
+    ),
+    (
+        [
+            "4.21.4", "4.21.3", "4.21.2", "1.0.0-alpha", "4.21.1", "4.21.0",
+            "4.1.0", "4.0.0", "4.21.2b0", "3.13.1", "3.13.0", "3.12.0",
+            "1.0.0-beta", "1.0.0-alpha.1", "1.0.0", "1.0.0-beta.2",
+            "1.0.0-beta.11", "4.0.0b0", "1.0.0-rc.1"
+        ],
+        [
+            "1.0.0-alpha", "1.0.0-alpha.1", "1.0.0-beta",
+            "1.0.0-beta.2", "1.0.0-beta.11", "1.0.0-rc.1", "1.0.0", "3.12.0",
+            "3.13.0", "3.13.1", "4.0.0b0", "4.0.0", "4.1.0", "4.21.0", "4.21.1",
+            "4.21.2b0", "4.21.2", "4.21.3", "4.21.4"
+        ]
+    )
+], ids=[
+    "major.minor.patch",
+    "versions-without-patch",
+    "prereleases"
+])
+def test_compare_versions(versions, expected):
+    """Compare list of versions"""
+    compare = functools.cmp_to_key(wiz.utility.compare_versions)
+    assert sorted(versions, key=compare) == expected
 
 
 @pytest.mark.parametrize("definition, expected", [
@@ -492,13 +555,20 @@ def test_compute_label(definition, expected):
     (
         wiz.definition.Definition({
             "identifier": "test",
+            "namespace": "foo::bar::bim"
+        }),
+        "foo-bar-bim-test.json"
+    ),
+    (
+        wiz.definition.Definition({
+            "identifier": "test",
             "system": {
                 "platform": "linux"
             }
         }),
         "test-{}.json".format(
             base64.urlsafe_b64encode(
-                hashlib.sha1("linux").digest()
+                hashlib.sha1(b"linux").digest()
             ).rstrip(b"=").decode("utf-8")
         )
     ),
@@ -506,14 +576,14 @@ def test_compute_label(definition, expected):
         wiz.definition.Definition({
             "identifier": "test",
             "version": "0.1.0",
-            "namespace": "foo",
+            "namespace": "bar::foo",
             "system": {
                 "platform": "linux"
             }
         }),
-        "foo-test-0.1.0-{}.json".format(
+        "bar-foo-test-0.1.0-{}.json".format(
             base64.urlsafe_b64encode(
-                hashlib.sha1("linux").digest()
+                hashlib.sha1(b"linux").digest()
             ).rstrip(b"=").decode("utf-8")
         )
     )
@@ -521,6 +591,7 @@ def test_compute_label(definition, expected):
     "simple",
     "with-version",
     "with-namespace",
+    "with-multiple-namespaces",
     "with-system",
     "with-all",
 ])
@@ -560,3 +631,159 @@ def test_deep_update(mapping1, mapping2, expected):
     assert wiz.utility.deep_update(mapping1, mapping2) == expected
     assert mapping1 == expected
     assert mapping2 == _mapping2
+
+
+@pytest.mark.parametrize("package_data, variant_index, requirement, expected", [
+    ({"identifier": "A"}, None, Requirement("A"), Requirement("::A")),
+    (
+        {"identifier": "A", "version": "2"}, None,
+        Requirement("A > 1"), Requirement("::A > 1")
+    ),
+    (
+        {"identifier": "A", "namespace": "foo"}, None,
+        Requirement("A"), Requirement("foo::A")
+    ),
+    (
+        {"identifier": "A", "namespace": "foo::bar"}, None,
+        Requirement("A"), Requirement("foo::bar::A")
+    ),
+    (
+        {"identifier": "A", "variants": [{"identifier": "V1"}]}, 0,
+        Requirement("A[V1]"), Requirement("::A[V1]")
+    )
+], ids=[
+    "simple",
+    "with-version",
+    "with-namespace",
+    "with-long-namespace",
+    "with-variant",
+])
+def test_sanitize_requirement(
+    mocked_match, package_data, variant_index, requirement, expected
+):
+    """Return qualified requirement depending on package's namespace."""
+    mocked_match.return_value = True
+    package = wiz.package.Package(
+        wiz.definition.Definition(package_data), variant_index=variant_index
+    )
+    assert wiz.utility.sanitize_requirement(requirement, package) == expected
+
+
+def test_sanitize_requirement_error(mocked_match):
+    """Fail to return qualified requirement."""
+    mocked_match.return_value = False
+    package = wiz.package.Package(
+        wiz.definition.Definition({"identifier": "B"})
+    )
+
+    with pytest.raises(ValueError) as error:
+        wiz.utility.sanitize_requirement(Requirement("A"), package)
+
+    assert "Requirement 'A' is incompatible with package 'B'" in str(error)
+
+
+@pytest.mark.parametrize("requirements, expected", [
+    ([], {}),
+    ([Requirement("foo"), Requirement("bar")], {"A": 1, "B": 1, "C": 1}),
+    ([Requirement("::foo"), Requirement("B::bar")], {"B": 1}),
+    ([Requirement("foo"), Requirement("B::bar")], {"A": 1, "B": 1}),
+], ids=[
+    "empty",
+    "non-qualified-requirements",
+    "qualified-requirements",
+    "mixed",
+])
+def test_namespace_counter(requirements, expected):
+    """Compute namespace occurrences counter from requirements."""
+    mapping = {
+        "__namespace__": {
+            "foo": ["A"],
+            "bar": ["B", "C"]
+        }
+    }
+    result = wiz.utility.compute_namespace_counter(requirements, mapping)
+    assert result == collections.Counter(expected)
+
+
+@pytest.mark.parametrize("package_data, variant_index, requirement, expected", [
+    ({"identifier": "A"}, None, Requirement("A"), True),
+    ({"identifier": "B"}, None, Requirement("A"), False),
+    ({"identifier": "A", "version": "1"}, None, Requirement("A>=1"), True),
+    ({"identifier": "A", "version": "0.1.0"}, None, Requirement("A>=1"), False),
+    ({"identifier": "A", "namespace": "ba"}, None, Requirement("A"), True),
+    ({"identifier": "A", "namespace": "ba"}, None, Requirement("ba::A"), True),
+    ({"identifier": "A", "namespace": "to"}, None, Requirement("ba::A"), False),
+    (
+        {"identifier": "A", "variants": [{"identifier": "V1"}]}, 0,
+        Requirement("A"), True
+    ),
+    (
+        {"identifier": "A", "variants": [{"identifier": "V1"}]}, 0,
+        Requirement("A[V1]"), True
+    ),
+    (
+        {"identifier": "A", "variants": [{"identifier": "V1"}]}, 0,
+        Requirement("A[V3]"), False
+    ),
+], ids=[
+    "matching-identifier",
+    "non-matching-identifier",
+    "matching-version",
+    "non-matching-version",
+    "matching-namespace1",
+    "matching-namespace1",
+    "non-matching-namespace",
+    "matching-variant1",
+    "matching-variant2",
+    "non-matching-variant",
+])
+def test_match(package_data, variant_index, requirement, expected):
+    """Return whether requirement is compatible with package."""
+    package = wiz.package.Package(
+        wiz.definition.Definition(package_data), variant_index=variant_index
+    )
+    assert wiz.utility.match(requirement, package) == expected
+
+
+@pytest.mark.parametrize("requirement, namespace, identifier", [
+    (Requirement("A"), None, "A"),
+    (Requirement("::A"), None, "A"),
+    (Requirement("foo::A"), "foo", "A"),
+    (Requirement("foo::bar::A"), "foo::bar", "A"),
+], ids=[
+    "without-namespace",
+    "qualified-without-namespace",
+    "with-namespace",
+    "with-long-namespace",
+])
+def test_extract_namespace(requirement, namespace, identifier):
+    """Extract namespace and identifier from requirement."""
+    assert wiz.utility.extract_namespace(requirement) == (namespace, identifier)
+
+
+@pytest.mark.parametrize("requirements1, requirements2, expected", [
+    ([], [], False),
+    (["bim > 3", "bah"], ["zim"], False),
+    (["bim > 3", "bah"], ["bim"], False),
+    (["bim > 3", "bah"], ["bim < 3"], True),
+], ids=[
+    "without-requirements",
+    "different-requirements",
+    "compatible-requirements",
+    "incompatible-requirements",
+])
+def test_check_conflicting_requirements(requirements1, requirements2, expected):
+    """Check whether some requirements are conflicting between packages."""
+    data1 = {"identifier": "foo"}
+    if len(requirements1):
+        data1["requirements"] = requirements1
+
+    data2 = {"identifier": "bar"}
+    if len(requirements2):
+        data2["requirements"] = requirements2
+
+    package1 = wiz.package.Package(wiz.definition.Definition(data1))
+    package2 = wiz.package.Package(wiz.definition.Definition(data2))
+
+    result = wiz.utility.check_conflicting_requirements(package1, package2)
+    assert result == expected

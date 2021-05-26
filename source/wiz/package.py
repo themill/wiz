@@ -1,12 +1,13 @@
 # :coding: utf-8
 
+from __future__ import absolute_import
 import functools
+import logging
 
 import wiz.definition
 import wiz.environ
 import wiz.exception
 import wiz.history
-import wiz.logging
 import wiz.symbol
 
 
@@ -168,7 +169,7 @@ def combine_environ_mapping(package_identifier, mapping1, mapping2):
         This process will stringify all variable values.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".combine_environ_mapping")
+    logger = logging.getLogger(__name__ + ".combine_environ_mapping")
 
     mapping = {}
 
@@ -218,7 +219,7 @@ def combine_command_mapping(package_identifier, mapping1, mapping2):
     :return: Combined command alias mapping.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".combine_command_mapping")
+    logger = logging.getLogger(__name__ + ".combine_command_mapping")
 
     mapping = {}
 
@@ -282,6 +283,9 @@ class Package(object):
         :param variant_index: Index number of the variant which will be used to
             create package instance if applicable. Default is None.
 
+        :raise: :exc:`wiz.exception.PackageError` if the variant index is
+            missing or incorrect.
+
         """
         self._definition = definition
         self._variant_index = variant_index
@@ -292,6 +296,30 @@ class Package(object):
         # Store boolean value indicating whether the package conditions have
         # been processed
         self._conditions_processed = False
+
+        if self._variant_index is None and len(self._definition.variants) > 0:
+            raise wiz.exception.PackageError(
+                "Package cannot be created from definition '{}' as no variant "
+                "index is defined.".format(
+                    self._definition.qualified_identifier
+                )
+            )
+
+        if (
+            self._variant_index is not None
+            and self._variant_index + 1 > len(self._definition.variants)
+        ):
+            raise wiz.exception.PackageError(
+                "Package cannot be created from definition '{}' with variant "
+                "index #{}.".format(
+                    self._definition.qualified_identifier,
+                    self._variant_index
+                )
+            )
+
+    def __repr__(self):
+        """Representing a Package."""
+        return "<Package id='{0}'>".format(self.identifier)
 
     @property
     def definition(self):

@@ -8,7 +8,6 @@ import wiz.environ
 import wiz.exception
 import wiz.filesystem
 import wiz.graph
-import wiz.logging
 import wiz.package
 import wiz.registry
 import wiz.spawn
@@ -125,13 +124,11 @@ def fetch_package_request_from_command(command_request, definition_mapping):
 
     Example::
 
-        >>> definition_mapping = {
+        >>> mapping = {
         ...     "command": {"hiero": "nuke"},
         ...     "package": {"nuke": ...}
         ... }
-        >>> fetch_package_request_from_command(
-        ...     "hiero==10.5.*", definition_mapping
-        ... )
+        >>> fetch_package_request_from_command("hiero==10.5.*", mapping)
         nuke==10.5.*
 
     :param command_request: String indicating which command should be fetched.
@@ -164,7 +161,7 @@ def fetch_package_request_from_command(command_request, definition_mapping):
 
 def resolve_context(
     requests, definition_mapping=None, ignore_implicit=False,
-    environ_mapping=None
+    environ_mapping=None, maximum_combinations=None, maximum_attempts=None
 ):
     """Return context mapping from *requests*.
 
@@ -209,33 +206,47 @@ def resolve_context(
     :param environ_mapping: Mapping of environment variables which would be
         augmented by the resolved environment. Default is None.
 
+    :param maximum_combinations: Maximum number of combinations which can be
+        generated from conflicting variants. Default is None, which means
+        that the default value will be picked from the :ref:`configuration
+        <configuration>`.
+
+    :param maximum_attempts: Maximum number of resolution attempts before
+        raising an error. Default is None, which means  that the default
+        value will be picked from the :ref:`configuration <configuration>`.
+
     :return: Context mapping.
 
     :raise: :exc:`wiz.exception.GraphResolutionError` if the resolution graph
         cannot be resolved in time.
 
     """
-    # To prevent mutating input list.
-    _requests = requests[:]
+    requirements = wiz.utility.get_requirements(requests)
 
+    # Extract definition mapping from default registry paths if necessary.
     if definition_mapping is None:
         definition_mapping = wiz.fetch_definition_mapping(
             wiz.registry.get_defaults()
         )
 
-    if not ignore_implicit:
-        # Prepend implicit requests to explicit ones.
-        _requests = (
-            definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, []) + _requests
-        )
-
-    requirements = [wiz.utility.get_requirement(r) for r in _requests]
-
-    registries = definition_mapping["registries"]
-    resolver = wiz.graph.Resolver(
-        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
+    # Extract initial namespace counter from explicit requirements.
+    namespace_counter = wiz.utility.compute_namespace_counter(
+        requirements, definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE]
     )
-    packages = resolver.compute_packages(requirements)
+
+    # Prepend implicit requests to explicit ones if necessary.
+    if not ignore_implicit:
+        _requests = definition_mapping.get(wiz.symbol.IMPLICIT_PACKAGE, [])
+        requirements = wiz.utility.get_requirements(_requests) + requirements
+
+    resolver = wiz.graph.Resolver(
+        definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE],
+        maximum_combinations=maximum_combinations,
+        maximum_attempts=maximum_attempts,
+    )
+    packages = resolver.compute_packages(
+        requirements, namespace_counter=namespace_counter
+    )
 
     _environ_mapping = wiz.environ.initiate(environ_mapping)
     context = wiz.package.extract_context(
@@ -243,14 +254,14 @@ def resolve_context(
     )
 
     context["packages"] = packages
-    context["registries"] = registries
+    context["registries"] = definition_mapping["registries"]
 
     # Augment context environment with wiz signature
     context["environ"].update({
         "WIZ_VERSION": __version__,
         "WIZ_CONTEXT": wiz.utility.encode([
             [_package.identifier for _package in packages],
-            registries
+            definition_mapping["registries"]
         ])
     })
     return context
@@ -489,120 +500,3 @@ def export_script(
 
     wiz.filesystem.export(file_path, content)
     return file_path
-
-
-def validate_definition(definition, definition_mapping=None):
-    """Return validation mapping for *definition*.
-
-    :param definition: Instance of :class:`wiz.definition.Definition`.
-
-    :param definition_mapping: Mapping regrouping all available definitions. It
-        could be fetched with :func:`fetch_definition_mapping`. If no definition
-        mapping is provided, a default one will be fetched from
-        :func:`default registries <wiz.registry.get_defaults>`.
-
-    :return: Mapping in the form of
-        ::
-
-            {
-                "errors": [],
-                "warnings": []
-            }
-
-    """
-    if definition_mapping is None:
-        definition_mapping = wiz.fetch_definition_mapping(
-            wiz.registry.get_defaults()
-        )
-
-    # Record current logging handlers to set it back once validation is done.
-    _handlers = wiz.logging.root.handlers.copy()
-
-    # Configure logger so that errors and warnings are recorded and not
-    # directly displayed.
-    log_error, log_warning = wiz.logging.configure_for_debug()
-
-    mapping = _fetch_validation_mapping(
-        log_error, log_warning, definition, definition_mapping
-    )
-
-    # Reset logging handlers.
-    wiz.logging.root.handlers = _handlers
-
-    return mapping
-
-
-def _fetch_validation_mapping(
-    log_error, log_warning, definition, definition_mapping
-):
-    """Fetch errors and warnings from definition for *definition*.
-
-    :param log_error: instances of :class:`io.StringIO` such as
-        the instance returned by :func:`wiz.logging.configure_for_debug`. It
-        will receive possible error logged during the context resolution
-        process.
-
-    :param log_warning: instances of :class:`io.StringIO` such as
-        the instance returned by :func:`wiz.logging.configure_for_debug`. It
-        will receive possible warning logged during the context resolution
-        process.
-
-    :param definition: instance of :class:`wiz.definition.Definition`.
-
-    :param definition_mapping: Mapping regrouping all available definitions. It
-        could be fetched with :func:`fetch_definition_mapping`.
-
-    :return: Mapping in the form of
-        ::
-
-            {
-                "errors": [],
-                "warnings": []
-            }
-
-    .. warning::
-
-        *log_error* and *log_warning* variables will be :meth:`closed
-        <io.StringIO.close>` and should not be re-used.
-
-    """
-    mapping = {"errors": [], "warnings": []}
-
-    try:
-        _context = wiz.resolve_context(
-            [definition.qualified_version_identifier],
-            definition_mapping,
-            ignore_implicit=True,
-        )
-
-        error = log_error.getvalue()
-        warning = log_warning.getvalue()
-
-        if len(error) > 0:
-            mapping["errors"].append(error)
-
-        if len(warning) > 0:
-            mapping["warnings"].append(warning)
-
-        log_error.close()
-        log_warning.close()
-
-    except wiz.exception.WizError as error:
-        mapping["errors"].append("critical: {}".format(str(error)))
-
-    else:
-        for key, value in _context.get("environ", {}).items():
-            unresolved_variables = []
-            for variable_tuple in wiz.environ.ENV_PATTERN.findall(value):
-                unresolved_variables.append("".join(variable_tuple))
-
-            if len(unresolved_variables) > 0:
-                warning = (
-                    "warning: the '{}' environment variable contains "
-                    "unresolved elements: {}".format(
-                        key, ", ".join(unresolved_variables)
-                    )
-                )
-                mapping["warnings"].append(warning)
-
-    return mapping

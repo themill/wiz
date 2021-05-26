@@ -1,7 +1,6 @@
 # :coding: utf-8
 
-from __future__ import print_function
-
+from __future__ import absolute_import
 import os
 import sys
 import select
@@ -11,8 +10,8 @@ import termios
 import tty
 import pty
 import signal
+import logging
 
-import wiz.logging
 import wiz.utility
 import wiz.symbol
 
@@ -30,7 +29,7 @@ def shell(environment, command=None):
         Default shell is :term:`Bash`.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".shell")
+    logger = logging.getLogger(__name__ + ".shell")
 
     if command is None:
         command = {}
@@ -100,7 +99,7 @@ def execute(elements, environment):
     :param environment: Environment mapping to execute command with.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".shell")
+    logger = logging.getLogger(__name__ + ".shell")
     logger.info(
         "Start command: {}".format(wiz.utility.combine_command(elements))
     )
@@ -121,7 +120,6 @@ def execute(elements, environment):
             "Executable can not be found within resolved "
             "environment [{}]".format(elements[0])
         )
-        logger.debug_traceback()
 
 
 def _cleanup(signum, frame):

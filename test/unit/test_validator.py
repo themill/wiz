@@ -191,7 +191,7 @@ def test_validate_definition_with_variants():
 ])
 def test_validate_definition_failed(value, message):
     """Raise error when data is incorrect."""
-    with pytest.raises(wiz.exception.IncorrectDefinition) as error:
+    with pytest.raises(wiz.exception.DefinitionError) as error:
         wiz.validator.validate_definition(value)
 
     assert message in str(error)

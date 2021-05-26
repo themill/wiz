@@ -1,11 +1,12 @@
 # :coding: utf-8
 
+from __future__ import absolute_import
 import os
+import logging
 
 import wiz.config
 import wiz.exception
 import wiz.filesystem
-import wiz.logging
 import wiz.utility
 
 
@@ -130,7 +131,7 @@ def install_to_path(definitions, registry_path, overwrite=False):
         *registry_path*.
 
     """
-    logger = wiz.logging.Logger(__name__ + ".install_to_path")
+    logger = logging.getLogger(__name__ + ".install_to_path")
 
     if not os.path.isdir(registry_path):
         raise wiz.exception.InstallError(
@@ -143,7 +144,7 @@ def install_to_path(definitions, registry_path, overwrite=False):
     _definitions = []
 
     # Record existing definitions per identifier.
-    existing_definition_map = {}
+    existing = {}
 
     # Fetch all definitions from registry.
     mapping = wiz.fetch_definition_mapping([registry_path])
@@ -163,7 +164,7 @@ def install_to_path(definitions, registry_path, overwrite=False):
             if data1 == data2:
                 continue
 
-            existing_definition_map[definition.identifier] = _definition
+            existing[definition.qualified_identifier] = _definition
             _definitions.append(definition)
 
     # If no content was released.
@@ -171,10 +172,10 @@ def install_to_path(definitions, registry_path, overwrite=False):
         raise wiz.exception.InstallNoChanges()
 
     # Fail if overwrite is False and some definition paths exist in registry.
-    if len(existing_definition_map) > 0 and overwrite is False:
+    if len(existing) > 0 and overwrite is False:
         raise wiz.exception.DefinitionsExist([
             wiz.utility.compute_label(definition)
-            for definition in existing_definition_map.values()
+            for definition in existing.values()
         ])
 
     # Release definitions
@@ -183,10 +184,8 @@ def install_to_path(definitions, registry_path, overwrite=False):
         identifier = definition.identifier
 
         # Replace existing definition if necessary.
-        if identifier in existing_definition_map.keys():
-            existing_definition_path = (
-                existing_definition_map[identifier].path
-            )
+        if identifier in existing.keys():
+            existing_definition_path = existing[identifier].path
             path = os.path.dirname(existing_definition_path)
             os.remove(existing_definition_path)
 

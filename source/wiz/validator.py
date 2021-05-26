@@ -50,7 +50,7 @@ def validate_definition(data):
         validate_variants_keyword(data)
 
     except ValueError as error:
-        raise wiz.exception.IncorrectDefinition(str(error))
+        raise wiz.exception.DefinitionError(str(error))
 
 
 def validate_identifier_keyword(data, variant_index=None):

@@ -94,9 +94,9 @@ def test_query_platform_error(mocked_platform_system):
 def test_query_version_error(mocked_platform_system, mocked_platform_linux):
     """Fails to query system mapping from incorrect os version."""
     mocked_platform_system.return_value = "linux"
-    mocked_platform_linux.side_effect = wiz.exception.InvalidVersion
+    mocked_platform_linux.side_effect = wiz.exception.VersionError("Error")
 
-    with pytest.raises(wiz.exception.IncorrectDefinition):
+    with pytest.raises(wiz.exception.CurrentSystemError):
         wiz.system.query()
 
 
@@ -323,5 +323,5 @@ def test_validate_requirement_error():
         "system": {"os": "!!!"}
     })
 
-    with pytest.raises(wiz.exception.IncorrectDefinition):
-        print(wiz.system.validate(definition, {}))
+    with pytest.raises(wiz.exception.DefinitionError):
+        wiz.system.validate(definition, {})

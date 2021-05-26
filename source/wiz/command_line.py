@@ -1,12 +1,14 @@
 # :coding: utf-8
 
-from __future__ import print_function
-
+from __future__ import absolute_import
 import collections
 import datetime
+import functools
+import io
+import logging
 import os
-import time
 import textwrap
+import time
 
 import click
 import six
@@ -26,7 +28,7 @@ import wiz.utility
 from wiz import __version__
 
 # Initiate logging handler to display potential warning when fetching config.
-wiz.logging.configure()
+wiz.logging.initiate()
 
 #: Retrieve configuration mapping to initialize default values.
 _CONFIG = wiz.config.fetch()
@@ -106,7 +108,7 @@ class _MainGroup(click.Group):
 @click.option(
     "-v", "--verbosity",
     help="Set the logging output verbosity.",
-    type=click.Choice(wiz.logging.levels),
+    type=click.Choice(wiz.logging.LEVEL_MAPPING.keys()),
     default=_CONFIG.get("command", {}).get("verbosity", "info"),
     show_default=True
 )
@@ -200,16 +202,13 @@ class _MainGroup(click.Group):
 @click.pass_context
 def main(click_context, **kwargs):
     """Main entry point for the command line interface."""
-    wiz.logging.configure()
-    logger = wiz.logging.Logger(__name__ + ".main")
+    wiz.logging.initiate(console_level=kwargs["verbosity"])
+    logger = logging.getLogger(__name__ + ".main")
 
     if kwargs["record"] is not None:
         wiz.history.start_recording(
             command=click_context.obj["initial_input"]
         )
-
-    # Set verbosity level.
-    wiz.logging.root.handlers["stderr"].filterer.min = kwargs["verbosity"]
 
     # Identify system mapping.
     system_mapping = wiz.system.query(
@@ -451,7 +450,7 @@ def wiz_list_command(click_context, **kwargs):
 @click.pass_context
 def wiz_search(click_context, **kwargs):
     """Search and display definitions from request(s)."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_search")
+    logger = logging.getLogger(__name__ + ".wiz_search")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -549,7 +548,7 @@ def wiz_search(click_context, **kwargs):
 @click.pass_context
 def wiz_view(click_context, **kwargs):
     """Display definition from identifier or command."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_view")
+    logger = logging.getLogger(__name__ + ".wiz_view")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -638,6 +637,28 @@ def wiz_view(click_context, **kwargs):
     is_flag=True,
     default=False
 )
+@click.option(
+    "-mc", "--max-combinations",
+    help=(
+        "Maximum number of combinations which can be generated from "
+        "conflicting variants during the context resolution process."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_combinations"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
+@click.option(
+    "-ma", "--max-attempts",
+    help=(
+        "Maximum number of attempts to resolve the context before raising an "
+        "error."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_attempts"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
 @click.argument(
     "requests",
     nargs=-1,
@@ -646,7 +667,7 @@ def wiz_view(click_context, **kwargs):
 @click.pass_context
 def wiz_use(click_context, **kwargs):
     """Resolve and use context from command."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_use")
+    logger = logging.getLogger(__name__ + ".wiz_use")
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
@@ -660,6 +681,8 @@ def wiz_use(click_context, **kwargs):
             list(kwargs["requests"]), definition_mapping,
             ignore_implicit=ignore_implicit,
             environ_mapping=environ_mapping,
+            maximum_combinations=kwargs["max_combinations"],
+            maximum_attempts=kwargs["max_attempts"],
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -667,6 +690,10 @@ def wiz_use(click_context, **kwargs):
         if kwargs["view"]:
             display_registries(wiz_context["registries"])
             display_resolved_context(wiz_context)
+
+        # Do not execute any command if history is being recorded.
+        elif not kwargs["view"] and click_context.obj["recording_path"]:
+            pass
 
         # If no commands are indicated, spawn a shell.
         elif len(extra_arguments) == 0:
@@ -681,7 +708,6 @@ def wiz_use(click_context, **kwargs):
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
-        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -720,6 +746,28 @@ def wiz_use(click_context, **kwargs):
     is_flag=True,
     default=False
 )
+@click.option(
+    "-mc", "--max-combinations",
+    help=(
+        "Maximum number of combinations which can be generated from "
+        "conflicting variants during the context resolution process."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_combinations"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
+@click.option(
+    "-ma", "--max-attempts",
+    help=(
+        "Maximum number of attempts to resolve the context before raising an "
+        "error."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_attempts"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
 @click.argument(
     "request",
     nargs=1,
@@ -728,7 +776,7 @@ def wiz_use(click_context, **kwargs):
 @click.pass_context
 def wiz_run(click_context, **kwargs):
     """Run application from resolved context."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_run")
+    logger = logging.getLogger(__name__ + ".wiz_run")
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
     ignore_implicit = click_context.obj["ignore_implicit_packages"]
@@ -747,6 +795,8 @@ def wiz_run(click_context, **kwargs):
             [request], definition_mapping,
             ignore_implicit=ignore_implicit,
             environ_mapping=environ_mapping,
+            maximum_combinations=kwargs["max_combinations"],
+            maximum_attempts=kwargs["max_attempts"],
         )
 
         # Only view the resolved context without spawning a shell nor
@@ -754,6 +804,10 @@ def wiz_run(click_context, **kwargs):
         if kwargs["view"]:
             display_registries(wiz_context["registries"])
             display_resolved_context(wiz_context)
+
+        # Do not execute any command if history is being recorded.
+        elif not kwargs["view"] and click_context.obj["recording_path"]:
+            pass
 
         else:
             command_elements = wiz.resolve_command(
@@ -764,7 +818,6 @@ def wiz_run(click_context, **kwargs):
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
-        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -815,7 +868,7 @@ def wiz_run(click_context, **kwargs):
 @click.pass_context
 def wiz_freeze(click_context, **kwargs):
     """Freeze resolved context into a package definition or a script."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_freeze")
+    logger = logging.getLogger(__name__ + ".wiz_freeze")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -874,7 +927,6 @@ def wiz_freeze(click_context, **kwargs):
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
-        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -925,7 +977,7 @@ def wiz_freeze(click_context, **kwargs):
 @click.pass_context
 def wiz_install(click_context, **kwargs):
     """Install a definition to a registry."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_install")
+    logger = logging.getLogger(__name__ + ".wiz_install")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -965,7 +1017,6 @@ def wiz_install(click_context, **kwargs):
 
         except Exception as error:
             logger.error(error)
-            logger.debug_traceback()
 
             wiz.history.record_action(
                 wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -1080,7 +1131,7 @@ def wiz_install(click_context, **kwargs):
 @click.pass_context
 def wiz_edit(click_context, **kwargs):
     """Edit one or several definition(s)."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_edit")
+    logger = logging.getLogger(__name__ + ".wiz_edit")
 
     # Ensure that context fail if extra arguments were passed.
     _fail_on_extra_arguments(click_context)
@@ -1143,7 +1194,6 @@ def wiz_edit(click_context, **kwargs):
 
     except Exception as error:
         logger.error(str(error))
-        logger.debug_traceback()
 
         wiz.history.record_action(
             wiz.symbol.EXCEPTION_RAISE_ACTION, error=error
@@ -1163,7 +1213,7 @@ def wiz_edit(click_context, **kwargs):
 
         \b
         >>> wiz analyze
-        >>> wiz analyze "foo" "bar"
+        >>> wiz analyze foo bar
         >>> wiz analyze --verbose
         >>> wiz -r /path/to/registry analyze
         >>> wiz -add /path/to/additional/registry analyze
@@ -1174,13 +1224,43 @@ def wiz_edit(click_context, **kwargs):
     context_settings=CONTEXT_SETTINGS
 )
 @click.option(
-    "--no-arch",
-    help="Analyze definition for all platforms.",
-    is_flag=True,
-    default=_CONFIG.get("command", {}).get("analyze", {}).get("no_arch", False)
+    "-d", "--duration-threshold",
+    help="Update duration threshold (in seconds)",
+    type=int,
+    metavar="SECONDS",
+    default=1
 )
 @click.option(
-    "--verbose",
+    "-e", "--extraction-threshold",
+    help="Update combination extraction threshold",
+    type=int,
+    metavar="NUMBER",
+    default=5
+)
+@click.option(
+    "-mc", "--max-combinations",
+    help=(
+        "Maximum number of combinations which can be generated from "
+        "conflicting variants during the context resolution process."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_combinations"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
+@click.option(
+    "-ma", "--max-attempts",
+    help=(
+        "Maximum number of attempts to resolve the context before raising an "
+        "error."
+    ),
+    default=_CONFIG.get("resolver", {}).get("maximum_attempts"),
+    type=int,
+    metavar="NUMBER",
+    show_default=True
+)
+@click.option(
+    "-V", "--verbose",
     help="Increase verbosity of analysis.",
     is_flag=True,
     default=_CONFIG.get("command", {}).get("analyze", {}).get("verbose", False)
@@ -1192,153 +1272,217 @@ def wiz_edit(click_context, **kwargs):
 @click.pass_context
 def wiz_analyze(click_context, **kwargs):
     """Display warning and error for each registry."""
-    logger = wiz.logging.Logger(__name__ + ".wiz_analyze")
+    logger = logging.getLogger(__name__ + ".wiz_analyze")
     if click_context.obj["recording_path"] is not None:
         logger.error("Impossible to record history during analysis.")
         return
 
     definition_mapping = _fetch_definition_mapping_from_context(click_context)
-    system_mapping = (
-        None if kwargs["no_arch"] else click_context.obj["system_mapping"]
-    )
 
-    latest_registry = None
-
-    for definition in wiz.definition.discover(
-        click_context.obj["registry_paths"],
-        system_mapping=system_mapping,
-        max_depth=click_context.obj["registry_search_depth"]
-    ):
-        if latest_registry != definition.registry_path:
-            info = "\nRegistry: {}\n".format(definition.registry_path)
-            print(wiz.utility.colored_text(info, color="cyan"))
-            latest_registry = definition.registry_path
-
-        identifier = definition.qualified_version_identifier
-
-        # Skip definition if not matching filters.
-        if any(
-            _filter.lower() not in identifier.lower()
+    definitions = [
+        definition for key, mapping
+        in definition_mapping[wiz.symbol.PACKAGE_REQUEST_TYPE].items()
+        for definition in mapping.values()
+        if key != "__namespace__"
+        and not any(
+            _filter.lower() not in definition.qualified_identifier
             for _filter in kwargs["filters"]
-        ):
-            continue
-
-        print("  - {}".format(identifier), end="")
-        if kwargs["no_arch"]:
-            system_label = wiz.utility.compute_system_label(definition)
-            print(" [{}]".format(system_label), end="")
-
-        display_definition_analysis(
-            definition,
-            definition_mapping=definition_mapping,
-            verbose=kwargs["verbose"],
         )
+    ]
 
-    if latest_registry is None:
-        print(wiz.utility.colored_text("No definitions found.", color="red"))
+    extraction_threshold = kwargs["extraction_threshold"]
+    duration_threshold = kwargs["duration_threshold"]
 
-    print()
+    with_errors = []
+    with_warnings = []
+    with_version_dropdown = []
+    over_combination_threshold = []
+    over_duration_threshold = []
+    max_version_dropdown = 0
+    max_combinations = 0
+    max_duration = 0
+
+    with click.progressbar(
+        definitions, show_pos=True, show_eta=False
+    ) as _definitions:
+        for definition in _definitions:
+            result = _fetch_validation_mapping(
+                definition, definition_mapping,
+                maximum_combinations=kwargs["max_combinations"],
+                maximum_attempts=kwargs["max_attempts"],
+            )
+
+            identifier = definition.qualified_version_identifier
+            if len(result["errors"]):
+                with_errors.append((identifier, result["errors"]))
+
+            if len(result["warnings"]):
+                with_warnings.append((identifier, result["warnings"]))
+
+            action = wiz.symbol.GRAPH_NODES_REPLACEMENT_ACTION
+            value = result["history"].get(action)
+            if value:
+                with_version_dropdown.append((value, identifier))
+                max_version_dropdown = max(max_version_dropdown, value)
+
+            action = wiz.symbol.GRAPH_COMBINATION_EXTRACTION_ACTION
+            value = result["history"].get(action)
+            if value:
+                max_combinations = max(max_combinations, value)
+
+                if value >= extraction_threshold:
+                    over_combination_threshold.append((value, identifier))
+
+            max_duration = max(max_duration, result["duration"])
+
+            if result["duration"] >= duration_threshold:
+                over_duration_threshold.append((result["duration"], identifier))
+
+    columns = _create_columns(["Metrics", "Values"])
+
+    rows = [
+        ("Total", len(definitions)),
+        ("Errors", len(with_errors)),
+        ("Warnings", len(with_warnings)),
+        ("With version dropdown", len(with_version_dropdown)),
+        (
+            "≥ {} combination(s)".format(extraction_threshold),
+            len(over_combination_threshold)
+        ),
+        (
+            "≥ {} second(s)".format(duration_threshold),
+            len(over_duration_threshold)
+        ),
+        ("Max resolution time", "{:0.4f}s".format(max_duration)),
+        ("Max combinations", max_combinations),
+        ("Max version dropdown", max_version_dropdown)
+    ]
+
+    for key, value in rows:
+        _create_row(key, columns[0])
+        _create_row(value, columns[1])
+
+    _display_table(columns)
+
+    if kwargs["verbose"]:
+        click.echo(click.style("Errors", bold=True))
+        for _id, errors in sorted(with_errors):
+            click.echo("- {}".format(_id))
+            for error in errors:
+                click.echo(click.style(error, fg="red"))
+
+        if not len(with_errors):
+            click.echo("None")
+
+        click.echo(click.style("\nWarning", bold=True))
+        for _id, warnings in sorted(with_warnings):
+            click.echo("- {}".format(_id))
+            for warning in warnings:
+                click.echo(click.style(warning, fg="yellow"))
+
+        if not len(with_warnings):
+            click.echo("None")
+
+        click.echo(click.style("\nWith version dropdown", bold=True))
+        for value, _id in sorted(with_version_dropdown):
+            click.echo("- {} [{}]".format(_id, value))
+
+        if not len(with_version_dropdown):
+            click.echo("None")
+
+        click.echo(click.style(
+            "\n≥ {} combination(s)".format(extraction_threshold), bold=True
+        ))
+        for value, _id in sorted(over_combination_threshold):
+            click.echo("- {} [{}]".format(_id, value))
+
+        if not len(over_combination_threshold):
+            click.echo("None")
+
+        click.echo(click.style(
+            "\n≥ {} second(s)".format(duration_threshold), bold=True
+        ))
+        for duration, _id in sorted(over_duration_threshold):
+            click.echo("- {} [{:0.4f}s]".format(_id, duration))
+
+        if not len(over_duration_threshold):
+            click.echo("None")
+
+        click.echo()
 
 
-def display_definition_analysis(
-    definition, definition_mapping=None, verbose=False
+def _fetch_validation_mapping(
+    definition, definition_mapping, maximum_combinations, maximum_attempts
 ):
-    """Analyze *definition* and display results.
+    """Fetch validation mapping for *definition*.
 
-    Example::
-
-        >>> display_definition_analysis(definition)
-
-          - foo==10.0 ✘
-        critical: Failed to resolve graph at combination #10:
-
-        The dependency graph could not be resolved due to the following
-        requirement conflicts:
-          * foo ==1.5 	    [bar[1.5]==2.0.3]
-          * foo >=1, <1.5 	[bim==3.0.0]
-
-        >>> display_definition_analysis(definition, verbose=True)
-
-          - foo==10.0 ✘
-        critical: Failed to resolve graph at combination #10:
-
-        The dependency graph could not be resolved due to the following
-        requirement conflicts:
-          * foo ==1.5 	    [bar[1.5]==2.0.3]
-          * foo >=1, <1.5 	[bim==3.0.0]
-
-        * TIME DURATION: 0.276069879532
-        * CREATE_GRAPH: 1
-        * UPDATE_GRAPH: 6
-        * CREATE_NODE: 37
-        * CREATE_LINK: 98
-        * CREATE_DISTANCE_MAPPING: 15
-        * IDENTIFY_VARIANT_CONFLICTS: 3
-        * EXTRACT_GRAPH_COMBINATION: 10
-        * REMOVE_NODE: 25
-        * IDENTIFY_VERSION_CONFLICTS: 1
-        * RESOLUTION_ERROR: 10
-        * REPLACE_NODES: 3
-
-    :param definition: Instance of :class:`wiz.definition.Definition`.
+    :param definition: instance of :class:`wiz.definition.Definition`.
 
     :param definition_mapping: Mapping regrouping all available definitions. It
-        could be fetched with :func:`wiz.fetch_definition_mapping`. If no
-        definition mapping is provided, a default one will be fetched from
-        :func:`default registries <wiz.registry.get_defaults>`.
+        could be fetched with :func:`fetch_definition_mapping`.
 
-    :param verbose: Indicate whether time duration and history information
-        should be added to analysis.
+    :param maximum_combinations: Maximum number of combinations which can be
+        generated from conflicting variants. Default is None, which means
+        that the default value will be picked from the :ref:`configuration
+        <configuration>`.
+
+    :param maximum_attempts: Maximum number of resolution attempts before
+        raising an error. Default is None, which means  that the default
+        value will be picked from the :ref:`configuration <configuration>`.
+
+    :return: Validation mapping.
 
     """
-    if definition_mapping is None:
-        definition_mapping = wiz.fetch_definition_mapping(
-            wiz.registry.get_defaults()
-        )
+    result = {"errors": [], "warnings": [], "history": {}}
+    context = {}
 
-    if verbose:
-        wiz.history.start_recording(minimal_actions=True)
+    error_stream, warning_stream = io.StringIO(), io.StringIO()
+    wiz.logging.capture_logs(error_stream, warning_stream)
+
+    wiz.history.start_recording(minimal_actions=True)
 
     time_start = time.time()
 
-    mapping = wiz.validate_definition(
-        definition, definition_mapping=definition_mapping
-    )
+    try:
+        context = wiz.resolve_context(
+            [definition.qualified_version_identifier], definition_mapping,
+            maximum_combinations=maximum_combinations,
+            maximum_attempts=maximum_attempts,
+            ignore_implicit=True,
+        )
 
-    time_duration = time.time() - time_start
+    except wiz.exception.WizError as error:
+        result["errors"].append(str(error))
 
-    errors = mapping.get("errors", [])
-    warnings = mapping.get("warnings", [])
+    result["duration"] = time.time() - time_start
 
-    if len(errors) > 0 or len(warnings) > 0:
-        print(wiz.utility.colored_text(" ✘", color="red"))
+    recorded = error_stream.getvalue()
+    if len(recorded) > 0:
+        result["errors"].append(recorded)
 
-        if len(errors) > 0:
-            _errors = "\n".join(errors)
-            print(wiz.utility.colored_text(_errors, color="red"))
+    recorded = warning_stream.getvalue()
+    if len(recorded) > 0:
+        result["warnings"].append(recorded)
 
-        if len(warnings) > 0:
-            _warnings = "\n".join(warnings)
-            print(wiz.utility.colored_text(_warnings, color="yellow"))
+    error_stream.close()
+    warning_stream.close()
 
-    else:
-        print(wiz.utility.colored_text(" ✔", color="green"))
+    for key, value in context.get("environ", {}).items():
+        unresolved = wiz.environ.ENV_PATTERN.findall(value)
+        unresolved = ["".join(res) for res in unresolved]
 
-    if verbose:
-        _mapping = collections.OrderedDict({"TIME DURATION": time_duration})
-        history = wiz.history.get()
+        if len(unresolved) > 0:
+            result["warnings"].append(
+                "warning: the '{}' environment variable contains "
+                "unresolved elements: {}".format(key, ", ".join(unresolved))
+            )
 
-        for action in history.get("actions", []):
-            identifier = action.get("identifier")
-            _mapping.setdefault(identifier, 0)
-            _mapping[identifier] += 1
+    for action in wiz.history.get().get("actions", []):
+        identifier = action.get("identifier")
+        result["history"].setdefault(identifier, 0)
+        result["history"][identifier] += 1
 
-        message = "\n".join([
-            "    * {}: {}".format(key, value)
-            for key, value in _mapping.items()
-        ])
-
-        print(wiz.utility.colored_text(message + "\n", color="green"))
+    return result
 
 
 def display_registries(paths):
@@ -1373,6 +1517,8 @@ def display_definition(definition):
 
         >>> display_definition(definition)
 
+        path: /path/to/foo.json
+        registry: /path/to/registry
         identifier: Foo
         version: 0.1.0
         description: Description of Foo
@@ -1418,6 +1564,8 @@ def display_definition(definition):
         else:
             click.echo("{}{}".format(indent, item))
 
+    click.echo("path: {}".format(definition.path))
+    click.echo("registry: {}".format(definition.registry_path))
     _display(definition.ordered_data())
 
 
@@ -1484,7 +1632,11 @@ def display_command_mapping(
     success = False
 
     for command, identifier in sorted(command_mapping.items()):
-        versions = sorted(package_mapping[identifier].keys(), reverse=True)
+        versions = sorted(
+            package_mapping[identifier].keys(),
+            key=functools.cmp_to_key(wiz.utility.compare_versions),
+            reverse=True
+        )
 
         # Filter latest version if requested.
         if not all_versions:
@@ -1581,7 +1733,11 @@ def display_package_mapping(
     success = False
 
     for identifier in sorted(package_mapping.keys()):
-        versions = sorted(package_mapping[identifier].keys(), reverse=True)
+        versions = sorted(
+            package_mapping[identifier].keys(),
+            key=functools.cmp_to_key(wiz.utility.compare_versions),
+            reverse=True
+        )
 
         # Filter latest version if requested.
         if not all_versions:
@@ -1770,7 +1926,7 @@ def _casted_argument(argument):
 
 def _query_identifier():
     """Query an identifier for a resolved context."""
-    logger = wiz.logging.Logger(__name__ + "._query_identifier")
+    logger = logging.getLogger(__name__ + "._query_identifier")
 
     while True:
         value = click.prompt("Please enter a definition identifier")
@@ -1786,7 +1942,7 @@ def _query_identifier():
 
 def _query_description():
     """Query an description for a resolved context."""
-    logger = wiz.logging.Logger(__name__ + "._query_description")
+    logger = logging.getLogger(__name__ + "._query_description")
 
     while True:
         value = click.prompt("Please enter a description")
@@ -1803,14 +1959,14 @@ def _query_description():
 
 def _query_version(default="0.1.0"):
     """Query a version for a resolved context."""
-    logger = wiz.logging.Logger(__name__ + "._query_version")
+    logger = logging.getLogger(__name__ + "._query_version")
 
     while True:
         content = click.prompt("Please indicate a version", default=default)
 
         try:
             version = wiz.utility.get_version(content)
-        except wiz.exception.InvalidVersion as error:
+        except wiz.exception.VersionError as error:
             logger.warning(error)
             continue
         else:
@@ -1950,7 +2106,7 @@ def _fetch_definition_mapping_from_context(click_context):
 
 def _export_history_if_requested(click_context):
     """Return definition mapping from elements stored in *click_context*."""
-    logger = wiz.logging.Logger(__name__ + "._export_history_if_requested")
+    logger = logging.getLogger(__name__ + "._export_history_if_requested")
 
     if click_context.obj["recording_path"] is None:
         return

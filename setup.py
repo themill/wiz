@@ -25,11 +25,10 @@ with open(
 # Compute dependencies.
 INSTALL_REQUIRES = [
     "click >= 7, < 8",
+    "coloredlogs >= 14.0, < 15",
     "colorama >= 0.3.9, < 1",
     "distro >= 1.5.0, < 2",
     "packaging >= 17.1, < 18",
-    "pystache >= 0.5.4, < 1",
-    "sawmill >= 0.2.1, < 1",
     "six >= 1.15.0, < 2",
     "toml >= 0.10.1, < 1",
     "ujson >= 2.0.3, < 4"
@@ -46,9 +45,13 @@ TEST_REQUIRES = [
     "pytest >= 4, < 5",
     "pytest-benchmark >= 3.2.3, < 4",
     "pytest-cov >= 2, < 3",
-    "pytest-mock >= 0.11, < 1",
+    "pytest-mock >= 2, < 3",
     "pytest-runner >= 2.7, < 3",
     "pytest-xdist >= 1.18, < 2"
+]
+
+DEV_REQUIRES = [
+    "versup >= 1.0.1",
 ]
 
 
@@ -108,7 +111,7 @@ setup(
     extras_require={
         "doc": DOC_REQUIRES,
         "test": TEST_REQUIRES,
-        "dev": DOC_REQUIRES + TEST_REQUIRES
+        "dev": DOC_REQUIRES + TEST_REQUIRES + DEV_REQUIRES
     },
     zip_safe=False,
     entry_points={

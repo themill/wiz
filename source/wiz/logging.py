@@ -1,185 +1,158 @@
 # :coding: utf-8
 
-from __future__ import print_function
-
-import datetime
+from __future__ import absolute_import
+import collections
+import copy
 import getpass
-import io
+import logging
+import logging.config
 import os
-import sys
 import tempfile
 
-import colorama
-import pystache
-import sawmill
-import sawmill.compatibility
-import sawmill.filterer.item
-import sawmill.filterer.level
-import sawmill.formatter.field
-import sawmill.formatter.mustache
-import sawmill.handler.stream
-import sawmill.logger.classic
+import coloredlogs
 
+import wiz.config
+import wiz.utility
 import wiz.filesystem
 
-#: Top level handler responsible for relaying all logs to other handlers.
-root = sawmill.root
 
-#: Log levels ordered by severity. Do not rely on the index of the level name
-# as it may change depending on the configuration.
-levels = sawmill.levels
+# Configure custom colors for messages displayed in the console.
+coloredlogs.DEFAULT_LEVEL_STYLES = {
+    "info": {"color": "cyan"},
+    "error": {"color": "red"},
+    "critical": {"color": "red"},
+    "warning": {"color": "yellow"}
+}
+
+#: Available levels with corresponding labels.
+LEVEL_MAPPING = collections.OrderedDict([
+    ("debug", logging.DEBUG),
+    ("info", logging.INFO),
+    ("warning", logging.WARNING),
+    ("error", logging.ERROR),
+])
+
+#: Output path for files exported by default 'file' handler.
+PATH = os.path.join(tempfile.gettempdir(), "wiz", "logs")
+
+#: Default configuration for logger.
+DEFAULT_CONFIG = {
+    "version": 1,
+    "root": {
+        "handlers": ["console", "file"],
+        "level": logging.DEBUG
+    },
+    "formatters": {
+        "standard": {
+            "class": "coloredlogs.ColoredFormatter",
+            "format": "%(message)s"
+        },
+        "detailed": {
+            "class": "logging.Formatter",
+            "format": "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+            "stream": "ext://sys.stdout",
+            "level": logging.INFO
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "formatter": "detailed",
+            "level": logging.INFO,
+            "filename": os.path.join(PATH, "{}.log".format(getpass.getuser())),
+            "maxBytes": 10485760,
+            "backupCount": 20,
+        }
+    }
+}
 
 
-def configure():
-    """Configure logging handlers.
+def initiate(console_level="info"):
+    """Initiate logger configuration.
 
-    A file handler is created to log warnings and greater to :file:`wiz/logs`
-    under system temporary directory.
+    :param console_level: Initialize the logging level for the console handler
+        if possible. Default is "info".
 
-    .. note::
-
-        Standard Python logging are redirected to :mod:`sawmill` to unify
-        the logging systems.
+    .. seealso:: :ref:`configuration/logging`
 
     """
-    # Stderr handler
-    stderr_handler = sawmill.handler.stream.Stream(sys.stderr)
-    stderr_formatter = Formatter(
-        "{{level}}: {{message}}{{#traceback}}\n{{.}}:{{/traceback}}\n"
-    )
-    stderr_handler.formatter = stderr_formatter
+    config = wiz.config.fetch()
 
-    stderr_filterer = sawmill.filterer.level.Level(min="info", max=None)
-    stderr_handler.filterer = stderr_filterer
+    # Ensure that umask is set to 0 to create log folder with opened
+    # permissions for group and other.
+    _umask = os.umask(0)
 
-    # File handler
-    logging_path_prefix = os.path.join(tempfile.gettempdir(), "wiz", "logs")
-    wiz.filesystem.ensure_directory(logging_path_prefix)
+    # Ensure that default output path exists.
+    wiz.filesystem.ensure_directory(PATH)
 
-    pid = os.getpid()
-    timestamp = datetime.datetime.now().strftime("%Y%m%d")
+    # Restore previous umask.
+    os.umask(_umask)
 
-    file_path = os.path.join(
-        logging_path_prefix, "{}_{}.log".format(pid, timestamp)
-    )
-    file_filterer = sawmill.filterer.level.Level(min="warning", max=None)
-    file_stream = open(file_path, "a", 1)
-    file_handler = sawmill.handler.stream.Stream(file_stream)
-    file_handler.filterer = file_filterer
+    # Update default logging configuration if necessary.
+    logging_config = copy.deepcopy(DEFAULT_CONFIG)
+    wiz.utility.deep_update(logging_config, config.get("logging", {}))
 
-    file_formatter = sawmill.formatter.field.Field([
-        "date", "*", "name", "level", "message", "traceback"
-    ])
-    file_handler.formatter = file_formatter
+    # Initiate the default level for the console if applicable.
+    console_handler = logging_config.get("handlers", {}).get("console")
+    if console_handler is not None:
+        console_handler["level"] = LEVEL_MAPPING[console_level]
 
-    sawmill.root.handlers = {
-        "stderr": stderr_handler,
-        "file": file_handler
-    }
-
-    # Configure standard Python logging to redirect all logs to sawmill for
-    # handling here. This unifies the logging systems.
-    sawmill.compatibility.redirect_standard_library_logging()
+    logging.config.dictConfig(logging_config)
 
 
-def configure_for_debug():
-    """Configure single error handler for debugging purpose.
+def capture_logs(error_stream, warning_stream):
+    """Initialize logger to capture error and warning level.
 
-    A standard error handler is created to log errors and greater into to a
-    :class:`io.StringIO` instance.
+    :param error_stream: instances of :class:`io.StringIO` which will receive
+        all errors logged.
 
-    A standard waring handler is created to log warnings into to a
-    :class:`io.StringIO` instance.
-
-    A tuple with the two :class:`io.StringIO` instances created is returned.
+    :param warning_stream: instances of :class:`io.StringIO` which will receive
+        all warnings logged.
 
     """
-    error_captured = io.StringIO()
+    logging.config.dictConfig({
+        "version": 1,
+        "root": {
+            "handlers": ["error", "warning"],
+            "level": logging.WARNING
+        },
+        "formatters": {
+            "standard": {
+                "class": "logging.Formatter",
+                "format": "%(message)s"
+            },
+        },
+        "handlers": {
+            "error": {
+                "class": "logging.StreamHandler",
+                "formatter": "standard",
+                "stream": error_stream,
+                "level": logging.ERROR,
+            },
+            "warning": {
+                "class": "logging.StreamHandler",
+                "formatter": "standard",
+                "stream": warning_stream,
+                "level": logging.WARNING,
+                "filters": ["warning-filter"]
+            }
+        },
+        "filters": {
+            "warning-filter": {
+                "()": _WarningLevelFilter,
+            }
+        },
 
-    # Error handler
-    error_handler = sawmill.handler.stream.Stream(error_captured)
-    error_formatter = Formatter(
-        "{{level}}: {{message}}{{#traceback}}\n{{.}}:{{/traceback}}\n",
-        with_color=False
-    )
-    error_handler.formatter = error_formatter
-
-    error_filterer = sawmill.filterer.level.Level(min="error", max=None)
-    error_handler.filterer = error_filterer
-
-    warning_captured = io.StringIO()
-
-    # Warning handler
-    warning_handler = sawmill.handler.stream.Stream(warning_captured)
-    warning_formatter = Formatter("{{level}}: {{message}}\n", with_color=False)
-    warning_handler.formatter = warning_formatter
-
-    warning_filterer = sawmill.filterer.level.Level(
-        min="warning", max="warning"
-    )
-    warning_handler.filterer = warning_filterer
-
-    sawmill.root.handlers = {
-        "error": error_handler,
-        "warning": warning_handler
-    }
-
-    return error_captured, warning_captured
-
-
-class Formatter(sawmill.formatter.mustache.Mustache):
-    """:term:`Mustache` template to format :class:`logs <sawmill.log.Log>`.
-    """
-    #: Color symbols per level.
-    _COLOR = {
-        "error": colorama.Fore.RED,
-        "err": colorama.Fore.RED,
-        "warning": colorama.Fore.YELLOW,
-        "warn": colorama.Fore.YELLOW,
-        "info": colorama.Fore.CYAN,
-        "except": colorama.Style.BRIGHT + colorama.Fore.RED,
-    }
-
-    def __init__(self, template, with_color=True):
-        """Initialize with :term:`Mustache` template."""
-        self._renderer = pystache.Renderer(escape=lambda value: value)
-        self._with_color = with_color
-        super(Formatter, self).__init__(template, batch=False)
-
-    def format(self, logs):
-        """Format *logs* for display."""
-        data = []
-
-        for log in logs:
-            line = self._renderer.render(self.template, log)
-
-            if self._with_color and "level" in log.keys():
-                if log["level"] in self._COLOR.keys():
-                    line = (
-                        self._COLOR[log["level"]] + line +
-                        colorama.Style.RESET_ALL
-                    )
-
-            data.append(line)
-
-        return data
+    })
 
 
-class Logger(sawmill.logger.classic.Classic):
-    """Extended logger with timestamp and username information."""
+class _WarningLevelFilter(logging.Filter):
+    """Filter out log record with level other than 'WARNING'."""
 
-    def prepare(self, *args, **kw):
-        """Prepare and return a log for emission."""
-        log = super(Logger, self).prepare(*args, **kw)
-
-        if "username" not in log:
-            log["username"] = getpass.getuser()
-
-        if "date" not in log:
-            log["date"] = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
-
-        return log
-
-    def debug_traceback(self):
-        """Log a traceback as debug level message."""
-        self.debug("Traceback for latest error", traceback=True)
+    def filter(self, record):
+        """Return whether *record* is a warning."""
+        return record.levelno == logging.WARNING

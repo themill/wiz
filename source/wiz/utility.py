@@ -2,12 +2,13 @@
 
 import base64
 import collections
+import copy
+import functools
 import hashlib
 import pipes
 import re
 import zlib
 
-import colorama
 from packaging.requirements import InvalidRequirement
 from packaging.version import Version, InvalidVersion
 import ujson
@@ -36,9 +37,25 @@ def get_requirement(content):
     try:
         return Requirement(content)
     except InvalidRequirement:
-        raise wiz.exception.InvalidRequirement(
+        raise wiz.exception.RequirementError(
             "The requirement '{}' is incorrect".format(content)
         )
+
+
+def get_requirements(contents):
+    """Return the corresponding requirement instance from *content*.
+
+    :param contents: List of strings representing requirements, with or without
+        version specifier or variant (e.g. "maya", "nuke >= 10, < 11",
+        "ldpk-nuke[10.0]").
+
+    :return: List of :class:`packaging.requirements.Requirement` instances.
+
+    :raise: :exc:`wiz.exception.InvalidRequirement` if the requirement is
+        incorrect.
+
+    """
+    return [get_requirement(content) for content in contents]
 
 
 def get_version(content):
@@ -54,7 +71,7 @@ def get_version(content):
     try:
         return Version(content)
     except InvalidVersion:
-        raise wiz.exception.InvalidVersion(
+        raise wiz.exception.VersionError(
             "The version '{}' is incorrect".format(content)
         )
 
@@ -73,6 +90,9 @@ def is_overlapping(requirement1, requirement2):
         >>> is_overlapping(Requirement("foo >= 10"), Requirement("foo < 8"))
         False
 
+        >>> is_overlapping(Requirement("foo[V2]"), Requirement("foo[V1]"))
+        False
+
     :param requirement1: Instance of
         :class:`packaging.requirements.Requirement`.
 
@@ -81,15 +101,17 @@ def is_overlapping(requirement1, requirement2):
 
     :return: Boolean value.
 
-    :raise: :exc:`wiz.exception.GraphResolutionError` if requirements cannot
-        be compared.
+    :raise: :exc:`ValueError` if requirements cannot be compared.
 
     """
     if requirement1.name != requirement2.name:
-        raise wiz.exception.GraphResolutionError(
+        raise ValueError(
             "Impossible to compare requirements with different names "
             "['{}' and '{}'].".format(requirement1.name, requirement2.name)
         )
+
+    if requirement1.extras != requirement2.extras:
+        return False
 
     r1 = extract_version_ranges(requirement1)
     r2 = extract_version_ranges(requirement2)
@@ -195,7 +217,7 @@ def extract_version_ranges(requirement):
             _update_version_ranges((_min_version, _max_version), version_ranges)
 
         else:
-            raise wiz.exception.InvalidRequirement(
+            raise wiz.exception.RequirementError(
                 "Operator '{}' is not accepted for requirement '{}'".format(
                     specifier.operator, requirement
                 )
@@ -204,14 +226,55 @@ def extract_version_ranges(requirement):
     return version_ranges
 
 
+def compare_versions(version1, version2):
+    """Compare two versions following logic defined in :term:`PEP 440`.
+
+    Invalid versions are always considered as lower than valid versions.
+
+    Example::
+
+        >>> sorted(
+        ...     ["2.3.4", "12.3", "1.0.0b0", "invalid"],
+        ...     key=functools.cmp_to_key(compare_versions)
+        ... )
+
+        ["invalid", "1.0.0b0", "2.3.4", "12.3"]
+
+    :param version1: String representing a versio .
+
+    :param version2: String representing a version to compare *version1* with.
+
+    :return: Returns 0 if bother versions are equal, -1 if *version1* is lower
+        than *version2*, or 1 if *version1* is higher than *version2*.
+
+    .. seealso:: https://en.wikipedia.org/wiki/Three-way_comparison
+
+    """
+    try:
+        version1 = Version(version1)
+    except InvalidVersion:
+        pass
+
+    try:
+        version2 = Version(version2)
+    except InvalidVersion:
+        pass
+
+    if type(version1) == type(version2):
+        return (version1 > version2) - (version1 < version2)
+    elif isinstance(version1, Version):
+        return 1
+    return -1
+
+
 def _update_maximum_version(version, ranges):
     """Update version *ranges* with maximum *version*.
 
     Example::
 
-        >>> ranges = [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))]
-        >>> _update_maximum_version((1, 2, 3), ranges)
-        >>> print(ranges)
+        >>> version_ranges = [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))]
+        >>> _update_maximum_version((1, 2, 3), version_ranges)
+        >>> print(version_ranges)
         [((1, 2, 3), (1, 2, 3))]
 
     :param version: Tuple representing a version (e.g. (1,2,3)).
@@ -227,7 +290,7 @@ def _update_maximum_version(version, ranges):
     _ranges = []
 
     if ranges[0][0] is not None and version < ranges[0][0]:
-        raise wiz.exception.InvalidRequirement(
+        raise wiz.exception.RequirementError(
             "The requirement is incorrect as maximum value '{}' cannot be set "
             "when minimum value is '{}'.".format(
                 ".".join(str(v) for v in version),
@@ -252,9 +315,9 @@ def _update_minimum_version(version, ranges):
 
     Example::
 
-        >>> ranges = [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))]
-        >>> _update_minimum_version((1, 3, 3), ranges)
-        >>> print(ranges)
+        >>> version_ranges = [((1, 2, 3), (1, 3, 0)), ((1, 3, 3), (1, 4))]
+        >>> _update_minimum_version((1, 3, 3), version_ranges)
+        >>> print(version_ranges)
         [((1, 3, 3), (1, 4))]
 
     :param version: Tuple representing a version (e.g. (1,2,3)).
@@ -270,7 +333,7 @@ def _update_minimum_version(version, ranges):
     _ranges = []
 
     if ranges[-1][1] is not None and version > ranges[-1][1]:
-        raise wiz.exception.InvalidRequirement(
+        raise wiz.exception.RequirementError(
             "The requirement is incorrect as minimum value '{}' cannot be set "
             "when maximum value is '{}'.".format(
                 ".".join(str(v) for v in version),
@@ -295,9 +358,9 @@ def _update_version_ranges(excluded, ranges):
 
     Example::
 
-        >>> ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
-        >>> _update_version_ranges(((1,2,3), (1,3,3)), ranges)
-        >>> print(ranges)
+        >>> version_ranges = [((1,2,3), (1,3,0)), ((1,3,3), (1,4))]
+        >>> _update_version_ranges(((1,2,3), (1,3,3)), version_ranges)
+        >>> print(version_ranges)
         [((1, 2, 3), (1, 2, 3)), ((1, 3, 3), (1, 4))]
 
     :param excluded: Tuple containing two ordered version release tuples (e.g.
@@ -344,7 +407,7 @@ def _update_version_ranges(excluded, ranges):
             _ranges.append((excluded[1], r[1]))
 
     if len(_ranges) == 0:
-        raise wiz.exception.InvalidRequirement(
+        raise wiz.exception.RequirementError(
             "The requirement is incorrect as excluded version range '{}-{}' "
             "makes all other versions unreachable.".format(
                 ".".join(str(v) for v in excluded[0]),
@@ -425,10 +488,13 @@ def encode(element):
 
     :param element: Content to encode.
 
+    :return: Encoded string.
+
     :raise: :exc:`TypeError` if *element* is not JSON serializable.
 
     """
-    return base64.b64encode(zlib.compress(ujson.dumps(element).encode("utf-8")))
+    serialized = ujson.dumps(element).encode("utf-8")
+    return base64.b64encode(zlib.compress(serialized)).decode("utf-8")
 
 
 def decode(element):
@@ -513,7 +579,10 @@ def compute_file_name(definition):
     name = definition.identifier
 
     if definition.namespace:
-        name = "{}-{}".format(definition.namespace, name)
+        namespace = "-".join(
+            definition.namespace.split(wiz.symbol.NAMESPACE_SEPARATOR)
+        )
+        name = "{}-{}".format(namespace, name)
 
     if definition.version:
         name += "-{}".format(definition.version)
@@ -546,25 +615,6 @@ def combine_command(elements):
     return " ".join([pipes.quote(element) for element in elements])
 
 
-def colored_text(message, color):
-    """Return colored *message* according to color *name*.
-
-    Available color names are: "black", "red", "green", "yellow", "blue",
-    "magenta", "cyan" and "white".
-
-    :param message: String to colorize.
-
-    :param color: Symbol of color to apply to *message*.
-
-    :return: Colorized message.
-
-    """
-    return (
-        getattr(colorama.Fore, color.upper()) + message +
-        colorama.Style.RESET_ALL
-    )
-
-
 def deep_update(mapping1, mapping2):
     """Recursively update *mapping1* from *mapping2*.
 
@@ -592,3 +642,162 @@ def deep_update(mapping1, mapping2):
         else:
             mapping1[key] = value
     return mapping1
+
+
+def sanitize_requirement(requirement, package):
+    """Return qualified *requirement* depending on *package*'s namespace.
+
+    Example::
+
+        # If the package has a namespace of 'foo'
+        >>> sanitize_requirement(Requirement("A >=1, <2"), package)
+        Requirement("foo::A >=1, <2")
+
+        # If the package has no namespace
+        >>> sanitize_requirement(Requirement("A >=1, <2"), package)
+        Requirement("::A >=1, <2")
+
+    :param requirement: Instance of :class:`packaging.requirements.Requirement`.
+
+    :param package: Instance of :class:`wiz.package.Package`.
+
+    :return: new instance of :class:`packaging.requirements.Requirement`.
+
+    :raise: :exc:`ValueError` if *requirement* is incompatible with *package*.
+
+    """
+    if not match(requirement, package):
+        raise ValueError(
+            "Requirement '{0}' is incompatible with package '{1}'".format(
+                requirement, package.identifier
+            )
+        )
+
+    # Prevent mutating incoming requirement.
+    _requirement = copy.deepcopy(requirement)
+    _requirement.name = wiz.symbol.NAMESPACE_SEPARATOR.join([
+        package.namespace or "", package.definition.identifier
+    ])
+    return _requirement
+
+
+def compute_namespace_counter(requirements, definition_mapping):
+    """Compute namespace frequency counter from *requirements*.
+
+    :param requirements: List of :class:`packaging.requirements.Requirement`
+        instances.
+
+    :param definition_mapping: Mapping regrouping all available definitions
+        associated with their unique identifier.
+
+    :return: Instance of :class:`collections.Counter`.
+
+    """
+    mapping = definition_mapping.get("__namespace__", {})
+
+    namespaces = []
+
+    for requirement in requirements:
+        namespace, _ = wiz.utility.extract_namespace(requirement)
+        if namespace is not None:
+            namespaces.append(namespace)
+        else:
+            namespaces += mapping.get(requirement.name, [])
+
+    return collections.Counter(namespaces)
+
+
+def match(requirement, package):
+    """Return whether *requirement* is compatible with *package*.
+
+    :param requirement: Instance of :class:`packaging.requirements.Requirement`.
+
+    :param package: Instance of :class:`wiz.package.Package`.
+
+    :return: Boolean value.
+
+    """
+    namespace, identifier = extract_namespace(requirement)
+
+    # Ignore if package identifier doesn't match requirement name.
+    if package.definition.identifier != identifier:
+        return False
+
+    # Ignore if package namespace doesn't match requirement name.
+    if namespace is not None and package.definition.namespace != namespace:
+        return False
+
+    # Ignore if package variant doesn't match any requirement extras.
+    variants_requested = list(requirement.extras)
+    if len(variants_requested) > 0:
+        variant_identifier = package.variant_identifier
+        if not any(_id == variant_identifier for _id in variants_requested):
+            return False
+
+    # Node is matching if package has no version.
+    if package.version is not None:
+        # Remove namespace from requirement so specifier can be used.
+        _requirement = copy.deepcopy(requirement)
+        _requirement.name = identifier
+
+        if not _requirement.specifier.contains(package.version):
+            return False
+
+    return True
+
+
+def extract_namespace(requirement):
+    """Extract namespace and identifier from *requirement*.
+
+    Example::
+
+        >>> extract_namespace(Requirement("foo"))
+        None, "foo"
+
+        >>> extract_namespace(Requirement("::foo"))
+        None, "foo"
+
+        >>> extract_namespace(Requirement("bar::foo"))
+        "bar", "foo"
+
+        >>> extract_namespace(Requirement("bar1::bar2::foo"))
+        "bar1::bar2", "foo"
+
+    """
+    try:
+        namespace, identifier = requirement.name.rsplit(
+            wiz.symbol.NAMESPACE_SEPARATOR, 1
+        )
+
+        if not len(namespace):
+            namespace = None
+
+    except ValueError:
+        identifier = requirement.name
+        namespace = None
+
+    return namespace, identifier
+
+
+def check_conflicting_requirements(package1, package2):
+    """Check whether some requirements are conflicting between packages.
+
+    :param package1: Instance of :class:`wiz.package.Package`.
+
+    :param package2: Instance of :class:`wiz.package.Package` to compare
+        *package1* with.
+
+    :return: Boolean value.
+
+    """
+    mapping = {}
+
+    for requirement in package1.requirements + package2.requirements:
+        _requirement = mapping.get(requirement.name)
+        if _requirement is not None:
+            if not is_overlapping(requirement, _requirement):
+                return True
+
+        mapping[requirement.name] = requirement
+
+    return False
