@@ -1231,20 +1231,10 @@ class Graph(object):
             if self.exists(stored_node.identifier):
                 continue
 
-            try:
-                packages = itertools.chain(*(
-                    wiz.package.extract(
-                        condition, self.resolver.definition_mapping,
-                        namespace_counter=self._namespace_count
-                    )
-                    for condition in stored_node.package.conditions
-                ))
-
-            except wiz.exception.WizError:
-                # Do not raise if the condition request is incorrect.
-                continue
-
-            if all(self.exists(package.identifier) for package in packages):
+            if all(
+                len(self.find(condition)) for condition
+                in stored_node.package.conditions
+            ):
                 self._logger.debug(
                     "Package '{}' fulfills conditions [{}]".format(
                         stored_node.identifier,
