@@ -7,6 +7,7 @@ import functools
 import io
 import logging
 import os
+import sys
 import textwrap
 import time
 
@@ -704,7 +705,7 @@ def wiz_use(click_context, **kwargs):
             command_elements = wiz.resolve_command(
                 extra_arguments, wiz_context.get("command", {})
             )
-            wiz.spawn.execute(command_elements, wiz_context["environ"])
+            sys.exit(wiz.spawn.execute(command_elements, wiz_context["environ"]))
 
     except wiz.exception.WizError as error:
         logger.error(str(error))
@@ -814,7 +815,7 @@ def wiz_run(click_context, **kwargs):
                 [requirement.name] + extra_arguments,
                 wiz_context.get("command", {})
             )
-            wiz.spawn.execute(command_elements, wiz_context["environ"])
+            sys.exit(wiz.spawn.execute(command_elements, wiz_context["environ"]))
 
     except wiz.exception.WizError as error:
         logger.error(str(error))

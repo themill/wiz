@@ -98,8 +98,10 @@ def execute(elements, environment):
 
     :param environment: Environment mapping to execute command with.
 
+    :return: :attr:`~Popen.returncode` attribute.
+
     """
-    logger = logging.getLogger(__name__ + ".shell")
+    logger = logging.getLogger(__name__ + ".execute")
     logger.info(
         "Start command: {}".format(wiz.utility.combine_command(elements))
     )
@@ -114,12 +116,14 @@ def execute(elements, environment):
     signal.signal(signal.SIGTERM, _cleanup)
 
     try:
-        subprocess.call(elements, env=environment)
+        return subprocess.call(elements, env=environment)
     except OSError:
         logger.error(
             "Executable can not be found within resolved "
             "environment [{}]".format(elements[0])
         )
+
+    return -1
 
 
 def _cleanup(signum, frame):
