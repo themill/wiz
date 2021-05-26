@@ -6,8 +6,8 @@ Wiz
     :target: https://pypi.python.org/pypi/wiz-env
     :alt: PyPi Package Link
 
-.. image:: https://travis-ci.org/themill/wiz.svg?branch=master
-    :target: https://travis-ci.org/themill/wiz
+.. image:: https://github.com/themill/wiz/actions/workflows/main.yml/badge.svg?branch=master
+    :target: https://github.com/themill/wiz/actions/workflows/main.yml
     :alt: Continuous Integration
 
 .. image:: https://readthedocs.org/projects/wiz/badge/?version=stable
