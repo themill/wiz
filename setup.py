@@ -47,8 +47,7 @@ TEST_REQUIRES = [
     "pytest-cov >= 2, < 3",
     "pytest-mock >= 2, < 3",
     "pytest-runner >= 2.7, < 3",
-    "pytest-xdist >= 1.18, < 2",
-    "black >= 20.8b1"
+    "pytest-xdist >= 1.18, < 2"
 ]
 
 DEV_REQUIRES = [
