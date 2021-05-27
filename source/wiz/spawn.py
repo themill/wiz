@@ -98,7 +98,7 @@ def execute(elements, environment):
 
     :param environment: Environment mapping to execute command with.
 
-    :return: :attr:`~Popen.returncode` attribute.
+    :return: :attr:`~subprocess.Popen.returncode` attribute.
 
     """
     logger = logging.getLogger(__name__ + ".execute")
