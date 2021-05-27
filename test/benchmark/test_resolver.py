@@ -3196,3 +3196,61 @@ def test_scenario_42(benchmark):
             pass
 
     benchmark(_resolve)
+
+
+def test_scenario_43(benchmark):
+    """Compute packages for the following graph.
+
+    When a package has a condition which is fulfilled it is added to the graph,
+    even if the package extracted from the condition request is not in the
+    graph.
+
+    Root
+     |
+     |--(A==0.2.*): A==0.2.0
+     |
+     `--(B): B==1.0.0 (Condition: A)
+         |
+         `--(C > 0.1.0): C==0.5.0
+
+    Expected: A==1.1.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.1.0",
+            }),
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+            }),
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0",
+                "conditions": ["A"],
+                "requirements": ["C > 0.1.0"],
+            })
+        },
+        "C": {
+            "0.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.5.0"
+            })
+        },
+    }
+
+    def _resolve():
+        """Resolve context."""
+        try:
+            resolver = wiz.graph.Resolver(definition_mapping)
+            resolver.compute_packages([
+                Requirement("A==0.2.*"), Requirement("B")
+            ])
+        except wiz.exception.GraphResolutionError:
+            pass
+
+    benchmark(_resolve)
