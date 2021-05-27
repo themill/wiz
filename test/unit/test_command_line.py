@@ -2,6 +2,7 @@
 
 import datetime
 import os
+import sys
 import tempfile
 
 import click
@@ -39,6 +40,12 @@ def mock_datetime_now(mocker):
     return mocker.patch.object(
         datetime, "datetime", **{"now.return_value": _date}
     )
+
+
+@pytest.fixture()
+def mocked_click_exit(mocker):
+    """Return mocked 'click.Context.exit' method."""
+    return mocker.patch.object(click.Context, "exit")
 
 
 @pytest.fixture()
@@ -1510,7 +1517,7 @@ def test_use_spawn_shell(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
     mocked_spawn_shell, mocked_history_record_action, wiz_context, logger,
-    options, max_combinations, max_attempts
+    mocked_click_exit, options, max_combinations, max_attempts
 ):
     """Use a resolved context."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1523,6 +1530,8 @@ def test_use_spawn_shell(
     assert result.output == ""
     assert result.exit_code == 0
     assert not result.exception
+
+    mocked_click_exit.assert_called_once_with()
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
@@ -1564,7 +1573,7 @@ def test_use_spawn_shell_view(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
     mocked_spawn_shell, mocked_history_record_action, wiz_context, logger,
-    options, max_combinations, max_attempts
+    mocked_click_exit, options, max_combinations, max_attempts
 ):
     """View a resolved context."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1605,6 +1614,8 @@ def test_use_spawn_shell_view(
         "\n"
     )
 
+    mocked_click_exit.assert_called_once_with()
+
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
         system_mapping="__SYSTEM__", max_depth=None
@@ -1638,7 +1649,7 @@ def test_use_spawn_shell_view_empty(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
     mocked_spawn_shell, mocked_history_record_action, logger,
-    options, max_combinations, max_attempts
+    mocked_click_exit, options, max_combinations, max_attempts
 ):
     """View an empty resolved context."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1681,6 +1692,8 @@ def test_use_spawn_shell_view_empty(
         "\n"
     )
 
+    mocked_click_exit.assert_called_once_with()
+
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
         system_mapping="__SYSTEM__", max_depth=None
@@ -1714,7 +1727,7 @@ def test_use_execute_command(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
     mocked_spawn_shell, mocked_history_record_action, wiz_context, logger,
-    options, max_combinations, max_attempts
+    mocked_click_exit, options, max_combinations, max_attempts
 ):
     """Execute a command within a resolved context."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1722,6 +1735,7 @@ def test_use_execute_command(
     mocked_fetch_definition_mapping.return_value = "__MAPPING__"
     mocked_resolve_context.return_value = wiz_context
     mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+    mocked_spawn_execute.return_value = "__RETURN_CODE__"
 
     runner = CliRunner()
     result = runner.invoke(
@@ -1733,6 +1747,10 @@ def test_use_execute_command(
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
+
+    assert mocked_click_exit.call_count == 2
+    mocked_click_exit.assert_any_call()
+    mocked_click_exit.assert_any_call("__RETURN_CODE__")
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
@@ -1780,7 +1798,7 @@ def test_use_execute_command(
 def test_use_with_resolution_error(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
-    mocked_spawn_shell, mocked_history_record_action, logger,
+    mocked_spawn_shell, mocked_history_record_action, logger, mocked_click_exit,
     options, max_combinations, max_attempts
 ):
     """Fail to resolve a context."""
@@ -1797,6 +1815,8 @@ def test_use_with_resolution_error(
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
+
+    mocked_click_exit.assert_called_once_with()
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
@@ -1855,7 +1875,7 @@ def test_use_error(options):
 def test_use_initial_environment(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_resolve_context, mocked_resolve_command, mocked_spawn_execute,
-    wiz_context, options, max_combinations, max_attempts
+    mocked_click_exit, wiz_context, options, max_combinations, max_attempts
 ):
     """Executing a command to extend an initial environment."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1863,6 +1883,7 @@ def test_use_initial_environment(
     mocked_fetch_definition_mapping.return_value = "__MAPPING__"
     mocked_resolve_context.return_value = wiz_context
     mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+    mocked_spawn_execute.return_value = "__RETURN_CODE__"
 
     runner = CliRunner()
     result = runner.invoke(
@@ -1875,6 +1896,10 @@ def test_use_initial_environment(
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
+
+    assert mocked_click_exit.call_count == 2
+    mocked_click_exit.assert_any_call()
+    mocked_click_exit.assert_any_call("__RETURN_CODE__")
 
     mocked_resolve_context.assert_called_once_with(
         ["foo"], "__MAPPING__", ignore_implicit=False,
@@ -1904,12 +1929,13 @@ def test_use_initial_environment(
 @pytest.mark.usefixtures("mocked_spawn_execute")
 @pytest.mark.usefixtures("mocked_history_record_action")
 def test_run_recorded(
-    mocked_history_start_recording, mocked_history_get,
+    mocked_history_start_recording, mocked_history_get, mocked_spawn_execute,
     mocked_filesystem_export, mocked_resolve_command, options, recorded
 ):
     """Record history when running command within a resolved context."""
     mocked_history_get.return_value = "__HISTORY__"
     mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+    mocked_spawn_execute.return_value = 0
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, options + ["run", "fooExe"])
@@ -1945,7 +1971,7 @@ def test_run(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_fetch_package_request_from_command, mocked_resolve_context,
     mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
-    wiz_context, logger, options, max_combinations, max_attempts
+    wiz_context, logger, mocked_click_exit, options, max_combinations, max_attempts
 ):
     """Execute a command within a resolved context."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -1954,12 +1980,17 @@ def test_run(
     mocked_resolve_context.return_value = wiz_context
     mocked_fetch_package_request_from_command.return_value = "__PACKAGE__"
     mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+    mocked_spawn_execute.return_value = "__RETURN_CODE__"
 
     runner = CliRunner()
     result = runner.invoke(wiz.command_line.main, ["run", "fooExe"] + options)
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
+
+    assert mocked_click_exit.call_count == 2
+    mocked_click_exit.assert_any_call()
+    mocked_click_exit.assert_any_call("__RETURN_CODE__")
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
@@ -2011,7 +2042,7 @@ def test_run_view(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_fetch_package_request_from_command, mocked_resolve_context,
     mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
-    wiz_context, logger, options, max_combinations, max_attempts
+    wiz_context, logger, mocked_click_exit, options, max_combinations, max_attempts
 ):
     """View a resolved context from a command execution."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -2054,6 +2085,8 @@ def test_run_view(
         "\n"
     )
 
+    mocked_click_exit.assert_called_once_with()
+
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
         system_mapping="__SYSTEM__", max_depth=None
@@ -2090,7 +2123,7 @@ def test_run_view_empty(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_fetch_package_request_from_command, mocked_resolve_context,
     mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
-    logger, options, max_combinations, max_attempts
+    logger, mocked_click_exit, options, max_combinations, max_attempts
 ):
     """View an empty resolved context from a command execution."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -2135,6 +2168,8 @@ def test_run_view_empty(
         "\n"
     )
 
+    mocked_click_exit.assert_called_once_with()
+
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
         system_mapping="__SYSTEM__", max_depth=None
@@ -2171,7 +2206,7 @@ def test_run_with_resolution_error(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_fetch_package_request_from_command, mocked_resolve_context,
     mocked_resolve_command, mocked_spawn_execute, mocked_history_record_action,
-    logger, options, max_combinations, max_attempts
+    logger, mocked_click_exit, options, max_combinations, max_attempts
 ):
     """Fail to resolve a context."""
     exception = wiz.exception.WizError("Oh Shit!")
@@ -2186,6 +2221,8 @@ def test_run_with_resolution_error(
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
+
+    mocked_click_exit.assert_called_once_with()
 
     mocked_fetch_definition_mapping.assert_called_once_with(
         ["/registry1", "/registry2"],
@@ -2226,8 +2263,8 @@ def test_run_with_resolution_error(
 def test_run_initial_environment(
     mocked_system_query, mocked_registry_fetch, mocked_fetch_definition_mapping,
     mocked_fetch_package_request_from_command, mocked_resolve_context,
-    mocked_resolve_command, mocked_spawn_execute, wiz_context, options,
-    max_combinations, max_attempts
+    mocked_resolve_command, mocked_spawn_execute, wiz_context, mocked_click_exit,
+    options, max_combinations, max_attempts
 ):
     """Execute a command to extend an initial environment."""
     mocked_system_query.return_value = "__SYSTEM__"
@@ -2236,6 +2273,7 @@ def test_run_initial_environment(
     mocked_resolve_context.return_value = wiz_context
     mocked_fetch_package_request_from_command.return_value = "__PACKAGE__"
     mocked_resolve_command.return_value = "__RESOLVED_COMMAND__"
+    mocked_spawn_execute.return_value = "__RETURN_CODE__"
 
     runner = CliRunner()
     result = runner.invoke(
@@ -2247,6 +2285,10 @@ def test_run_initial_environment(
     assert result.exit_code == 0
     assert not result.exception
     assert result.output == ""
+
+    assert mocked_click_exit.call_count == 2
+    mocked_click_exit.assert_any_call()
+    mocked_click_exit.assert_any_call("__RETURN_CODE__")
 
     mocked_resolve_context.assert_called_once_with(
         ["__PACKAGE__"], "__MAPPING__", ignore_implicit=False,
