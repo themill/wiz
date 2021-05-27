@@ -23,6 +23,10 @@ Release Notes
         Fixed :class:`wiz.graph.Graph` to improve logic determining whether
         the :ref:`conditions <definition/conditions>` of a node are fulfilled.
 
+    .. change:: fixed
+
+        Updated :func:`wiz.logging.initiate` to fix colored formatting for Python 2.7.
+
     .. change:: changed
 
         Updated :func:`wiz.utility.combine_command` to make the output slightly more

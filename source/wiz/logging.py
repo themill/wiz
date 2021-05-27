@@ -7,6 +7,7 @@ import getpass
 import logging
 import logging.config
 import os
+import sys
 import tempfile
 
 import coloredlogs
@@ -102,6 +103,14 @@ def initiate(console_level="info"):
         console_handler["level"] = LEVEL_MAPPING[console_level]
 
     logging.config.dictConfig(logging_config)
+
+    # Formatter class cannot be initiate via config in Python 2.7.
+    if sys.version_info[0] < 3:
+        coloredlogs.install(
+            fmt="%(message)s",
+            stream=sys.stdout,
+            level=console_level.upper(),
+        )
 
 
 def capture_logs(error_stream, warning_stream):
