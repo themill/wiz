@@ -6,6 +6,18 @@ Release Notes
 
 .. release:: Upcoming
 
+    .. change:: changed
+        :tags: command-line
+
+        Updated ``wiz run`` and ``wiz use`` subcommands to promote
+        :attr:`~subprocess.Popen.returncode` attribute when a command is being executed
+        within a resolved context.
+
+    .. change:: changed
+
+        Updated :func:`wiz.spawn.execute` to return
+        :attr:`~subprocess.Popen.returncode` attribute.
+
     .. change:: fixed
 
         Fixed :class:`wiz.graph.Graph` to improve logic determining whether

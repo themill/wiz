@@ -21,7 +21,8 @@ def spied_environ_substitute(mocker):
 
 def test_execute(mocked_subprocess_call, spied_environ_substitute, logger):
     """Execute command within environment."""
-    wiz.spawn.execute(["app_exe", "-v", "/script"], "__ENVIRON__")
+    result = wiz.spawn.execute(["app_exe", "-v", "/script"], "__ENVIRON__")
+    assert result == mocked_subprocess_call.return_value
 
     assert spied_environ_substitute.call_count == 3
     spied_environ_substitute.assert_any_call("app_exe", "__ENVIRON__")
@@ -42,7 +43,8 @@ def test_execute_fail(mocked_subprocess_call, spied_environ_substitute, logger):
     exception = OSError("Oh Shit!")
     mocked_subprocess_call.side_effect = exception
 
-    wiz.spawn.execute(["app_exe", "-v", "/script"], "__ENVIRON__")
+    result = wiz.spawn.execute(["app_exe", "-v", "/script"], "__ENVIRON__")
+    assert result == -1
 
     assert spied_environ_substitute.call_count == 3
     spied_environ_substitute.assert_any_call("app_exe", "__ENVIRON__")
