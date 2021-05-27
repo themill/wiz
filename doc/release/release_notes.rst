@@ -23,6 +23,19 @@ Release Notes
         Fixed :class:`wiz.graph.Graph` to improve logic determining whether
         the :ref:`conditions <definition/conditions>` of a node are fulfilled.
 
+    .. change:: changed
+
+        Updated :func:`wiz.utility.combine_command` to make the output slightly more
+        readable when escaping single quotes within single quoted strings. It now
+        uses ``'\''`` instead of ``'"'"'`` as automatically returned by
+        :func:`shlex.quote`.
+
+        .. seealso::
+
+            `How to escape single quotes within single quoted strings
+            <https://stackoverflow.com/questions/1250079/
+            how-to-escape-single-quotes-within-single-quoted-strings>`_
+
 .. release:: 3.6.4
     :date: 2020-12-17
 

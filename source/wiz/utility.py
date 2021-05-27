@@ -5,12 +5,12 @@ import collections
 import copy
 import functools
 import hashlib
-import pipes
 import re
 import zlib
 
 from packaging.requirements import InvalidRequirement
 from packaging.version import Version, InvalidVersion
+from six.moves import shlex_quote
 import ujson
 
 import wiz.exception
@@ -612,7 +612,10 @@ def combine_command(elements):
 
 
     """
-    return " ".join([pipes.quote(element) for element in elements])
+    return " ".join([
+        shlex_quote(element).replace("'\"'\"'", "'\\''")
+        for element in elements
+    ])
 
 
 def deep_update(mapping1, mapping2):
