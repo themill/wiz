@@ -170,6 +170,8 @@ def test_initiate_with_existing_folder(
 ):
     """Initiate logger configuration with existing folder."""
     path = os.path.join(temporary_directory, "wiz", "logs")
+
+    os.umask(0)
     os.makedirs(path)
 
     mocked_gettempdir.return_value = temporary_directory

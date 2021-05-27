@@ -3287,3 +3287,59 @@ def test_scenario_42():
         "  * ::C <1 \t[B[V2]]\n"
         "  * ::C >1 \t[A[V2]]"
     ) in str(error.value)
+
+
+def test_scenario_43():
+    """Compute packages for the following graph.
+
+    When a package has a condition which is fulfilled it is added to the graph,
+    even if the package extracted from the condition request is not in the
+    graph.
+
+    Root
+     |
+     |--(A==0.2.*): A==0.2.0
+     |
+     `--(B): B==1.0.0 (Condition: A)
+         |
+         `--(C > 0.1.0): C==0.5.0
+
+    Expected: A==1.1.0
+
+    """
+    definition_mapping = {
+        "A": {
+            "1.1.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "1.1.0",
+            }),
+            "0.2.0": wiz.definition.Definition({
+                "identifier": "A",
+                "version": "0.2.0",
+            }),
+        },
+        "B": {
+            "1.0.0": wiz.definition.Definition({
+                "identifier": "B",
+                "version": "1.0.0",
+                "conditions": ["A"],
+                "requirements": ["C > 0.1.0"],
+            })
+        },
+        "C": {
+            "0.5.0": wiz.definition.Definition({
+                "identifier": "C",
+                "version": "0.5.0"
+            })
+        },
+    }
+
+    resolver = wiz.graph.Resolver(definition_mapping)
+    packages = resolver.compute_packages([
+        Requirement("A==0.2.*"), Requirement("B")
+    ])
+
+    assert len(packages) == 3
+    assert packages[0].identifier == "C==0.5.0"
+    assert packages[1].identifier == "B==1.0.0"
+    assert packages[2].identifier == "A==0.2.0"

@@ -4,6 +4,42 @@
 Release Notes
 *************
 
+.. release:: Upcoming
+
+    .. change:: changed
+        :tags: command-line
+
+        Updated ``wiz run`` and ``wiz use`` subcommands to promote
+        :attr:`~subprocess.Popen.returncode` attribute when a command is being executed
+        within a resolved context.
+
+    .. change:: changed
+
+        Updated :func:`wiz.spawn.execute` to return
+        :attr:`~subprocess.Popen.returncode` attribute.
+
+    .. change:: fixed
+
+        Fixed :class:`wiz.graph.Graph` to improve logic determining whether
+        the :ref:`conditions <definition/conditions>` of a node are fulfilled.
+
+    .. change:: fixed
+
+        Updated :func:`wiz.logging.initiate` to fix colored formatting for Python 2.7.
+
+    .. change:: changed
+
+        Updated :func:`wiz.utility.combine_command` to make the output slightly more
+        readable when escaping single quotes within single quoted strings. It now
+        uses ``'\''`` instead of ``'"'"'`` as automatically returned by
+        :func:`shlex.quote`.
+
+        .. seealso::
+
+            `How to escape single quotes within single quoted strings
+            <https://stackoverflow.com/questions/1250079/
+            how-to-escape-single-quotes-within-single-quoted-strings>`_
+
 .. release:: 3.6.4
     :date: 2020-12-17
 

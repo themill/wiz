@@ -334,7 +334,7 @@ sub-definitions:
 .. code-block:: json
 
     {
-        "variant": [
+        "variants": [
             {
                 "identifier": "variant1",
                 "environ": {
