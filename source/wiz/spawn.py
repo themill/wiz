@@ -123,6 +123,8 @@ def execute(elements, environment):
             "environment [{}]".format(elements[0])
         )
 
+    # A negative value -N indicates that the child was terminated by signal N
+    # on POSIX architecture.
     return -1
 
 
