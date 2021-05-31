@@ -2118,7 +2118,9 @@ def _export_history_if_requested(click_context):
     history = wiz.history.get(serialized=True)
     path = os.path.join(
         os.path.abspath(click_context.obj["recording_path"]),
-        "wiz-{}.dump".format(datetime.datetime.now().isoformat())
+        "wiz-{}.gz".format(
+            datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
+        )
     )
     wiz.filesystem.export(path, history, compressed=True)
     logger.info("History recorded and exported in '{}'".format(path))
